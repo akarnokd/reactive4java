@@ -31,8 +31,7 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * The wrapper for the event dispatch thread. 
- * @author karnok, 2011.01.28.
- * @version $Revision 1.0$
+ * @author akarnokd, 2011.01.28.
  */
 public final class EdtExecutorService
 		implements ExecutorService {

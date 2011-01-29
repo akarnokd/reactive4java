@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Test program for the MinLinq stuff.
- * @author karnokd
+ * @author akarnokd
  */
 public final class Test {
 

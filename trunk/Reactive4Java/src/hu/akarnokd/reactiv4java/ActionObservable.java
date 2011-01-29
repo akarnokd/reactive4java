@@ -19,7 +19,8 @@ package hu.akarnokd.reactiv4java;
 
 /**
  * The functional observable helper class with the anamorphism, bind and catamorpism basic operators.
- * @author karnokd
+ * Inspired by http://blogs.bartdesmet.net/blogs/bart/archive/2010/01/01/the-essence-of-linq-minlinq.aspx
+ * @author akarnokd
  */
 public final class ActionObservable {
 	/** Helper class. */

@@ -18,7 +18,7 @@ package hu.akarnokd.reactiv4java;
 
 /**
  * A parameterless function interface.
- * @author karnokd
+ * @author akarnokd
  * @param <Return> the return type
  */
 public interface Func0<Return> {

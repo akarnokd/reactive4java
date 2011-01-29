@@ -21,7 +21,8 @@ import java.util.NoSuchElementException;
 
 /**
  * The functional iterable support with anamorphism, bind and catamorphism.
- * @author karnokd
+ * http://blogs.bartdesmet.net/blogs/bart/archive/2010/01/01/the-essence-of-linq-minlinq.aspx
+ * @author akarnokd
  */
 public final class FunctionIterable {
 	/** Utility class. */

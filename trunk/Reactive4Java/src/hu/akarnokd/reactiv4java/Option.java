@@ -18,7 +18,7 @@ package hu.akarnokd.reactiv4java;
 
 /**
  * A class representing a value or nothing.
- * @author karnokd
+ * @author akarnokd
  * @param <T> the type of the contained object
  */
 public abstract class Option<T> {
@@ -28,7 +28,7 @@ public abstract class Option<T> {
 	public abstract T value();
 	/**
 	 * The helper class representing an option holding nothing.
-	 * @author karnokd
+	 * @author akarnokd
 	 *
 	 * @param <T> the type of the nothing - not really used but required by the types
 	 */

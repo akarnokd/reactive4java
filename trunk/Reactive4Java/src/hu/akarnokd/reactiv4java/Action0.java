@@ -18,7 +18,7 @@ package hu.akarnokd.reactiv4java;
 
 /**
  * A parameterless action.
- * @author karnokd
+ * @author akarnokd
  */
 public interface Action0 {
 	/** Invoke. */

@@ -18,7 +18,7 @@ package hu.akarnokd.reactiv4java;
 
 /**
  * Helper class for Action interfaces.
- * @author karnokd
+ * @author akarnokd
  *
  */
 public final class Actions {

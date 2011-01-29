@@ -21,7 +21,7 @@ import java.io.Closeable;
 
 /**
  * Defines a provider for a push based value streaming. Based on Rx.
- * @author karnokd
+ * @author akarnokd
  * @param <T> the type of the values to send
  */
 public interface Observable<T> {

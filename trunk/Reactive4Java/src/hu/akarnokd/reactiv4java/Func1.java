@@ -18,7 +18,7 @@ package hu.akarnokd.reactiv4java;
 
 /**
  * The function interface which takes one parameter and returns something.
- * @author karnokd
+ * @author akarnokd
  * @param <Return> the return type
  * @param <Param1> the first parameter
  */

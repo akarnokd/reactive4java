@@ -18,7 +18,7 @@ package hu.akarnokd.reactiv4java;
 
 /**
  * The observer who receives the notifications of T.
- * @author karnokd
+ * @author akarnokd
  * @param <T> the type of the notification values.
  */
 public interface Observer<T> {
