@@ -41,6 +41,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Utility class to manage observable interfaces.
+ * Guidances were taken from 
+ * <ul>
+ * <li>http://theburningmonk.com/tags/rx/</li>
+ * <li>http://blogs.bartdesmet.net/blogs/bart/archive/2010/01/01/the-essence-of-linq-minlinq.aspx</li>
+ * <li>http://rxwiki.wikidot.com/101samples#toc3</li>
+ * </ul>
+ * 
  * @author akarnokd
  *
  */
@@ -51,7 +58,7 @@ public final class Observables {
 		// utility class
 	}
 	/** A helper disposable object which does nothing. */
-	private static final Closeable EMPTY_DISPOSABLE = new Closeable() {
+	private static final Closeable EMPTY_CLOSEABLE = new Closeable() {
 		@Override
 		public void close() {
 			
@@ -119,7 +126,7 @@ public final class Observables {
 						observer.finish();
 					}
 				});
-				return EMPTY_DISPOSABLE; // FIXME what should be disposed???
+				return EMPTY_CLOSEABLE; // FIXME what should be disposed???
 			}
 		};
 	}
@@ -292,7 +299,7 @@ public final class Observables {
 						observer.finish();
 					}
 				});
-				return EMPTY_DISPOSABLE; // FIXME unsubscribe as NO-OP?
+				return EMPTY_CLOSEABLE; // FIXME unsubscribe as NO-OP?
 			}
 		};
 	}
@@ -308,6 +315,7 @@ public final class Observables {
 	}	
 	/**
 	 * Convert the given observable instance into a classical iterable instance.
+	 * FIXME how to propagte exception values?
 	 * @param <T> the element type to iterate
 	 * @param observable the original observable
 	 * @param pool the pool where to await elements from the observable.
@@ -318,6 +326,25 @@ public final class Observables {
 			@Override
 			public Iterator<T> iterator() {
 				final LinkedBlockingQueue<Option<T>> queue = new LinkedBlockingQueue<Option<T>>();
+				
+				observable.register(new Observer<T>() {
+					@Override
+					public void next(T value) {
+						queue.add(Option.some(value));
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						// TODO Auto-generated method stub
+						
+					}
+
+					@Override
+					public void finish() {
+						queue.add(Option.<T>none());
+					}
+					
+				});
 				
 				return new Iterator<T>() {
 					/** The peek value due hasNext. */
@@ -1061,7 +1088,7 @@ public final class Observables {
 	 * @param sources the list of sources
 	 * @return the observable
 	 */
-	public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
+	public static <T> Observable<T> merge(final Iterable<Observable<T>> sources) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -1080,6 +1107,41 @@ public final class Observables {
 						}
 					}
 				};
+			}
+		};
+	}
+	/**
+	 * Concatenates the source observables in a way that when the first finish(), the
+	 * second gets registered and continued, and so on.
+	 * @param <T> the type of the values to observe
+	 * @param sources the source list of subsequent observables
+	 * @return the concatenated observable
+	 */
+	public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
+		final Iterator<Observable<T>> it = sources.iterator();
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				if (it.hasNext()) {
+					return it.next().register(new Observer<T>() {
+
+						@Override
+						public void next(T value) {
+							observer.next(value);
+						}
+
+						@Override
+						public void error(Throwable ex) {
+							observer.error(ex);
+						}
+
+						@Override
+						public void finish() {
+							register(observer);
+						}
+					});
+				}
+				return EMPTY_CLOSEABLE;
 			}
 		};
 	}
@@ -1371,6 +1433,280 @@ public final class Observables {
 					}
 					
 				});
+			}
+		};
+	}
+	/**
+	 * Invoke a specific observer before relaying the Ts, finish() and error() to the observable. The <code>action</code> might
+	 * have some effect on each individual Ts passing through this filter.
+	 * @param <T> the type of the values observed
+	 * @param source the source of Ts
+	 * @param observer the observer to invoke before any registered observers are called
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> invoke(final Observable<T> source, final Observer<T> observer) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> o) {
+				return source.register(new Observer<T>() {
+					@Override
+					public void next(T value) {
+						observer.next(value);
+						o.next(value);
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex); // FIXME should this also happen?
+						o.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish(); // FIXME should this also happen?
+						o.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Relay the stream of Ts until condition turns into false.
+	 * @param <T> the type of the values
+	 * @param source the source of Ts
+	 * @param condition the condition that must hold to relay Ts
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> relayUntil(final Observable<T> source, final Func0<Boolean> condition) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** Are we done? */
+					boolean done;
+					@Override
+					public void next(T value) {
+						if (!done) {
+							done |= !condition.invoke();
+							if (!done) {
+								observer.next(value);
+							}
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						if (!done) {
+							observer.error(ex);
+						}
+					}
+
+					@Override
+					public void finish() {
+						if (!done) {
+							done = true;
+							observer.finish();
+						}
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Maintains a queue of Ts which is then drained by the pump.
+	 * FIXME not sure what this method should do and how.
+	 * @param <T> the type of the values
+	 * @param source the source of Ts
+	 * @param pump the pump that drains the queue
+	 * @param pool the pool for the drain
+	 * @return the new observable
+	 */
+	/*public */static <T> Observable<Void> drain(final Observable<T> source, final Func1<Observable<Void>, T> pump, final ExecutorService pool) {
+		return new Observable<Void>() {
+			@Override
+			public Closeable register(final Observer<? super Void> observer) {
+				return source.register(new Observer<T>() {
+					@Override
+					public void next(T value) {
+						// TODO Auto-generated method stub
+						Observable<Void> o2 = pump.invoke(value);
+						observeOn(o2, pool).register(observer); // FIXME I don't understand
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						// TODO Auto-generated method stub
+						throw new UnsupportedOperationException();
+					}
+
+					@Override
+					public void finish() {
+						// TODO Auto-generated method stub
+						throw new UnsupportedOperationException();
+						
+					}
+				});
+			}
+		};
+	}
+	/**
+	 * Maintains a queue of Ts which is then drained by the pump. Uses the default pool.
+	 * FIXME not sure what this method should do and how.
+	 * @param <T> the type of the values
+	 * @param source the source of Ts
+	 * @param pump the pump that drains the queue
+	 * @return the new observable
+	 */
+	/*public */static <T> Observable<Void> drain(final Observable<T> source, final Func1<Observable<Void>, T> pump) {
+		return drain(source, pump, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Returns an empty observable which signals only finish() on the given pool.
+	 * @param <T> the expected type, (irrelevant)
+	 * @param pool the pool to invoke the the finish()
+	 * @return the observable
+	 */
+	public static <T> Observable<T> empty(final ExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				pool.execute(new Runnable() {
+					@Override
+					public void run() {
+						observer.finish();
+					}
+				});
+				return EMPTY_CLOSEABLE;
+			}
+		};
+	}
+	/**
+	 * @param <T> the type of the values to observe (irrelevant)
+	 * @return Returns an empty observable which signals only finish() on the default observer pool.
+	 */
+	public static <T> Observable<T> empty() {
+		return empty(DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Invokes the given action when the source signals a finish() or error().
+	 * @param <T> the type of the observed values
+	 * @param source the source of Ts
+	 * @param action the action to invoke on finish() or error()
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> finish(final Observable<T> source, final Action0 action) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					@Override
+					public void next(T value) {
+						observer.next(value);
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						action.invoke();
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						action.invoke();
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Blocks until the first element of the observable becomes availabel and returns that element.
+	 * Might block forever.
+	 * Might throw a NoSuchElementException when the observable doesn't produce any more elements
+	 * @param <T> the type of the elements
+	 * @param source the source of Ts
+	 * @return the first element
+	 */
+	public static <T> T first(final Observable<T> source) {
+		Iterator<T> it = asIterable(source).iterator();
+		if (it.hasNext()) {
+			return it.next();
+		}
+		throw new NoSuchElementException();
+	}
+	/**
+	 * Creates a concatenated sequence of Observables based on the decision function of <code>selector</code> keyed by the source iterable.
+	 * @param <T> the type of the source values
+	 * @param <U> the type of the observable elements.
+	 * @param source the source of keys
+	 * @param selector the selector of keys which returns a new observable
+	 * @return the concatenated observable.
+	 */
+	public static <T, U> Observable<U> forEach(final Iterable<T> source, final Func1<Observable<U>, T> selector) {
+		List<Observable<U>> list = new ArrayList<Observable<U>>();
+		for (T t : source) {
+			list.add(selector.invoke(t));
+		}
+		return concat(list);
+	}
+	/**
+	 * Runs the observables in parallel and joins their last values whenever one fires.
+	 * FIXME not sure what this method should do in case of error.
+	 * @param <T> the type of the source values
+	 * @param sources the list of sources
+	 * @return the observable 
+	 */
+	public static <T> Observable<List<T>> forkJoin(final Iterable<Observable<T>> sources) {
+		final List<AtomicReference<T>> lastValues = new ArrayList<AtomicReference<T>>();
+		final List<Observable<T>> observableList = new ArrayList<Observable<T>>();
+		for (Observable<T> o : sources) {
+			observableList.add(o);
+			lastValues.add(new AtomicReference<T>());
+		}
+		final AtomicInteger wip = new AtomicInteger(observableList.size());
+		
+		return new Observable<List<T>>() {
+			@Override
+			public Closeable register(final Observer<? super List<T>> observer) {
+				int i = 0;
+				for (Observable<T> o : observableList) {
+					final int j = i;
+					
+					o.register(new Observer<T>() {
+						/** The last value. */
+						T last;
+						@Override
+						public void next(T value) {
+							last = value;
+						}
+
+						@Override
+						public void error(Throwable ex) {
+							// TODO Auto-generated method stub
+							
+						}
+
+						@Override
+						public void finish() {
+							lastValues.get(j).set(last);
+							if (wip.decrementAndGet() == 0) {
+								List<T> values = new ArrayList<T>();
+								for (AtomicReference<T> r : lastValues) {
+									values.add(r.get());
+								}
+								observer.next(values);
+								observer.finish();
+							}
+						}
+						
+					});
+					
+					i++;
+				}
+				return EMPTY_CLOSEABLE;
 			}
 		};
 	}
