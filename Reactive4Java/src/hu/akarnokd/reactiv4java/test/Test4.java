@@ -57,6 +57,12 @@ public final class Test4 {
 			System.out.println(t);
 			Thread.sleep(3000);
 		}
+		
+		c = Observables.sample(Observables.tick(1L, TimeUnit.SECONDS), 3L, TimeUnit.SECONDS).register(Observables.printlnObserver());
+		
+		Thread.sleep(10000);
+		
+		c.close();
 	}
 
 }

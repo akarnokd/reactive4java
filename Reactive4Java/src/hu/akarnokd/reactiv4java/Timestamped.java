@@ -54,6 +54,37 @@ public final class Timestamped<T> {
 	public static <T> Timestamped<T> of(T value, long timestamp) {
 		return new Timestamped<T>(value, timestamp);
 	}
+	/**
+	 * A type inference helper to construct a new timestamped value from another
+	 * timestamped value by keeping the value and assigning a new value.
+	 * @param <T> the type of the value
+	 * @param value the value
+	 * @param timestamp the timestamp
+	 * @return the timestamped object
+	 */
+	public static <T> Timestamped<T> of(Timestamped<T> value, long timestamp) {
+		return new Timestamped<T>(value.value(), timestamp);
+	}
+	/**
+	 * A type inference helper to construct a new timestamped value where the timestamp
+	 * is the System.currentTimeMillis().
+	 * @param <T> the type of the value
+	 * @param value the value
+	 * @return the timestamped object
+	 */
+	public static <T> Timestamped<T> of(T value) {
+		return of(value, System.currentTimeMillis());
+	}
+	/**
+	 * A type inference helper to construct a new timestamped value from another timestamped value
+	 * where the new timestamp is the System.currentTimeMillis().
+	 * @param <T> the type of the value
+	 * @param value the value
+	 * @return the timestamped object
+	 */
+	public static <T> Timestamped<T> of(Timestamped<T> value) {
+		return of(value, System.currentTimeMillis());
+	}
 	@Override
 	public String toString() {
 		return value + " @ " + new Date(timestamp);
