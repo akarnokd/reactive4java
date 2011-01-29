@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -1055,68 +1056,6 @@ public final class Observables {
 		return buffer(source, bufferSize, time, unit, DEFAULT_SCHEDULED_POOL);
 	}
 	/**
-	 * It tries to submit the values of first observable, but when it throws an exeption,
-	 * the next observable within source is used further on. Basically a failover between the Observables.
-	 * If the current source finish() then the result observable calls finish().
-	 * If the last of the sources calls error() the result observable calls error()
-	 * @param <T> the type of the values
-	 * @param sources the available source observables.
-	 * @return the failover observable
-	 */
-	public static <T> Observable<T> catchException(final Iterable<Observable<T>> sources) {
-		final Iterator<Observable<T>> it = sources.iterator();
-		return new Observable<T>() {
-			/** The last one to dispose. */
-//			Disposable lastDisposable;
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				if (it.hasNext()) {
-					Closeable d = it.next().register(new Observer<T>() {
-						boolean done;
-						@Override
-						public void next(T value) {
-							if (!done) {
-								observer.next(value);
-							}
-						}
-
-						@Override
-						public void error(Throwable ex) {
-							if (!done) {
-								done = true;
-//								Disposable d = lastDisposable;
-//								if (d != null) {
-//									d.close();
-//								}
-								register(this);
-							}
-						}
-
-						@Override
-						public void finish() {
-							if (!done) {
-								done = true;
-								observer.finish();
-							}
-						}
-						
-					});
-//					lastDisposable = d;
-					return d;
-				}
-				return new Closeable() {
-					@Override
-					public void close() {
-//						Disposable d = lastDisposable;
-//						if (d != null) {
-//							d.close();
-//						}
-					}
-				};
-			}
-		};
-	}
-	/**
 	 * Combines the notifications of all sources. The resulting stream of Ts might come from any of the sources.
 	 * @param <T> the type of the values
 	 * @param sources the list of sources
@@ -1141,41 +1080,6 @@ public final class Observables {
 						}
 					}
 				};
-			}
-		};
-	}
-	/**
-	 * Concatenates the source observables in a way that when the first finish(), the
-	 * second gets registered and continued, and so on.
-	 * @param <T> the type of the values to observe
-	 * @param sources the source list of subsequent observables
-	 * @return the concatenated observable
-	 */
-	public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
-		final Iterator<Observable<T>> it = sources.iterator();
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				if (it.hasNext()) {
-					return it.next().register(new Observer<T>() {
-
-						@Override
-						public void next(T value) {
-							observer.next(value);
-						}
-
-						@Override
-						public void error(Throwable ex) {
-							observer.error(ex);
-						}
-
-						@Override
-						public void finish() {
-							register(observer);
-						}
-					});
-				}
-				return EMPTY_CLOSEABLE;
 			}
 		};
 	}
@@ -2418,6 +2322,48 @@ public final class Observables {
 					@Override
 					public void next(T value) {
 						if (first || maxValue.compareTo(value) < 0) {
+							first = false;
+							maxValue = value;
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (!first) {
+							observer.next(maxValue);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Returns the maximum value encountered in the source observable onse it finish().
+	 * @param <T> the element type
+	 * @param source the source of integers
+	 * @param comparator the comparator to decide the relation of values
+	 * @return the the maximum value
+	 */
+	public static <T> Observable<T> max(final Observable<T> source, final Comparator<T> comparator) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** Keeps track of the maximum value. */
+					T maxValue;
+					/** Is this the first original value? */
+					boolean first = true;
+					@Override
+					public void next(T value) {
+						if (first || comparator.compare(maxValue, value) < 0) {
+							first = false;
 							maxValue = value;
 						}
 					}
@@ -2457,6 +2403,48 @@ public final class Observables {
 					@Override
 					public void next(T value) {
 						if (first || minValue.compareTo(value) > 0) {
+							first = false;
+							minValue = value;
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (!first) {
+							observer.next(minValue);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Returns the minimum value encountered in the source observable onse it finish().
+	 * @param <T> the element type
+	 * @param source the source of integers
+	 * @param comparator the comparator to decide the relation of values
+	 * @return the the minimum value
+	 */
+	public static <T> Observable<T> min(final Observable<T> source, final Comparator<T> comparator) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** Keeps track of the maximum value. */
+					T minValue;
+					/** Is this the first original value? */
+					boolean first = true;
+					@Override
+					public void next(T value) {
+						if (first || comparator.compare(minValue, value) > 0) {
+							first = false;
 							minValue = value;
 						}
 					}
@@ -2520,6 +2508,419 @@ public final class Observables {
 					}
 					
 				});
+			}
+		};
+	}
+	/**
+	 * Returns an observable which provides with the list of <code>T</code>s which had their keys as maximums.
+	 * The returned observer may finish() if the source sends finish() without any next().
+	 * The generated list is modifiable.
+	 * @param <T> the type of elements
+	 * @param <Key> the key type, which must be comparable to itself
+	 * @param source the source of <code>T</code>s
+	 * @param keyExtractor the key extractor to produce <code>Key</code>s from <code>T</code>s.
+	 * @return the observable for the maximum keyed Ts
+	 */
+	public static <T, Key extends Comparable<? super Key>> Observable<List<T>> maxBy(final Observable<T> source, final Func1<Key, T> keyExtractor) {
+		return new Observable<List<T>>() {
+			@Override
+			public Closeable register(final Observer<? super List<T>> observer) {
+				return source.register(new Observer<T>() {
+					/** The current collection for the minimum of Ts. */
+					List<T> collect;
+					/** The current minimum value. */
+					Key maxKey;
+					@Override
+					public void next(T value) {
+						Key key = keyExtractor.invoke(value);
+						if (collect == null) {
+							maxKey = key;
+							collect = new ArrayList<T>();
+							collect.add(value);
+						} else {
+							int order = maxKey.compareTo(key);
+							if (order == 0) {
+								collect.add(value);
+							} else
+							if (order < 0) {
+								maxKey = key;
+								collect = new ArrayList<T>();
+								collect.add(value);
+							}
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (collect != null) {
+							observer.next(collect);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Returns an observable which provides with the list of <code>T</code>s which had their keys as minimums.
+	 * The returned observer may finish() if the source sends finish() without any next().
+	 * The generated list is modifiable.
+	 * @param <T> the type of elements
+	 * @param <Key> the key type, which must be comparable to itself
+	 * @param source the source of <code>T</code>s
+	 * @param keyExtractor the key extractor to produce <code>Key</code>s from <code>T</code>s.
+	 * @return the observable for the minimum keyed Ts
+	 */
+	public static <T, Key extends Comparable<? super Key>> Observable<List<T>> minBy(final Observable<T> source, final Func1<Key, T> keyExtractor) {
+		return new Observable<List<T>>() {
+			@Override
+			public Closeable register(final Observer<? super List<T>> observer) {
+				return source.register(new Observer<T>() {
+					/** The current collection for the minimum of Ts. */
+					List<T> collect;
+					/** The current minimum value. */
+					Key minKey;
+					@Override
+					public void next(T value) {
+						Key key = keyExtractor.invoke(value);
+						if (collect == null) {
+							minKey = key;
+							collect = new ArrayList<T>();
+							collect.add(value);
+						} else {
+							int order = minKey.compareTo(key);
+							if (order == 0) {
+								collect.add(value);
+							} else
+							if (order > 0) {
+								minKey = key;
+								collect = new ArrayList<T>();
+								collect.add(value);
+							}
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (collect != null) {
+							observer.next(collect);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Returns an observable which provides with the list of <code>T</code>s which had their keys as maximums.
+	 * The returned observer may finish() if the source sends finish() without any next().
+	 * The generated list is modifiable.
+	 * @param <T> the type of elements
+	 * @param <Key> the key type
+	 * @param source the source of <code>T</code>s
+	 * @param keyExtractor the key extractor to produce <code>Key</code>s from <code>T</code>s.
+	 * @param keyComparator the comparator for the keys
+	 * @return the observable for the maximum keyed Ts
+	 */
+	public static <T, Key> Observable<List<T>> maxBy(final Observable<T> source, final Func1<Key, T> keyExtractor, 
+			final Comparator<Key> keyComparator) {
+		return new Observable<List<T>>() {
+			@Override
+			public Closeable register(final Observer<? super List<T>> observer) {
+				return source.register(new Observer<T>() {
+					/** The current collection for the minimum of Ts. */
+					List<T> collect;
+					/** The current minimum value. */
+					Key maxKey;
+					@Override
+					public void next(T value) {
+						Key key = keyExtractor.invoke(value);
+						if (collect == null) {
+							maxKey = key;
+							collect = new ArrayList<T>();
+							collect.add(value);
+						} else {
+							int order = keyComparator.compare(maxKey, key);
+							if (order == 0) {
+								collect.add(value);
+							} else
+							if (order < 0) {
+								maxKey = key;
+								collect = new ArrayList<T>();
+								collect.add(value);
+							}
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (collect != null) {
+							observer.next(collect);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Returns an observable which provides with the list of <code>T</code>s which had their keys as minimums.
+	 * The returned observer may finish() if the source sends finish() without any next().
+	 * The generated list is modifiable.
+	 * @param <T> the type of elements
+	 * @param <Key> the key type
+	 * @param source the source of <code>T</code>s
+	 * @param keyExtractor the key extractor to produce <code>Key</code>s from <code>T</code>s.
+	 * @param keyComparator the comparator for the keys
+	 * @return the observable for the minimum keyed Ts
+	 */
+	public static <T, Key> Observable<List<T>> minBy(final Observable<T> source, final Func1<Key, T> keyExtractor, 
+			final Comparator<Key> keyComparator) {
+		return new Observable<List<T>>() {
+			@Override
+			public Closeable register(final Observer<? super List<T>> observer) {
+				return source.register(new Observer<T>() {
+					/** The current collection for the minimum of Ts. */
+					List<T> collect;
+					/** The current minimum value. */
+					Key minKey;
+					@Override
+					public void next(T value) {
+						Key key = keyExtractor.invoke(value);
+						if (collect == null) {
+							minKey = key;
+							collect = new ArrayList<T>();
+							collect.add(value);
+						} else {
+							int order = keyComparator.compare(minKey, key);
+							if (order == 0) {
+								collect.add(value);
+							} else
+							if (order > 0) {
+								minKey = key;
+								collect = new ArrayList<T>();
+								collect.add(value);
+							}
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (collect != null) {
+							observer.next(collect);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Filters objects from source which are assignment compatible with T.
+	 * Note that due java erasure complex generic types can't be filtered this way in runtime (e.g., List&lt;String>.class is just List.class).
+	 * @param <T> the type of the expected values
+	 * @param source the source of unknown elements
+	 * @param token the token to test agains the elements
+	 * @return the observable containing Ts
+	 */
+	public static <T> Observable<T> typedAs(final Observable<?> source, final Class<T> token) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<Object>() {
+					@Override
+					public void next(Object value) {
+						if (token.isInstance(value)) {
+							observer.next(token.cast(value));
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * A wrapper implementation for observer which is able to unregister from the Observable.
+	 * Use the registerWith() and unregister() methods instead of adding this to a register() call.
+	 * @author akarnokd, 2011.01.29.
+	 * @param <T> the element type to observe
+	 */
+	abstract static class UObserver<T> implements Observer<T> {
+		/** The saved handler. */ 
+		protected Closeable handler;
+		/**
+		 * Register with the given observable.
+		 * @param observable the target observable
+		 * @return the unregistration handler
+		 */
+		public Closeable registerWith(Observable<T> observable) {
+			handler = observable.register(this);
+			return handler;
+		}
+		/**
+		 * Unregisters this observer from its observable.
+		 */
+		protected void unregister() {
+			try {
+				handler.close();
+			} catch (IOException e) {
+				throw new RuntimeException();
+			}
+		}
+	}
+	/**
+	 * Concatenates the source observables in a way that when the first finish(), the
+	 * second gets registered and continued, and so on.
+	 * FIXME not sure how it should handle closability
+	 * @param <T> the type of the values to observe
+	 * @param sources the source list of subsequent observables
+	 * @return the concatenated observable
+	 */
+	public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
+		final Iterator<Observable<T>> it = sources.iterator();
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				if (it.hasNext()) {
+					UObserver<T> obs = new UObserver<T>() {
+						@Override
+						public void next(T value) {
+							observer.next(value);
+						}
+
+						@Override
+						public void error(Throwable ex) {
+							observer.error(ex);
+						}
+
+						@Override
+						public void finish() {
+							unregister();
+							registerWith(it.next());
+						}
+						
+					};
+					return obs.registerWith(it.next());
+				}
+				observer.finish();
+				return EMPTY_CLOSEABLE;
+			}
+		};
+	}
+	/**
+	 * Returns an observable which listens to elements from a source until it signals an error()
+	 * or finish() and continues with the next observable. The registration happens only when the
+	 * previous observables finished in any way.
+	 * FIXME not sure how to close previous registrations
+	 * @param <T> the type of the elements
+	 * @param sources the list of observables
+	 * @return the observable
+	 */
+	public static <T> Observable<T> resumeAlways(final Iterable<Observable<T>> sources) {
+		final Iterator<Observable<T>> it = sources.iterator();
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				if (it.hasNext()) {
+					UObserver<T> obs = new UObserver<T>() {
+						@Override
+						public void next(T value) {
+							observer.next(value);
+						}
+
+						@Override
+						public void error(Throwable ex) {
+							unregister();
+							registerWith(it.next());
+						}
+
+						@Override
+						public void finish() {
+							unregister();
+							registerWith(it.next());
+						}
+						
+					};
+					return obs.registerWith(it.next());
+				}
+				observer.finish();
+				return EMPTY_CLOSEABLE;
+			}
+		};
+	}
+	/**
+	 * It tries to submit the values of first observable, but when it throws an exeption,
+	 * the next observable within source is used further on. Basically a failover between the Observables.
+	 * If the current source finish() then the result observable calls finish().
+	 * If the last of the sources calls error() the result observable calls error()
+	 * FIXME not sure how to close previous registrations
+	 * @param <T> the type of the values
+	 * @param sources the available source observables.
+	 * @return the failover observable
+	 */
+	public static <T> Observable<T> catchException(final Iterable<Observable<T>> sources) {
+		final Iterator<Observable<T>> it = sources.iterator();
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				if (it.hasNext()) {
+					UObserver<T> obs = new UObserver<T>() {
+						@Override
+						public void next(T value) {
+							observer.next(value);
+						}
+
+						@Override
+						public void error(Throwable ex) {
+							unregister();
+							registerWith(it.next());
+						}
+
+						@Override
+						public void finish() {
+							unregister();
+							observer.finish();
+						}
+						
+					};
+					return obs.registerWith(it.next());
+				}
+				observer.finish();
+				return EMPTY_CLOSEABLE;
 			}
 		};
 	}

@@ -16,6 +16,7 @@
 
 package hu.akarnokd.reactiv4java;
 
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -381,6 +382,34 @@ public final class Functions {
 			public Long invoke() {
 				return source.get();
 			}
+		};
+	}
+	/**
+	 * Wrap the given comparator function into a function object.
+	 * @param <T> the type of elements to compare
+	 * @param comparator the comparator
+	 * @return the wrapped comparator
+	 */
+	public static <T> Func2<Integer, T, T> asFunction(final Comparator<T> comparator) {
+		return new Func2<Integer, T, T>() {
+			@Override
+			public Integer invoke(T param1, T param2) {
+				return comparator.compare(param1, param2);
+			};
+		};
+	}
+	/**
+	 * Wrap the given two argument function returning an integer as a comparator.
+	 * @param <T> the type of the elements to compare
+	 * @param func the function to wrap
+	 * @return the comparator
+	 */
+	public static <T> Comparator<T> asComparator(final Func2<Integer, T, T> func) {
+		return new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				return func.invoke(o1, o2);
+			};
 		};
 	}
 }
