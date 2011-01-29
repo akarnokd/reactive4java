@@ -113,7 +113,10 @@ public final class Test {
 		}));
 		
 		Observables.delay(Observables.range(100, 10), 5, TimeUnit.SECONDS).register(Observables.printlnObserver());
+
+		System.out.println(Observables.first(Observables.range(1, 1)));
 		
+		System.out.println(Observables.first(Observables.range(2, 0)));
 	}
 
 }

@@ -54,4 +54,17 @@ public final class Actions {
 	public static Action0 noAction0() {
 		return NO_ACTION_0;
 	}
+	/**
+	 * Wrap the supplied runnable into an action.
+	 * @param run the original runnable
+	 * @return the Action0 wrapping the runnable
+	 */
+	public static Action0 asAction(final Runnable run) {
+		return new Action0() {
+			@Override
+			public void invoke() {
+				run.run();
+			}
+		};
+	}
 }
