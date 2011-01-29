@@ -18,6 +18,10 @@ package hu.akarnokd.reactiv4java;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Helper class with function types.
@@ -323,6 +327,59 @@ public final class Functions {
 			@Override
 			public T invoke(Timestamped<T> param1) {
 				return param1.value();
+			}
+		};
+	}
+	/**
+	 * Wraps the given atomic reference object and returns its value.
+	 * @param <T> the type of the contained object
+	 * @param source the source atomic reference
+	 * @return the function
+	 */
+	public static <T> Func0<T> atomicSource(final AtomicReference<T> source) {
+		return new Func0<T>() {
+			@Override
+			public T invoke() {
+				return source.get();
+			}
+		};
+	}
+	/**
+	 * Wraps the given atomic boolean and returns its value.
+	 * @param source the source atomic reference
+	 * @return the function
+	 */
+	public static Func0<Boolean> atomicSource(final AtomicBoolean source) {
+		return new Func0<Boolean>() {
+			@Override
+			public Boolean invoke() {
+				return source.get();
+			}
+		};
+	}
+	/**
+	 * Wraps the given atomic integer object and returns its value.
+	 * @param source the source atomic reference
+	 * @return the function
+	 */
+	public static Func0<Integer> atomicSource(final AtomicInteger source) {
+		return new Func0<Integer>() {
+			@Override
+			public Integer invoke() {
+				return source.get();
+			}
+		};
+	}
+	/**
+	 * Wraps the given atomic integer object and returns its value.
+	 * @param source the source atomic reference
+	 * @return the function
+	 */
+	public static Func0<Long> atomicSource(final AtomicLong source) {
+		return new Func0<Long>() {
+			@Override
+			public Long invoke() {
+				return source.get();
 			}
 		};
 	}
