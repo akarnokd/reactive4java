@@ -7,9 +7,9 @@ A comparison table with Rx.
 = Details =
 
 Note: IObservable< T> = IO, Observable< T> = O, Func = F, value type = T,
-utility class in Rx is Observable, in R4J is Observables.
+utility class in Rx is Observable, in here is Observables.
 
-|| *Method in Rx* || *Method in R4J* || *Since* || *Remark* ||
+|| *Method in Rx* || *Method here* || *Since* || *Remark* ||
 || Aggregate(F) || aggregate(O, F) || 0.1 || || 
 || !ObserveOn(IScheduler) || observeOn(O, !ExecutorService) || 0.1 || If the pool uses more than one worker thread, the Observer methods might be invoked concurrently, and finish() might get called before next(). Not sure about the Rx semantics and what semantics is correct. ||
 
