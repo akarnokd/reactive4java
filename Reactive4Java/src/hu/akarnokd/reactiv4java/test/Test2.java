@@ -16,9 +16,11 @@
 
 package hu.akarnokd.reactiv4java.test;
 
+import hu.akarnokd.reactiv4java.Functions;
 import hu.akarnokd.reactiv4java.Observable;
 import hu.akarnokd.reactiv4java.Observables;
 
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,6 +52,17 @@ public final class Test2 {
 		Observables.concat(list).register(Observables.printlnObserver());
 		
 		Observables.forkJoin(list).register(Observables.printlnObserver());
+		
+		Closeable c = Observables.range(0, Integer.MAX_VALUE).register(Observables.printlnObserver());
+		
+		Thread.sleep(1000);
+		
+		c.close();
+		
+		Observables.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
+				Functions.<Integer>identity(), Functions.<Long, Integer>constant(1000L))
+				.register(Observables.printlnObserver())
+				;
 	}
 
 }

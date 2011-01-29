@@ -160,4 +160,157 @@ public final class Functions {
 			}
 		};
 	}
+	/**
+	 * Create a function which returns true for submitted values less than the given value.
+	 * @param value the maxium value to include
+	 * @return the function
+	 */
+	public static Func1<Boolean, Integer> lessThan(final int value) {
+		return new Func1<Boolean, Integer>() {
+			@Override
+			public Boolean invoke(Integer param1) {
+				return param1.intValue() < value;
+			}
+		};
+	}
+	/**
+	 * Create a function which returns true for submitted values greater or equal than the given value.
+	 * @param value the maxium value to include
+	 * @return the function
+	 */
+	public static Func1<Boolean, Integer> greaterOrEqual(final int value) {
+		return new Func1<Boolean, Integer>() {
+			@Override
+			public Boolean invoke(Integer param1) {
+				return param1.intValue() >= value;
+			}
+		};
+	}
+	/**
+	 * Create a function which returns true for submitted values less than the given value.
+	 * @param value the maxium value to include
+	 * @return the function
+	 */
+	public static Func1<Boolean, Long> lessThan(final long value) {
+		return new Func1<Boolean, Long>() {
+			@Override
+			public Boolean invoke(Long param1) {
+				return param1.longValue() < value;
+			}
+		};
+	}
+	/**
+	 * Create a function which returns true for submitted values greater or equal than the given value.
+	 * @param value the maxium value to include
+	 * @return the function
+	 */
+	public static Func1<Boolean, Long> greaterOrEqual(final long value) {
+		return new Func1<Boolean, Long>() {
+			@Override
+			public Boolean invoke(Long param1) {
+				return param1.longValue() >= value;
+			}
+		};
+	}
+	/**
+	 * @return a function which returns param + 1 for Integers.
+	 */
+	public static Func1<Integer, Integer> incrementInt() {
+		return new Func1<Integer, Integer>() {
+			@Override
+			public Integer invoke(Integer param1) {
+				return param1 + 1;
+			}
+		};
+	}
+	/**
+	 * @return a function which returns param + 1 for Longs.
+	 */
+	public static Func1<Long, Long> incrementLong() {
+		return new Func1<Long, Long>() {
+			@Override
+			public Long invoke(Long param1) {
+				return param1 + 1;
+			}
+		};
+	}
+	/**
+	 * @return a function which returns param - 1 for Integers.
+	 */
+	public static Func1<Integer, Integer> decrementInt() {
+		return new Func1<Integer, Integer>() {
+			@Override
+			public Integer invoke(Integer param1) {
+				return param1 - 1;
+			}
+		};
+	}
+	/**
+	 * @return a function which returns param + 1 for Longs.
+	 */
+	public static Func1<Long, Long> decrementLong() {
+		return new Func1<Long, Long>() {
+			@Override
+			public Long invoke(Long param1) {
+				return param1 - 1;
+			}
+		};
+	}
+	/**
+	 * Returns a function which increments its parameter by the given amount.
+	 * Can be used to decrement if value is less than zero
+	 * @param value the value to increment by
+	 * @return the function
+	 */
+	public static Func1<Integer, Integer> incrementBy(final int value) {
+		return new Func1<Integer, Integer>() {
+			@Override
+			public Integer invoke(Integer param1) {
+				return param1 + value;
+			}
+		};
+	}
+	/**
+	 * Returns a function which increments its parameter by the given amount.
+	 * Can be used to decrement if value is less than zero
+	 * @param value the value to increment by
+	 * @return the function
+	 */
+	public static Func1<Long, Long> incrementBy(final long value) {
+		return new Func1<Long, Long>() {
+			@Override
+			public Long invoke(Long param1) {
+				return param1 + value;
+			}
+		};
+	}
+	/**
+	 * Creates a function which returns always the same value.
+	 * @param <T> the value type to return
+	 * @param <U> the parameter type, irrelevant
+	 * @param value the value to return
+	 * @return the function
+	 */
+	public static <T, U> Func1<T, U> constant(final T value) {
+		return new Func1<T, U>() {
+			@Override
+			public T invoke(U param1) {
+				return value;
+			};
+		};
+	}
+	/**
+	 * Creates a function which returns always the same value.
+	 * @param <T> the value type to return
+	 * @param value the value to return
+	 * @return the function
+	 */
+	public static <T> Func0<T> constant0(final T value) {
+		return new Func0<T>() {
+			@Override
+			public T invoke() {
+				return value;
+			};
+		};
+	}
 }
