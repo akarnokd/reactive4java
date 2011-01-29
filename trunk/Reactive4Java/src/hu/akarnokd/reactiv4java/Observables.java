@@ -35,6 +35,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -117,16 +118,24 @@ public final class Observables {
 		return new Observable<Integer>() {
 			@Override
 			public Closeable register(final Observer<? super Integer> observer) {
+				final AtomicBoolean cancel = new AtomicBoolean();
 				pool.execute(new Runnable() {
 					@Override
 					public void run() {
-						for (int i = start; i < start + count; i++) {
+						for (int i = start; i < start + count && !cancel.get(); i++) {
 							observer.next(i);
 						}
-						observer.finish();
+						if (!cancel.get()) {
+							observer.finish();
+						}
 					}
 				});
-				return EMPTY_CLOSEABLE; // FIXME what should be disposed???
+				return new Closeable() {
+					@Override
+					public void close() {
+						cancel.set(true);
+					}
+				};
 			}
 		};
 	}
@@ -1709,5 +1718,127 @@ public final class Observables {
 				return EMPTY_CLOSEABLE;
 			}
 		};
+	}
+	/**
+	 * Generates a stream of Us by using a value T stream.
+	 * If T = int and U is double, this would be seen as for (int i = 0; i &lt; 10; i++) { yield return i / 2.0; }
+	 * @param <T> the type of the generator values
+	 * @param <U> the type of the observed values
+	 * @param initial the initial generator value
+	 * @param condition the condition that must hold to continue generating Ts
+	 * @param next the function that computes the next value of T
+	 * @param selector the selector which turns Ts into Us.
+	 * @param pool the thread pool where the generation loop should run.
+	 * @return the observable
+	 */
+	public static <T, U> Observable<U> generate(final T initial, final Func1<Boolean, T> condition, 
+			final Func1<T, T> next, final Func1<U, T> selector, final ExecutorService pool) {
+		return new Observable<U>() {
+			@Override
+			public Closeable register(final Observer<? super U> observer) {
+				// the cancellation indicator
+				final AtomicBoolean cancel = new AtomicBoolean();
+				pool.execute(new Runnable() {
+					@Override
+					public void run() {
+						T t = initial;
+						while (condition.invoke(t) && !cancel.get()) {
+							observer.next(selector.invoke(t));
+							t = next.invoke(t);
+						}
+						if (!cancel.get()) {
+							observer.finish();
+						}
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() {
+						cancel.set(true);
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Generates a stream of Us by using a value T stream using the default pool fo the generator loop.
+	 * If T = int and U is double, this would be seen as for (int i = 0; i &lt; 10; i++) { yield return i / 2.0; }
+	 * @param <T> the type of the generator values
+	 * @param <U> the type of the observed values
+	 * @param initial the initial generator value
+	 * @param condition the condition that must hold to continue generating Ts
+	 * @param next the function that computes the next value of T
+	 * @param selector the selector which turns Ts into Us.
+	 * @return the observable
+	 */
+	public static <T, U> Observable<U> generate(final T initial, final Func1<Boolean, T> condition, 
+			final Func1<T, T> next, final Func1<U, T> selector) {
+		return generate(initial, condition, next, selector, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Generates a stream of Us by using a value T stream.
+	 * If T = int and U is double, this would be seen as for (int i = 0; i &lt; 10; i++) { sleep(time); yield return i / 2.0; }
+	 * @param <T> the type of the generator values
+	 * @param <U> the type of the observed values
+	 * @param initial the initial generator value
+	 * @param condition the condition that must hold to continue generating Ts
+	 * @param next the function that computes the next value of T
+	 * @param selector the selector which turns Ts into Us.
+	 * @param delay the selector which tells how much to wait (in milliseconds) before releasing the next U
+	 * @param pool the scheduled pool where the generation loop should run.
+	 * @return the observable
+	 */
+	public static <T, U> Observable<Timestamped<U>> generateTimed(final T initial, final Func1<Boolean, T> condition, 
+			final Func1<T, T> next, final Func1<U, T> selector, final Func1<Long, T> delay, final ScheduledExecutorService pool) {
+		return new Observable<Timestamped<U>>() {
+			@Override
+			public Closeable register(final Observer<? super Timestamped<U>> observer) {
+				// the cancellation indicator
+				final AtomicBoolean cancel = new AtomicBoolean();
+				
+				if (condition.invoke(initial)) {
+					pool.schedule(new Runnable() {
+						T current = initial;
+						@Override
+						public void run() {
+							observer.next(Timestamped.of(selector.invoke(current), System.currentTimeMillis()));
+							final T tn = next.invoke(current);
+							current = tn;
+							if (condition.invoke(tn) && !cancel.get()) {
+								pool.schedule(this, delay.invoke(tn), TimeUnit.MILLISECONDS);
+							} else {
+								if (!cancel.get()) {
+									observer.finish();
+								}
+							}
+							
+						}
+					}, delay.invoke(initial), TimeUnit.MILLISECONDS);
+				}
+				
+				return new Closeable() {
+					@Override
+					public void close() {
+						cancel.set(true);
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Generates a stream of Us by using a value T stream.
+	 * If T = int and U is double, this would be seen as for (int i = 0; i &lt; 10; i++) { sleep(time); yield return i / 2.0; }
+	 * @param <T> the type of the generator values
+	 * @param <U> the type of the observed values
+	 * @param initial the initial generator value
+	 * @param condition the condition that must hold to continue generating Ts
+	 * @param next the function that computes the next value of T
+	 * @param selector the selector which turns Ts into Us.
+	 * @param delay the selector which tells how much to wait before releasing the next U
+	 * @return the observable
+	 */
+	public static <T, U> Observable<Timestamped<U>> generateTimed(final T initial, final Func1<Boolean, T> condition, 
+			final Func1<T, T> next, final Func1<U, T> selector, final Func1<Long, T> delay) {
+		return generateTimed(initial, condition, next, selector, delay, DEFAULT_SCHEDULED_POOL);
 	}
 }
