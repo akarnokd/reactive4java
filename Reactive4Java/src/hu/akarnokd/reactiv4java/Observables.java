@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -1840,5 +1842,166 @@ public final class Observables {
 	public static <T, U> Observable<Timestamped<U>> generateTimed(final T initial, final Func1<Boolean, T> condition, 
 			final Func1<T, T> next, final Func1<U, T> selector, final Func1<Long, T> delay) {
 		return generateTimed(initial, condition, next, selector, delay, DEFAULT_SCHEDULED_POOL);
+	}
+	/**
+	 * An observer implementation which keeps track of the registered observers and
+	 * common methods which dispach events to all registered observables.
+	 * @author akarnokd, 2011.01.29.
+	 * @param <T> the element type of the observable.
+	 */
+	static class RegisteringObservable<T> implements Observable<T>, Observer<T> {
+		/** The map of the active observers. */
+		final ConcurrentMap<Observer<? super T>, Object> observers = new ConcurrentHashMap<Observer<? super T>, Object>();
+		/** The default element for the map. */
+		static final Object VALUE = new Object();
+		@Override
+		public void next(T value) {
+			for (Observer<? super T> os : observers.keySet()) {
+				os.next(value);
+			}
+		}
+
+		@Override
+		public void error(Throwable ex) {
+			for (Observer<? super T> os : observers.keySet()) {
+				os.error(ex);
+			}
+		}
+
+		@Override
+		public void finish() {
+			for (Observer<? super T> os : observers.keySet()) {
+				os.finish();
+			}
+		}
+
+		@Override
+		public Closeable register(final Observer<? super T> observer) {
+			observers.put(observer,  VALUE);
+			return new Closeable() {
+				@Override
+				public void close() throws IOException {
+					observers.remove(observer);
+				}
+			};
+		}
+	}
+	/**
+	 * A variant of the registering observable which stores a group key.
+	 * @author akarnokd, 2011.01.29.
+	 * @param <Key> the type of the key
+	 * @param <Value> the value type
+	 */
+	static class GroupedRegisteringObservable<Key, Value> extends RegisteringObservable<Value> implements GroupedObservable<Key, Value> {
+		/** The group key. */
+		private final Key key;
+		/**
+		 * Constructor.
+		 * @param key the group key
+		 */
+		public GroupedRegisteringObservable(Key key) {
+			this.key = key;
+		}
+		@Override
+		public Key key() {
+			return key;
+		}
+	}
+	/**
+	 * Group the specified source accoring to the keys provided by the extractor function.
+	 * The resulting observable gets notified once a new group is encountered.
+	 * Each previously encountered group by itself receives updates along the way.
+	 * If the source finish(), all encountered group will finish().
+	 * FIXME not sure how this should work
+	 * @param <T> the type of the source element
+	 * @param <Key> the key type of the group
+	 * @param source the source of Ts
+	 * @param keyExtractor the key extractor which creates Keys from Ts
+	 * @return the observable
+	 */
+	public static <T, Key> Observable<GroupedObservable<Key, T>> groupBy(final Observable<T> source, final Func1<Key, T> keyExtractor) {
+		final ConcurrentMap<Key, GroupedRegisteringObservable<Key, T>> knownGroups = new ConcurrentHashMap<Key, GroupedRegisteringObservable<Key, T>>();
+		return new Observable<GroupedObservable<Key, T>>() {
+			@Override
+			public Closeable register(
+					final Observer<? super GroupedObservable<Key, T>> observer) {
+				return source.register(new Observer<T>() {
+					@Override
+					public void next(T value) {
+						final Key key = keyExtractor.invoke(value);
+						GroupedRegisteringObservable<Key, T> group = knownGroups.get(key);
+						if (group == null) {
+							group = new GroupedRegisteringObservable<Key, T>(key);
+							GroupedRegisteringObservable<Key, T> group2 = knownGroups.putIfAbsent(key, group);
+							if (group2 != null) {
+								group = group2;
+							}
+							observer.next(group);
+						}
+						group.next(value);
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						for (GroupedRegisteringObservable<Key, T> group : knownGroups.values()) {
+							group.finish();
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Concatenate two observables in a way when the first finish() the second is registered
+	 * and continued with.
+	 * @param <T> the type of the elements
+	 * @param first the first observable
+	 * @param second the second observable
+	 * @return the concatenated observable
+	 */
+	public static <T> Observable<T> concat(Observable<T> first, Observable<T> second) {
+		List<Observable<T>> list = new ArrayList<Observable<T>>();
+		list.add(first);
+		list.add(second);
+		return concat(list);
+	}
+	/**
+	 * Use the mapper to transform the T source into an U source.
+	 * @param <T> the type of the original observable
+	 * @param <U> the type of the new observable
+	 * @param source the source of Ts
+	 * @param mapper the mapper from Ts to Us
+	 * @return the observable on Us
+	 */
+	public static <T, U> Observable<U> transform(final Observable<T> source, final Func1<U, T> mapper) {
+		return new Observable<U>() {
+			@Override
+			public Closeable register(final Observer<? super U> observer) {
+				return source.register(new Observer<T>() {
+					@Override
+					public void next(T value) {
+						observer.next(mapper.invoke(value));
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
 	}
 }
