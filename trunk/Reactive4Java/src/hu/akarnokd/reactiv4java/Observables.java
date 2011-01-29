@@ -29,6 +29,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -2252,6 +2253,7 @@ public final class Observables {
 	/**
 	 * Returns an iterable which returns values on a momentary basis from the
 	 * source. Useful when source produces values at different rate than the consumer takes it.
+	 * The iterable.next() call might block until the first value becomes available or something else happens in the observable
 	 * FIXME not sure where the observer should run
 	 * @param <T> the type of the values
 	 * @param source the source
@@ -2262,34 +2264,52 @@ public final class Observables {
 			@Override
 			public Iterator<T> iterator() {
 				final AtomicBoolean complete = new AtomicBoolean();
+				final CountDownLatch first = new CountDownLatch(1);
+				final AtomicBoolean hasValue = new AtomicBoolean();
 				final AtomicReference<T> current = new AtomicReference<T>();
 				final Closeable c = source.register(new Observer<T>() {
-
+					/** Set the has value once. */
+					boolean once = true;
 					@Override
 					public void next(T value) {
+						if (once) {
+							once = false;
+							hasValue.set(true);
+						}
 						current.set(value);
+						first.countDown();
 					}
 
 					@Override
 					public void error(Throwable ex) {
 						complete.set(true);
+						first.countDown();
 					}
 
 					@Override
 					public void finish() {
 						complete.set(true);
+						first.countDown();
 					}
 					
 				});
 				return new Iterator<T>() {
 					@Override
 					public boolean hasNext() {
-						return !complete.get();
+						try {
+							first.await();
+						} catch (InterruptedException e) {
+							throw new RuntimeException(e);
+						}
+						return !complete.get() && hasValue.get();
 					}
 
 					@Override
 					public T next() {
-						return current.get();
+						if (hasValue.get()) {
+							return current.get();
+						}
+						throw new NoSuchElementException();
 					}
 
 					@Override
@@ -2924,4 +2944,597 @@ public final class Observables {
 			}
 		};
 	}
+	/**
+	 * Unwrap the values within a timestamped observable to its normal value.
+	 * @param <T> the element type
+	 * @param source the source which has its elements in a timestamped way.
+	 * @return the raw observables of Ts
+	 */
+	public static <T> Observable<T> removeTimestamped(Observable<Timestamped<T>> source) {
+		return transform(source, Functions.<T>unwrapTimestamped());
+	}
+	/**
+	 * Wrap the values within a observable to a timestamped value having always
+	 * the System.currentTimeMillis() value.
+	 * @param <T> the element type
+	 * @param source the source which has its elements in a timestamped way.
+	 * @return the raw observables of Ts
+	 */
+	public static <T> Observable<Timestamped<T>> addTimestamped(Observable<T> source) {
+		return transform(source, Functions.<T>wrapTimestamped());
+	}
+	/**
+	 * Creates an observable which repeates the given value indefinitely
+	 * and runs on the given pool. Note that the observers must
+	 * deregister to stop the infinite background loop
+	 * @param <T> the element type
+	 * @param value the value to repeat
+	 * @param pool the pool where the loop should be executed
+	 * @return the observable
+	 */
+	public static <T> Observable<T> repeat(final T value, final ExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final AtomicBoolean cancel = new AtomicBoolean();
+				pool.execute(new Runnable() {
+					@Override
+					public void run() {
+						while (!cancel.get()) {
+							observer.next(value);
+						}
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() throws IOException {
+						cancel.set(true);
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Creates an observable which repeates the given value <code>count</code> times
+	 * and runs on the given pool.
+	 * @param <T> the element type
+	 * @param value the value to repeat
+	 * @param count the numer of times to repeat the value
+	 * @param pool the pool where the loop should be executed
+	 * @return the observable
+	 */
+	public static <T> Observable<T> repeat(final T value, final int count, final ExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final AtomicBoolean cancel = new AtomicBoolean();
+				pool.execute(new Runnable() {
+					@Override
+					public void run() {
+						int i = count;
+						while (!cancel.get() && i-- > 0) {
+							observer.next(value);
+						}
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() throws IOException {
+						cancel.set(true);
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Creates an observable which repeates the given value indefinitely
+	 * and runs on the default pool. Note that the observers must
+	 * deregister to stop the infinite background loop
+	 * @param <T> the element type
+	 * @param value the value to repeat
+	 * @return the observable
+	 */
+	public static <T> Observable<T> repeat(final T value) {
+		return repeat(value, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Creates an observable which repeates the given value <code>count</code> times
+	 * and runs on the default pool.
+	 * @param <T> the element type
+	 * @param value the value to repeat
+	 * @param count the numer of times to repeat the value
+	 * @return the observable
+	 */
+	public static <T> Observable<T> repeat(final T value, final int count) {
+		return repeat(value, count, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Creates an observable which repeatedly calls the given function which generates the Ts indefinitely.
+	 * The generator runs on the pool. Note that observers must unregister to stop the infinite loop.
+	 * @param <T> the type of elements to produce
+	 * @param func the function which generates elements
+	 * @param pool the pool where the generator loop runs
+	 * @return the observable
+	 */
+	public static <T> Observable<T> repeat(final Func0<T> func, final ExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final AtomicBoolean cancel = new AtomicBoolean();
+				pool.execute(new Runnable() {
+					@Override
+					public void run() {
+						while (!cancel.get()) {
+							observer.next(func.invoke());
+						}
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() throws IOException {
+						cancel.set(true);
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Creates an observable which repeatedly calls the given function <code>count</code> times to generate Ts
+	 * and runs on the given pool.
+	 * @param <T> the element type
+	 * @param func the function to call to generate values
+	 * @param count the numer of times to repeat the value
+	 * @param pool the pool where the loop should be executed
+	 * @return the observable
+	 */
+	public static <T> Observable<T> repeat(final Func0<T> func, final int count, final ExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final AtomicBoolean cancel = new AtomicBoolean();
+				pool.execute(new Runnable() {
+					@Override
+					public void run() {
+						int i = count;
+						while (!cancel.get() && i-- > 0) {
+							observer.next(func.invoke());
+						}
+						observer.finish();
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() throws IOException {
+						cancel.set(true);
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Creates an observable which repeatedly calls the given function which generates the Ts indefinitely.
+	 * The generator runs on the default pool. Note that observers must unregister to stop the infinite loop.
+	 * @param <T> the type of elements to produce
+	 * @param func the function which generates elements
+	 * @return the observable
+	 */
+	public static <T> Observable<T> repeat(final Func0<T> func) {
+		return repeat(func, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Creates an observable which repeatedly calls the given function <code>count</code> times to generate Ts
+	 * and runs on the default pool.
+	 * @param <T> the element type
+	 * @param func the function to call to generate values
+	 * @param count the numer of times to repeat the value
+	 * @return the observable
+	 */
+	public static <T> Observable<T> repeat(final Func0<T> func, final int count) {
+		return repeat(func, count, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Restarts the observation until the source observable terminates normally.
+	 * @param <T> the type of elements
+	 * @param source the source observable
+	 * @return the repeating observable
+	 */
+	public static <T> Observable<T> retry(final Observable<T> source) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				UObserver<T> obs = new UObserver<T>() {
+					@Override
+					public void next(T value) {
+						observer.next(value);
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						unregister();
+						registerWith(source);
+					}
+
+					@Override
+					public void finish() {
+						unregister();
+						observer.finish();
+					}
+					
+				};
+				return obs.registerWith(source);
+			}
+		};
+	}
+	/**
+	 * Restarts the observation until the source observable terminates normally or the <code>count</code> retry count was used up.
+	 * FIXME if the retry count is zero and yet another error comes, what should happen? finish or this time submit the error?
+	 * @param <T> the type of elements
+	 * @param source the source observable
+	 * @param count the retry count
+	 * @return the repeating observable
+	 */
+	public static <T> Observable<T> retry(final Observable<T> source, final int count) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				UObserver<T> obs = new UObserver<T>() {
+					/** The remaining retry count. */
+					int remainingCount = count;
+					@Override
+					public void next(T value) {
+						observer.next(value);
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						unregister();
+						if (remainingCount-- > 0) {
+							registerWith(source);
+						} else {
+							observer.error(ex); // FIXME not sure
+						}
+					}
+
+					@Override
+					public void finish() {
+						unregister();
+						observer.finish();
+					}
+					
+				};
+				return obs.registerWith(source);
+			}
+		};
+	}
+	/**
+	 * Returns the single value in the observables.
+	 * @param <T> the value type
+	 * @param value the value
+	 * @param pool the pool where to submit the value to the observers
+	 * @return the observable
+	 */
+	public static <T> Observable<T> singleton(final T value, final ExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				pool.execute(new Runnable() {
+					@Override
+					public void run() {
+						observer.next(value);
+						observer.finish();
+					}
+				});
+				return EMPTY_CLOSEABLE;
+			}
+		};
+	}
+	/**
+	 * Returns the single value in the observables.
+	 * @param <T> the value type
+	 * @param value the value
+	 * @return the observable
+	 */
+	public static <T> Observable<T> singleton(final T value) {
+		return singleton(value, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Blocks until the observable calls finish() or error(). Values are ignored.
+	 * @param source the source observable
+	 * @throws InterruptedException if the current thread is interrupted while waiting on
+	 * the observable.
+	 */
+	public static void run(final Observable<?> source) throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		Closeable c = source.register(new Observer<Object>() {
+			/** Are we finished? */
+			boolean done;
+			@Override
+			public void next(Object value) {
+				
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				if (!done) {
+					done = false;
+					latch.countDown();
+				}
+			}
+
+			@Override
+			public void finish() {
+				if (!done) {
+					done = false;
+					latch.countDown();
+				}
+			}
+			
+		});
+		try {
+			latch.await();
+		} finally {
+			try { c.close(); } catch (IOException ex) { }
+		}
+	}
+	/**
+	 * Blocks until the observable calls finish() or error() or the specified amount of time ellapses. Values are ignored.
+	 * FIXME might be infeasible due the potential side effects along the event stream
+	 * @param source the source observable
+	 * @param time the time value
+	 * @param unit the time unit
+	 * @return false if the waiting time ellapsed before the run completed
+	 * @throws InterruptedException if the current thread is interrupted while waiting on
+	 * the observable.
+	 */
+	static boolean run(final Observable<?> source, long time, TimeUnit unit) throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		Closeable c = source.register(new Observer<Object>() {
+			/** Are we finished? */
+			boolean done;
+			@Override
+			public void next(Object value) {
+				
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				if (!done) {
+					done = false;
+					latch.countDown();
+				}
+			}
+
+			@Override
+			public void finish() {
+				if (!done) {
+					done = false;
+					latch.countDown();
+				}
+			}
+			
+		});
+		try {
+			return latch.await(time, unit);
+		} finally {
+			try { c.close(); } catch (IOException ex) { }
+		}
+	}
+	/**
+	 * Blocks until the observable calls finish() or error(). Values are submitted to the given action.
+	 * @param <T> the type of the elements
+	 * @param source the source observable
+	 * @param action the action to invoke for each value
+	 * @throws InterruptedException if the current thread is interrupted while waiting on
+	 * the observable.
+	 */
+	public static <T> void run(final Observable<T> source, final Action1<T> action) throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		Closeable c = source.register(new Observer<T>() {
+			/** Are we finished? */
+			boolean done;
+			@Override
+			public void next(T value) {
+				action.invoke(value);
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				if (!done) {
+					done = false;
+					latch.countDown();
+				}
+			}
+
+			@Override
+			public void finish() {
+				if (!done) {
+					done = false;
+					latch.countDown();
+				}
+			}
+			
+		});
+		try {
+			latch.await();
+		} finally {
+			try { c.close(); } catch (IOException ex) { }
+		}
+	}
+	/**
+	 * Blocks until the observable calls finish() or error(). Events are submitted to the given observer.
+	 * @param <T> the type of the elements
+	 * @param source the source observable
+	 * @param observer the observer to invoke for each event
+	 * @throws InterruptedException if the current thread is interrupted while waiting on
+	 * the observable.
+	 */
+	public static <T> void run(final Observable<T> source, final Observer<T> observer) throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		Closeable c = source.register(new Observer<T>() {
+			/** Are we finished? */
+			boolean done;
+			@Override
+			public void next(T value) {
+				observer.next(value);
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				if (!done) {
+					done = false;
+					observer.error(ex);
+					latch.countDown();
+				}
+			}
+
+			@Override
+			public void finish() {
+				if (!done) {
+					done = false;
+					observer.finish();
+					latch.countDown();
+				}
+			}
+			
+		});
+		try {
+			latch.await();
+		} finally {
+			try { c.close(); } catch (IOException ex) { }
+		}
+	}
+	/**
+	 * The runnable instance which is aware of its scheduler's registration.
+	 * @author akarnokd, 2011.01.29.
+	 */
+	abstract static class USchedulable implements Runnable {
+		/** The holder for the registration. */
+		protected ScheduledFuture<?> future;
+		/**
+		 * Schedule this on the given pool.
+		 * @param pool the target pool
+		 * @param delay the delay
+		 * @param unit the unit of delay
+		 * @return the future result of the registration
+		 */
+		public ScheduledFuture<?> scheduleOn(ScheduledExecutorService pool, long delay, TimeUnit unit) {
+			future = pool.schedule(this, delay, unit);
+			return future;
+		}
+		/**
+		 * Schedule this on the given pool at a fixed rate.
+		 * @param pool the target pool
+		 * @param initial the initial delay
+		 * @param delay the delay
+		 * @param unit the unit of delay
+		 * @return the future result of the registration
+		 */
+		public ScheduledFuture<?> scheduleOnAtFixedRate(ScheduledExecutorService pool, long initial, long delay, TimeUnit unit) {
+			future = pool.scheduleAtFixedRate(this, initial, delay, unit);
+			return future;
+		}
+		/**
+		 * Schedule this on the given pool with a fixed delay.
+		 * @param pool the target pool
+		 * @param initial the initial delay
+		 * @param delay the delay
+		 * @param unit the unit of delay
+		 * @return the future result of the registration
+		 */
+		public ScheduledFuture<?> scheduleOnWitFixedDelay(ScheduledExecutorService pool, long initial, long delay, TimeUnit unit) {
+			future = pool.scheduleWithFixedDelay(this, initial, delay, unit);
+			return future;
+		}
+		/**
+		 * Cancel the current schedule.
+		 * @param interruptIfRunning interrupt if currently running?
+		 */
+		public void cancel(boolean interruptIfRunning) {
+			future.cancel(interruptIfRunning);
+		}
+	}
+	/**
+	 * Periodically sample the given source observable, which means tracking the last value of
+	 * the observable and periodically submitting it to the output observable.
+	 * FIXME the error() and finish() are instantly propagated
+	 * @param <T> the type of elements to watch
+	 * @param source the source of elements
+	 * @param time the time value to wait
+	 * @param unit the time unit
+	 * @param pool the scheduler pool where the periodic submission should happen.
+	 * @return the sampled observable
+	 */
+	public static <T> Observable<T> sample(final Observable<T> source, final long time, final TimeUnit unit, 
+			final ScheduledExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final AtomicBoolean first = new AtomicBoolean(true);
+				final AtomicBoolean cancel = new AtomicBoolean();
+				final AtomicReference<T> current = new AtomicReference<T>();
+
+				final USchedulable schedule = new USchedulable() {
+					@Override
+					public void run() {
+						if (!cancel.get()) {
+							if (!first.get()) {
+								observer.next(current.get());
+							}
+							scheduleOn(pool, time, unit);
+						}
+					}
+				};
+				final UObserver<T> obs = new UObserver<T>() {
+					boolean firstNext = true;
+					@Override
+					public void next(T value) {
+						if (firstNext) {
+							firstNext = false;
+							first.set(false);
+						}
+						current.set(value);
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						unregister();
+						cancel.set(true);
+						schedule.cancel(false);
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						unregister();
+						cancel.set(true);
+						schedule.cancel(false);
+						observer.finish();
+					}
+				};
+				schedule.scheduleOn(pool, time, unit);
+				final Closeable c = obs.registerWith(source);
+				return new Closeable() {
+					@Override
+					public void close() throws IOException {
+						schedule.cancel(false);
+						cancel.set(true);
+						c.close();
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Periodically sample the given source observable, which means tracking the last value of
+	 * the observable and periodically submitting it to the output observable.
+	 * FIXME the error() and finish() are instantly propagated
+	 * @param <T> the type of elements to watch
+	 * @param source the source of elements
+	 * @param time the time value to wait
+	 * @param unit the time unit
+	 * @return the sampled observable
+	 */
+	public static <T> Observable<T> sample(final Observable<T> source, final long time, final TimeUnit unit) {
+		return sample(source, time, unit, DEFAULT_SCHEDULED_POOL);
+	}	
 }

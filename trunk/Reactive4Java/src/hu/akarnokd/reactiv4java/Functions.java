@@ -332,6 +332,19 @@ public final class Functions {
 		};
 	}
 	/**
+	 * Wrap the given type into a timestamped container of T.
+	 * @param <T> the type of the contained element
+	 * @return the function performing the wrapping
+	 */
+	public static <T> Func1<Timestamped<T>, T> wrapTimestamped() {
+		return new Func1<Timestamped<T>, T>() {
+			@Override
+			public Timestamped<T> invoke(T param1) {
+				return Timestamped.of(param1);
+			};
+		};
+	}
+	/**
 	 * Wraps the given atomic reference object and returns its value.
 	 * @param <T> the type of the contained object
 	 * @param source the source atomic reference
