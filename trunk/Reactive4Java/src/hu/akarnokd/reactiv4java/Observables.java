@@ -338,7 +338,7 @@ public final class Observables {
 			public Iterator<T> iterator() {
 				final LinkedBlockingQueue<Option<T>> queue = new LinkedBlockingQueue<Option<T>>();
 				
-				observable.register(new Observer<T>() {
+				final Closeable c = observable.register(new Observer<T>() {
 					@Override
 					public void next(T value) {
 						queue.add(Option.some(value));
@@ -362,6 +362,8 @@ public final class Observables {
 					Option<T> peek;
 					/** Indicator if there was a hasNext() call before the next() call. */
 					boolean peekBeforeNext;
+					/** Close the association if there is no more elements. */
+					Closeable close = c;
 					@Override
 					public boolean hasNext() {
 						if (peek != Option.none()) {
@@ -374,7 +376,11 @@ public final class Observables {
 							}
 							peekBeforeNext = true;
 						}
-						return peek != Option.none();
+						boolean result = peek != Option.none();
+						if (!result) {
+							close();
+						}
+						return result;
 					}
 					@Override
 					public T next() {
@@ -383,6 +389,7 @@ public final class Observables {
 							if (peek != Option.none()) {
 								return peek.value();
 							}
+							close();
 							throw new NoSuchElementException();
 						}
 						peekBeforeNext = false;
@@ -396,11 +403,27 @@ public final class Observables {
 								return peek.value();
 							}
 						}
+						close();
 						throw new NoSuchElementException();
 					}
 					@Override
 					public void remove() {
 						throw new UnsupportedOperationException();
+					}
+					/** Close the helper observer. */
+					void close() {
+						if (close != null) {
+							try {
+								close.close();
+								close = null;
+							} catch (IOException e) {
+								throw new RuntimeException(e);
+							}
+						}
+					}
+					@Override
+					protected void finalize() throws Throwable {
+						close();
 					}
 				};
 			}
@@ -1237,6 +1260,39 @@ public final class Observables {
 		};
 	}
 	/**
+	 * Counts the number of elements in the observable source as a long.
+	 * @param <T> the element type
+	 * @param source the source observable
+	 * @return the count signal
+	 */
+	public static <T> Observable<Long> countLong(final Observable<T> source) {
+		return new Observable<Long>() {
+			@Override
+			public Closeable register(final Observer<? super Long> observer) {
+				return source.register(new Observer<T>() {
+					/** The counter. */
+					long count;
+					@Override
+					public void next(T value) {
+						count++;
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.next(count);
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
 	 * The returned observable invokes the <code>observableFactory</code> whenever an observer
 	 * tries to subscribe to it.
 	 * @param <T> the type of elements to observer
@@ -1912,7 +1968,7 @@ public final class Observables {
 	 * The resulting observable gets notified once a new group is encountered.
 	 * Each previously encountered group by itself receives updates along the way.
 	 * If the source finish(), all encountered group will finish().
-	 * FIXME not sure how this should work
+	 * FIXME not sure how this should work.
 	 * @param <T> the type of the source element
 	 * @param <Key> the key type of the group
 	 * @param source the source of Ts
@@ -1920,43 +1976,7 @@ public final class Observables {
 	 * @return the observable
 	 */
 	public static <T, Key> Observable<GroupedObservable<Key, T>> groupBy(final Observable<T> source, final Func1<Key, T> keyExtractor) {
-		final ConcurrentMap<Key, GroupedRegisteringObservable<Key, T>> knownGroups = new ConcurrentHashMap<Key, GroupedRegisteringObservable<Key, T>>();
-		return new Observable<GroupedObservable<Key, T>>() {
-			@Override
-			public Closeable register(
-					final Observer<? super GroupedObservable<Key, T>> observer) {
-				return source.register(new Observer<T>() {
-					@Override
-					public void next(T value) {
-						final Key key = keyExtractor.invoke(value);
-						GroupedRegisteringObservable<Key, T> group = knownGroups.get(key);
-						if (group == null) {
-							group = new GroupedRegisteringObservable<Key, T>(key);
-							GroupedRegisteringObservable<Key, T> group2 = knownGroups.putIfAbsent(key, group);
-							if (group2 != null) {
-								group = group2;
-							}
-							observer.next(group);
-						}
-						group.next(value);
-					}
-
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						for (GroupedRegisteringObservable<Key, T> group : knownGroups.values()) {
-							group.finish();
-						}
-						observer.finish();
-					}
-					
-				});
-			}
-		};
+		return groupBy(source, keyExtractor, Functions.<T>identity());
 	}
 	/**
 	 * Concatenate two observables in a way when the first finish() the second is registered
@@ -1997,6 +2017,505 @@ public final class Observables {
 
 					@Override
 					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Group the specified source accoring to the keys provided by the extractor function.
+	 * The resulting observable gets notified once a new group is encountered.
+	 * Each previously encountered group by itself receives updates along the way.
+	 * If the source finish(), all encountered group will finish().
+	 * FIXME not sure how this should work
+	 * @param <T> the type of the source element
+	 * @param <U> the type of the output element
+	 * @param <Key> the key type of the group
+	 * @param source the source of Ts
+	 * @param keyExtractor the key extractor which creates Keys from Ts
+	 * @param valueExtractor the extractor which makes Us from Ts
+	 * @return the observable
+	 */
+	public static <T, U, Key> Observable<GroupedObservable<Key, U>> groupBy(final Observable<T> source, final Func1<Key, T> keyExtractor, final Func1<U, T> valueExtractor) {
+		final ConcurrentMap<Key, GroupedRegisteringObservable<Key, U>> knownGroups = new ConcurrentHashMap<Key, GroupedRegisteringObservable<Key, U>>();
+		return new Observable<GroupedObservable<Key, U>>() {
+			@Override
+			public Closeable register(
+					final Observer<? super GroupedObservable<Key, U>> observer) {
+				return source.register(new Observer<T>() {
+					@Override
+					public void next(T value) {
+						final Key key = keyExtractor.invoke(value);
+						GroupedRegisteringObservable<Key, U> group = knownGroups.get(key);
+						if (group == null) {
+							group = new GroupedRegisteringObservable<Key, U>(key);
+							GroupedRegisteringObservable<Key, U> group2 = knownGroups.putIfAbsent(key, group);
+							if (group2 != null) {
+								group = group2;
+							}
+							observer.next(group);
+						}
+						group.next(valueExtractor.invoke(value));
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						for (GroupedRegisteringObservable<Key, U> group : knownGroups.values()) {
+							group.finish();
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Returns an observable where the submitted condition decides whether the <code>then</code> or <code>orElse</code> 
+	 * source is allowed to submit values.
+	 * FIXME not sure how it should work
+	 * @param <T> the type of the values to observe
+	 * @param condition the condition function
+	 * @param then the source to use when the condition is true
+	 * @param orElse the source to use when the condition is false
+	 * @return the observable
+	 */
+	public static <T> Observable<T> ifThen(final Func0<Boolean> condition, final Observable<T> then, final Observable<T> orElse) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final Closeable s1 = then.register(new Observer<T>() {
+
+					@Override
+					public void next(T value) {
+						if (condition.invoke()) {
+							observer.next(value);
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						if (condition.invoke()) {
+							observer.error(ex);
+						}
+					}
+
+					@Override
+					public void finish() {
+						if (condition.invoke()) {
+							observer.finish();
+						}
+					}
+					
+				});
+				final Closeable s2 = orElse.register(new Observer<T>() {
+
+					@Override
+					public void next(T value) {
+						if (!condition.invoke()) {
+							observer.next(value);
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						if (!condition.invoke()) {
+							observer.error(ex);
+						}
+					}
+
+					@Override
+					public void finish() {
+						if (!condition.invoke()) {
+							observer.finish();
+						}
+					}
+					
+				});
+				
+				return new Closeable() {
+					@Override
+					public void close() throws IOException {
+						try {
+							s1.close();
+						} catch (IOException ex) {
+							
+						}
+						try {
+							s2.close();
+						} catch (IOException ex) {
+							
+						}
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Returns an observable which never fires.
+	 * @param <T> the type of the observable, irrelevant
+	 * @return the observable
+	 */
+	public static <T> Observable<T> never() {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(Observer<? super T> observer) {
+				return EMPTY_CLOSEABLE;
+			}
+		};
+	}
+	/**
+	 * Returns an observable where the submitted condition decides whether the <code>then</code> source is allowed to submit values.
+	 * @param <T> the type of the values to observe
+	 * @param condition the condition function
+	 * @param then the source to use when the condition is true
+	 * @return the observable
+	 */
+	public static <T> Observable<T> ifThen(final Func0<Boolean> condition, final Observable<T> then) {
+		return ifThen(condition, then, Observables.<T>never());
+	}
+	/**
+	 * Returns an observable which produces an ordered sequence of numbers with the specified delay.
+	 * @param start the starting value of the tick
+	 * @param end the finishing value of the tick
+	 * @param delay the delay value
+	 * @param unit the time unit of the delay
+	 * @param pool the scheduler pool for the wait
+	 * @return the observer
+	 */
+	public static Observable<Long> tick(final long start, final long end, final long delay, final TimeUnit unit, final ScheduledExecutorService pool) {
+		return new Observable<Long>() {
+			@Override
+			public Closeable register(final Observer<? super Long> observer) {
+				final AtomicReference<ScheduledFuture<?>> f = new AtomicReference<ScheduledFuture<?>>();
+				final AtomicBoolean cancelled = new AtomicBoolean();
+				f.set(pool.schedule(new Runnable() {
+					long current = start;
+					@Override
+					public void run() {
+						if (current < end && !cancelled.get()) {
+							observer.next(current++);
+							f.set(pool.schedule(this, delay, unit));
+						} else {
+							if (!cancelled.get()) {
+								observer.finish();
+							}
+						}
+					}
+				}, delay, unit));
+				return new Closeable() {
+					@Override
+					public void close() throws IOException {
+						cancelled.set(true);
+						f.get().cancel(false);
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Returns an observable which produces an ordered sequence of numbers with the specified delay.
+	 * It uses the default scheduler pool.
+	 * @param start the starting value of the tick
+	 * @param end the finishing value of the tick
+	 * @param delay the delay value
+	 * @param unit the time unit of the delay
+	 * @return the observer
+	 */
+	public static Observable<Long> tick(final long start, final long end, final long delay, final TimeUnit unit) {
+		return tick(start, end, delay, unit, DEFAULT_SCHEDULED_POOL);
+	}
+	/**
+	 * Returns an observable which produces an ordered sequence of numbers with the specified delay.
+	 * It uses the default scheduler pool.
+	 * @param delay the delay value
+	 * @param unit the time unit of the delay
+	 * @return the observer
+	 */
+	public static Observable<Long> tick(final long delay, final TimeUnit unit) {
+		return tick(0, Long.MAX_VALUE, delay, unit, DEFAULT_SCHEDULED_POOL);
+	}
+	/**
+	 * Merge the events of two observable sequences.
+	 * @param <T> the type of the elements
+	 * @param first the first observable
+	 * @param second the second observable
+	 * @return the merged observable
+	 */
+	public static <T> Observable<T> merge(Observable<T> first, Observable<T> second) {
+		List<Observable<T>> list = new ArrayList<Observable<T>>();
+		list.add(first);
+		list.add(second);
+		return merge(list);
+	}
+	/**
+	 * Signals true if the source observable fires finish() without ever firing next().
+	 * This means once the next() is fired, the resulting observer will return early.
+	 * @param source the source observable of any type
+	 * @return the observer
+	 */
+	public static Observable<Boolean> isEmpty(final Observable<?> source) {
+		return new Observable<Boolean>() {
+			@Override
+			public Closeable register(final Observer<? super Boolean> observer) {
+				return source.register(new Observer<Object>() {
+					/** We already determined the answer? */
+					boolean done;
+					@Override
+					public void next(Object value) {
+						if (!done) {
+							done = true;
+							observer.next(true);
+							observer.finish();
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						if (!done) {
+							observer.error(ex);
+						}
+					}
+
+					@Override
+					public void finish() {
+						if (!done) {
+							done = true;
+							observer.next(false);
+							observer.finish();
+						}
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Returns the last element of the source observable or throws
+	 * NoSuchElementException if the source is empty.
+	 * @param <T> the type of the elements
+	 * @param source the source of Ts
+	 * @return the last element
+	 */
+	public static <T> T last(final Observable<T> source) {
+		final LinkedBlockingQueue<Option<T>> queue = new LinkedBlockingQueue<Option<T>>();
+		Closeable c = source.register(new Observer<T>() {
+			/** The current value. */
+			T current;
+			/** Are we the first? */
+			boolean first = true;
+			@Override
+			public void next(T value) {
+				first = false;
+				current = value;
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				queue.add(Option.<T>none());
+			}
+
+			@Override
+			public void finish() {
+				if (first) {
+					queue.add(Option.<T>none());
+				} else {
+					queue.add(Option.some(current));
+				}
+			}
+			
+		});
+		try {
+			Option<T> value = queue.take();
+			c.close();
+			if (value == Option.none()) {
+				throw new NoSuchElementException();
+			}
+			return value.value();
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		} catch (IOException ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+	/**
+	 * Returns an iterable which returns values on a momentary basis from the
+	 * source. Useful when source produces values at different rate than the consumer takes it.
+	 * FIXME not sure where the observer should run
+	 * @param <T> the type of the values
+	 * @param source the source
+	 * @return the iterable
+	 */
+	public static <T> Iterable<T> latest(final Observable<T> source) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				final AtomicBoolean complete = new AtomicBoolean();
+				final AtomicReference<T> current = new AtomicReference<T>();
+				final Closeable c = source.register(new Observer<T>() {
+
+					@Override
+					public void next(T value) {
+						current.set(value);
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						complete.set(true);
+					}
+
+					@Override
+					public void finish() {
+						complete.set(true);
+					}
+					
+				});
+				return new Iterator<T>() {
+					@Override
+					public boolean hasNext() {
+						return !complete.get();
+					}
+
+					@Override
+					public T next() {
+						return current.get();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+					@Override
+					protected void finalize() throws Throwable {
+						c.close();
+					}
+				};
+			}
+		};
+	};
+	/**
+	 * Returns the maximum value encountered in the source observable onse it finish().
+	 * @param <T> the element type which must be comparable to itself
+	 * @param source the source of integers
+	 * @return the the maximum value
+	 */
+	public static <T extends Comparable<? super T>> Observable<T> max(final Observable<T> source) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** Keeps track of the maximum value. */
+					T maxValue;
+					/** Is this the first original value? */
+					boolean first = true;
+					@Override
+					public void next(T value) {
+						if (first || maxValue.compareTo(value) < 0) {
+							maxValue = value;
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (!first) {
+							observer.next(maxValue);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Returns the minimum value encountered in the source observable onse it finish().
+	 * @param <T> the element type which must be comparable to itself
+	 * @param source the source of integers
+	 * @return the the minimum value
+	 */
+	public static <T extends Comparable<? super T>> Observable<T> min(final Observable<T> source) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** Keeps track of the maximum value. */
+					T minValue;
+					/** Is this the first original value? */
+					boolean first = true;
+					@Override
+					public void next(T value) {
+						if (first || minValue.compareTo(value) > 0) {
+							minValue = value;
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (!first) {
+							observer.next(minValue);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/** The diagnostic states of the current runnable. */
+	enum ObserverState { OBSERVER_RUNNING, OBSERVER_FINISHED, OBSERVER_ERROR };
+	/**
+	 * Constructs an observer which logs errors in case next(), finish() or error() is called 
+	 * and the observer is not in running state anymore due an earlier finish() or error() call.
+	 * @param <T> the element type.
+	 * @param source the source observable
+	 * @return the augmented observable
+	 */
+	public static <T> Observable<T> debugState(final Observable<T> source) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					ObserverState state = ObserverState.OBSERVER_RUNNING;
+					@Override
+					public void next(T value) {
+						if (state != ObserverState.OBSERVER_RUNNING) {
+							new IllegalStateException(state.toString()).printStackTrace();
+						}
+						observer.next(value);
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						if (state != ObserverState.OBSERVER_RUNNING) {
+							new IllegalStateException(state.toString()).printStackTrace();
+						}
+						state = ObserverState.OBSERVER_ERROR;
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (state != ObserverState.OBSERVER_RUNNING) {
+							new IllegalStateException(state.toString()).printStackTrace();
+						}
+						state = ObserverState.OBSERVER_FINISHED;
 						observer.finish();
 					}
 					
