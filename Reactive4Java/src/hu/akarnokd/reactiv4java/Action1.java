@@ -18,7 +18,7 @@ package hu.akarnokd.reactiv4java;
 
 /**
  * A simple action-like interface with one parameter.
- * @author karnokd
+ * @author akarnokd
  * @param <T> the action parameter
  */
 public interface Action1<T> {

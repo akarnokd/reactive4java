@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Utility class to manage observable interfaces.
- * @author karnokd
+ * @author akarnokd
  *
  */
 public final class Observables {
@@ -86,6 +86,18 @@ public final class Observables {
 		DEFAULT_SCHEDULED_POOL = new ScheduledThreadPoolExecutor(1);
 		((ScheduledThreadPoolExecutor)DEFAULT_SCHEDULED_POOL).setKeepAliveTime(1, TimeUnit.SECONDS);
 		((ScheduledThreadPoolExecutor)DEFAULT_SCHEDULED_POOL).allowCoreThreadTimeOut(true);
+	}
+	/**
+	 * @return the default pool used by the Observables methods by default
+	 */
+	public static ExecutorService getDefaultPool() {
+		return DEFAULT_OBSERVABLE_POOL;
+	}
+	/**
+	 * @return the default scheduler pool used by the Observables methods by default
+	 */
+	public static ScheduledExecutorService getDefaultSchedulerPool() {
+		return DEFAULT_SCHEDULED_POOL;
 	}
 	/** 
 	 * Creates an observable which generates numbers from start.
@@ -142,9 +154,12 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				return observable.register(new Observer<T>() {
+					/** The queue to ensure the order in which the notification propagates. */
+					final LinkedBlockingQueue<Runnable> inSequence = new LinkedBlockingQueue<Runnable>();
+					final AtomicInteger wip = new AtomicInteger();
 					@Override
 					public void finish() {
-						pool.execute(new Runnable() { // FIXME: not sure about sequence
+						runInSequence(new Runnable() { // FIXME: not sure about sequence
 							@Override
 							public void run() {
 								observer.finish();
@@ -153,7 +168,7 @@ public final class Observables {
 					}
 					@Override
 					public void error(final Throwable ex) {
-						pool.execute(new Runnable() { // FIXME: not sure about sequence
+						runInSequence(new Runnable() { // FIXME: not sure about sequence
 							@Override
 							public void run() {
 								observer.error(ex);
@@ -162,13 +177,36 @@ public final class Observables {
 					}
 					@Override
 					public void next(final T value) { // FIXME: not sure about sequence
-						pool.execute(new Runnable() {
+						runInSequence(new Runnable() {
 							@Override
 							public void run() {
 								observer.next(value);
 							}
 						});
 					};
+					/**
+					 * Run the specified task in sequence after
+					 * any previous tasks.
+					 * @param task the task to run in sequence
+					 */
+					private void runInSequence(final Runnable task) {
+						inSequence.add(task);
+						
+						if (wip.incrementAndGet() == 1) {
+							pool.submit(new Runnable() {
+								@Override
+								public void run() {
+									do {
+										Runnable r = inSequence.poll();
+										if (r != null) {
+											r.run();
+										}
+									} while (wip.decrementAndGet() > 0);
+									 // FIXME seems to work but if a runnable blocks here, a new pool thread is started with a new instance of this
+								}
+							});
+						}
+					}
 				});
 			}
 		};
@@ -1235,22 +1273,101 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
-
+					/** The last value. */
+					T last;
+					/** Indication as the first. */
+					boolean first = true;
 					@Override
 					public void next(T value) {
-						// TODO Auto-generated method stub
-						
+						if ((last == value || (last != null && last.equals(value))) || first) {
+							last = value;
+							first = false;
+							observer.next(value);
+						}
 					}
 
 					@Override
 					public void error(Throwable ex) {
-						
+						observer.error(ex);
 					}
 
 					@Override
 					public void finish() {
-						// TODO Auto-generated method stub
-						
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Returns Ts from the source observable if the subsequent keys extracted by <code>keyExtractor</code> are different.
+	 * @param <T> the type of the values to observe
+	 * @param <U> the key type check for distinction
+	 * @param source the source of Ts
+	 * @param keyExtractor the etractor for the keys
+	 * @return the new filtered observable
+	 */
+	public static <T, U> Observable<T> distinct(final Observable<T> source, final Func1<U, T> keyExtractor) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** The last value. */
+					U lastKey;
+					/** Indication as the first. */
+					boolean first = true;
+					@Override
+					public void next(T value) {
+						U key = keyExtractor.invoke(value);
+						if ((lastKey == key || (lastKey != null && lastKey.equals(key))) || first) {
+							lastKey = key;
+							first = false;
+							observer.next(value);
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Invoke a specific action before relaying the Ts to the observable. The <code>action</code> might
+	 * have some effect on each individual Ts passing through this filter.
+	 * @param <T> the type of the values observed
+	 * @param source the source of Ts
+	 * @param action the action to invoke on every T
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> invoke(final Observable<T> source, final Action1<T> action) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					@Override
+					public void next(T value) {
+						action.invoke(value);
+						observer.next(value);
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
 					}
 					
 				});

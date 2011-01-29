@@ -21,7 +21,7 @@ import java.util.NoSuchElementException;
 
 /**
  * Helper class with function types.
- * @author karnokd
+ * @author akarnokd
  */
 public final class Functions {
 	/** Utility class. */
