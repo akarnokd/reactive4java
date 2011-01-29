@@ -313,4 +313,17 @@ public final class Functions {
 			};
 		};
 	}
+	/**
+	 * A convenience function which unwraps the T from a Timestamped of T.
+	 * @param <T> the value type
+	 * @return the unwrapper function
+	 */
+	public static <T> Func1<T, Timestamped<T>> unwrapTimestamped() {
+		return new Func1<T, Timestamped<T>>() {
+			@Override
+			public T invoke(Timestamped<T> param1) {
+				return param1.value();
+			}
+		};
+	}
 }
