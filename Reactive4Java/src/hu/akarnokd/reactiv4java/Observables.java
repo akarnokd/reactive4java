@@ -3090,10 +3090,10 @@ public final class Observables {
 	 * @return the concatenated observable
 	 */
 	public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
-		final Iterator<Observable<T>> it = sources.iterator();
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
+				final Iterator<Observable<T>> it = sources.iterator();
 				if (it.hasNext()) {
 					UObserver<T> obs = new UObserver<T>() {
 						@Override
@@ -5075,5 +5075,42 @@ public final class Observables {
 	 */
 	public static <T> Observable<T> throwException(final Throwable ex) {
 		return throwException(ex, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Returns an observable which provides a TimeInterval of Ts which
+	 * records the elapsed time between successive elements.
+	 * The time interval is evaluated using the System.nanoTime() differences
+	 * as nanoseconds
+	 * The first element contains the time elapsed since the registration occurred.
+	 * @param <T> the time source
+	 * @param source the source of Ts
+	 * @return the new observable
+	 */
+	public static <T> Observable<TimeInterval<T>> addTimeInterval(final Observable<T> source) {
+		return new Observable<TimeInterval<T>>() {
+			@Override
+			public Closeable register(final Observer<? super TimeInterval<T>> observer) {
+				return source.register(new Observer<T>() {
+					long lastTime = System.nanoTime();
+					@Override
+					public void next(T value) {
+						long t2 = System.nanoTime();
+						observer.next(TimeInterval.of(value, t2 - lastTime));
+						lastTime = t2;
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
 	}
 }
