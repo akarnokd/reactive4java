@@ -16,6 +16,8 @@
 
 package hu.akarnokd.reactiv4java.test;
 
+import hu.akarnokd.reactiv4java.Func2;
+import hu.akarnokd.reactiv4java.Functions;
 import hu.akarnokd.reactiv4java.Observable;
 import hu.akarnokd.reactiv4java.Observables;
 
@@ -63,6 +65,32 @@ public final class TestA {
 				)
 			);
 		
+		run(
+			Observables.zip(
+				Observables.tick(0, 5, 1, TimeUnit.SECONDS), 
+				Functions.range(0, 3),
+				new Func2<Long, Long, Integer>() {
+					@Override
+					public Long invoke(Long param1, Integer param2) {
+						return param1 * 10 + param2;
+					}
+				}
+			)
+		);
+
+		run(
+			Observables.zip(
+				Observables.tick(0, 5, 1, TimeUnit.SECONDS), 
+				Observables.tick(0, 3, 100, TimeUnit.MILLISECONDS), 
+				new Func2<Long, Long, Long>() {
+					@Override
+					public Long invoke(Long param1, Long param2) {
+						return param1 * 10 + param2;
+					}
+				}
+			)
+		);
+
 		System.out.printf("%nMain finished%n");
 	}
 

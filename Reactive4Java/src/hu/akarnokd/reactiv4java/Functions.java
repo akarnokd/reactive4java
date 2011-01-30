@@ -555,8 +555,22 @@ public final class Functions {
 			};
 		};
 	}
+	/**
+	 * Creates a function which negates the supplied function's value.
+	 * @param func the original function
+	 * @return the wrapped negator function
+	 */
+	public static Func0<Boolean> negate(final Func0<Boolean> func) {
+		return new Func0<Boolean>() {
+			@Override
+			public Boolean invoke() {
+				return func.invoke() == Boolean.TRUE ? Boolean.FALSE : Boolean.TRUE;
+			}
+		};
+	}
 	/** Utility class. */
 	private Functions() {
 		// TODO Auto-generated constructor stub
 	}
+	
 }
