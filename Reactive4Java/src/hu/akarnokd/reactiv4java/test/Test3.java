@@ -91,7 +91,7 @@ public final class Test3 {
 		});
 		
 		AtomicBoolean sw = new AtomicBoolean(true);
-		Observables.ifThen(Functions.atomicSource(sw), tss, tss2).register(Observables.printlnObserver());
+		Observables.ifThen(Functions.atomicSource(sw), tss, tss2).register(Observables.println());
 		Thread.sleep(3000);
 		sw.set(false);
 		

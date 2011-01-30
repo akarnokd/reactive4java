@@ -52,11 +52,11 @@ public final class Test2 {
 		List<Observable<Integer>> list = new ArrayList<Observable<Integer>>();
 		list.add(Observables.range(0, 10));
 		list.add(Observables.range(10, 10));
-		Observables.concat(list).register(Observables.printlnObserver());
+		Observables.concat(list).register(Observables.println());
 		
-		Observables.forkJoin(list).register(Observables.printlnObserver());
+		Observables.forkJoin(list).register(Observables.println());
 		
-		Closeable c = Observables.range(0, Integer.MAX_VALUE).register(Observables.printlnObserver());
+		Closeable c = Observables.range(0, Integer.MAX_VALUE).register(Observables.println());
 		
 		Thread.sleep(1000);
 		
@@ -64,7 +64,7 @@ public final class Test2 {
 		
 		Observables.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
 				Functions.<Integer>identity(), Functions.<Long, Integer>constant(1000L))
-				.register(Observables.printlnObserver())
+				.register(Observables.println())
 				;
 		
 		Observable<Timestamped<Integer>> tss = Observables.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
