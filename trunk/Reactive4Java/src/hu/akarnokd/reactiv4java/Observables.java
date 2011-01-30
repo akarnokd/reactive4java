@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -65,13 +66,84 @@ public final class Observables {
 	private Observables() {
 		// utility class
 	}
-	/** A helper disposable object which does nothing. */
-	private static final Closeable EMPTY_CLOSEABLE = new Closeable() {
+	/**
+	 * The runnable instance which is aware of its scheduler's registration.
+	 * FIXME concurrency questions with the storage of the current future
+	 * @author akarnokd, 2011.01.29.
+	 */
+	abstract static class USchedulable implements Runnable, Closeable {
+		/** The holder for the registration. */
+		final AtomicReference<Future<?>> future = new AtomicReference<Future<?>>();
+		/**
+		 * Schedule this on the given pool.
+		 * @param pool the target pool
+		 * @param delay the delay
+		 * @param unit the unit of delay
+		 * @return the future result of the registration
+		 */
+		public Future<?> scheduleOn(ScheduledExecutorService pool, long delay, TimeUnit unit) {
+			Future<?> f = pool.schedule(this, delay, unit);
+			future.set(f);
+			return f;
+		}
+		/**
+		 * Schedule this on the given pool at a fixed rate.
+		 * @param pool the target pool
+		 * @param initial the initial delay
+		 * @param delay the delay
+		 * @param unit the unit of delay
+		 * @return the future result of the registration
+		 */
+		public Future<?> scheduleOnAtFixedRate(ScheduledExecutorService pool, long initial, long delay, TimeUnit unit) {
+			Future<?> f = pool.scheduleAtFixedRate(this, initial, delay, unit);
+			future.set(f);
+			return f;
+		}
+		/**
+		 * Schedule this on the given pool with a fixed delay.
+		 * @param pool the target pool
+		 * @param initial the initial delay
+		 * @param delay the delay
+		 * @param unit the unit of delay
+		 * @return the future result of the registration
+		 */
+		public Future<?> scheduleOnWitFixedDelay(ScheduledExecutorService pool, long initial, long delay, TimeUnit unit) {
+			Future<?> f = pool.scheduleWithFixedDelay(this, initial, delay, unit);
+			future.set(f);
+			return f;
+		}
+		/**
+		 * Submit this to the given executor service pool.
+		 * @param pool the target pool
+		 * @return the future of this computation
+		 */
+		public Future<?> submitTo(ExecutorService pool) {
+			Future<?> f = pool.submit(this);
+			future.set(f);
+			return f;
+		}
 		@Override
 		public void close() {
-			
+			Future<?> f = future.get();
+			if (f != null) {
+				f.cancel(true);
+			}
 		}
-	};
+		/**
+		 * @return returns the current interruption status which
+		 * can be used to test for cancellation
+		 */
+		public boolean cancelled() {
+			return Thread.currentThread().isInterrupted();
+		}
+	}
+//	/** A helper disposable object which does nothing. */
+//	private static final Closeable EMPTY_CLOSEABLE = new Closeable() {
+//		@Override
+//		public void close() {
+//			
+//		}
+//	};
 	/**
 	 * Create an observable instance by submitting a function which takes responsibility
 	 * for registering observers.
@@ -125,24 +197,17 @@ public final class Observables {
 		return new Observable<Integer>() {
 			@Override
 			public Closeable register(final Observer<? super Integer> observer) {
-				final AtomicBoolean cancel = new AtomicBoolean();
-				pool.execute(new Runnable() {
+				return close((new USchedulable() {
 					@Override
 					public void run() {
-						for (int i = start; i < start + count && !cancel.get(); i++) {
+						for (int i = start; i < start + count && !cancelled(); i++) {
 							observer.next(i);
 						}
-						if (!cancel.get()) {
+						if (!cancelled()) {
 							observer.finish();
 						}
 					}
-				});
-				return new Closeable() {
-					@Override
-					public void close() {
-						cancel.set(true);
-					}
-				};
+				}).submitTo(pool));
 			}
 		};
 	}
@@ -153,29 +218,24 @@ public final class Observables {
 	 * @param pool the execution thread pool.
 	 * @return the observable
 	 */
-	public static Observable<BigInteger> range(final BigInteger start, final BigInteger count, final ExecutorService pool) {
+	public static Observable<BigInteger> range(final BigInteger start, 
+			final BigInteger count, final ExecutorService pool) {
 		return new Observable<BigInteger>() {
 			@Override
 			public Closeable register(final Observer<? super BigInteger> observer) {
-				final AtomicBoolean cancel = new AtomicBoolean();
-				pool.execute(new Runnable() {
+				return close((new USchedulable() {
 					@Override
 					public void run() {
 						BigInteger end = start.add(count);
-						for (BigInteger i = start; i.compareTo(end) < 0 && !cancel.get(); i = i.add(BigInteger.ONE)) {
+						for (BigInteger i = start; i.compareTo(end) < 0 
+						&& !cancelled(); i = i.add(BigInteger.ONE)) {
 							observer.next(i);
 						}
-						if (!cancel.get()) {
+						if (!cancelled()) {
 							observer.finish();
 						}
 					}
-				});
-				return new Closeable() {
-					@Override
-					public void close() {
-						cancel.set(true);
-					}
-				};
+				}).submitTo(pool));
 			}
 		};
 	}
@@ -192,26 +252,19 @@ public final class Observables {
 		return new Observable<BigDecimal>() {
 			@Override
 			public Closeable register(final Observer<? super BigDecimal> observer) {
-				final AtomicBoolean cancel = new AtomicBoolean();
-				pool.execute(new Runnable() {
+				return close((new USchedulable() {
 					@Override
 					public void run() {
 						BigDecimal value = start;
-						for (int i = 0; i < count && !cancel.get(); i++) {
+						for (int i = 0; i < count && !Thread.currentThread().isInterrupted(); i++) {
 							observer.next(value);
 							value = value.add(step);
 						}
-						if (!cancel.get()) {
+						if (!Thread.currentThread().isInterrupted()) {
 							observer.finish();
 						}
 					}
-				});
-				return new Closeable() {
-					@Override
-					public void close() {
-						cancel.set(true);
-					}
-				};
+				}).submitTo(pool));
 			}
 		};
 	}
@@ -224,28 +277,22 @@ public final class Observables {
 	 * @param pool the pool where to emit the values
 	 * @return the observable of float
 	 */
-	public static Observable<Float> range(final float start, final int count, final float step, final ExecutorService pool) {
+	public static Observable<Float> range(final float start, final int count, 
+			final float step, final ExecutorService pool) {
 		return new Observable<Float>() {
 			@Override
 			public Closeable register(final Observer<? super Float> observer) {
-				final AtomicBoolean cancel = new AtomicBoolean();
-				pool.execute(new Runnable() {
+				return close((new USchedulable() {
 					@Override
 					public void run() {
-						for (int i = 0; i < count && !cancel.get(); i++) {
+						for (int i = 0; i < count && !Thread.currentThread().isInterrupted(); i++) {
 							observer.next(start + i * step);
 						}
-						if (!cancel.get()) {
+						if (!Thread.currentThread().isInterrupted()) {
 							observer.finish();
 						}
 					}
-				});
-				return new Closeable() {
-					@Override
-					public void close() {
-						cancel.set(true);
-					}
-				};
+				}).submitTo(pool));
 			}
 		};
 		
@@ -259,28 +306,22 @@ public final class Observables {
 	 * @param pool the pool where to emit the values
 	 * @return the observable of float
 	 */
-	public static Observable<Double> range(final double start, final int count, final double step, final ExecutorService pool) {
+	public static Observable<Double> range(final double start, final int count, 
+			final double step, final ExecutorService pool) {
 		return new Observable<Double>() {
 			@Override
 			public Closeable register(final Observer<? super Double> observer) {
-				final AtomicBoolean cancel = new AtomicBoolean();
-				pool.execute(new Runnable() {
+				return close((new USchedulable() {
 					@Override
 					public void run() {
-						for (int i = 0; i < count && !cancel.get(); i++) {
+						for (int i = 0; i < count && !Thread.currentThread().isInterrupted(); i++) {
 							observer.next(start + i * step);
 						}
-						if (!cancel.get()) {
+						if (!Thread.currentThread().isInterrupted()) {
 							observer.finish();
 						}
 					}
-				});
-				return new Closeable() {
-					@Override
-					public void close() {
-						cancel.set(true);
-					}
-				};
+				}).submitTo(pool));
 			}
 		};
 		
@@ -352,7 +393,8 @@ public final class Observables {
 	 * @param pool the target observable
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> observeOn(final Observable<T> observable, final ExecutorService pool) {
+	public static <T> Observable<T> observeOn(final Observable<T> observable, 
+			final ExecutorService pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -422,7 +464,8 @@ public final class Observables {
 	 * @param pool the pool to perform the original subscribe() call
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> subscribeOn(final Observable<T> observable, final ExecutorService pool) {
+	public static <T> Observable<T> subscribeOn(final Observable<T> observable, 
+			final ExecutorService pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -486,16 +529,21 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				pool.execute(new Runnable() {
+				return close((new USchedulable() {
 					@Override
 					public void run() {
 						for (T t : iterable) {
+							if (cancelled()) {
+								break;
+							}
 							observer.next(t);
 						}
-						observer.finish();
+						
+						if (!cancelled()) {
+							observer.finish();
+						}
 					}
-				});
-				return EMPTY_CLOSEABLE; // FIXME unsubscribe as NO-OP?
+				}).submitTo(pool));
 			}
 		};
 	}
@@ -517,7 +565,8 @@ public final class Observables {
 	 * @param pool the pool where to await elements from the observable.
 	 * @return the iterable
 	 */
-	public static <T> Iterable<T> asIterable(final Observable<T> observable, final ExecutorService pool) {
+	public static <T> Iterable<T> asIterable(final Observable<T> observable, 
+			final ExecutorService pool) {
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
@@ -531,8 +580,7 @@ public final class Observables {
 
 					@Override
 					public void error(Throwable ex) {
-						// TODO Auto-generated method stub
-						
+						queue.add(Option.<T>error(ex));
 					}
 
 					@Override
@@ -781,7 +829,7 @@ public final class Observables {
 						};
 					}));
 				}
-				return compositeCloseable(disposers);
+				return close(disposers);
 			}
 		};
 	}
@@ -1288,10 +1336,33 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				final List<Closeable> disposables = new ArrayList<Closeable>();
+				List<Observable<T>> sourcesList = new ArrayList<Observable<T>>();
 				for (Observable<T> os : sources) {
-					disposables.add(os.register(observer));
+					sourcesList.add(os);
+				}				
+				final AtomicInteger wip = new AtomicInteger(sourcesList.size());
+				for (Observable<T> os : sourcesList) {
+					disposables.add((new UObserver<T>() {
+
+						@Override
+						public void next(T value) {
+							observer.next(value);
+						}
+
+						@Override
+						public void error(Throwable ex) {
+							wip.decrementAndGet();
+						}
+
+						@Override
+						public void finish() {
+							if (wip.decrementAndGet() == 0) {
+								observer.finish();
+							}
+						}
+					}).registerWith(os));
 				}
-				return compositeCloseable(disposables);
+				return close(disposables);
 			}
 		};
 	}
@@ -1823,13 +1894,12 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				pool.execute(new Runnable() {
+				return close((new USchedulable() {
 					@Override
 					public void run() {
 						observer.finish();
 					}
-				});
-				return EMPTY_CLOSEABLE;
+				}).submitTo(pool));
 			}
 		};
 	}
@@ -1890,6 +1960,7 @@ public final class Observables {
 	}
 	/**
 	 * Creates a concatenated sequence of Observables based on the decision function of <code>selector</code> keyed by the source iterable.
+	 * FIXME not sure for the reason of this method
 	 * @param <T> the type of the source values
 	 * @param <U> the type of the observable elements.
 	 * @param source the source of keys
@@ -1923,10 +1994,11 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super List<T>> observer) {
 				int i = 0;
+				List<Closeable> closeables = new ArrayList<Closeable>();
 				for (Observable<T> o : observableList) {
 					final int j = i;
 					
-					o.register(new Observer<T>() {
+					closeables.add(o.register(new Observer<T>() {
 						/** The last value. */
 						T last;
 						@Override
@@ -1953,11 +2025,11 @@ public final class Observables {
 							}
 						}
 						
-					});
+					}));
 					
 					i++;
 				}
-				return EMPTY_CLOSEABLE;
+				return close(closeables);
 			}
 		};
 	}
@@ -1978,27 +2050,19 @@ public final class Observables {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
-				// the cancellation indicator
-				final AtomicBoolean cancel = new AtomicBoolean();
-				pool.execute(new Runnable() {
+				return close((new USchedulable() {
 					@Override
 					public void run() {
 						T t = initial;
-						while (condition.invoke(t) && !cancel.get()) {
+						while (condition.invoke(t) && !cancelled()) {
 							observer.next(selector.invoke(t));
 							t = next.invoke(t);
 						}
-						if (!cancel.get()) {
+						if (!cancelled()) {
 							observer.finish();
 						}
 					}
-				});
-				return new Closeable() {
-					@Override
-					public void close() {
-						cancel.set(true);
-					}
-				};
+				}).submitTo(pool));
 			}
 		};
 	}
@@ -2324,7 +2388,7 @@ public final class Observables {
 					
 				});
 				
-				return compositeCloseable(s1, s2);
+				return close(s1, s2);
 			}
 		};
 	}
@@ -2337,7 +2401,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(Observer<? super T> observer) {
-				return EMPTY_CLOSEABLE;
+				return close(Collections.<Closeable>emptyList());
 			}
 		};
 	}
@@ -2367,7 +2431,7 @@ public final class Observables {
 		return new Observable<Long>() {
 			@Override
 			public Closeable register(final Observer<? super Long> observer) {
-				USchedulable sch = new USchedulable() {
+				return close((new USchedulable() {
 					long current = start;
 					@Override
 					public void run() {
@@ -2375,12 +2439,10 @@ public final class Observables {
 							observer.next(current++);
 						} else {
 							observer.finish();
-							cancel(false); // no more scheduling needed
+							close(); // no more scheduling needed
 						}
 					}
-				};
-				sch.scheduleOnAtFixedRate(pool, delay, delay, unit);
-				return compositeCloseable(sch);
+				}).scheduleOnAtFixedRate(pool, delay, delay, unit));
 			}
 		};
 	}
@@ -3060,24 +3122,29 @@ public final class Observables {
 	 */
 	abstract static class UObserver<T> implements Observer<T> {
 		/** The saved handler. */ 
-		protected Closeable handler;
+		final AtomicReference<Closeable> handler = new AtomicReference<Closeable>();
 		/**
 		 * Register with the given observable.
+		 * FIXME concurrency questions
 		 * @param observable the target observable
 		 * @return the unregistration handler
 		 */
 		public Closeable registerWith(Observable<T> observable) {
-			handler = observable.register(this);
-			return handler;
+			Closeable h = observable.register(this);
+			Closeable old = handler.getAndSet(h);
+			if (old != null) {
+				try { old.close(); } catch (IOException e) { }
+			}
+			return h;
 		}
 		/**
 		 * Unregisters this observer from its observable.
+		 * FIXME concurrency questions
 		 */
 		protected void unregister() {
-			try {
-				handler.close();
-			} catch (IOException e) {
-				throw new RuntimeException();
+			Closeable h = handler.getAndSet(null);
+			if (h != null) {
+				try { h.close(); } catch (IOException e) { }
 			}
 		}
 	}
@@ -3120,7 +3187,7 @@ public final class Observables {
 					};
 					return obs.registerWith(it.next());
 				}
-				return EMPTY_CLOSEABLE;
+				return Observables.<T>empty().register(observer);
 			}
 		};
 	}
@@ -3134,10 +3201,10 @@ public final class Observables {
 	 * @return the observable
 	 */
 	public static <T> Observable<T> resumeAlways(final Iterable<Observable<T>> sources) {
-		final Iterator<Observable<T>> it = sources.iterator();
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
+				final Iterator<Observable<T>> it = sources.iterator();
 				if (it.hasNext()) {
 					UObserver<T> obs = new UObserver<T>() {
 						@Override
@@ -3148,20 +3215,27 @@ public final class Observables {
 						@Override
 						public void error(Throwable ex) {
 							unregister();
-							registerWith(it.next());
+							if (it.hasNext()) {
+								registerWith(it.next());
+							} else {
+								observer.finish();
+							}
 						}
 
 						@Override
 						public void finish() {
 							unregister();
-							registerWith(it.next());
+							if (it.hasNext()) {
+								registerWith(it.next());
+							} else {
+								observer.finish();
+							}
 						}
 						
 					};
 					return obs.registerWith(it.next());
 				}
-				observer.finish();
-				return EMPTY_CLOSEABLE;
+				return Observables.<T>empty().register(observer);
 			}
 		};
 	}
@@ -3175,11 +3249,11 @@ public final class Observables {
 	 * @param sources the available source observables.
 	 * @return the failover observable
 	 */
-	public static <T> Observable<T> catchException(final Iterable<Observable<T>> sources) {
-		final Iterator<Observable<T>> it = sources.iterator();
+	static <T> Observable<T> catchException(final Iterable<Observable<T>> sources) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
+				final Iterator<Observable<T>> it = sources.iterator();
 				if (it.hasNext()) {
 					UObserver<T> obs = new UObserver<T>() {
 						@Override
@@ -3190,7 +3264,11 @@ public final class Observables {
 						@Override
 						public void error(Throwable ex) {
 							unregister();
-							registerWith(it.next());
+							if (it.hasNext()) {
+								registerWith(it.next());
+							} else {
+								observer.finish();
+							}
 						}
 
 						@Override
@@ -3202,8 +3280,7 @@ public final class Observables {
 					};
 					return obs.registerWith(it.next());
 				}
-				observer.finish();
-				return EMPTY_CLOSEABLE;
+				return Observables.<T>empty().register(observer);
 			}
 		};
 	}
@@ -3480,14 +3557,13 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				pool.execute(new Runnable() {
+				return close((new USchedulable() {
 					@Override
 					public void run() {
 						observer.next(value);
 						observer.finish();
 					}
-				});
-				return EMPTY_CLOSEABLE;
+				}).submitTo(pool));
 			}
 		};
 	}
@@ -3667,64 +3743,6 @@ public final class Observables {
 		}
 	}
 	/**
-	 * The runnable instance which is aware of its scheduler's registration.
-	 * @author akarnokd, 2011.01.29.
-	 */
-	abstract static class USchedulable implements Runnable, Closeable {
-		/** The holder for the registration. */
-		final AtomicReference<ScheduledFuture<?>> future = new AtomicReference<ScheduledFuture<?>>();
-		/**
-		 * Schedule this on the given pool.
-		 * @param pool the target pool
-		 * @param delay the delay
-		 * @param unit the unit of delay
-		 * @return the future result of the registration
-		 */
-		public ScheduledFuture<?> scheduleOn(ScheduledExecutorService pool, long delay, TimeUnit unit) {
-			future.set(pool.schedule(this, delay, unit));
-			return future.get();
-		}
-		/**
-		 * Schedule this on the given pool at a fixed rate.
-		 * @param pool the target pool
-		 * @param initial the initial delay
-		 * @param delay the delay
-		 * @param unit the unit of delay
-		 * @return the future result of the registration
-		 */
-		public ScheduledFuture<?> scheduleOnAtFixedRate(ScheduledExecutorService pool, long initial, long delay, TimeUnit unit) {
-			future.set(pool.scheduleAtFixedRate(this, initial, delay, unit));
-			return future.get();
-		}
-		/**
-		 * Schedule this on the given pool with a fixed delay.
-		 * @param pool the target pool
-		 * @param initial the initial delay
-		 * @param delay the delay
-		 * @param unit the unit of delay
-		 * @return the future result of the registration
-		 */
-		public ScheduledFuture<?> scheduleOnWitFixedDelay(ScheduledExecutorService pool, long initial, long delay, TimeUnit unit) {
-			future.set(pool.scheduleWithFixedDelay(this, initial, delay, unit));
-			return future.get();
-		}
-		/**
-		 * Cancel the current schedule.
-		 * FIXME It will spin wait for a future value as cancel() might be called before any of the register methods return to store the future.
-		 * @param interruptIfRunning interrupt if currently running?
-		 */
-		public void cancel(boolean interruptIfRunning) {
-			Future<?> f = future.get();
-			if (f != null) {
-				f.cancel(interruptIfRunning);
-			}
-		}
-		@Override
-		public void close() throws IOException {
-			cancel(false);
-		}
-	}
-	/**
 	 * Periodically sample the given source observable, which means tracking the last value of
 	 * the observable and periodically submitting it to the output observable.
 	 * FIXME the error() and finish() are instantly propagated
@@ -3765,19 +3783,19 @@ public final class Observables {
 					@Override
 					public void error(Throwable ex) {
 						unregister();
-						schedule.cancel(false);
+						schedule.close();
 						observer.error(ex);
 					}
 
 					@Override
 					public void finish() {
 						unregister();
-						schedule.cancel(false);
+						schedule.close();
 						observer.finish();
 					}
 				};
 				schedule.scheduleOnAtFixedRate(pool, time, time, unit);
-				return compositeCloseable(schedule, obs.registerWith(source));
+				return close(schedule, obs.registerWith(source));
 			}
 		};
 	}
@@ -4196,28 +4214,6 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				final AtomicBoolean canRelay = new AtomicBoolean();
-				final UObserver<T> oT = new UObserver<T>() {
-
-					@Override
-					public void next(T value) {
-						if (canRelay.get()) {
-							observer.next(value);
-						}
-					}
-
-					@Override
-					public void error(Throwable ex) {
-						unregister();
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						unregister();
-						observer.finish();
-					}
-					
-				};
 				final UObserver<U> oU = new UObserver<U>() {
 
 					@Override
@@ -4237,7 +4233,31 @@ public final class Observables {
 					}
 					
 				};
-				return compositeCloseable(oU.registerWith(signaller), 
+				final UObserver<T> oT = new UObserver<T>() {
+
+					@Override
+					public void next(T value) {
+						if (canRelay.get()) {
+							observer.next(value);
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						unregister();
+						oU.unregister();
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						unregister();
+						oU.unregister();
+						observer.finish();
+					}
+					
+				};
+				return close(oU.registerWith(signaller), 
 						oT.registerWith(source));
 			}
 		};
@@ -4248,7 +4268,7 @@ public final class Observables {
 	 * @param closeables the closeables array
 	 * @return the composite closeable
 	 */
-	public static Closeable compositeCloseable(final Closeable... closeables) {
+	static Closeable close(final Closeable... closeables) {
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
@@ -4265,10 +4285,10 @@ public final class Observables {
 	/**
 	 * Creates a composite closeable from the array of closeables.
 	 * <code>IOException</code>s thrown from the closeables are suppressed.
-	 * @param closeables the closeables iterable
+	 * @param closeables the closeables array
 	 * @return the composite closeable
 	 */
-	public static Closeable compositeCloseable(final Iterable<? extends Closeable> closeables) {
+	static Closeable close(final Iterable<? extends Closeable> closeables) {
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
@@ -4327,17 +4347,30 @@ public final class Observables {
 	}
 	/**
 	 * Create a closable which cancels all futures of the array.
-	 * @param interrupt should the cancel interrupt the futures?
 	 * @param futures the futures to cancel
 	 * @return the composite closeable
 	 */
-	public static Closeable closeableFuture(final boolean interrupt, 
-			final Future<?>... futures) {
+	static Closeable close(final Future<?>... futures) {
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
 				for (Future<?> f : futures) {
-					f.cancel(interrupt);
+					f.cancel(true);
+				}
+			}
+		};
+	}
+	/**
+	 * Create a closable which cancels all futures of the array.
+	 * @param futures the futures to cancel
+	 * @return the composite closeable
+	 */
+	public static Closeable close0(final Iterable<? extends Future<?>> futures) {
+		return new Closeable() {
+			@Override
+			public void close() throws IOException {
+				for (Future<?> f : futures) {
+					f.cancel(true);
 				}
 			}
 		};
@@ -4355,7 +4388,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				Future<?> close = pool.submit(new Runnable() {
+				return close((new USchedulable() {
 					@Override
 					public void run() {
 						try {
@@ -4366,8 +4399,7 @@ public final class Observables {
 							observer.error(ex);
 						}
 					}
-				});
-				return closeableFuture(false, close);
+				}).submitTo(pool));
 			}
 		};
 	}
@@ -4393,7 +4425,7 @@ public final class Observables {
 		return new Observable<Void>() {
 			@Override
 			public Closeable register(final Observer<? super Void> observer) {
-				Future<?> close = pool.submit(new Runnable() {
+				return close((new USchedulable() {
 					@Override
 					public void run() {
 						try {
@@ -4403,8 +4435,7 @@ public final class Observables {
 							observer.error(ex);
 						}
 					}
-				});
-				return closeableFuture(false, close);
+				}).submitTo(pool));
 			}
 		};
 	}
@@ -4925,7 +4956,7 @@ public final class Observables {
 					
 				});
 				
-				return compositeCloseable(rU.get().registerWith(signaller), rT.get().registerWith(source));
+				return close(rU.get().registerWith(signaller), rT.get().registerWith(source));
 			}
 		};
 	}
@@ -5007,26 +5038,26 @@ public final class Observables {
 
 					@Override
 					public void next(T value) {
-						sch.cancel(false);
+						sch.close();
 						last.set(value);
 						sch.scheduleOn(pool, delay, unit);
 					}
 
 					@Override
 					public void error(Throwable ex) {
-						sch.cancel(false);
+						sch.close();
 						unregister();
 					}
 
 					@Override
 					public void finish() {
-						sch.cancel(false);
+						sch.close();
 						observer.finish();
 						unregister();
 					}
 					
 				};
-				return compositeCloseable(obs.registerWith(source), sch);
+				return close(obs.registerWith(source), sch);
 			}
 		};
 	}
@@ -5057,12 +5088,12 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				return closeableFuture(false, pool.submit(new Runnable() {
+				return close((new USchedulable() {
 					@Override
 					public void run() {
 						observer.error(ex);
 					}
-				}));
+				}).submitTo(pool));
 			}
 		};
 	}
