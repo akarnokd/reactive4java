@@ -53,6 +53,10 @@ public final class Test8 {
 				Observables.tick(0, 10, 200, TimeUnit.MILLISECONDS),
 				Observables.tick(10, 15, 1, TimeUnit.SECONDS)
 			);
+		
+		run(cc);
+		run(cc);
+		
 		run(
 			Observables.addTimestamped(
 				Observables.throttle(
@@ -60,6 +64,8 @@ public final class Test8 {
 				500, TimeUnit.MILLISECONDS)
 			)
 		);
+		
+		run(Observables.addTimeInterval(cc));
 		
 		System.out.printf("%nMain finished%n");
 	}
