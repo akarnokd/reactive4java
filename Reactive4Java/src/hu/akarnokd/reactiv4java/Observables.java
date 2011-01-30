@@ -43,6 +43,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -145,6 +147,145 @@ public final class Observables {
 		};
 	}
 	/** 
+	 * Creates an observable which generates BigInteger numbers from start.
+	 * @param start the start value.
+	 * @param count the count
+	 * @param pool the execution thread pool.
+	 * @return the observable
+	 */
+	public static Observable<BigInteger> range(final BigInteger start, final BigInteger count, final ExecutorService pool) {
+		return new Observable<BigInteger>() {
+			@Override
+			public Closeable register(final Observer<? super BigInteger> observer) {
+				final AtomicBoolean cancel = new AtomicBoolean();
+				pool.execute(new Runnable() {
+					@Override
+					public void run() {
+						BigInteger end = start.add(count);
+						for (BigInteger i = start; i.compareTo(end) < 0 && !cancel.get(); i = i.add(BigInteger.ONE)) {
+							observer.next(i);
+						}
+						if (!cancel.get()) {
+							observer.finish();
+						}
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() {
+						cancel.set(true);
+					}
+				};
+			}
+		};
+	}
+	/** 
+	 * Creates an observable which generates BigDecimal numbers from start.
+	 * @param start the start value.
+	 * @param count the count
+	 * @param step the stepping
+	 * @param pool the execution thread pool.
+	 * @return the observable
+	 */
+	public static Observable<BigDecimal> range(final BigDecimal start, final int count, 
+			final BigDecimal step, final ExecutorService pool) {
+		return new Observable<BigDecimal>() {
+			@Override
+			public Closeable register(final Observer<? super BigDecimal> observer) {
+				final AtomicBoolean cancel = new AtomicBoolean();
+				pool.execute(new Runnable() {
+					@Override
+					public void run() {
+						BigDecimal value = start;
+						for (int i = 0; i < count && !cancel.get(); i++) {
+							observer.next(value);
+							value = value.add(step);
+						}
+						if (!cancel.get()) {
+							observer.finish();
+						}
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() {
+						cancel.set(true);
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Creates an observable which produces Float values from <code>start</code> in <code>count</code>
+	 * amount and each subsequent element has a difference of <code>step</code>.
+	 * @param start the starting value
+	 * @param count how many values to produce
+	 * @param step the incrementation amount
+	 * @param pool the pool where to emit the values
+	 * @return the observable of float
+	 */
+	public static Observable<Float> range(final float start, final int count, final float step, final ExecutorService pool) {
+		return new Observable<Float>() {
+			@Override
+			public Closeable register(final Observer<? super Float> observer) {
+				final AtomicBoolean cancel = new AtomicBoolean();
+				pool.execute(new Runnable() {
+					@Override
+					public void run() {
+						for (int i = 0; i < count && !cancel.get(); i++) {
+							observer.next(start + i * step);
+						}
+						if (!cancel.get()) {
+							observer.finish();
+						}
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() {
+						cancel.set(true);
+					}
+				};
+			}
+		};
+		
+	}
+	/**
+	 * Creates an observable which produces Double values from <code>start</code> in <code>count</code>
+	 * amount and each subsequent element has a difference of <code>step</code>.
+	 * @param start the starting value
+	 * @param count how many values to produce
+	 * @param step the incrementation amount
+	 * @param pool the pool where to emit the values
+	 * @return the observable of float
+	 */
+	public static Observable<Double> range(final double start, final int count, final double step, final ExecutorService pool) {
+		return new Observable<Double>() {
+			@Override
+			public Closeable register(final Observer<? super Double> observer) {
+				final AtomicBoolean cancel = new AtomicBoolean();
+				pool.execute(new Runnable() {
+					@Override
+					public void run() {
+						for (int i = 0; i < count && !cancel.get(); i++) {
+							observer.next(start + i * step);
+						}
+						if (!cancel.get()) {
+							observer.finish();
+						}
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() {
+						cancel.set(true);
+					}
+				};
+			}
+		};
+		
+	}
+	/** 
 	 * Creates an observable which generates numbers from start.
 	 * @param start the start value.
 	 * @param count the count
@@ -152,6 +293,47 @@ public final class Observables {
 	 */
 	public static Observable<Integer> range(final int start, final int count) {
 		return range(start, count, DEFAULT_OBSERVABLE_POOL);
+	}
+	/** 
+	 * Creates an observable which generates numbers from start.
+	 * @param start the start value.
+	 * @param count the count
+	 * @param step the stepping
+	 * @return the observable
+	 */
+	public static Observable<Float> range(final float start, final int count, final float step) {
+		return range(start, count, step, DEFAULT_OBSERVABLE_POOL);
+	}
+	/** 
+	 * Creates an observable which generates numbers from start.
+	 * @param start the start value.
+	 * @param count the count
+	 * @param step the stepping
+	 * @return the observable
+	 */
+	public static Observable<Double> range(final double start, final int count, 
+			final double step) {
+		return range(start, count, step, DEFAULT_OBSERVABLE_POOL);
+	}
+	/** 
+	 * Creates an observable which generates numbers from start.
+	 * @param start the start value.
+	 * @param count the count
+	 * @return the observable
+	 */
+	public static Observable<BigInteger> range(final BigInteger start, final BigInteger count) {
+		return range(start, count, DEFAULT_OBSERVABLE_POOL);
+	}
+	/** 
+	 * Creates an observable which generates numbers from start.
+	 * @param start the start value.
+	 * @param count the count
+	 * @param step the stepping
+	 * @return the observable
+	 */
+	public static Observable<BigDecimal> range(final BigDecimal start, final int count, 
+			final BigDecimal step) {
+		return range(start, count, step, DEFAULT_OBSERVABLE_POOL);
 	}
 	/** The wrapper for the Event dispatch thread calls. */
 	private static final ExecutorService EDT_EXECUTOR =  new EdtExecutorService();
@@ -599,17 +781,7 @@ public final class Observables {
 						};
 					}));
 				}
-				return new Closeable() {
-					@Override
-					public void close() {
-						for (Closeable d : disposers) {
-							try {
-								d.close();
-							} catch (IOException e) {
-							}
-						}
-					}
-				};
+				return compositeCloseable(disposers);
 			}
 		};
 	}
@@ -722,7 +894,9 @@ public final class Observables {
 
 					@Override
 					public void finish() {
-						observer.next(sum / count);
+						if (count > 0) {
+							observer.next(sum / count);
+						}
 						observer.finish();
 					}
 					
@@ -758,7 +932,9 @@ public final class Observables {
 
 					@Override
 					public void finish() {
-						observer.next(sum / count);
+						if (count > 0) {
+							observer.next(sum / count);
+						}
 						observer.finish();
 					}
 					
@@ -794,7 +970,47 @@ public final class Observables {
 
 					@Override
 					public void finish() {
-						observer.next(sum / count);
+						if (count > 0) {
+							observer.next(sum / count);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Computes and signals the average value of the Float source.
+	 * The source may not send nulls.
+	 * @param source the source of Floats to aggregate.
+	 * @return the observable for the average value
+	 */
+	public static Observable<Float> averageFloat(final Observable<Float> source) {
+		return new Observable<Float>() {
+			@Override
+			public Closeable register(final Observer<? super Float> observer) {
+				return source.register(new Observer<Float>() {
+					/** The sum of the values thus far. */
+					float sum;
+					/** The number of values. */
+					int count;
+					@Override
+					public void next(Float value) {
+						sum += value;
+						count++;
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (count > 0) {
+							observer.next(sum / count);
+						}
 						observer.finish();
 					}
 					
@@ -830,7 +1046,9 @@ public final class Observables {
 
 					@Override
 					public void finish() {
-						observer.next(sum.divide(new BigDecimal(count), 9, BigDecimal.ROUND_HALF_UP));
+						if (count > 0) {
+							observer.next(sum.divide(new BigDecimal(count), 9, BigDecimal.ROUND_HALF_UP));
+						}
 						observer.finish();
 					}
 					
@@ -866,7 +1084,9 @@ public final class Observables {
 
 					@Override
 					public void finish() {
-						observer.next(sum.divide(new BigDecimal(count), 9, BigDecimal.ROUND_HALF_UP));
+						if (count > 0) {
+							observer.next(sum.divide(new BigDecimal(count), 9, BigDecimal.ROUND_HALF_UP));
+						}
 						observer.finish();
 					}
 					
@@ -1071,17 +1291,7 @@ public final class Observables {
 				for (Observable<T> os : sources) {
 					disposables.add(os.register(observer));
 				}
-				return new Closeable() {
-					@Override
-					public void close() {
-						for (Closeable d : disposables) {
-							try {
-								d.close();
-							} catch (IOException e) {
-							}
-						}
-					}
-				};
+				return compositeCloseable(disposables);
 			}
 		};
 	}
@@ -1517,7 +1727,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				return source.register(new Observer<T>() {
+				UObserver<T> obs = new UObserver<T>() {
 					/** Are we done? */
 					boolean done;
 					@Override
@@ -1526,6 +1736,9 @@ public final class Observables {
 							done |= !condition.invoke();
 							if (!done) {
 								observer.next(value);
+							} else {
+								unregister();
+								observer.finish();
 							}
 						}
 					}
@@ -1533,6 +1746,7 @@ public final class Observables {
 					@Override
 					public void error(Throwable ex) {
 						if (!done) {
+							unregister();
 							observer.error(ex);
 						}
 					}
@@ -1541,11 +1755,13 @@ public final class Observables {
 					public void finish() {
 						if (!done) {
 							done = true;
+							unregister();
 							observer.finish();
 						}
 					}
 					
-				});
+				};
+				return obs.registerWith(source);
 			}
 		};
 	}
@@ -2108,21 +2324,7 @@ public final class Observables {
 					
 				});
 				
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						try {
-							s1.close();
-						} catch (IOException ex) {
-							
-						}
-						try {
-							s2.close();
-						} catch (IOException ex) {
-							
-						}
-					}
-				};
+				return compositeCloseable(s1, s2);
 			}
 		};
 	}
@@ -2151,40 +2353,34 @@ public final class Observables {
 	}
 	/**
 	 * Returns an observable which produces an ordered sequence of numbers with the specified delay.
-	 * @param start the starting value of the tick
-	 * @param end the finishing value of the tick
+	 * @param start the starting value of the tick inclusive
+	 * @param end the finishing value of the tick exclusive
 	 * @param delay the delay value
 	 * @param unit the time unit of the delay
 	 * @param pool the scheduler pool for the wait
 	 * @return the observer
 	 */
 	public static Observable<Long> tick(final long start, final long end, final long delay, final TimeUnit unit, final ScheduledExecutorService pool) {
+		if (start > end) {
+			throw new IllegalArgumentException("ensure start <= end");
+		}
 		return new Observable<Long>() {
 			@Override
 			public Closeable register(final Observer<? super Long> observer) {
-				final AtomicReference<ScheduledFuture<?>> f = new AtomicReference<ScheduledFuture<?>>();
-				final AtomicBoolean cancelled = new AtomicBoolean();
-				f.set(pool.schedule(new Runnable() {
+				USchedulable sch = new USchedulable() {
 					long current = start;
 					@Override
 					public void run() {
-						if (current < end && !cancelled.get()) {
+						if (current < end) {
 							observer.next(current++);
-							f.set(pool.schedule(this, delay, unit));
 						} else {
-							if (!cancelled.get()) {
-								observer.finish();
-							}
+							observer.finish();
+							cancel(false); // no more scheduling needed
 						}
 					}
-				}, delay, unit));
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						cancelled.set(true);
-						f.get().cancel(false);
-					}
 				};
+				sch.scheduleOnAtFixedRate(pool, delay, delay, unit);
+				return compositeCloseable(sch);
 			}
 		};
 	}
@@ -2192,7 +2388,7 @@ public final class Observables {
 	 * Returns an observable which produces an ordered sequence of numbers with the specified delay.
 	 * It uses the default scheduler pool.
 	 * @param start the starting value of the tick
-	 * @param end the finishing value of the tick
+	 * @param end the finishing value of the tick exclusive
 	 * @param delay the delay value
 	 * @param unit the time unit of the delay
 	 * @return the observer
@@ -2907,19 +3103,23 @@ public final class Observables {
 
 						@Override
 						public void error(Throwable ex) {
+							unregister();
 							observer.error(ex);
 						}
 
 						@Override
 						public void finish() {
 							unregister();
-							registerWith(it.next());
+							if (it.hasNext()) {
+								registerWith(it.next());
+							} else {
+								observer.finish();
+							}
 						}
 						
 					};
 					return obs.registerWith(it.next());
 				}
-				observer.finish();
 				return EMPTY_CLOSEABLE;
 			}
 		};
@@ -3470,9 +3670,9 @@ public final class Observables {
 	 * The runnable instance which is aware of its scheduler's registration.
 	 * @author akarnokd, 2011.01.29.
 	 */
-	abstract static class USchedulable implements Runnable {
+	abstract static class USchedulable implements Runnable, Closeable {
 		/** The holder for the registration. */
-		protected ScheduledFuture<?> future;
+		final AtomicReference<ScheduledFuture<?>> future = new AtomicReference<ScheduledFuture<?>>();
 		/**
 		 * Schedule this on the given pool.
 		 * @param pool the target pool
@@ -3481,8 +3681,8 @@ public final class Observables {
 		 * @return the future result of the registration
 		 */
 		public ScheduledFuture<?> scheduleOn(ScheduledExecutorService pool, long delay, TimeUnit unit) {
-			future = pool.schedule(this, delay, unit);
-			return future;
+			future.set(pool.schedule(this, delay, unit));
+			return future.get();
 		}
 		/**
 		 * Schedule this on the given pool at a fixed rate.
@@ -3493,8 +3693,8 @@ public final class Observables {
 		 * @return the future result of the registration
 		 */
 		public ScheduledFuture<?> scheduleOnAtFixedRate(ScheduledExecutorService pool, long initial, long delay, TimeUnit unit) {
-			future = pool.scheduleAtFixedRate(this, initial, delay, unit);
-			return future;
+			future.set(pool.scheduleAtFixedRate(this, initial, delay, unit));
+			return future.get();
 		}
 		/**
 		 * Schedule this on the given pool with a fixed delay.
@@ -3505,15 +3705,23 @@ public final class Observables {
 		 * @return the future result of the registration
 		 */
 		public ScheduledFuture<?> scheduleOnWitFixedDelay(ScheduledExecutorService pool, long initial, long delay, TimeUnit unit) {
-			future = pool.scheduleWithFixedDelay(this, initial, delay, unit);
-			return future;
+			future.set(pool.scheduleWithFixedDelay(this, initial, delay, unit));
+			return future.get();
 		}
 		/**
 		 * Cancel the current schedule.
+		 * FIXME It will spin wait for a future value as cancel() might be called before any of the register methods return to store the future.
 		 * @param interruptIfRunning interrupt if currently running?
 		 */
 		public void cancel(boolean interruptIfRunning) {
-			future.cancel(interruptIfRunning);
+			Future<?> f = future.get();
+			if (f != null) {
+				f.cancel(interruptIfRunning);
+			}
+		}
+		@Override
+		public void close() throws IOException {
+			cancel(false);
 		}
 	}
 	/**
@@ -3533,17 +3741,13 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				final AtomicBoolean first = new AtomicBoolean(true);
-				final AtomicBoolean cancel = new AtomicBoolean();
 				final AtomicReference<T> current = new AtomicReference<T>();
 
 				final USchedulable schedule = new USchedulable() {
 					@Override
 					public void run() {
-						if (!cancel.get()) {
-							if (!first.get()) {
-								observer.next(current.get());
-							}
-							scheduleOn(pool, time, unit);
+						if (!first.get()) {
+							observer.next(current.get());
 						}
 					}
 				};
@@ -3561,7 +3765,6 @@ public final class Observables {
 					@Override
 					public void error(Throwable ex) {
 						unregister();
-						cancel.set(true);
 						schedule.cancel(false);
 						observer.error(ex);
 					}
@@ -3569,21 +3772,12 @@ public final class Observables {
 					@Override
 					public void finish() {
 						unregister();
-						cancel.set(true);
 						schedule.cancel(false);
 						observer.finish();
 					}
 				};
-				schedule.scheduleOn(pool, time, unit);
-				final Closeable c = obs.registerWith(source);
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						schedule.cancel(false);
-						cancel.set(true);
-						c.close();
-					}
-				};
+				schedule.scheduleOnAtFixedRate(pool, time, time, unit);
+				return compositeCloseable(schedule, obs.registerWith(source));
 			}
 		};
 	}
@@ -3986,5 +4180,900 @@ public final class Observables {
 				});
 			}
 		};
+	}
+	/**
+	 * Skip the source elements until the signaller sends its first element.
+	 * FIXME: If the signaller sends an error or only finish(), the relaying is never enabled?
+	 * FIXME: once the singaller fires, it gets deregistered
+	 * @param <T> the element type of the source
+	 * @param <U> the element type of the signaller, irrelevant
+	 * @param source the source of Ts
+	 * @param signaller the source of Us
+	 * @return the new observable
+	 */
+	public static <T, U> Observable<T> skipUntil(final Observable<T> source, final Observable<U> signaller) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final AtomicBoolean canRelay = new AtomicBoolean();
+				final UObserver<T> oT = new UObserver<T>() {
+
+					@Override
+					public void next(T value) {
+						if (canRelay.get()) {
+							observer.next(value);
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						unregister();
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						unregister();
+						observer.finish();
+					}
+					
+				};
+				final UObserver<U> oU = new UObserver<U>() {
+
+					@Override
+					public void next(U value) {
+						canRelay.set(true);
+						unregister();
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						unregister();
+					}
+
+					@Override
+					public void finish() {
+						unregister();
+					}
+					
+				};
+				return compositeCloseable(oU.registerWith(signaller), 
+						oT.registerWith(source));
+			}
+		};
+	}
+	/**
+	 * Creates a composite closeable from the array of closeables.
+	 * <code>IOException</code>s thrown from the closeables are suppressed.
+	 * @param closeables the closeables array
+	 * @return the composite closeable
+	 */
+	public static Closeable compositeCloseable(final Closeable... closeables) {
+		return new Closeable() {
+			@Override
+			public void close() throws IOException {
+				for (Closeable c : closeables) {
+					try {
+						c.close();
+					} catch (IOException ex) {
+						
+					}
+				}
+			}
+		};
+	}
+	/**
+	 * Creates a composite closeable from the array of closeables.
+	 * <code>IOException</code>s thrown from the closeables are suppressed.
+	 * @param closeables the closeables iterable
+	 * @return the composite closeable
+	 */
+	public static Closeable compositeCloseable(final Iterable<? extends Closeable> closeables) {
+		return new Closeable() {
+			@Override
+			public void close() throws IOException {
+				for (Closeable c : closeables) {
+					try {
+						c.close();
+					} catch (IOException ex) {
+						
+					}
+				}
+			}
+		};
+	}
+	/**
+	 * Skips the Ts from source while the specified condition returns true.
+	 * If the condition returns false, all subsequent Ts are relayed, 
+	 * ignoring the condition further on. Errors and completion
+	 * is relayed regardless of the condition.
+	 * @param <T> the element types
+	 * @param source the source of Ts
+	 * @param condition the condition that must turn false in order to start relaying
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> skipWhile(final Observable<T> source, final Func1<Boolean, T> condition) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** Can we relay stuff? */
+					boolean mayRelay;
+					@Override
+					public void next(T value) {
+						if (!mayRelay) {
+							mayRelay = !condition.invoke(value);
+							if (mayRelay) {
+								observer.next(value);
+							}
+						} else {
+							observer.next(value);
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Create a closable which cancels all futures of the array.
+	 * @param interrupt should the cancel interrupt the futures?
+	 * @param futures the futures to cancel
+	 * @return the composite closeable
+	 */
+	public static Closeable closeableFuture(final boolean interrupt, 
+			final Future<?>... futures) {
+		return new Closeable() {
+			@Override
+			public void close() throws IOException {
+				for (Future<?> f : futures) {
+					f.cancel(interrupt);
+				}
+			}
+		};
+	}
+	/**
+	 * Invokes the function asynchronously on the given pool and
+	 * relays its result followed by a finish. Exceptions are
+	 * relayed as well.
+	 * @param <T> the function return type
+	 * @param func the function
+	 * @param pool the pool where the action should run
+	 * @return the observable
+	 */
+	public static <T> Observable<T> start(final Func0<T> func, final ExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				Future<?> close = pool.submit(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							T value = func.invoke();
+							observer.next(value);
+							observer.finish();
+						} catch (Throwable ex) {
+							observer.error(ex);
+						}
+					}
+				});
+				return closeableFuture(false, close);
+			}
+		};
+	}
+	/**
+	 * Invokes the function asynchronously on the default pool and
+	 * relays its result followed by a finish. Exceptions are
+	 * relayed as well.
+	 * @param <T> the function return type
+	 * @param func the function
+	 * @return the observable
+	 */
+	public static <T> Observable<T> start(final Func0<T> func) {
+		return start(func, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Invokes the action asynchronously on the given pool and
+	 * relays its finish() or error() messages.
+	 * @param action the action to invoke
+	 * @param pool the pool where the action should run
+	 * @return the observable
+	 */
+	public static Observable<Void> start(final Action0 action, final ExecutorService pool) {
+		return new Observable<Void>() {
+			@Override
+			public Closeable register(final Observer<? super Void> observer) {
+				Future<?> close = pool.submit(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							action.invoke();
+							observer.finish();
+						} catch (Throwable ex) {
+							observer.error(ex);
+						}
+					}
+				});
+				return closeableFuture(false, close);
+			}
+		};
+	}
+	/**
+	 * Invokes the action asynchronously on the given pool and
+	 * relays its finish() or error() messages.
+	 * @param action the action to invoke
+	 * @return the observable
+	 */
+	public static Observable<Void> start(final Action0 action) {
+		return start(action, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Start with the given iterable of values before relaying the Ts from the
+	 * source. The iterable values are emmitted on the given pool.
+	 * @param <T> the element type
+	 * @param source the source
+	 * @param values the values to start with
+	 * @param pool the pool where the iterable values should be emitted
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> startWith(Observable<T> source, Iterable<T> values, ExecutorService pool) {
+		return concat(asObservable(values, pool), source);
+	}
+	/**
+	 * Start with the given iterable of values before relaying the Ts from the
+	 * source. The iterable values are emmitted on the default pool.
+	 * @param <T> the element type
+	 * @param source the source
+	 * @param values the values to start with
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> startWith(Observable<T> source, Iterable<T> values) {
+		return startWith(source, values, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Computes and signals the sum of the values of the Integer source.
+	 * The source may not send nulls. An empty source produces an empty sum
+	 * @param source the source of integers to aggregate.
+	 * @return the observable for the sum value
+	 */
+	public static Observable<Integer> sumInt(final Observable<Integer> source) {
+		return new Observable<Integer>() {
+			@Override
+			public Closeable register(final Observer<? super Integer> observer) {
+				return source.register(new Observer<Integer>() {
+					/** The sum of the values thus far. */
+					int sum;
+					/** Is this the first entry. */
+					boolean first = true;
+					@Override
+					public void next(Integer value) {
+						if (first) {
+							first = false;
+						}
+						sum += value;
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (!first) {
+							observer.next(sum);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Computes and signals the sum of the values of the Long source.
+	 * The source may not send nulls.
+	 * @param source the source of longs to aggregate.
+	 * @return the observable for the sum value
+	 */
+	public static Observable<Long> sumLong(final Observable<Long> source) {
+		return new Observable<Long>() {
+			@Override
+			public Closeable register(final Observer<? super Long> observer) {
+				return source.register(new Observer<Long>() {
+					/** The sum of the values thus far. */
+					long sum;
+					@Override
+					public void next(Long value) {
+						sum += value;
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.next(sum);
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Computes and signals the sum of the values of the Double source.
+	 * The source may not send nulls.
+	 * @param source the source of Doubles to aggregate.
+	 * @return the observable for the sum value
+	 */
+	public static Observable<Double> sumDouble(final Observable<Double> source) {
+		return new Observable<Double>() {
+			@Override
+			public Closeable register(final Observer<? super Double> observer) {
+				return source.register(new Observer<Double>() {
+					/** The sum of the values thus far. */
+					double sum;
+					/** The number of values. */
+					boolean first = true;
+					@Override
+					public void next(Double value) {
+						if (first) {
+							first = false;
+						}
+						sum += value.doubleValue();
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (!first) {
+							observer.next(sum);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Computes and signals the sum of the values of the Float source.
+	 * The source may not send nulls.
+	 * @param source the source of Floats to aggregate.
+	 * @return the observable for the sum value
+	 */
+	public static Observable<Float> sumFloat(final Observable<Float> source) {
+		return new Observable<Float>() {
+			@Override
+			public Closeable register(final Observer<? super Float> observer) {
+				return source.register(new Observer<Float>() {
+					/** The sum of the values thus far. */
+					float sum;
+					/** The number of values. */
+					boolean first = true;
+					@Override
+					public void next(Float value) {
+						if (first) {
+							first = false;
+						}
+						sum += value;
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (!first) {
+							observer.next(sum);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Computes and signals the sum of the values of the BigInteger source.
+	 * The source may not send nulls.
+	 * @param source the source of BigIntegers to aggregate.
+	 * @return the observable for the sum value
+	 */
+	public static Observable<BigInteger> sumBigInteger(final Observable<BigInteger> source) {
+		return new Observable<BigInteger>() {
+			@Override
+			public Closeable register(final Observer<? super BigInteger> observer) {
+				return source.register(new Observer<BigInteger>() {
+					/** The sum of the values thus far. */
+					BigInteger sum;
+					@Override
+					public void next(BigInteger value) {
+						if (sum == null) {
+							sum = value;
+						} else {
+							sum = sum.add(value);
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (sum != null) {
+							observer.next(sum);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Computes and signals the sum of the values of the BigDecimal source.
+	 * The source may not send nulls.
+	 * @param source the source of BigDecimals to aggregate.
+	 * @return the observable for the sum value
+	 */
+	public static Observable<BigDecimal> sumBigDecimal(final Observable<BigDecimal> source) {
+		return new Observable<BigDecimal>() {
+			@Override
+			public Closeable register(final Observer<? super BigDecimal> observer) {
+				return source.register(new Observer<BigDecimal>() {
+					/** The sum of the values thus far. */
+					BigDecimal sum;
+					@Override
+					public void next(BigDecimal value) {
+						if (sum == null) {
+							sum = value;
+						} else {
+							sum = sum.add(value);
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (sum != null) {
+							observer.next(sum);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Wraps the observers registering at the output into an observer
+	 * which synchronizes on all of its methods using <code>synchronize</code>.
+	 * Each individual registering observer uses its own synchronization object.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> synchronize(final Observable<T> source) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+
+					@Override
+					public synchronized void next(T value) {
+						observer.next(value);
+					}
+
+					@Override
+					public synchronized void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public synchronized void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Wraps the observers registering at the output into an observer
+	 * which uses java.util.concurrent.locks.ReentrantLock on all of its methods.
+	 * Each individual registering observer uses its own Lock object.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> lock(final Observable<T> source) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					final Lock lock = new ReentrantLock();
+					@Override
+					public synchronized void next(T value) {
+						lock.lock();
+						try {
+							observer.next(value);
+						} finally {
+							lock.unlock();
+						}
+					}
+
+					@Override
+					public synchronized void error(Throwable ex) {
+						lock.lock();
+						try {
+							observer.error(ex);
+						} finally {
+							lock.unlock();
+						}
+					}
+
+					@Override
+					public synchronized void finish() {
+						lock.lock();
+						try {
+							observer.finish();
+						} finally {
+							lock.unlock();
+						}
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Wraps the observers registering at the output into an observer
+	 * which synchronizes on all of its methods using <code>synchronize</code>.
+	 * Each individual registering observer shares the same synchronization
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param on the syncrhonization object
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> synchronize(final Observable<T> source, final Object on) {
+		if (on == null) {
+			throw new IllegalArgumentException("on is null");
+		}
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+
+					@Override
+					public void next(T value) {
+						synchronized (on) {
+							observer.next(value);
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						synchronized (on) {
+							observer.error(ex);
+						}
+					}
+
+					@Override
+					public void finish() {
+						synchronized (on) {
+							observer.finish();
+						}
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Wraps the observers registering at the output into an observer
+	 * which uses java.util.concurrent.locks.ReentrantLock on all of its methods.
+	 * Each individual registering observer uses the shared lock object.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param on the shared lock instance
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> lock(final Observable<T> source, final Lock on) {
+		if (on == null) {
+			throw new IllegalArgumentException("on is null");
+		}
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					@Override
+					public synchronized void next(T value) {
+						on.lock();
+						try {
+							observer.next(value);
+						} finally {
+							on.unlock();
+						}
+					}
+
+					@Override
+					public synchronized void error(Throwable ex) {
+						on.lock();
+						try {
+							observer.error(ex);
+						} finally {
+							on.unlock();
+						}
+					}
+
+					@Override
+					public synchronized void finish() {
+						on.lock();
+						try {
+							observer.finish();
+						} finally {
+							on.unlock();
+						}
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Creates an observable which takes the specified number of
+	 * Ts from the source, unregisters and completes.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param count the number of elements to relay
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> take(final Observable<T> source, final int count) {
+		return relayUntil(source, new Func0<Boolean>() {
+			int i = count;
+			@Override
+			public Boolean invoke() {
+				return i-- > 0;
+			}
+		});
+	}
+	/**
+	 * Creates an observable which takes values from the source until
+	 * the signaller produces a value. If the signaller never signals,
+	 * all source elements are relayed.
+	 * FIXME not sure about the concurrency
+	 * @param <T> the element type
+	 * @param <U> the signaller element type, irrelevant
+	 * @param source the source of Ts
+	 * @param signaller the source of Us
+	 * @return the new observable
+	 */
+	public static <T, U> Observable<T> takeUntil(final Observable<T> source, final Observable<U> signaller) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final AtomicReference<UObserver<T>> rT = new AtomicReference<UObserver<T>>();
+				final AtomicReference<UObserver<U>> rU = new AtomicReference<UObserver<U>>();
+				final AtomicBoolean stop = new AtomicBoolean();
+				rT.set(new UObserver<T>() {
+					@Override
+					public void next(T value) {
+						if (!stop.get()) {
+							observer.next(value);
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						unregister();
+						rU.get().unregister();
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						unregister();
+						rU.get().unregister();
+						observer.finish();
+					}
+					
+				});
+				rU.set(new UObserver<U>() {
+					@Override
+					public void next(U value) {
+						stop.set(true);
+						observer.finish();
+						unregister();
+						rT.get().unregister();
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						unregister();
+					}
+
+					@Override
+					public void finish() {
+						unregister();
+					}
+					
+				});
+				
+				return compositeCloseable(rU.get().registerWith(signaller), rT.get().registerWith(source));
+			}
+		};
+	}
+	/**
+	 * Creates an observable which takes values from source until
+	 * the predicate returns true, then skips the remaining values.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param predicate the predicate
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> takeWhile(final Observable<T> source, 
+			final Func1<Boolean, T> predicate) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				UObserver<T> oT = new UObserver<T>() {
+					/** The done indicator. */
+					boolean done;
+					@Override
+					public void next(T value) {
+						if (!done) {
+							done = !predicate.invoke(value);
+							if (!done) {
+								observer.next(value);
+							} else {
+								observer.finish();
+							}
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						if (!done) {
+							done = true;
+							observer.error(ex);
+						}
+					}
+
+					@Override
+					public void finish() {
+						if (!done) {
+							done = true;
+							observer.finish();
+						}
+					}
+					
+				};
+				return oT.registerWith(source);
+			}
+		};
+	}
+	/**
+	 * Creates and observable which fires the last value
+	 * from source when the given timespan elapsed without a new
+	 * value occurring from the source. It is basically how Content Assistant
+	 * popup works after the user pauses in its typing.
+	 * @param <T> the value type 
+	 * @param source the source of Ts
+	 * @param delay how much time should elapse since the last event to actually forward that event
+	 * @param unit the delay time unit
+	 * @param pool the pool where the delay-watcher should operate
+	 * @return the observable
+	 */
+	public static <T> Observable<T> throttle(final Observable<T> source, 
+			final long delay, final TimeUnit unit, final ScheduledExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final AtomicReference<T> last = new AtomicReference<T>();
+				final USchedulable sch = new USchedulable() {
+					@Override
+					public void run() {
+						observer.next(last.get());
+					}
+					
+				};
+				final UObserver<T> obs = new UObserver<T>() {
+
+					@Override
+					public void next(T value) {
+						sch.cancel(false);
+						last.set(value);
+						sch.scheduleOn(pool, delay, unit);
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						sch.cancel(false);
+						unregister();
+					}
+
+					@Override
+					public void finish() {
+						sch.cancel(false);
+						observer.finish();
+						unregister();
+					}
+					
+				};
+				return compositeCloseable(obs.registerWith(source), sch);
+			}
+		};
+	}
+	/**
+	 * Creates and observable which fires the last value
+	 * from source when the given timespan elapsed without a new
+	 * value occurring from the source. It is basically how Content Assistant
+	 * popup works after the user pauses in its typing. Uses the default scheduler.
+	 * @param <T> the value type 
+	 * @param source the source of Ts
+	 * @param delay how much time should elapse since the last event to actually forward that event
+	 * @param unit the delay time unit
+	 * @return the observable
+	 */
+	public static <T> Observable<T> throttle(final Observable<T> source, 
+			final long delay, final TimeUnit unit) {
+		return throttle(source, delay, unit, DEFAULT_SCHEDULED_POOL);
+	}
+	/**
+	 * Creates an observable which instantly sends the exception to
+	 * its subscribers while running on the given pool.
+	 * @param <T> the element type, irrelevant
+	 * @param ex the exception to throw
+	 * @param pool the pool from where to send the values
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> throwException(final Throwable ex, final ExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return closeableFuture(false, pool.submit(new Runnable() {
+					@Override
+					public void run() {
+						observer.error(ex);
+					}
+				}));
+			}
+		};
+	}
+	/**
+	 * Creates an observable which instantly sends the exception to
+	 * its subscribers while running on the default pool.
+	 * @param <T> the element type, irrelevant
+	 * @param ex the exception to throw
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> throwException(final Throwable ex) {
+		return throwException(ex, DEFAULT_OBSERVABLE_POOL);
 	}
 }

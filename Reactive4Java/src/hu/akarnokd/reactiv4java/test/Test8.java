@@ -16,13 +16,9 @@
 
 package hu.akarnokd.reactiv4java.test;
 
-import hu.akarnokd.reactiv4java.Action0;
-import hu.akarnokd.reactiv4java.Func0;
-import hu.akarnokd.reactiv4java.Functions;
 import hu.akarnokd.reactiv4java.Observable;
 import hu.akarnokd.reactiv4java.Observables;
 
-import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;
 
 
@@ -30,12 +26,12 @@ import java.util.concurrent.TimeUnit;
  * Test program for the MinLinq stuff.
  * @author akarnokd
  */
-public final class Test6 {
+public final class Test8 {
 
 	/**
 	 * Utility class.
 	 */
-	private Test6() {
+	private Test8() {
 		// utility class
 	}
 	/** 
@@ -53,36 +49,19 @@ public final class Test6 {
 	 * @throws Exception on error
 	 */
 	public static void main(String[] args) throws Exception {
-
-		run(Observables.skipUntil(
-					Observables.tick(0, 10, 1, TimeUnit.SECONDS), 
-					Observables.tick(0, 1, 3, TimeUnit.SECONDS)
-			));
+		Observable<Long> cc = Observables.concat(
+				Observables.tick(0, 10, 200, TimeUnit.MILLISECONDS),
+				Observables.tick(10, 15, 1, TimeUnit.SECONDS)
+			);
+		run(
+			Observables.addTimestamped(
+				Observables.throttle(
+					cc,
+				500, TimeUnit.MILLISECONDS)
+			)
+		);
 		
-		run(Observables.skipWhile(
-					Observables.range(0, 10),
-					Functions.lessThan(5)
-			));
-
-		run(Observables.start(new Action0() {
-			@Override
-			public void invoke() {
-				System.err.println("Hello world");
-			}
-		}));
-		
-		run(Observables.start(new Func0<String>() {
-			@Override
-			public String invoke() {
-				return "Hello world Function!";
-			}
-		}));
-		
-		run(Observables.startWith(Observables.range(5, 10), Functions.range(0, 5)));
-		
-		run(Observables.sumInt(Observables.range(0, 101)));
-		
-		run(Observables.sumBigDecimal(Observables.range(BigDecimal.ZERO, 100, new BigDecimal("0.001"))));
+		System.out.printf("%nMain finished%n");
 	}
 
 }
