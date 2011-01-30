@@ -88,6 +88,36 @@ public abstract class Option<T> {
 //			return new Some<U>(value);
 //		}
 	}
+	/**
+	 * Class representing an error option.
+	 * Calling value on this will throw a RuntimeException which wraps
+	 * the original exception.
+	 * @author akarnokd, 2011.01.30.
+	 * @param <T> the element type
+	 */
+	public static final class Error<T> extends Option<T> {
+		/** The exception held. */
+		private final Throwable ex;
+		/**
+		 * Constructor.
+		 * @param ex the exception to hold
+		 */
+		private Error(Throwable ex) {
+			this.ex = ex;
+		}
+		@Override
+		public T value() {
+			throw new RuntimeException(ex);
+		}
+		@Override
+		public String toString() {
+			return ex.toString();
+		}
+		/** @return the contained throwable value. */
+		public Throwable error() {
+			return ex;
+		}
+	}
 	/** The single instance of the nothingness. */
 	private static final None<Void> NONE = new None<Void>();
 	/**
@@ -108,4 +138,38 @@ public abstract class Option<T> {
 	public static <T> Some<T> some(T value) {
 		return new Some<T>(value);
 	}
+	/**
+	 * Create an error instance with the given Throwable.
+	 * @param <T> the element type, irrelevant
+	 * @param t the throwable
+	 * @return the error instance
+	 */
+	public static <T> Error<T> error(Throwable t) {
+		return new Error<T>(t);
+	}
+	/**
+	 * Returns true if the option is of type Error.
+	 * @param o the option
+	 * @return true if the option is of type Error.
+	 */
+	public static boolean isError(Option<?> o) {
+		return o instanceof Error<?>;
+	}
+	/**
+	 * Returns true if the option is of type None.
+	 * @param o the option
+	 * @return true if the option is of type None.
+	 */
+	public static boolean isNone(Option<?> o) {
+		return o == NONE;
+	}
+	/**
+	 * Returns true if the option is of type Some.
+	 * @param o the option
+	 * @return true if the option is of type Some.
+	 */
+	public static boolean isSome(Option<?> o) {
+		return o instanceof Some<?>;
+	}
+	
 }
