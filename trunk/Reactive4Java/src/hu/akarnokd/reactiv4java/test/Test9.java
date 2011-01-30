@@ -41,6 +41,7 @@ public final class Test9 {
 		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
 		scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
 		scheduler.allowCoreThreadTimeOut(true);
+		scheduler.setRemoveOnCancelPolicy(true);
 		
 		Future<?> future = scheduler.scheduleAtFixedRate(new Runnable() {
 			@Override
@@ -49,12 +50,12 @@ public final class Test9 {
 			}
 		}, 10, 10, TimeUnit.SECONDS);
 		
-		Thread.sleep(1000);
+		Thread.sleep(1500);
 		
-		future.cancel(true);
-		
-		System.out.println("Future cancelled");
-		
+		if (future.cancel(true)) {
+			System.out.println("Future cancelled");
+		}
+
 		System.out.printf("%nMain finished%n");
 	}
 

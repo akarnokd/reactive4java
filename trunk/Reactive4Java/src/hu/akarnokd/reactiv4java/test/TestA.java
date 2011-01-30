@@ -54,6 +54,15 @@ public final class TestA {
 				Observables.tick(200, TimeUnit.SECONDS), 5, TimeUnit.SECONDS)
 		);
 		
+		run(
+				Observables.timeout(
+					Observables.tick(200, TimeUnit.SECONDS), 
+					2, 
+					TimeUnit.SECONDS,
+					Observables.tick(0, 5, 1, TimeUnit.SECONDS)
+				)
+			);
+		
 		System.out.printf("%nMain finished%n");
 	}
 
