@@ -41,6 +41,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -71,79 +72,20 @@ public final class Observables {
 	 * FIXME concurrency questions with the storage of the current future
 	 * @author akarnokd, 2011.01.29.
 	 */
-	abstract static class USchedulable implements Runnable, Closeable {
-		/** The holder for the registration. */
-		final AtomicReference<Future<?>> future = new AtomicReference<Future<?>>();
-		/**
-		 * Schedule this on the given pool.
-		 * @param pool the target pool
-		 * @param delay the delay
-		 * @param unit the unit of delay
-		 * @return the future result of the registration
-		 */
-		public Future<?> scheduleOn(ScheduledExecutorService pool, long delay, TimeUnit unit) {
-			Future<?> f = pool.schedule(this, delay, unit);
-			future.set(f);
-			return f;
-		}
-		/**
-		 * Schedule this on the given pool at a fixed rate.
-		 * @param pool the target pool
-		 * @param initial the initial delay
-		 * @param delay the delay
-		 * @param unit the unit of delay
-		 * @return the future result of the registration
-		 */
-		public Future<?> scheduleOnAtFixedRate(ScheduledExecutorService pool, long initial, long delay, TimeUnit unit) {
-			Future<?> f = pool.scheduleAtFixedRate(this, initial, delay, unit);
-			future.set(f);
-			return f;
-		}
-		/**
-		 * Schedule this on the given pool with a fixed delay.
-		 * @param pool the target pool
-		 * @param initial the initial delay
-		 * @param delay the delay
-		 * @param unit the unit of delay
-		 * @return the future result of the registration
-		 */
-		public Future<?> scheduleOnWitFixedDelay(ScheduledExecutorService pool, long initial, long delay, TimeUnit unit) {
-			Future<?> f = pool.scheduleWithFixedDelay(this, initial, delay, unit);
-			future.set(f);
-			return f;
-		}
-		/**
-		 * Submit this to the given executor service pool.
-		 * @param pool the target pool
-		 * @return the future of this computation
-		 */
-		public Future<?> submitTo(ExecutorService pool) {
-			Future<?> f = pool.submit(this);
-			future.set(f);
-			return f;
+	abstract static class USchedulable extends ScheduledObserver<Void> {
+		@Override
+		public void error(Throwable ex) {
+			// not used
 		}
 		@Override
-		public void close() {
-			Future<?> f = future.get();
-			if (f != null) {
-				f.cancel(true);
-			}
+		public void finish() {
+			// not used
 		}
-		/**
-		 * @return returns the current interruption status which
-		 * can be used to test for cancellation
-		 */
-		public boolean cancelled() {
-			return Thread.currentThread().isInterrupted();
+		@Override
+		public void next(Void value) {
+			// not used
 		}
 	}
-//	/** A helper disposable object which does nothing. */
-//	private static final Closeable EMPTY_CLOSEABLE = new Closeable() {
-//		@Override
-//		public void close() {
-//			
-//		}
-//	};
 	/**
 	 * Create an observable instance by submitting a function which takes responsibility
 	 * for registering observers.
@@ -3120,33 +3062,11 @@ public final class Observables {
 	 * @author akarnokd, 2011.01.29.
 	 * @param <T> the element type to observe
 	 */
-	abstract static class UObserver<T> implements Observer<T> {
-		/** The saved handler. */ 
-		final AtomicReference<Closeable> handler = new AtomicReference<Closeable>();
-		/**
-		 * Register with the given observable.
-		 * FIXME concurrency questions
-		 * @param observable the target observable
-		 * @return the unregistration handler
-		 */
-		public Closeable registerWith(Observable<T> observable) {
-			Closeable h = observable.register(this);
-			Closeable old = handler.getAndSet(h);
-			if (old != null) {
-				try { old.close(); } catch (IOException e) { }
-			}
-			return h;
-		}
-		/**
-		 * Unregisters this observer from its observable.
-		 * FIXME concurrency questions
-		 */
-		protected void unregister() {
-			Closeable h = handler.getAndSet(null);
-			if (h != null) {
-				try { h.close(); } catch (IOException e) { }
-			}
-		}
+	abstract static class UObserver<T> extends ScheduledObserver<T> {
+		@Override
+		public void run() {
+			// not used
+		};
 	}
 	/**
 	 * Concatenates the source observables in a way that when the first finish(), the
@@ -4362,6 +4282,19 @@ public final class Observables {
 	}
 	/**
 	 * Create a closable which cancels all futures of the array.
+	 * @param future one future
+	 * @return the composite closeable
+	 */
+	static Closeable close(final Future<?> future) {
+		return new Closeable() {
+			@Override
+			public void close() throws IOException {
+				future.cancel(true);
+			}
+		};
+	}
+	/**
+	 * Create a closable which cancels all futures of the array.
 	 * @param futures the futures to cancel
 	 * @return the composite closeable
 	 */
@@ -5143,5 +5076,108 @@ public final class Observables {
 				});
 			}
 		};
+	}
+	/**
+	 * Creates an observable which relays events if they arrive
+	 * from the source observable within the specified amount of time
+	 * or it singlals a java.util.concurrent.TimeoutException.
+	 * FIXME not sure if the timeout should happen only when
+	 * distance between elements get to large or just the first element
+	 * does not arrive within the specified timespan.
+	 * @param <T> the element type to observe
+	 * @param source the source observable
+	 * @param time the maximum allowed timespan between events
+	 * @param unit the time unit
+	 * @param pool the scheduler pool for the timeout evaluation
+	 * @return the observer.
+	 */
+	public static <T> Observable<T> timeout(final Observable<T> source, 
+			final long time, final TimeUnit unit, final ScheduledExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				ScheduledObserver<T> so = new ScheduledObserver<T>() {
+					/** The lock to prevent overlapping of run and observer messages. */
+					final Lock lock = new ReentrantLock();
+					/** Flag to indicate if a timeout happened. */
+					boolean timedout;
+					@Override
+					public void next(T value) {
+						if (lock.tryLock()) {
+							try {
+								if (!timedout) {
+									observer.next(value);
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						if (lock.tryLock()) {
+							try {
+								if (!timedout) {
+									observer.error(ex);
+									close();
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
+					}
+
+					@Override
+					public void finish() {
+						if (lock.tryLock()) {
+							try {
+								if (!timedout) {
+									observer.finish();
+									close();
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
+					}
+
+					@Override
+					public void run() {
+						if (lock.tryLock()) {
+							try {
+								timedout = true;
+								observer.error(new TimeoutException());
+								close();
+							} finally {
+								lock.unlock();
+							}
+						} else {
+							scheduleOn(pool, time, unit);
+						}
+					}
+				};
+				so.registerWith(source);
+				so.scheduleOn(pool, time, unit);
+				return so;
+			}
+		};
+	}
+	/**
+	 * Creates an observable which relays events if they arrive
+	 * from the source observable within the specified amount of time
+	 * or it singlals a java.util.concurrent.TimeoutException.
+	 * FIXME not sure if the timeout should happen only when
+	 * distance between elements get to large or just the first element
+	 * does not arrive within the specified timespan.
+	 * @param <T> the element type to observe
+	 * @param source the source observable
+	 * @param time the maximum allowed timespan between events
+	 * @param unit the time unit
+	 * @return the observer.
+	 */
+	public static <T> Observable<T> timeout(final Observable<T> source, 
+			final long time, final TimeUnit unit) {
+		return timeout(source, time, unit, DEFAULT_SCHEDULED_POOL);
 	}
 }
