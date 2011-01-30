@@ -1275,11 +1275,13 @@ public final class Observables {
 		return delay(source, time, unit, DEFAULT_SCHEDULED_POOL);
 	}
 	/**
-	 * Creates an observer with debugging purposes. It prints the submitted values, the exceptions.
+	 * Creates an observer with debugging purposes. 
+	 * It prints the submitted values to STDOUT with a line break, the exceptions to STDERR
+	 * and prints an empty newline when it receives a finish().
 	 * @param <T> the value type
 	 * @return the observer
 	 */
-	public static <T> Observer<T> printlnObserver() {
+	public static <T> Observer<T> println() {
 		return new Observer<T>() {
 			@Override
 			public void error(Throwable ex) {
@@ -1292,6 +1294,66 @@ public final class Observables {
 			@Override
 			public void next(T value) {
 				System.out.println(value);
+			};
+		};
+	}
+	/**
+	 * Creates an observer with debugging purposes. 
+	 * It prints the submitted values to STDOUT separated by commas and line-broken by 80 characters, the exceptions to STDERR
+	 * and prints an empty newline when it receives a finish().
+	 * @param <T> the value type
+	 * @return the observer
+	 */
+	public static <T> Observer<T> print() {
+		return print(", ", 80);
+	}
+	/**
+	 * Creates an observer with debugging purposes. 
+	 * It prints the submitted values to STDOUT, the exceptions to STDERR
+	 * and prints an empty newline when it receives a finish().
+	 * @param <T> the value type
+	 * @param separator the separator to use between subsequent values
+	 * @param maxLineLength how many characters to print into each line
+	 * @return the observer
+	 */
+	public static <T> Observer<T> print(final String separator, final int maxLineLength) {
+		return new Observer<T>() {
+			/** The current line length. */
+			int len;
+			/** Indicator for the first element. */
+			boolean first = true;
+			@Override
+			public void error(Throwable ex) {
+				ex.printStackTrace();
+			}
+			@Override
+			public void finish() {
+				System.out.println();
+			}
+			@Override
+			public void next(T value) {
+				String s = String.valueOf(value);
+				if (first) {
+					first = false;
+					System.out.print(s);
+					len = s.length();
+				} else {
+					if (len + separator.length() + s.length() > maxLineLength) {
+						if (len == 0) {
+							System.out.print(separator);
+							System.out.print(s);
+							len = s.length() + separator.length();
+						} else {
+							System.out.println(separator);
+							System.out.print(s);
+							len = s.length();
+						}
+					} else {
+						System.out.print(separator);
+						System.out.print(s);
+						len += s.length() + separator.length();
+					}
+				}
 			};
 		};
 	}

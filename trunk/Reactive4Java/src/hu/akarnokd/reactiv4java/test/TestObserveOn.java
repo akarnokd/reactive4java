@@ -40,7 +40,7 @@ public final class TestObserveOn {
 		ExecutorService exec = Observables.getDefaultPool();
 		Observable<Integer> ys = Observables.observeOn(xs, exec);
 		
-		ys.register(Observables.printlnObserver());
+		ys.register(Observables.println());
 		
 //		exec.shutdown();
 //		exec.awaitTermination(Long.MAX_VALUE, TimeUnit.MICROSECONDS);

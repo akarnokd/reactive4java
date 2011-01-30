@@ -43,7 +43,7 @@ public final class Test4 {
 
 		Observable<Long> tick = Observables.tick(1, TimeUnit.SECONDS);
 		
-		Closeable c = tick.register(Observables.printlnObserver());
+		Closeable c = tick.register(Observables.println());
 		
 		Thread.sleep(5500);
 		
@@ -58,7 +58,7 @@ public final class Test4 {
 			Thread.sleep(3000);
 		}
 		
-		c = Observables.sample(Observables.tick(1L, TimeUnit.SECONDS), 3L, TimeUnit.SECONDS).register(Observables.printlnObserver());
+		c = Observables.sample(Observables.tick(1L, TimeUnit.SECONDS), 3L, TimeUnit.SECONDS).register(Observables.println());
 		
 		Thread.sleep(10000);
 		
