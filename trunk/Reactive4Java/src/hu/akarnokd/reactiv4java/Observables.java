@@ -1759,7 +1759,7 @@ public final class Observables {
 	 * @param condition the condition that must hold to relay Ts
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> relayUntil(final Observable<T> source, final Func0<Boolean> condition) {
+	public static <T> Observable<T> relayWhile(final Observable<T> source, final Func0<Boolean> condition) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -3846,7 +3846,8 @@ public final class Observables {
 	 * and returns a new accumulated value
 	 * @return the observable
 	 */
-	public static <T> Observable<T> accumulate0(final Observable<T> source, final T seed, final Func2<T, T, T> accumulator) {
+	public static <T> Observable<T> accumulate0(final Observable<T> source, 
+			final T seed, final Func2<T, T, T> accumulator) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -5311,5 +5312,336 @@ public final class Observables {
 			final long time, final TimeUnit unit,
 			final Observable<T> other) {
 		return timeout(source, time, unit, other, DEFAULT_SCHEDULED_POOL);
+	}
+	/**
+	 * Receives a resource from the resource selector and
+	 * uses the resource until it terminates, then closes the resource.
+	 * FIXME not sure how this method should work
+	 * @param <T> the output resource type.
+	 * @param <U> the closeable resource to work with
+	 * @param resourceSelector the function that gives a resource
+	 * @param resourceUsage a function that returns an observable of T for the given resource.
+	 * @return the observable of Ts which terminates once the usage terminates
+	 */
+	public static <T, U extends Closeable> Observable<T> using(final Func0<U> resourceSelector, 
+			final Func1<Observable<T>, U> resourceUsage) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final U resource = resourceSelector.invoke();
+				return resourceUsage.invoke(resource).register(new Observer<T>() {
+					@Override
+					public void next(T value) {
+						observer.next(value);
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						try {
+							observer.error(ex);
+						} finally {
+							try { resource.close(); } catch (IOException exc) { }
+						}
+					}
+
+					@Override
+					public void finish() {
+						try {
+							observer.finish();
+						} finally {
+							try { resource.close(); } catch (IOException exc) { }
+						}
+						
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Creates a filtered observable where only Ts are relayed which satisfy the clause.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param clause the filter clause
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> filter(final Observable<T> source, final Func1<Boolean, T> clause) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					@Override
+					public void next(T value) {
+						if (clause.invoke(value)) {
+							observer.next(value);
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Creates a filtered observable where only Ts are relayed which satisfy the clause.
+	 * The clause receives the index and the current element to test.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param clause the filter clause, the first parameter receives the current index, the second receives the current element
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> filter(final Observable<T> source, 
+			final Func2<Boolean, Integer, T> clause) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** The current element index. */
+					int index;
+					@Override
+					public void next(T value) {
+						if (clause.invoke(index, value)) {
+							observer.next(value);
+						}
+						index++;
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Relay values of T while the given condition does not hold.
+	 * Once the condition turns true the relaying stops.
+	 * @param <T> the element type
+	 * @param source the source of elements
+	 * @param condition the condition that must be false to relay Ts
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> relayUntil(final Observable<T> source, final Func0<Boolean> condition) {
+		return relayWhile(source, Functions.negate(condition));
+	}
+	/**
+	 * Splits the source stream into separate observables once
+	 * the windowClosing fires an event.
+	 * FIXME not sure how to implement
+	 * @param <T> the element type to observe
+	 * @param <U> the closing event type, irrelevant
+	 * @param source the source of Ts
+	 * @param windowClosing the source of the window splitting events
+	 * @param pool the pool where ???
+	 * @return the observable on sequences of observables of Ts
+	 */
+	static <T, U> Observable<Observable<T>> window(final Observable<T> source, 
+			final Func0<Observable<U>> windowClosing, final ExecutorService pool) {
+		throw new UnsupportedOperationException();
+	}
+	/**
+	 * Splits the source stream into separate observables once
+	 * the windowClosing fires an event.
+	 * FIXME not sure how to implement
+	 * @param <T> the element type to observe
+	 * @param <U> the closing event type, irrelevant
+	 * @param source the source of Ts
+	 * @param windowClosing the source of the window splitting events
+	 * @return the observable on sequences of observables of Ts
+	 */
+	static <T, U> Observable<Observable<T>> window(final Observable<T> source, 
+			final Func0<Observable<U>> windowClosing) {
+		return window(source, windowClosing, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Creates an observable which waits for events from left
+	 * and combines it with the next available value from the right iterable,
+	 * applies the selector function and emits the resulting T.
+	 * The error() and finish() signals are relayed to the output.
+	 * The result is finished if the right iterator runs out of 
+	 * values before the left iterator. 
+	 * @param <T> the resulting element type
+	 * @param <U> the value type streamed on the left observable
+	 * @param <V> the value type streamed on the right iterable
+	 * @param left the left observables of Us
+	 * @param right the right iterable of Vs
+	 * @param selector the selector taking the left Us and right Vs.
+	 * @return the resulting observable 
+	 */
+	public static <T, U, V> Observable<T> zip(final Observable<U> left, 
+			final Iterable<V> right, final Func2<T, U, V> selector) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final Iterator<V> it = right.iterator();
+				return close((new UObserver<U>() {
+					@Override
+					public void next(U u) {
+						if (it.hasNext()) {
+							V v = it.next();
+							observer.next(selector.invoke(u, v));
+						} else {
+							observer.finish();
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				}).registerWith(left));
+			}
+		};
+	}
+	/**
+	 * Creates an observable which waits for events from left
+	 * and combines it with the next available value from the right observable,
+	 * applies the selector function and emits the resulting T.
+	 * Basically it emmits a T when both an U and V is available.
+	 * The output stream throws error or terminates if any of the streams 
+	 * throws or terminates.
+	 * FIXME not sure how to implement this, and how to close and signal
+	 * @param <T> the resulting element type
+	 * @param <U> the value type streamed on the left observable
+	 * @param <V> the value type streamed on the right iterable
+	 * @param left the left observables of Us
+	 * @param right the right iterable of Vs
+	 * @param selector the selector taking the left Us and right Vs.
+	 * @return the resulting observable 
+	 */
+	public static <T, U, V> Observable<T> zip(final Observable<U> left, 
+			final Observable<V> right, final Func2<T, U, V> selector) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final Lock lock = new ReentrantLock();
+				final LinkedBlockingQueue<U> queueU = new LinkedBlockingQueue<U>();
+				final LinkedBlockingQueue<V> queueV = new LinkedBlockingQueue<V>();
+				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
+				final AtomicInteger wip = new AtomicInteger(2);
+				final UObserver<U> oU = new UObserver<U>() {
+					@Override
+					public void next(U u) {
+						lock.lock();
+						try {
+							V v = queueV.poll();
+							if (v != null) {
+								observer.next(selector.invoke(u, v));
+							} else {
+								if (wip.get() == 2) {
+									queueU.add(u);
+								} else {
+									this.finish();
+								}
+							}
+						} finally {
+							lock.unlock();
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						lock.lock();
+						try {
+							if (wip.getAndSet(-1) != -1) { 
+								observer.error(ex);
+								try { closeBoth.get().close(); } catch (IOException exc) { }
+							}
+						} finally {
+							lock.unlock();
+						}
+					}
+
+					@Override
+					public void finish() {
+						lock.lock();
+						try {
+							if (wip.decrementAndGet() == 0) {
+								observer.finish();
+								try { closeBoth.get().close(); } catch (IOException ex) { }
+							}
+						} finally {
+							lock.unlock();
+						}
+					}
+					
+				};
+				final UObserver<V> oV = new UObserver<V>() {
+
+					@Override
+					public void next(V v) {
+						lock.lock();
+						try {
+							U u = queueU.poll();
+							if (u != null) {
+								observer.next(selector.invoke(u, v));
+							} else {
+								if (wip.get() == 2) {
+									queueV.add(v);
+								} else {
+									this.finish();
+								}
+							}
+						} finally {
+							lock.unlock();
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						lock.lock();
+						try {
+							if (wip.getAndSet(-1) != -1) { 
+								observer.error(ex);
+								try { closeBoth.get().close(); } catch (IOException exc) { }
+							}
+						} finally {
+							lock.unlock();
+						}
+					}
+
+					@Override
+					public void finish() {
+						lock.lock();
+						try {
+							if (wip.decrementAndGet() == 0) {
+								observer.finish();
+								try { closeBoth.get().close(); } catch (IOException ex) { }
+							}
+						} finally {
+							lock.unlock();
+						}
+					}
+					
+				};
+				Closeable c = close(oU, oV);
+				closeBoth.set(c);
+				oU.registerWith(left);
+				oV.registerWith(right);
+				return c;
+			}
+		};
 	}
 }
