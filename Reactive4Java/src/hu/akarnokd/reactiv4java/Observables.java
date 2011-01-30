@@ -18,6 +18,8 @@ package hu.akarnokd.reactiv4java;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -112,9 +114,30 @@ public final class Observables {
 	/** The defalt scheduler pool for delayed observable actions. */
 	static final ScheduledExecutorService DEFAULT_SCHEDULED_POOL;
 	static {
-		DEFAULT_SCHEDULED_POOL = new ScheduledThreadPoolExecutor(1);
-		((ScheduledThreadPoolExecutor)DEFAULT_SCHEDULED_POOL).setKeepAliveTime(1, TimeUnit.SECONDS);
-		((ScheduledThreadPoolExecutor)DEFAULT_SCHEDULED_POOL).allowCoreThreadTimeOut(true);
+		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
+		scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
+		scheduler.allowCoreThreadTimeOut(true);
+		
+		/* FIXME
+		 * the setRemoveOnCancelPolicy() was introduced in Java 7 to
+		 * allow the option to remove tasks from work queue if its initial delay hasn't
+		 * elapsed -> therfore, if no other tasks are present, the scheduler might go idle earlier
+		 * instead of waiting for the initial delay to pass to discover there is nothing to do.
+		 * Because the library is currenlty aimed at Java 6, we use a reflection to set this policy
+		 * on a Java 7 runtime. 
+		 */
+		try {
+			Method m = scheduler.getClass().getMethod("setRemoveOnCancelPolicy", Boolean.TYPE);
+			m.invoke(scheduler, true);
+		} catch (InvocationTargetException ex) {
+			
+		} catch (NoSuchMethodException e) {
+		} catch (SecurityException e) {
+		} catch (IllegalAccessException e) {
+		} catch (IllegalArgumentException e) {
+		}
+		
+		DEFAULT_SCHEDULED_POOL = scheduler;
 	}
 	/**
 	 * @return the default pool used by the Observables methods by default
@@ -5179,5 +5202,114 @@ public final class Observables {
 	public static <T> Observable<T> timeout(final Observable<T> source, 
 			final long time, final TimeUnit unit) {
 		return timeout(source, time, unit, DEFAULT_SCHEDULED_POOL);
+	}
+	/**
+	 * Creates an observable which relays events if they arrive
+	 * from the source observable within the specified amount of time
+	 * or it switches to the <code>other</code> observable.
+	 * FIXME not sure if the timeout should happen only when
+	 * distance between elements get to large or just the first element
+	 * does not arrive within the specified timespan.
+	 * @param <T> the element type to observe
+	 * @param source the source observable
+	 * @param time the maximum allowed timespan between events
+	 * @param unit the time unit
+	 * @param other the other observable to continue with in case a timeout occurs
+	 * @param pool the scheduler pool for the timeout evaluation
+	 * @return the observer.
+	 */
+	public static <T> Observable<T> timeout(final Observable<T> source, 
+			final long time, final TimeUnit unit,
+			final Observable<T> other,
+			final ScheduledExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				ScheduledObserver<T> so = new ScheduledObserver<T>() {
+					/** The lock to prevent overlapping of run and observer messages. */
+					final Lock lock = new ReentrantLock();
+					/** Flag to indicate if a timeout happened. */
+					boolean timedout;
+					@Override
+					public void next(T value) {
+						if (lock.tryLock()) {
+							try {
+								if (!timedout) {
+									observer.next(value);
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						if (lock.tryLock()) {
+							try {
+								if (!timedout) {
+									observer.error(ex);
+									close();
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
+					}
+
+					@Override
+					public void finish() {
+						if (lock.tryLock()) {
+							try {
+								if (!timedout) {
+									observer.finish();
+									close();
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
+					}
+
+					@Override
+					public void run() {
+						if (lock.tryLock()) {
+							try {
+								timedout = true;
+								close();
+								// register and continue with the other observable but without timeouts
+								replace(other.register(observer));
+							} finally {
+								lock.unlock();
+							}
+						} else {
+							scheduleOn(pool, time, unit);
+						}
+					}
+				};
+				so.registerWith(source);
+				so.scheduleOn(pool, time, unit);
+				return so;
+			}
+		};
+	}
+	/**
+	 * Creates an observable which relays events if they arrive
+	 * from the source observable within the specified amount of time
+	 * or it switches to the <code>other</code> observable.
+	 * FIXME not sure if the timeout should happen only when
+	 * distance between elements get to large or just the first element
+	 * does not arrive within the specified timespan.
+	 * @param <T> the element type to observe
+	 * @param source the source observable
+	 * @param time the maximum allowed timespan between events
+	 * @param unit the time unit
+	 * @param other the other observable to continue with in case a timeout occurs
+	 * @return the observer.
+	 */
+	public static <T> Observable<T> timeout(final Observable<T> source, 
+			final long time, final TimeUnit unit,
+			final Observable<T> other) {
+		return timeout(source, time, unit, other, DEFAULT_SCHEDULED_POOL);
 	}
 }
