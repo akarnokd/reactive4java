@@ -3327,7 +3327,7 @@ public final class Observables {
 	 * @throws InterruptedException if the current thread is interrupted while waiting on
 	 * the observable.
 	 */
-	public static <T> void run(final Observable<T> source, final Action1<T> action) throws InterruptedException {
+	public static <T> void run(final Observable<T> source, final Action1<? super T> action) throws InterruptedException {
 		final CountDownLatch latch = new CountDownLatch(1);
 		Closeable c = source.register(new Observer<T>() {
 			/** Are we finished? */
@@ -3368,7 +3368,7 @@ public final class Observables {
 	 * @throws InterruptedException if the current thread is interrupted while waiting on
 	 * the observable.
 	 */
-	public static <T> void run(final Observable<T> source, final Observer<T> observer) throws InterruptedException {
+	public static <T> void run(final Observable<T> source, final Observer<? super T> observer) throws InterruptedException {
 		final CountDownLatch latch = new CountDownLatch(1);
 		Closeable c = source.register(new Observer<T>() {
 			/** Are we finished? */
@@ -3536,5 +3536,321 @@ public final class Observables {
 	 */
 	public static <T> Observable<T> sample(final Observable<T> source, final long time, final TimeUnit unit) {
 		return sample(source, time, unit, DEFAULT_SCHEDULED_POOL);
-	}	
+	}
+	/**
+	 * Creates an observable which accumultates the given source and submits each intermediate results to its subscribers.
+	 * Example:<br>
+	 * <code>range(0, 5).accumulate((x, y) => x + y)</code> produces a sequence of [0, 1, 3, 6, 10];<br>
+	 * basically the first event (0) is just relayed and then every pair of values are simply added together and relayed
+	 * @param <T> the element type to accumulate
+	 * @param source the source of the accumulation
+	 * @param accumulator the accumulator which takest the current accumulation value and the current observed value 
+	 * and returns a new accumulated value
+	 * @return the observable
+	 */
+	public static <T> Observable<T> accumulate(final Observable<T> source, final Func2<T, T, T> accumulator) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** Are we waiting for the first value? */
+					boolean first = true;
+					/** The current accumulated value. */
+					T current;
+					@Override
+					public void next(T value) {
+						if (first) {
+							first = false;
+							current = value;
+							
+						} else {
+							current = accumulator.invoke(current, value);
+						}
+						observer.next(current);
+					}
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+				});
+			}
+		};
+	}
+	/**
+	 * Creates an observable which accumultates the given source and submits each intermediate results to its subscribers.
+	 * Example:<br>
+	 * <code>range(0, 5).accumulate(1, (x, y) => x + y)</code> produces a sequence of [1, 2, 4, 7, 11];<br>
+	 * basically the accumulation starts from zero and the first value (0) that comes in is simply added 
+	 * @param <T> the element type to accumulate
+	 * @param source the source of the accumulation
+	 * @param seed the initial value of the accumulation
+	 * @param accumulator the accumulator which takest the current accumulation value and the current observed value 
+	 * and returns a new accumulated value
+	 * @return the observable
+	 */
+	public static <T> Observable<T> accumulate(final Observable<T> source, final T seed, final Func2<T, T, T> accumulator) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** The current accumulated value. */
+					T current = seed;
+					@Override
+					public void next(T value) {
+						current = accumulator.invoke(current, value);
+						observer.next(current);
+					}
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+				});
+			}
+		};
+	}
+	/**
+	 * Creates an observable which accumultates the given source and submits each intermediate results to its subscribers.
+	 * Example:<br>
+	 * <code>range(1, 5).accumulate0(1, (x, y) => x + y)</code> produces a sequence of [1, 2, 4, 7, 11, 16];<br>
+	 * basically, it submits the seed value (1) and computes the current aggregate with the current value(1). 
+	 * @param <T> the element type to accumulate
+	 * @param source the source of the accumulation
+	 * @param seed the initial value of the accumulation
+	 * @param accumulator the accumulator which takest the current accumulation value and the current observed value 
+	 * and returns a new accumulated value
+	 * @return the observable
+	 */
+	public static <T> Observable<T> accumulate0(final Observable<T> source, final T seed, final Func2<T, T, T> accumulator) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** The current accumulated value. */
+					T current;
+					/** Are we waiting for the first value? */
+					boolean first = true;
+					@Override
+					public void next(T value) {
+						if (first) {
+							first = false;
+							observer.next(seed);
+							current = accumulator.invoke(seed, value);
+						} else {
+							current = accumulator.invoke(current, value);
+						}
+						observer.next(current);
+					}
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+				});
+			}
+		};
+	}
+	/**
+	 * Transforms the elements of the source observable into Us by using a selector which receives an index indicating
+	 * how many elements have been transformed this far.
+	 * @param <T> the source element type
+	 * @param <U> the output element type
+	 * @param source the source observable
+	 * @param selector the selector taking an index and the current T
+	 * @return the transformed observable
+	 */
+	public static <T, U> Observable<U> transform(final Observable<T> source, final Func2<U, Integer, T> selector) {
+		return new Observable<U>() {
+			@Override
+			public Closeable register(final Observer<? super U> observer) {
+				return source.register(new Observer<T>() {
+					/** The running index. */
+					int index;
+					@Override
+					public void next(T value) {
+						observer.next(selector.invoke(index++, value));
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Transform the given source of Ts into Us in a way that the selector might return zero to multiple elements of Us for a single T.
+	 * The iterable is flattened and submitted to the output
+	 * @param <T> the input element type
+	 * @param <U> the output element type
+	 * @param source the source of Ts
+	 * @param selector the selector to return an Iterable of Us 
+	 * @return the 
+	 */
+	public static <T, U> Observable<U> transformIterable(final Observable<T> source, 
+			final Func1<Iterable<U>, T> selector) {
+		return new Observable<U>() {
+			@Override
+			public Closeable register(final Observer<? super U> observer) {
+				return source.register(new Observer<T>() {
+
+					@Override
+					public void next(T value) {
+						for (U u : selector.invoke(value)) {
+							observer.next(u);
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Transform the given source of Ts into Us in a way that the 
+	 * selector might return an observable ofUs for a single T.
+	 * The observable is fully channelled to the output observable.
+	 * FIXME not sure how to do it
+	 * @param <T> the input element type
+	 * @param <U> the output element type
+	 * @param source the source of Ts
+	 * @param selector the selector to return an Iterable of Us 
+	 * @return the 
+	 */
+	public static <T, U> Observable<U> transformObservable(final Observable<T> source, 
+			final Func1<Observable<U>, T> selector) {
+		return new Observable<U>() {
+			@Override
+			public Closeable register(final Observer<? super U> observer) {
+				return source.register(new Observer<T>() {
+
+					@Override
+					public void next(T value) {
+						UObserver<U> obs = new UObserver<U>() {
+							@Override
+							public void error(Throwable ex) {
+								unregister();
+							}
+							@Override
+							public void finish() {
+								unregister();
+								
+							}
+							@Override
+							public void next(U value) {
+								observer.next(value);
+							};
+						};
+						obs.registerWith(selector.invoke(value));
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Creates an observable of Us in a way when a source T arrives, the observable of 
+	 * Us is completely drained into the output. This is done again and again for
+	 * each arriving Ts.
+	 * @param <T> the type of the source, irrelevant
+	 * @param <U> the output type
+	 * @param source the source of Ts
+	 * @param provider the source of Us
+	 * @return the observable for Us
+	 */
+	public static <T, U> Observable<U> transformObservable(Observable<T> source, Observable<U> provider) {
+		return transformObservable(source, Functions.<Observable<U>, T>constant(provider));
+	}
+	/**
+	 * Creates an observable in which for each of Ts an observable of Vs are
+	 * requested which in turn will be transformed by the resultSelector for each
+	 * pair of T and V giving an U.
+	 * @param <T> the source element type
+	 * @param <U> the output element type
+	 * @param <V> the intermediate element type
+	 * @param source the source of Ts
+	 * @param collectionSelector the selector which returns an observable of intermediate Vs
+	 * @param resultSelector the selector which gives an U for a T and V
+	 * @return the observable of Us
+	 */
+	public static <T, U, V> Observable<U> transformObservable(final Observable<T> source, 
+			final Func1<Observable<V>, T> collectionSelector, final Func2<U, T, V> resultSelector) {
+		return new Observable<U>() {
+			@Override
+			public Closeable register(final Observer<? super U> observer) {
+				return source.register(new Observer<T>() {
+
+					@Override
+					public void next(final T value) {
+						UObserver<V> obs = new UObserver<V>() {
+
+							@Override
+							public void next(V x) {
+								observer.next(resultSelector.invoke(value, x));
+							}
+
+							@Override
+							public void error(Throwable ex) {
+								unregister();
+							}
+
+							@Override
+							public void finish() {
+								unregister();
+							}
+							
+						};
+						obs.registerWith(collectionSelector.invoke(value));
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
 }
