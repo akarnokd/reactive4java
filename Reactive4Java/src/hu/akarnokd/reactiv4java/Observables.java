@@ -23,6 +23,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
@@ -3807,44 +3808,12 @@ public final class Observables {
 	 */
 	public static <T, U> Observable<U> transformObservable(final Observable<T> source, 
 			final Func1<Observable<U>, T> selector) {
-		return new Observable<U>() {
+		return transformObservable(source, selector, new Func2<U, T, U>() {
 			@Override
-			public Closeable register(final Observer<? super U> observer) {
-				return source.register(new Observer<T>() {
-
-					@Override
-					public void next(T value) {
-						UObserver<U> obs = new UObserver<U>() {
-							@Override
-							public void error(Throwable ex) {
-								unregister();
-							}
-							@Override
-							public void finish() {
-								unregister();
-								
-							}
-							@Override
-							public void next(U value) {
-								observer.next(value);
-							};
-						};
-						obs.registerWith(selector.invoke(value));
-					}
-
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.finish();
-					}
-					
-				});
-			}
-		};
+			public U invoke(T param1, U param2) {
+				return param2;
+			};
+		});
 	}
 	/**
 	 * Creates an observable of Us in a way when a source T arrives, the observable of 
@@ -3876,6 +3845,7 @@ public final class Observables {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
+				final AtomicInteger wip = new AtomicInteger();
 				return source.register(new Observer<T>() {
 
 					@Override
@@ -3890,15 +3860,117 @@ public final class Observables {
 							@Override
 							public void error(Throwable ex) {
 								unregister();
+								wip.decrementAndGet();
 							}
 
 							@Override
 							public void finish() {
 								unregister();
+								if (wip.decrementAndGet() == 0) {
+									observer.finish();
+								}
 							}
 							
 						};
+						wip.incrementAndGet();
 						obs.registerWith(collectionSelector.invoke(value));
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						//observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Returns the single element of the given observable source.
+	 * If the source is empty, a NoSuchElementException is thrown.
+	 * If the source has more than one element, a TooManyElementsException is thrown.
+	 * @param <T> the type of the element
+	 * @param source the source of Ts
+	 * @return the single element
+	 */
+	public static <T> T single(Observable<T> source) {
+		Iterator<T> it = asIterable(source).iterator();
+		if (it.hasNext()) {
+			T one = it.next();
+			if (!it.hasNext()) {
+				return one;
+			}
+			throw new TooManyElementsException();
+		}
+		throw new NoSuchElementException();
+	}
+	/**
+	 * Skips the given amount of next() messages from source and relays
+	 * the rest.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param count the number of messages to skip
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> skip(final Observable<T> source, final int count) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					int remaining = count;
+					@Override
+					public void next(T value) {
+						// TODO Auto-generated method stub
+						if (remaining <= 0) {
+							observer.next(value);
+						} else {
+							remaining--;
+						}
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Skips the last <code>count</code> elements from the source observable.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param count the number of elements to skip at the end
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> skipLast(final Observable<T> source, final int count) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** The temporar buffer to delay the values. */
+					final LinkedList<T> buffer = new LinkedList<T>();
+					/** The current size of the buffer. */
+					int size;
+					@Override
+					public void next(T value) {
+						buffer.addLast(value);
+						size++;
+						if (size > count) {
+							observer.next(buffer.removeFirst());
+							size--;
+						}
 					}
 
 					@Override
