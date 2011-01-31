@@ -113,6 +113,15 @@ Convenience methods are available for the following types:
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/average_xs_sum_divide.png
 
+== buffer ==
+
+{{{Observable<List<T>> ys = buffer(Observable<T> xs, int size);}}}
+
+Buffers the incoming elements up to a given size and submits a list of Ts once the buffer is filled or a finish() arrives. The if the finish() encounters an empty buffer, that is not sent to the output.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/buffer_xs_size.png
+
+
 
 == removeTimestamped ==
 
