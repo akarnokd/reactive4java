@@ -22,6 +22,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -773,20 +774,25 @@ public final class Observables {
 		};
 	}
 	/**
-	 * Computes and signals the average value of the BigDecimal source.
-	 * The source may not send nulls.
+	 * Computes the average of the source Ts by applying a sum function and applying the divide function when the source
+	 * finishes, sending the average to the output.
+	 * @param <T> the type of the values
+	 * @param <U> the type of the intermediate sum value
+	 * @param <V> the type of the final average value
 	 * @param source the source of BigDecimals to aggregate.
+	 * @param sum the function which sums the input Ts. The first received T will be acompanied by a null U.
+	 * @param divide the function which perform the final division based on the number of elements
 	 * @return the observable for the average value
 	 */
-	public static Observable<BigDecimal> averageBigDecimal(final Observable<BigDecimal> source) {
-		return new Observable<BigDecimal>() {
+	public static <T, U, V> Observable<V> average(final Observable<T> source, final Func2<U, U, T> sum, final Func2<V, U, Integer> divide) {
+		return new Observable<V>() {
 			@Override
-			public Closeable register(final Observer<? super BigDecimal> observer) {
-				return source.register(new Observer<BigDecimal>() {
+			public Closeable register(final Observer<? super V> observer) {
+				return source.register(new Observer<T>() {
 					/** The number of values. */
 					int count;
 					/** The sum of the values thus far. */
-					BigDecimal sum = BigDecimal.ZERO;
+					U temp;
 					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
@@ -795,20 +801,45 @@ public final class Observables {
 					@Override
 					public void finish() {
 						if (count > 0) {
-							observer.next(sum.divide(new BigDecimal(count), 9, BigDecimal.ROUND_HALF_UP));
+							observer.next(divide.invoke(temp, count));
 						}
 						observer.finish();
 					}
 
 					@Override
-					public void next(BigDecimal value) {
-						sum = sum.add(value);
+					public void next(T value) {
+						temp = sum.invoke(temp, value); 
 						count++;
 					}
 					
 				});
 			}
 		};
+	}
+	/**
+	 * Computes and signals the average value of the BigDecimal source.
+	 * The source may not send nulls.
+	 * @param source the source of BigDecimals to aggregate.
+	 * @return the observable for the average value
+	 */
+	public static Observable<BigDecimal> averageBigDecimal(final Observable<BigDecimal> source) {
+		return average(source, 
+			new Func2<BigDecimal, BigDecimal, BigDecimal>() {
+				@Override
+				public BigDecimal invoke(BigDecimal param1, BigDecimal param2) {
+					if (param1 != null) {
+						return param1.add(param2);
+					}
+					return param2;
+				}
+			},
+			new Func2<BigDecimal, BigDecimal, Integer>() {
+				@Override
+				public BigDecimal invoke(BigDecimal param1, Integer param2) {
+					return param1.divide(BigDecimal.valueOf(param2.longValue()), RoundingMode.HALF_UP);
+				}
+			}
+		);
 	}
 	/**
 	 * Computes and signals the average value of the BigInteger source.
@@ -817,36 +848,23 @@ public final class Observables {
 	 * @return the observable for the average value
 	 */
 	public static Observable<BigDecimal> averageBigInteger(final Observable<BigInteger> source) {
-		return new Observable<BigDecimal>() {
-			@Override
-			public Closeable register(final Observer<? super BigDecimal> observer) {
-				return source.register(new Observer<BigInteger>() {
-					/** The number of values. */
-					int count;
-					/** The sum of the values thus far. */
-					BigDecimal sum = BigDecimal.ZERO;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
+		return average(source, 
+			new Func2<BigInteger, BigInteger, BigInteger>() {
+				@Override
+				public BigInteger invoke(BigInteger param1, BigInteger param2) {
+					if (param1 != null) {
+						return param1.add(param2);
 					}
-
-					@Override
-					public void finish() {
-						if (count > 0) {
-							observer.next(sum.divide(new BigDecimal(count), 9, BigDecimal.ROUND_HALF_UP));
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(BigInteger value) {
-						sum = sum.add(new BigDecimal(value));
-						count++;
-					}
-					
-				});
+					return param2;
+				}
+			},
+			new Func2<BigDecimal, BigInteger, Integer>() {
+				@Override
+				public BigDecimal invoke(BigInteger param1, Integer param2) {
+					return new BigDecimal(param1).divide(BigDecimal.valueOf(param2.longValue()), RoundingMode.HALF_UP);
+				}
 			}
-		};
+		);
 	}	
 	/**
 	 * Computes and signals the average value of the Double source.
@@ -855,36 +873,23 @@ public final class Observables {
 	 * @return the observable for the average value
 	 */
 	public static Observable<Double> averageDouble(final Observable<Double> source) {
-		return new Observable<Double>() {
-			@Override
-			public Closeable register(final Observer<? super Double> observer) {
-				return source.register(new Observer<Double>() {
-					/** The number of values. */
-					int count;
-					/** The sum of the values thus far. */
-					double sum;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
+		return average(source, 
+			new Func2<Double, Double, Double>() {
+				@Override
+				public Double invoke(Double param1, Double param2) {
+					if (param1 != null) {
+						return param1 + param2;
 					}
-
-					@Override
-					public void finish() {
-						if (count > 0) {
-							observer.next(sum / count);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(Double value) {
-						sum += value.doubleValue();
-						count++;
-					}
-					
-				});
+					return param2;
+				}
+			},
+			new Func2<Double, Double, Integer>() {
+				@Override
+				public Double invoke(Double param1, Integer param2) {
+					return param1 / param2;
+				}
 			}
-		};
+		);
 	}
 	/**
 	 * Computes and signals the average value of the Float source.
@@ -893,36 +898,23 @@ public final class Observables {
 	 * @return the observable for the average value
 	 */
 	public static Observable<Float> averageFloat(final Observable<Float> source) {
-		return new Observable<Float>() {
-			@Override
-			public Closeable register(final Observer<? super Float> observer) {
-				return source.register(new Observer<Float>() {
-					/** The number of values. */
-					int count;
-					/** The sum of the values thus far. */
-					float sum;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
+		return average(source, 
+			new Func2<Float, Float, Float>() {
+				@Override
+				public Float invoke(Float param1, Float param2) {
+					if (param1 != null) {
+						return param1 + param2;
 					}
-
-					@Override
-					public void finish() {
-						if (count > 0) {
-							observer.next(sum / count);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(Float value) {
-						sum += value;
-						count++;
-					}
-					
-				});
+					return param2;
+				}
+			},
+			new Func2<Float, Float, Integer>() {
+				@Override
+				public Float invoke(Float param1, Integer param2) {
+					return param1 / param2;
+				}
 			}
-		};
+		);
 	}
 	/**
 	 * Computes and signals the average value of the integer source.
@@ -931,36 +923,23 @@ public final class Observables {
 	 * @return the observable for the average value
 	 */
 	public static Observable<Double> averageInt(final Observable<Integer> source) {
-		return new Observable<Double>() {
-			@Override
-			public Closeable register(final Observer<? super Double> observer) {
-				return source.register(new Observer<Integer>() {
-					/** The number of values. */
-					int count;
-					/** The sum of the values thus far. */
-					double sum;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
+		return average(source, 
+			new Func2<Double, Double, Integer>() {
+				@Override
+				public Double invoke(Double param1, Integer param2) {
+					if (param1 != null) {
+						return param1 + param2;
 					}
-
-					@Override
-					public void finish() {
-						if (count > 0) {
-							observer.next(sum / count);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(Integer value) {
-						sum += value.doubleValue();
-						count++;
-					}
-					
-				});
+					return param2.doubleValue();
+				}
+			},
+			new Func2<Double, Double, Integer>() {
+				@Override
+				public Double invoke(Double param1, Integer param2) {
+					return param1 / param2;
+				}
 			}
-		};
+		);
 	}
 	/**
 	 * Computes and signals the average value of the Long source.
@@ -969,36 +948,23 @@ public final class Observables {
 	 * @return the observable for the average value
 	 */
 	public static Observable<Double> averageLong(final Observable<Long> source) {
-		return new Observable<Double>() {
-			@Override
-			public Closeable register(final Observer<? super Double> observer) {
-				return source.register(new Observer<Long>() {
-					/** The number of values. */
-					int count;
-					/** The sum of the values thus far. */
-					double sum;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
+		return average(source, 
+			new Func2<Double, Double, Long>() {
+				@Override
+				public Double invoke(Double param1, Long param2) {
+					if (param1 != null) {
+						return param1 + param2;
 					}
-
-					@Override
-					public void finish() {
-						if (count > 0) {
-							observer.next(sum / count);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(Long value) {
-						sum += value.doubleValue();
-						count++;
-					}
-					
-				});
+					return param2.doubleValue();
+				}
+			},
+			new Func2<Double, Double, Integer>() {
+				@Override
+				public Double invoke(Double param1, Integer param2) {
+					return param1 / param2;
+				}
 			}
-		};
+		);
 	}
 	/**
 	 * Buffer the nodes as they become available and send them out in bufferSize chunks.
