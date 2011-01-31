@@ -4359,18 +4359,24 @@ public final class Observables {
 		return subscribeOn(observable, EDT_EXECUTOR);
 	}
 	/**
-	 * Computes and signals the sum of the values of the BigDecimal source.
-	 * The source may not send nulls.
-	 * @param source the source of BigDecimals to aggregate.
-	 * @return the observable for the sum value
+	 * Computes the sum of the source Ts by using a <code>sum</code> function.
+	 * If the source is empty, the result will be empty.
+	 * The sum will be signalled when all elements of source have been received.
+	 * @param <T> the type of the source elements
+	 * @param <U> the type of the sum value
+	 * @param source the source of Ts
+	 * @param sum the function which receives the current sum as its 
+	 * first parameter and the current T in its second.
+	 * For the first T, the sum is invoked with a null as its U parameter.
+	 * @return the observable
 	 */
-	public static Observable<BigDecimal> sumBigDecimal(final Observable<BigDecimal> source) {
-		return new Observable<BigDecimal>() {
+	public static <T, U> Observable<U> sum(final Observable<T> source, final Func2<U, U, T> sum) {
+		return new Observable<U>() {
 			@Override
-			public Closeable register(final Observer<? super BigDecimal> observer) {
-				return source.register(new Observer<BigDecimal>() {
+			public Closeable register(final Observer<? super U> observer) {
+				return source.register(new Observer<T>() {
 					/** The sum of the values thus far. */
-					BigDecimal sum;
+					U temp;
 					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
@@ -4378,24 +4384,37 @@ public final class Observables {
 
 					@Override
 					public void finish() {
-						if (sum != null) {
-							observer.next(sum);
+						if (temp != null) {
+							observer.next(temp);
 						}
 						observer.finish();
 					}
 
 					@Override
-					public void next(BigDecimal value) {
-						if (sum == null) {
-							sum = value;
-						} else {
-							sum = sum.add(value);
-						}
+					public void next(T value) {
+						temp = sum.invoke(temp, value);
 					}
 					
 				});
 			}
 		};
+	}
+	/**
+	 * Computes and signals the sum of the values of the BigDecimal source.
+	 * The source may not send nulls.
+	 * @param source the source of BigDecimals to aggregate.
+	 * @return the observable for the sum value
+	 */
+	public static Observable<BigDecimal> sumBigDecimal(final Observable<BigDecimal> source) {
+		return sum(source, new Func2<BigDecimal, BigDecimal, BigDecimal>() {
+			@Override
+			public BigDecimal invoke(BigDecimal param1, BigDecimal param2) {
+				if (param1 == null) {
+					return param2;
+				}
+				return param1.add(param2);
+			}
+		});
 	}
 	/**
 	 * Computes and signals the sum of the values of the BigInteger source.
@@ -4404,37 +4423,15 @@ public final class Observables {
 	 * @return the observable for the sum value
 	 */
 	public static Observable<BigInteger> sumBigInteger(final Observable<BigInteger> source) {
-		return new Observable<BigInteger>() {
+		return sum(source, new Func2<BigInteger, BigInteger, BigInteger>() {
 			@Override
-			public Closeable register(final Observer<? super BigInteger> observer) {
-				return source.register(new Observer<BigInteger>() {
-					/** The sum of the values thus far. */
-					BigInteger sum;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (sum != null) {
-							observer.next(sum);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(BigInteger value) {
-						if (sum == null) {
-							sum = value;
-						} else {
-							sum = sum.add(value);
-						}
-					}
-					
-				});
+			public BigInteger invoke(BigInteger param1, BigInteger param2) {
+				if (param1 == null) {
+					return param2;
+				}
+				return param1.add(param2);
 			}
-		};
+		});
 	}
 	/**
 	 * Computes and signals the sum of the values of the Double source.
@@ -4443,38 +4440,15 @@ public final class Observables {
 	 * @return the observable for the sum value
 	 */
 	public static Observable<Double> sumDouble(final Observable<Double> source) {
-		return new Observable<Double>() {
+		return sum(source, new Func2<Double, Double, Double>() {
 			@Override
-			public Closeable register(final Observer<? super Double> observer) {
-				return source.register(new Observer<Double>() {
-					/** The number of values. */
-					boolean first = true;
-					/** The sum of the values thus far. */
-					double sum;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (!first) {
-							observer.next(sum);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(Double value) {
-						if (first) {
-							first = false;
-						}
-						sum += value.doubleValue();
-					}
-					
-				});
+			public Double invoke(Double param1, Double param2) {
+				if (param1 == null) {
+					return param2;
+				}
+				return param1 + param2;
 			}
-		};
+		});
 	}
 	/**
 	 * Computes and signals the sum of the values of the Float source.
@@ -4483,38 +4457,15 @@ public final class Observables {
 	 * @return the observable for the sum value
 	 */
 	public static Observable<Float> sumFloat(final Observable<Float> source) {
-		return new Observable<Float>() {
+		return sum(source, new Func2<Float, Float, Float>() {
 			@Override
-			public Closeable register(final Observer<? super Float> observer) {
-				return source.register(new Observer<Float>() {
-					/** The number of values. */
-					boolean first = true;
-					/** The sum of the values thus far. */
-					float sum;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (!first) {
-							observer.next(sum);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(Float value) {
-						if (first) {
-							first = false;
-						}
-						sum += value;
-					}
-					
-				});
+			public Float invoke(Float param1, Float param2) {
+				if (param1 == null) {
+					return param2;
+				}
+				return param1 + param2;
 			}
-		};
+		});
 	}
 	/**
 	 * Computes and signals the sum of the values of the Integer source.
@@ -4523,38 +4474,15 @@ public final class Observables {
 	 * @return the observable for the sum value
 	 */
 	public static Observable<Integer> sumInt(final Observable<Integer> source) {
-		return new Observable<Integer>() {
+		return sum(source, new Func2<Integer, Integer, Integer>() {
 			@Override
-			public Closeable register(final Observer<? super Integer> observer) {
-				return source.register(new Observer<Integer>() {
-					/** Is this the first entry. */
-					boolean first = true;
-					/** The sum of the values thus far. */
-					int sum;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (!first) {
-							observer.next(sum);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(Integer value) {
-						if (first) {
-							first = false;
-						}
-						sum += value;
-					}
-					
-				});
+			public Integer invoke(Integer param1, Integer param2) {
+				if (param1 == null) {
+					return param2;
+				}
+				return param1 + param2;
 			}
-		};
+		});
 	}
 	/**
 	 * Computes and signals the sum of the values of the Long source.
@@ -4563,31 +4491,15 @@ public final class Observables {
 	 * @return the observable for the sum value
 	 */
 	public static Observable<Long> sumLong(final Observable<Long> source) {
-		return new Observable<Long>() {
+		return sum(source, new Func2<Long, Long, Long>() {
 			@Override
-			public Closeable register(final Observer<? super Long> observer) {
-				return source.register(new Observer<Long>() {
-					/** The sum of the values thus far. */
-					long sum;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.next(sum);
-						observer.finish();
-					}
-
-					@Override
-					public void next(Long value) {
-						sum += value;
-					}
-					
-				});
+			public Long invoke(Long param1, Long param2) {
+				if (param1 == null) {
+					return param2;
+				}
+				return param1 + param2;
 			}
-		};
+		});
 	}
 	/**
 	 * Wraps the observers registering at the output into an observer
@@ -4700,7 +4612,8 @@ public final class Observables {
 				final AtomicReference<UObserver<T>> rT = new AtomicReference<UObserver<T>>();
 				final AtomicReference<UObserver<U>> rU = new AtomicReference<UObserver<U>>();
 				final AtomicBoolean stop = new AtomicBoolean();
-				rT.set(new UObserver<T>() {
+				
+				UObserver<T> o1 = new UObserver<T>() {
 					@Override
 					public void error(Throwable ex) {
 						unregister();
@@ -4722,8 +4635,8 @@ public final class Observables {
 						}
 					}
 					
-				});
-				rU.set(new UObserver<U>() {
+				};
+				UObserver<U> o2 = new UObserver<U>() {
 					@Override
 					public void error(Throwable ex) {
 						unregister();
@@ -4742,9 +4655,12 @@ public final class Observables {
 						rT.get().unregister();
 					}
 					
-				});
-				
-				return close(rU.get().registerWith(signaller), rT.get().registerWith(source));
+				};
+				rT.set(o1);
+				rU.set(o2);
+				o2.registerWith(signaller);
+				o1.registerWith(source);
+				return close(o1, o2);
 			}
 		};
 	}
@@ -4793,7 +4709,8 @@ public final class Observables {
 					}
 					
 				};
-				return oT.registerWith(source);
+				oT.registerWith(source);
+				return oT;
 			}
 		};
 	}
@@ -4829,38 +4746,34 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final AtomicReference<T> last = new AtomicReference<T>();
-				final USchedulable sch = new USchedulable() {
+				final ScheduledObserver<T> obs = new ScheduledObserver<T>() {
+					/** The last seen value. */
+					final AtomicReference<T> last = new AtomicReference<T>();
 					@Override
 					public void run() {
 						observer.next(last.get());
 					}
-					
-				};
-				final UObserver<T> obs = new UObserver<T>() {
-
 					@Override
 					public void error(Throwable ex) {
-						sch.close();
-						unregister();
+						close();
 					}
 
 					@Override
 					public void finish() {
-						sch.close();
 						observer.finish();
-						unregister();
+						close();
 					}
 
 					@Override
 					public void next(T value) {
-						sch.close();
+						cancel();
 						last.set(value);
-						sch.scheduleOn(pool, delay, unit);
+						scheduleOn(pool, delay, unit);
 					}
 					
 				};
-				return close(obs.registerWith(source), sch);
+				obs.registerWith(source);
+				return obs;
 			}
 		};
 	}
@@ -4886,12 +4799,14 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				return close((new USchedulable() {
+				USchedulable s = new USchedulable() {
 					@Override
 					public void run() {
 						observer.error(ex);
 					}
-				}).submitTo(pool));
+				};
+				s.submitTo(pool);
+				return s;
 			}
 		};
 	}
@@ -4923,7 +4838,7 @@ public final class Observables {
 		return new Observable<Long>() {
 			@Override
 			public Closeable register(final Observer<? super Long> observer) {
-				return close((new USchedulable() {
+				USchedulable s = new USchedulable() {
 					long current = start;
 					@Override
 					public void run() {
@@ -4934,7 +4849,9 @@ public final class Observables {
 							close(); // no more scheduling needed
 						}
 					}
-				}).scheduleOnAtFixedRate(pool, delay, delay, unit));
+				};
+				s.scheduleOnAtFixedRate(pool, delay, delay, unit);
+				return s;
 			}
 		};
 	}
@@ -5488,7 +5405,7 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				final Iterator<V> it = right.iterator();
-				return close((new UObserver<U>() {
+				UObserver<U> obs = new UObserver<U>() {
 					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
@@ -5509,7 +5426,9 @@ public final class Observables {
 						}
 					}
 					
-				}).registerWith(left));
+				};
+				obs.registerWith(left);
+				return obs;
 			}
 		};
 	}
