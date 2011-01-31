@@ -209,6 +209,14 @@ Relays subsequent elements only when their extracted keys using the {{{key}}} fu
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/distinct_xs_key.png
 
+== drain ==
+
+{{{Observable<Void> ys = drain(Observable<T> xs, Func1<Observable<Void>, T> pump);}}}
+
+For each incoming Ts,  the {{{pump}}} is invoked in sequence on a thread pool, which returns a completion observable. When the last of this inner observables calls {{{finish()}}} the output will signal its {{{finish()}}}. In other words, drain forks off computation for each T and waits for them all to signal completion before itself signals completion.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/drain_xs_pump.png
+
 
 == removeTimestamped ==
 
