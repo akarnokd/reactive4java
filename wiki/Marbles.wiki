@@ -10,7 +10,7 @@ This page lists the various operators and shows a marble diagram about how they 
 == Legend ==
 
 || http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_values.png || Values of type {{{T}}}, {{{U}}}, {{{V}}} || http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_terminates.png || Termination ||
-|| http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_errors.png || Errors originating from {{{Observable<T>}}}, {{{Observable<U>}}}, {{{Observable<V>}}} || http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_functions.png || Functions ||
+|| http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_errors.png || Errors originating from<br>{{{Observable<T>}}}, {{{Observable<U>}}}, {{{Observable<V>}}} || http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_functions.png || Functions ||
 
 = Methods =
 
@@ -50,6 +50,18 @@ Wraps each T into a {{{Timestamped<T>}}} container with the current timestamp ob
 
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/add_timestamped_xs.png
+
+== aggregate ==
+
+{{{Observable<T> ys = aggregate(Observable<T> xs, Func2<T, T, T> f);}}}
+
+Apply the aggregator function over the input observable and when the input finishes, relay the aggregated value and a finish to the output observer.
+
+{{{Observable<U> ys = aggregate(Observable<T> xs, U seed, Func2<U, U, T> f);}}}
+
+Takes the incoming Ts and aggregates it with the previous accumulator U value by using the supplied function (e.g., a stream of {{{Integer}}}s are accumulated into {{{Double}}}s). The accumulated value is released once the input terminates. The seed is used as the initial first partner for the first T to aggregate.
+
+
 
 == removeTimestamped ==
 
