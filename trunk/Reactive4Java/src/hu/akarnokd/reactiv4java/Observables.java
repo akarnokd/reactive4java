@@ -1656,7 +1656,7 @@ public final class Observables {
 	 * @param pump the pump that drains the queue
 	 * @return the new observable
 	 */
-	/*public */static <T> Observable<Void> drain(final Observable<T> source, final Func1<Observable<Void>, T> pump) {
+	public static <T> Observable<Void> drain(final Observable<T> source, final Func1<Observable<Void>, T> pump) {
 		return drain(source, pump, DEFAULT_OBSERVABLE_POOL);
 	}
 	/**
@@ -1668,33 +1668,173 @@ public final class Observables {
 	 * @param pool the pool for the drain
 	 * @return the new observable
 	 */
-	/*public */static <T> Observable<Void> drain(final Observable<T> source, final Func1<Observable<Void>, T> pump, final ExecutorService pool) {
+	public static <T> Observable<Void> drain(final Observable<T> source, 
+			final Func1<Observable<Void>, T> pump, final ExecutorService pool) {
 		return new Observable<Void>() {
 			@Override
 			public Closeable register(final Observer<? super Void> observer) {
-				return source.register(new Observer<T>() {
+				// keep track of the forked observers so the last should invoke finish() on the observer
+				final AtomicInteger wip = new AtomicInteger();
+				final RunOnce once = new RunOnce();
+				final SingleLaneExecutor<T> exec = new SingleLaneExecutor<T>(pool, new Action1<T>() {
+					@Override
+					public void invoke(T value) {
+						(new UObserver<Void>() {
+							@Override
+							public void error(final Throwable ex) {
+								// FIXME what should happen in this case???
+								once.invoke(new Action0() {
+									@Override
+									public void invoke() {
+										observer.error(ex);										
+									}
+								});
+								unregister();
+							}
+							@Override
+							public void finish() {
+								// FIXME what if another pump returns error???
+								if (wip.decrementAndGet() == 0) {
+									observer.finish();
+								}
+								unregister();
+							}
+							@Override
+							public void next(Void value) {
+								unregister();
+								throw new AssertionError();
+							};
+						}).registerWith(pump.invoke(value));
+					};
+				});
+				UObserver<T> obs = new UObserver<T>() {
+					@Override
+					public void next(T value) {
+						wip.incrementAndGet();
+						exec.add(value);
+					}
+
 					@Override
 					public void error(Throwable ex) {
-						// TODO Auto-generated method stub
-						throw new UnsupportedOperationException();
+						unregister();
+						// FIXME what should happen in this case???
 					}
 
 					@Override
 					public void finish() {
-						// TODO Auto-generated method stub
-						throw new UnsupportedOperationException();
-						
+						unregister();
 					}
-
-					@Override
-					public void next(T value) {
-						// TODO Auto-generated method stub
-						Observable<Void> o2 = pump.invoke(value);
-						observeOn(o2, pool).register(observer); // FIXME I don't understand
-					}
-				});
+					
+				};
+				return obs.registerWith(source);
 			}
 		};
+	}
+	/**
+	 * Helper class which ensures that only a single action is invoked.
+	 * It can be used in cases when multiple observers want to
+	 * do the same thing (e.g., fire an error() or finish())
+	 * but only one of them should ever succeed
+	 * @author akarnokd, 2011.01.31.
+	 */
+	public static final class RunOnce {
+		/** Marker that this instance is allowed to execute only one Action. */
+		final AtomicBoolean once = new AtomicBoolean();
+		/**
+		 * Invoke the given action only if this RunOnce has not invoked
+		 * anything before. The method ensures that if this RunOnce
+		 * is invoked from multiple threads or multiple cases, only the
+		 * very first one executes its submitted action.
+		 * @param action the action to invoke
+		 * @return returns true if the action was invoked
+		 */
+		public boolean invoke(final Action0 action) {
+			if (once.compareAndSet(false, true)) {
+				action.invoke();
+				return true;
+			}
+			return false;
+		}
+		/**
+		 * Invoke the given action only if this RunOnce has not invoked
+		 * anything before. The method ensures that if this RunOnce
+		 * is invoked from multiple threads or multiple cases, only the
+		 * very first one executes its submitted action.
+		 * @param <T> the parameter type
+		 * @param action the action to invoke
+		 * @param parameter the parameter to use when invoking the action.
+		 * @return true if the action was invoked
+		 */
+		public <T> boolean invoke(final Action1<? super T> action, final T parameter) {
+			if (once.compareAndSet(false, true)) {
+				action.invoke(parameter);
+			}
+			return false;
+		}
+	}
+	/**
+	 * A helper class which ensures that each of its queued
+	 * elements get processed in sequence even on a multi-threaded pool.
+	 * @author akarnokd, 2011.01.31.
+	 * @param <T> the element type to process
+	 */
+	public static final class SingleLaneExecutor<T> {
+		/** The executor pool. */
+		final ExecutorService pool;
+		/** Keeps track of the queue size. */
+		final AtomicInteger wip = new AtomicInteger();
+		/** The queue of items. */
+		final BlockingQueue<T> queue = new LinkedBlockingQueue<T>();
+		/** The action to invoke for each element. */
+		final Action1<? super T> action;
+		/** The queue processor. */
+		final Runnable processor = new Runnable() {
+			@Override
+			public synchronized void run() { // ensure that only one instance is running
+				do {
+					List<T> list = new LinkedList<T>();
+					queue.drainTo(list);
+					for (T t : list) {
+						action.invoke(t);
+					}
+				} while (wip.decrementAndGet() > 0);
+			}
+		};
+		/**
+		 * Constructor. 
+		 * @param pool the executor service to use as the pool.
+		 * @param action the action to invoke when processing a queue item
+		 */
+		public SingleLaneExecutor(ExecutorService pool, Action1<? super T> action) {
+			if (pool == null) {
+				throw new IllegalArgumentException("pool is null");
+			}
+			if (action == null) {
+				throw new IllegalArgumentException("action is null");
+			}
+			this.action = action;
+			this.pool = pool;
+		}
+		/**
+		 * Add an item to the queue and start the processor if necessary.
+		 * @param item the item to add.
+		 */
+		public void add(T item) {
+			queue.add(item);
+			if (wip.incrementAndGet() == 1) {
+				pool.submit(processor);
+			}
+		}
+		/**
+		 * Add the iterable series of items. The items are added via add() method,
+		 * and might start the processor if necessary.
+		 * @param items the iterable of items
+		 */
+		public void add(Iterable<T> items) {
+			for (T item : items) {
+				add(item);
+			}
+		}
 	}
 	/**
 	 * @param <T> the type of the values to observe (irrelevant)
