@@ -165,6 +165,14 @@ Special case of any() where the predicate contains an equality test with the con
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/contains_xs_constant.png
 
+== count ==
+
+{{{Observable<Integer> ys = count(Observable<T> xs);}}}
+
+Counts the elements of the observable before the finish and submits this count value.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/count_xs.png
+
 
 == removeTimestamped ==
 
