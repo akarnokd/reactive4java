@@ -44,10 +44,9 @@ public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Clo
 	 * @param pool the scheduler pool
 	 * @param delay the delay
 	 * @param unit the time unit of the delay
-	 * @return the future returned by the registration
 	 */
-	public Future<?> scheduleOn(ScheduledExecutorService pool, long delay, TimeUnit unit) {
-		return replace(pool.schedule(this, delay, unit));
+	public void scheduleOn(ScheduledExecutorService pool, long delay, TimeUnit unit) {
+		replace(pool.schedule(this, delay, unit));
 	}
 	/**
 	 * Replace the future registration with the current contents
@@ -94,30 +93,27 @@ public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Clo
 	 * @param initialDelay the initial schedule delay
 	 * @param delay the delay between completion and next start
 	 * @param unit the time unit of the initialDelay and delay parameters
-	 * @return the future returned by the registration
 	 */
-	public Future<?> scheduleOnWithFixedDelay(ScheduledExecutorService pool, long initialDelay, long delay, TimeUnit unit) {
-		return replace(pool.scheduleWithFixedDelay(this, initialDelay, delay, unit));
+	public void scheduleOnWithFixedDelay(ScheduledExecutorService pool, long initialDelay, long delay, TimeUnit unit) {
+		replace(pool.scheduleWithFixedDelay(this, initialDelay, delay, unit));
 	}
 	/**
 	 * Submit this task to the given executor service without any scheduling
 	 * requirements.
 	 * If this instance has an associated future, that instance gets cancelled
 	 * @param pool the target executor service
-	 * @return the future returned by the registration
 	 */
-	public Future<?> submitTo(ExecutorService pool) {
-		return replace(pool.submit(this));
+	public void submitTo(ExecutorService pool) {
+		replace(pool.submit(this));
 	}
 	/**
 	 * Register with the given observable and store the closeable handle
 	 * of this registration. If this was registered to another observable,
 	 * that registration is unregistered.
 	 * @param observable the target observable
-	 * @return the closeable handler returned by the register() method.
 	 */
-	public Closeable registerWith(Observable<T> observable) {
-		return replace(observable.register(this));
+	public void registerWith(Observable<T> observable) {
+		replace(observable.register(this));
 	}
 	/**
 	 * Deregisters the current instance from the associated observer
@@ -143,5 +139,17 @@ public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Clo
 	public void close() {
 		cancel();
 		unregister();
+	}
+	/**
+	 * @return Returns the current future associated with this instance
+	 */
+	public Future<?> future() {
+		return future.get();
+	}
+	/**
+	 * @return returns the handle which was returned back from the last Observable registration
+	 */
+	public Closeable handler() {
+		return handler.get();
 	}
 }
