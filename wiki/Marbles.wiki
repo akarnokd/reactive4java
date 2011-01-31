@@ -1,0 +1,13 @@
+#summary The so called marble diagrams of various implemented operators
+
+<wiki:toc max_depth="2" />
+
+= Introduction =
+
+This page lists the various operators and shows a marble diagram about how they relay events. 
+
+= Details =
+
+== accumulate(Observable< T >, Func2< T, T, T >) : Observable< T > ==
+
+Accumulate the Ts by using the function and relay each intermediate value to the output. The first output T appears only after the second T arrived at the input.
