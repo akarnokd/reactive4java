@@ -191,6 +191,14 @@ Delay each event, including any error() or finish(), by the given time amount.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/delay_xs_time_unit.png
 
+== distinct ==
+
+{{{Observable<T> ys = distinct(Observable<T> xs);}}}
+
+Relays subsequent elements only when they differ in terms of {{==}} and {{{equals()}}}.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/distinct_xs.png
+
 == removeTimestamped ==
 
 {{{Observable<T> ys = removeTimestamped(Observable<Timestamped<T>> xs);}}}
