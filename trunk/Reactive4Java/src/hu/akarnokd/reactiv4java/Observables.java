@@ -367,13 +367,45 @@ public final class Observables {
 	}
 	/**
 	 * Apply an accumulator function over the observable source and submit the accumulated value to the returned observable.
+	 * FIXME not sure about the lack initial value
 	 * @param <T> the element type
 	 * @param source the source observable
 	 * @param accumulator the accumulator function where the first parameter is the current accumulated value and the second is the now received value.
 	 * @return the observable for the result of the accumulation
 	 */
 	public static <T> Observable<T> aggregate(final Observable<T> source, final Func2<T, T, T> accumulator) {
-		return aggregate(source, null, accumulator);
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** The current aggregation result. */
+					T result;
+					/** How many items did we get */
+					int phase;
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					};
+					@Override
+					public void finish() {
+						if (phase >= 1) { // FIXME not sure about this
+							observer.next(result);
+						}
+						observer.finish();
+					}
+					@Override
+					public void next(T value) {
+						if (phase == 0) {
+							result = value;
+							phase++;
+						} else {
+							result = accumulator.invoke(result, value);
+							phase = 2;
+						}
+					}
+				});
+			}
+		};
 	}
 	/**
 	 * Apply an accumulator function over the observable source and submit the accumulated value to the returned observable.
@@ -450,56 +482,62 @@ public final class Observables {
 	}
 	/**
 	 * Channels the values of the first observable who fires first from the given set of observables.
-	 * E.g., <code>O3 = Amb(O1, O2)</code> if O1 starts to submit events first, O3 will relay these events and events of O2 will be completely ignored  
+	 * E.g., <code>O3 = Amb(O1, O2)</code> if O1 starts to submit events first, O3 will relay these events and events of O2 will be completely ignored
+	 * FIXME what about closing?   
 	 * @param <T> the type of the observed element
 	 * @param sources the iterable list of source observables.
 	 * @return the observable which reacted first
 	 */
 	public static <T> Observable<T> amb(final Iterable<Observable<T>> sources) {
-		final AtomicReference<Observable<T>> first = new AtomicReference<Observable<T>>();
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				final List<Closeable> disposers = new ArrayList<Closeable>();
+				final AtomicReference<Observable<T>> first = new AtomicReference<Observable<T>>();
 				for (final Observable<T> os : sources) {
-					disposers.add(os.register(new Observer<T>() {
+					disposers.add((new UObserver<T>() {
+						/** We won the race. */
+						boolean weWon;
 						@Override
 						public void error(Throwable ex) {
-							Observable<T> sel = first.get();
-							if (sel == os) {
-								observer.error(ex);
-							} else 
-							if (sel == null) {
+							if (!weWon) {
 								if (first.compareAndSet(null, os)) {
+									weWon = true;
 									observer.error(ex);
+								} else {
+									close();
 								}
+							} else {
+								observer.error(ex);
 							}
 						}
 						@Override
 						public void finish() {
-							Observable<T> sel = first.get();
-							if (sel == os) {
-								observer.finish();
-							} else 
-							if (sel == null) {
+							if (!weWon) {
 								if (first.compareAndSet(null, os)) {
+									weWon = true;
 									observer.finish();
+								} else {
+									close();
 								}
+							} else {
+								observer.finish();
 							}
 						}
 						@Override
 						public void next(T value) {
-							Observable<T> sel = first.get();
-							if (sel == os) {
-								observer.next(value);
-							} else 
-							if (sel == null) {
+							if (!weWon) {
 								if (first.compareAndSet(null, os)) {
+									weWon = true;
 									observer.next(value);
+								} else {
+									close();
 								}
+							} else {
+								observer.next(value);
 							}
 						};
-					}));
+					}).registerWith(os));
 				}
 				return close(disposers);
 			}
@@ -513,35 +551,7 @@ public final class Observables {
 	 * @return the observable
 	 */
 	public static <T> Observable<Boolean> any(final Observable<T> source) {
-		return new Observable<Boolean>() {
-			@Override
-			public Closeable register(final Observer<? super Boolean> observer) {
-				return source.register(new Observer<T>() {
-					/** If we already determined the answer. */
-					boolean done;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-					@Override
-					public void finish() {
-						if (!done) {
-							done = true;
-							observer.next(false);
-							observer.finish();
-						}
-					}
-					@Override
-					public void next(T value) {
-						if (!done) {
-							done = true;
-							observer.next(true);
-							observer.finish();
-						}
-					};
-				});
-			}
-		};
+		return any(source, Functions.alwaysTrue());
 	}
 	/**
 	 * Signals a single TRUE if the source signals any next() and the value matches the predicate before it signals a finish().
@@ -551,7 +561,7 @@ public final class Observables {
 	 * @param predicate the predicate to test the values
 	 * @return the observable.
 	 */
-	public static <T> Observable<Boolean> any(final Observable<T> source, final Func1<Boolean, T> predicate) {
+	public static <T> Observable<Boolean> any(final Observable<T> source, final Func1<Boolean, ? super T> predicate) {
 		return new Observable<Boolean>() {
 			@Override
 			public Closeable register(final Observer<? super Boolean> observer) {
