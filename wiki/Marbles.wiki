@@ -10,7 +10,7 @@ This page lists the various operators and shows a marble diagram about how they 
 
 == accumulate(Observable< T > xs, Func2< T, T, T > f) => Observable< T > ys ==
 
-Accumulate the Ts by using the function and relay each intermediate value to the output. The first output T appears only after the second T arrived at the input.
+Accumulate the Ts by using the function and relay each intermediate value to the output. The first input is just relayed as is, and starting from the second input the function is applied.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumulate_xs_f.png
 
@@ -19,3 +19,5 @@ http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumul
 Accumulate the Ts and relay each intermediate value to the output. The accumulator starts whith the given seed value.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumulate_xs_seed_f.png
+
+== accumulate0(Observable< T > xs, T first, Func2< T, T, T > f) => Observable< T > ys ==
