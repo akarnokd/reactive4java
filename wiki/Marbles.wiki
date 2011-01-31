@@ -32,12 +32,17 @@ http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumul
 
 Accumulate the Ts and relay each intermediate value to the output. When the first T arrives, the seed is relayed followed by the f(T, seed) value. It pretends as if the seed value would be the first source T.
 
-
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumulate0_xs_seed_f.png
 
-== addTimeInterval(Observable< T > xs) => Observable< !TimeInterval< T >> ==
+== addTimeInterval(Observable< T > xs) => Observable< !TimeInterval< T >> ys ==
 
 Wraps each T into a time interval which notes how much time elapsed since the last appearance of a T or since the observer was registered. Uses {{{ System.nanoTime() }}} to compute the difference in nanosecond scale.
 
-
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/add_time_interval_xs.png
+
+== addTimestamped(Observable< T > xs) => Observable< Timestamped< T >> ys==
+
+Wraps each T into a {{{Timestamped<T>}}} container with the current timestamp obtained from {{{System.currentTimeMillis()}}}. Remark: To unwrap the Ts, use [#removeTimestamped(Observable< Timestamped< T > xs) => Observable< T > ys] function.
+
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/add_timestamped_xs.png
