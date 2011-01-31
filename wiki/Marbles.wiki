@@ -1,19 +1,20 @@
 #summary The so called marble diagrams of various implemented operators
+#labels Featured
 
 <wiki:toc max_depth="2" />
 
 = Introduction =
 
-This page lists the various operators and shows a marble diagram about how they relay events. These operators are static methods of the Observables utility class
+This page lists the various operators and shows a marble diagram about how they relay events. These operators are static methods of the Observables utility class.
 
-= Legend =
+== Legend ==
 
 || http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_values.png || Values of type T, U, V ||
 || http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_errors.png || Errors originating from Observable< T >, Observable< U >, Observable< V > ||
 || http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_terminates.png || Termination ||
 || http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_functions.png || Functions ||
 
-= Details =
+= Methods =
 
 == accumulate(Observable< T > xs, Func2< T, T, T > f) => Observable< T > ys ==
 
@@ -33,3 +34,10 @@ Accumulate the Ts and relay each intermediate value to the output. When the firs
 
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumulate0_xs_seed_f.png
+
+== addTimeInterval(Observable< T > xs) => Observable< !TimeInterval< T >> ==
+
+Wraps each T into a time interval which notes how much time elapsed since the last appearance of a T or since the observer was registered. Uses {{{ System.nanoTime() }}} to compute the difference in nanosecond scale.
+
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/add_time_interval_xs.png
