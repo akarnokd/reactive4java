@@ -46,3 +46,5 @@ Wraps each T into a {{{Timestamped<T>}}} container with the current timestamp ob
 
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/add_timestamped_xs.png
+
+== removeTimestamped(Observable< Timestamped< T > xs) => Observable< T > ys ==
