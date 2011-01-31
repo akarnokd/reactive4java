@@ -8,13 +8,13 @@ This page lists the various operators and shows a marble diagram about how they 
 
 = Details =
 
-== accumulate(Observable< T >, Func2< T, T, T >) : Observable< T > ==
+== accumulate(Observable< T > xs, Func2< T, T, T > f) => Observable< T > ys ==
 
 Accumulate the Ts by using the function and relay each intermediate value to the output. The first output T appears only after the second T arrived at the input.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumulate_xs_f.png
 
-== accumulate(Observable< T >, T, Func2< T, T, T >) : Observable< T > ==
+== accumulate(Observable< T > xs, T seed, Func2< T, T, T > f) => Observable< T > ys ==
 
 Accumulate the Ts and relay each intermediate value to the output. The accumulator starts whith the given seed value.
 
