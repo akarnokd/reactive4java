@@ -105,11 +105,11 @@ Computes the average of the source Ts by first applying the sum function, and wh
 Convenience methods are available for the following types:
 
 || {{{Integer}}} || {{{Observable<Double> averageInteger(Observable<Integer> xs)}}} ||
-|| {{{Long}}} || {{{Observable<Double> averageInteger(Observable<Long> xs)}}} ||
-|| {{{Float}}} || {{{Observable<Float> averageInteger(Observable<Float> xs)}}} ||
-|| {{{Double}}} || {{{Observable<Double> averageInteger(Observable<Double> xs)}}} ||
-|| {{{BigInteger}}} || {{{Observable<BigDecimal> averageInteger(Observable<BigInteger> xs)}}} ||
-|| {{{BigDecimal}}} || {{{Observable<BigDecimal> averageInteger(Observable<BigDecimal> xs)}}} ||
+|| {{{Long}}} || {{{Observable<Double> averageLong(Observable<Long> xs)}}} ||
+|| {{{Float}}} || {{{Observable<Float> averageFloat(Observable<Float> xs)}}} ||
+|| {{{Double}}} || {{{Observable<Double> averageDouble(Observable<Double> xs)}}} ||
+|| {{{BigInteger}}} || {{{Observable<BigDecimal> averageBigInteger(Observable<BigInteger> xs)}}} ||
+|| {{{BigDecimal}}} || {{{Observable<BigDecimal> averageBigDecimal(Observable<BigDecimal> xs)}}} ||
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/average_sum_divide.png
 
