@@ -183,6 +183,13 @@ Counts the elements of the observable before the finish and submits this count v
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/count_xs.png
 
+== delay ==
+
+{{{Observable<T> ys = delay(Observable<T> xs, long time, TimeUnit time);}}}
+
+Delay each event, including any error() or finish(), by the given time amount.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/delay_xs_time_unit.png
 
 == removeTimestamped ==
 
