@@ -167,9 +167,19 @@ http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/contain
 
 == count ==
 
+=== 32 bit ===
+
 {{{Observable<Integer> ys = count(Observable<T> xs);}}}
 
-Counts the elements of the observable before the finish and submits this count value.
+Counts the elements of the observable before the finish and submits this count value. The counter is an {{{int}}} which overflows after 2^31 elements.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/count_xs.png
+
+=== 64 bit ===
+
+{{{Observable<Long> ys = countLong(Observable<T> xs);}}}
+
+Counts the elements of the observable before the finish and submits this count value. The counter is a {{{long}}} which overflows after 2^63 elements.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/count_xs.png
 
