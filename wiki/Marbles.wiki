@@ -42,7 +42,7 @@ http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/add_tim
 
 == addTimestamped(Observable< T > xs) => Observable< Timestamped< T >> ys==
 
-Wraps each T into a {{{Timestamped<T>}}} container with the current timestamp obtained from {{{System.currentTimeMillis()}}}. Remark: To unwrap the Ts, use [#removeTimestamped(Observable< Timestamped< T > xs) => Observable< T > ys] function.
+Wraps each T into a {{{Timestamped<T>}}} container with the current timestamp obtained from {{{System.currentTimeMillis()}}}. Remark: To unwrap the Ts, use <a href='#removeTimestamped(Observable< Timestamped< T > xs) => Observable< T > ys'>removeTimestamped</a> function.
 
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/add_timestamped_xs.png
