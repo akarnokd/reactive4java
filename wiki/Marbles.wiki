@@ -65,6 +65,18 @@ Takes the incoming Ts and aggregates it with the previous accumulator U value by
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/aggregate_xs_seed_f.png
 
+== all ==
+
+{{{Observable<Boolean> ys = all(Observable<T> xs, Func1<Boolean, T> f);}}}
+
+Tests the incoming Ts against a predicate and returns a single true if all Ts matched the predicate or returns a single false immediately when the predicate fails.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/all_xs_f.png
+
+== amb ==
+
+
+
 == removeTimestamped ==
 
 {{{Observable<T> ys = removeTimestamped(Observable<Timestamped<T>> xs);}}}
