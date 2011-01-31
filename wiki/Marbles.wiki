@@ -157,6 +157,15 @@ Relays the contents of each observable until it finishes then registers and cont
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/concat_xs_ys.png
 
+== contains ==
+
+{{{Observable<T> ys = contains(Observable<T> xs, T constant);}}}
+
+Special case of any() where the predicate contains an equality test with the constant. Equality is determined by reference and with {{{equals()}}}.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/contains_xs_constant.png
+
+
 == removeTimestamped ==
 
 {{{Observable<T> ys = removeTimestamped(Observable<Timestamped<T>> xs);}}}
