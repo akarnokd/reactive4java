@@ -4,10 +4,18 @@
 
 = Introduction =
 
-This page lists the various operators and shows a marble diagram about how they relay events. 
+This page lists the various operators and shows a marble diagram about how they relay events. These operators are static methods of the Observables utility class
 
 = Details =
 
 == accumulate(Observable< T >, Func2< T, T, T >) : Observable< T > ==
 
 Accumulate the Ts by using the function and relay each intermediate value to the output. The first output T appears only after the second T arrived at the input.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumulate_xs_f.png
+
+== accumulate(Observable< T >, T, Func2< T, T, T >) : Observable< T > ==
+
+Accumulate the Ts and relay each intermediate value to the output. The accumulator starts whith the given seed value.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumulate_xs_seed_f.png
