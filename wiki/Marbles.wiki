@@ -149,6 +149,13 @@ http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/buffer_
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/buffer_xs_size_time_unit.png
 
+== concat ==
+
+{{{Observable<T> zs = concat(Observable<T> xs, Observable<T> ys, ...);}}}
+
+Relays the contents of each observable until it finishes then registers and continues with the next.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/concat_xs_ys.png
 
 == removeTimestamped ==
 
