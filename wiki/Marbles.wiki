@@ -1,7 +1,7 @@
 #summary The so called marble diagrams of various implemented operators
 #labels Featured
 
-<wiki:toc max_depth="2" />
+<wiki:toc max_depth="3" />
 
 = Introduction =
 
@@ -16,17 +16,22 @@ This page lists the various operators and shows a marble diagram about how they 
 
 == accumulate ==
 
+=== relay first, accumulate after ===
 {{{Observable<T> ys = accumulate(Observable<T> xs, Func2<T, T, T> f);}}}
 
 Accumulate the Ts by using the function and relay each intermediate value to the output. The first input is just relayed as is, and starting from the second input the function is applied.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumulate_xs_f.png
 
+=== accumulate by using seed ===
+
 {{{Observable<T> ys = accumulate(Observable<T> xs, T seed, Func2<T, T, T> f);}}}
 
 Accumulate the Ts and relay each intermediate value to the output. The accumulator starts whith the given seed value.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumulate_xs_seed_f.png
+
+=== relay seed, accumulate by using seed ===
 
 {{{Observable<T> ys = accumulate0(Observable<T> xs, T first, Func2<T, T, T> f);}}}
 
@@ -53,11 +58,15 @@ http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/add_tim
 
 == aggregate ==
 
+=== same type ===
+
 {{{Observable<T> ys = aggregate(Observable<T> xs, Func2<T, T, T> f);}}}
 
 Apply the aggregator function over the input observable and when the input finishes, relay the aggregated value and a finish to the output observer.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/aggregate_xs_f.png
+
+=== different type ===
 
 {{{Observable<U> ys = aggregate(Observable<T> xs, U seed, Func2<U, U, T> f);}}}
 
@@ -83,12 +92,15 @@ http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/amb_xs_
 
 == any ==
 
+=== first ===
+
 {{{Observable<Boolean> ys = any(Observable<T> xs);}}}
 
 Signals a true if the source observable sends any elements before its finish.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/any_xs.png
 
+=== first matching a predicate ===
 
 {{{Observable<Boolean> ys = any(Observable<T> xs, Func1<Boolean, T> f);}}}
 
@@ -115,17 +127,28 @@ http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/average
 
 == buffer ==
 
+=== limit by size ===
+
 {{{Observable<List<T>> ys = buffer(Observable<T> xs, int size);}}}
 
 Buffers the incoming elements up to a given size and submits a list of Ts once the buffer is filled or a finish() arrives. The if the finish() encounters an empty buffer, that is not sent to the output.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/buffer_xs_size.png
 
+=== limit by time window ===
+
 {{{Observable<List<T>> ys = buffer(Observable<T> xs, long interval, TimeUnit unit);}}}
 
 Buffer the incoming Ts and release the list of Ts in the given timespan or when the finish() arrives. Even the empty buffers are submitted.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/buffer_xs_time_unit.png
+
+=== limit by size or time window ===
+
+{{{Observable<List<T>> ys = buffer(Observable<T> xs, int size, long interval, TimeUnit unit);}}}
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/buffer_xs_size_time_unit.png
+
 
 == removeTimestamped ==
 
