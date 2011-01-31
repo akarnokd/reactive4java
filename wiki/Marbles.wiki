@@ -193,11 +193,22 @@ http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/delay_x
 
 == distinct ==
 
+=== elements equal ===
+
 {{{Observable<T> ys = distinct(Observable<T> xs);}}}
 
-Relays subsequent elements only when they differ in terms of {{==}} and {{{equals()}}}.
+Relays subsequent elements only when they differ in terms of {{{==}}} and {{{equals()}}}.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/distinct_xs.png
+
+=== extracted keys equal ===
+
+{{{Observable<T> ys = distinct(Observable<T> xs, Func1<U, T> key);}}}
+
+Relays subsequent elements only when their extracted keys using the {{{key}}} function differ in terms of {{{==}}} and {{{equals()}}}.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/distinct_xs_key.png
+
 
 == removeTimestamped ==
 
