@@ -16,25 +16,29 @@ This page lists the various operators and shows a marble diagram about how they 
 
 = Methods =
 
-== accumulate(Observable< T > xs, Func2< T, T, T > f) => Observable< T > ys ==
+== accumulate ==
+
+{{{Observable<T> ys = accumulate(Observable<T> xs, Func2<T, T, T> f);}}}
 
 Accumulate the Ts by using the function and relay each intermediate value to the output. The first input is just relayed as is, and starting from the second input the function is applied.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumulate_xs_f.png
 
-== accumulate(Observable< T > xs, T seed, Func2< T, T, T > f) => Observable< T > ys ==
+{{{Observable<T> ys = accumulate(Observable<T> xs, T seed, Func2<T, T, T> f);}}}
 
 Accumulate the Ts and relay each intermediate value to the output. The accumulator starts whith the given seed value.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumulate_xs_seed_f.png
 
-== accumulate0(Observable< T > xs, T first, Func2< T, T, T > f) => Observable< T > ys ==
+{{{Observable<T> ys = accumulate0(Observable<T> xs, T first, Func2<T, T, T> f);}}}
 
 Accumulate the Ts and relay each intermediate value to the output. When the first T arrives, the seed is relayed followed by the f(T, seed) value. It pretends as if the seed value would be the first source T.
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/accumulate0_xs_seed_f.png
 
-== addTimeInterval(Observable< T > xs) => Observable< !TimeInterval< T >> ys ==
+== addTimeInterval ==
+
+{{{Observable<TimeInterval<T>> ys = addTimeInterval(Observable<T> xs);}}}
 
 Wraps each T into a time interval which notes how much time elapsed since the last appearance of a T or since the observer was registered. Uses {{{ System.nanoTime() }}} to compute the difference in nanosecond scale.
 
