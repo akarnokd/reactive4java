@@ -81,6 +81,15 @@ Start relaying events from the first observable who fires and ignore (deregister
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/amb_xs_ys.png
 
+== any ==
+
+{{{Observable<Boolean> ys = any(Observable<T> xs);}}}
+
+Signals a true if the source observable sends any elements before its finish.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/any_xs.png
+
+
 == removeTimestamped ==
 
 {{{Observable<T> ys = removeTimestamped(Observable<Timestamped<T>> xs);}}}
