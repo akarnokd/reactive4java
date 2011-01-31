@@ -1121,24 +1121,9 @@ public final class Observables {
 				final AtomicBoolean finished = new AtomicBoolean();
 				ScheduledObserver<T> so = new ScheduledObserver<T>() {
 					@Override
-					public void run() {
-						if (lock.tryLock()) { // check if not finishing
-							try {
-								if (!finished.get()) {
-									List<T> curr = new ArrayList<T>();
-									buffer.drainTo(curr);
-									observer.next(curr);
-								}
-							} finally {
-								lock.unlock();
-							}
-						}
-					}
-					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
 					}
-
 					@Override
 					public void finish() {
 						lock.lock(); // avoid races with the timer
@@ -1159,55 +1144,25 @@ public final class Observables {
 					public void next(T value) {
 						buffer.add(value);
 					}
+
+					@Override
+					public void run() {
+						if (lock.tryLock()) { // check if not finishing
+							try {
+								if (!finished.get()) {
+									List<T> curr = new ArrayList<T>();
+									buffer.drainTo(curr);
+									observer.next(curr);
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
+					}
 				};
 				so.scheduleOnAtFixedRate(pool, time, time, unit);
 				so.registerWith(source);
 				return so;
-			}
-		};
-	}
-	/**
-	 * It tries to submit the values of first observable, but when it throws an exeption,
-	 * the next observable within source is used further on. Basically a failover between the Observables.
-	 * If the current source finish() then the result observable calls finish().
-	 * If the last of the sources calls error() the result observable calls error()
-	 * FIXME not sure how to close previous registrations
-	 * @param <T> the type of the values
-	 * @param sources the available source observables.
-	 * @return the failover observable
-	 */
-	static <T> Observable<T> catchException(final Iterable<Observable<T>> sources) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				final Iterator<Observable<T>> it = sources.iterator();
-				if (it.hasNext()) {
-					UObserver<T> obs = new UObserver<T>() {
-						@Override
-						public void error(Throwable ex) {
-							unregister();
-							if (it.hasNext()) {
-								registerWith(it.next());
-							} else {
-								observer.finish();
-							}
-						}
-
-						@Override
-						public void finish() {
-							unregister();
-							observer.finish();
-						}
-
-						@Override
-						public void next(T value) {
-							observer.next(value);
-						}
-						
-					};
-					return obs.registerWith(it.next());
-				}
-				return Observables.<T>empty().register(observer);
 			}
 		};
 	}
@@ -1361,42 +1316,12 @@ public final class Observables {
 	 * @return the observer for contains
 	 */
 	public static <T> Observable<Boolean> contains(final Observable<T> source, final T value) {
-		return new Observable<Boolean>() {
+		return any(source, new Func1<Boolean, T>() {
 			@Override
-			public Closeable register(final Observer<? super Boolean> observer) {
-				return source.register(new Observer<T>() {
-					/** Are we finished? */
-					boolean done;
-					@Override
-					public void error(Throwable ex) {
-						if (!done) {
-							observer.error(ex);
-						}
-					}
-
-					@Override
-					public void finish() {
-						if (!done) {
-							done = true;
-							observer.next(false);
-							observer.finish();
-						}
-					}
-
-					@Override
-					public void next(T x) {
-						if (!done) {
-							if (x == value || (x != null && x.equals(value))) {
-								done = true;
-								observer.next(true);
-								observer.finish();
-							}
-						}
-					}
-					
-				});
-			}
-		};
+			public Boolean invoke(T param1) {
+				return param1 == value || (param1 != null && param1.equals(value));
+			};
+		});
 	}
 	/**
 	 * Counts the number of elements in the observable source.
@@ -1585,38 +1510,61 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				return source.register(new Observer<T>() {
+				ScheduledObserver<T> obs = new UObserver<T>() {
+					final ConcurrentHashMap<Runnable, Future<?>> outstanding = new ConcurrentHashMap<Runnable, Future<?>>();
 					@Override
 					public void error(final Throwable ex) {
-						pool.schedule(new Runnable() {
+						Runnable r = new Runnable() {
 							@Override
 							public void run() {
-								observer.error(ex);
+								try {
+									observer.error(ex);
+								} finally {
+									outstanding.remove(this);
+								}
 							}
-						}, time, unit);
+						};
+						outstanding.put(r, pool.schedule(r, time, unit));
 					}
 
 					@Override
 					public void finish() {
-						pool.schedule(new Runnable() {
+						Runnable r = new Runnable() {
 							@Override
 							public void run() {
-								observer.finish();
+								try {
+									observer.finish();
+								} finally {
+									outstanding.remove(this);
+								}
 							}
-						}, time, unit);
+						};
+						outstanding.put(r, pool.schedule(r, time, unit));
 					}
 
 					@Override
 					public void next(final T value) {
-						pool.schedule(new Runnable() {
+						Runnable r = new Runnable() {
 							@Override
 							public void run() {
-								observer.next(value);
+								try {
+									observer.next(value);
+								} finally {
+									outstanding.remove(this);
+								}
 							}
-						}, time, unit);
+						};
+						outstanding.put(r, pool.schedule(r, time, unit));
 					}
-					
-				});
+					@Override
+					public void close() {
+						for (Future<?> f : outstanding.values()) {
+							f.cancel(true);
+						}
+						super.close();
+					}
+				};
+				return obs.registerWith(source);
 			}
 		};
 	}
@@ -2865,7 +2813,7 @@ public final class Observables {
 				});
 			}
 		};
-	};
+	}
 	/**
 	 * Returns the minimum value encountered in the source observable onse it finish().
 	 * @param <T> the element type
@@ -2906,7 +2854,7 @@ public final class Observables {
 				});
 			}
 		};
-	}
+	};
 	/**
 	 * Returns an observable which provides with the list of <code>T</code>s which had their keys as minimums.
 	 * The returned observer may finish() if the source sends finish() without any next().
@@ -3104,7 +3052,7 @@ public final class Observables {
 				});
 			}
 		};
-	};
+	}
 	/**
 	 * Wrap the observable to the Event Dispatch Thread for listening to events.
 	 * @param <T> the value type to observe
@@ -3113,7 +3061,7 @@ public final class Observables {
 	 */
 	public static <T> Observable<T> observeOnEdt(Observable<T> observable) {
 		return observeOn(observable, EDT_EXECUTOR);
-	}
+	};
 	/**
 	 * Creates an observer with debugging purposes. 
 	 * It prints the submitted values to STDOUT separated by commas and line-broken by 80 characters, the exceptions to STDERR
@@ -3659,6 +3607,51 @@ public final class Observables {
 							} else {
 								observer.finish();
 							}
+						}
+
+						@Override
+						public void next(T value) {
+							observer.next(value);
+						}
+						
+					};
+					return obs.registerWith(it.next());
+				}
+				return Observables.<T>empty().register(observer);
+			}
+		};
+	}
+	/**
+	 * It tries to submit the values of first observable, but when it throws an exeption,
+	 * the next observable within source is used further on. Basically a failover between the Observables.
+	 * If the current source finish() then the result observable calls finish().
+	 * If the last of the sources calls error() the result observable calls error()
+	 * FIXME not sure how to close previous registrations
+	 * @param <T> the type of the values
+	 * @param sources the available source observables.
+	 * @return the failover observable
+	 */
+	public static <T> Observable<T> resumeOnError(final Iterable<Observable<T>> sources) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final Iterator<Observable<T>> it = sources.iterator();
+				if (it.hasNext()) {
+					UObserver<T> obs = new UObserver<T>() {
+						@Override
+						public void error(Throwable ex) {
+							unregister();
+							if (it.hasNext()) {
+								registerWith(it.next());
+							} else {
+								observer.finish();
+							}
+						}
+
+						@Override
+						public void finish() {
+							unregister();
+							observer.finish();
 						}
 
 						@Override
