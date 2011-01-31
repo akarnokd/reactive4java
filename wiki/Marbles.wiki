@@ -75,7 +75,11 @@ http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/all_xs_
 
 == amb ==
 
+{{{Observable<T> zs = amb(Observable<T> xs, Observable<T> ys, ...);}}}
 
+Start relaying events from the first observable who fires and ignore (deregister from) the rest. The name stands for ambiguous.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/amb_xs_ys.png
 
 == removeTimestamped ==
 
