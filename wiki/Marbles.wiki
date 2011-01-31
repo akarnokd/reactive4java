@@ -57,11 +57,13 @@ http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/add_tim
 
 Apply the aggregator function over the input observable and when the input finishes, relay the aggregated value and a finish to the output observer.
 
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/aggregate_xs_f.png
+
 {{{Observable<U> ys = aggregate(Observable<T> xs, U seed, Func2<U, U, T> f);}}}
 
 Takes the incoming Ts and aggregates it with the previous accumulator U value by using the supplied function (e.g., a stream of {{{Integer}}}s are accumulated into {{{Double}}}s). The accumulated value is released once the input terminates. The seed is used as the initial first partner for the first T to aggregate.
 
-
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/aggregate_xs_seed_f.png
 
 == removeTimestamped ==
 
