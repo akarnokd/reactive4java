@@ -1117,15 +1117,23 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super List<T>> observer) {
 				final BlockingQueue<T> buffer = new LinkedBlockingQueue<T>();
-				final ScheduledFuture<?> schedule = pool.scheduleAtFixedRate(new Runnable() {
+				final Lock lock = new ReentrantLock();
+				final AtomicBoolean finished = new AtomicBoolean();
+				ScheduledObserver<T> so = new ScheduledObserver<T>() {
 					@Override
 					public void run() {
-						List<T> curr = new ArrayList<T>();
-						buffer.drainTo(curr);
-						observer.next(curr);
+						if (lock.tryLock()) { // check if not finishing
+							try {
+								if (!finished.get()) {
+									List<T> curr = new ArrayList<T>();
+									buffer.drainTo(curr);
+									observer.next(curr);
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
 					}
-				}, time, time, unit);
-				return source.register(new Observer<T>() {
 					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
@@ -1133,11 +1141,17 @@ public final class Observables {
 
 					@Override
 					public void finish() {
-						schedule.cancel(false);
-						List<T> curr = new ArrayList<T>();
-						buffer.drainTo(curr);
-						observer.next(curr);
-						observer.finish();
+						lock.lock(); // avoid races with the timer
+						try {
+							finished.set(true);
+							List<T> curr = new ArrayList<T>();
+							buffer.drainTo(curr);
+							observer.next(curr);
+							observer.finish();
+							cancel();
+						} finally {
+							lock.unlock();
+						}
 					}
 
 					/** The buffer to fill in. */
@@ -1145,7 +1159,10 @@ public final class Observables {
 					public void next(T value) {
 						buffer.add(value);
 					}
-				});
+				};
+				so.scheduleOnAtFixedRate(pool, time, time, unit);
+				so.registerWith(source);
+				return so;
 			}
 		};
 	}
