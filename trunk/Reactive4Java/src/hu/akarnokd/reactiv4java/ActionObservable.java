@@ -172,16 +172,7 @@ public final class ActionObservable {
 		return Observables.create(new Func1<Action0, Observer<? super T>>() {
 			@Override
 			public Action0 invoke(final Observer<? super T> o) {
-				source.invoke(new Action1<Option<T>>() {
-					@Override
-					public void invoke(Option<T> x) {
-						if (x == Option.none()) {
-							o.finish();
-						} else {
-							o.next(x.value());
-						}
-					}
-				});
+				source.invoke(asAction(o));
 				return Actions.noAction0();
 			}
 		});
@@ -196,24 +187,67 @@ public final class ActionObservable {
 		return new Action1<Action1<Option<T>>>() {
 			@Override
 			public void invoke(final Action1<Option<T>> o) {
-				source.register(new Observer<T>() {
-					@Override
-					public void error(Throwable ex) {
-						// TODO Auto-generated method stub
-						
-					}
-					@Override
-					public void finish() {
-						// TODO Auto-generated method stub
-						o.invoke(Option.<T>none());
-					}
-					@Override
-					public void next(T value) {
-						o.invoke(Option.some(value));
-					};
-				});
+				source.register(asObserver(o));
 			}
 		};
+	}
+	/**
+	 * Transform the given action to an observer.
+	 * The wrapper observer converts its next() messages to Option.some(),
+	 * the finish() to Option.none() and error() to Option.error().
+	 * @param <T> the element type to observe
+	 * @param action the action to wrap
+	 * @return the observer
+	 */
+	public static <T> Observer<T> asObserver(final Action1<Option<T>> action) {
+		return new Observer<T>() {
+			@Override
+			public void next(T value) {
+				action.invoke(Option.some(value));
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				action.invoke(Option.<T>error(ex));
+			}
+
+			@Override
+			public void finish() {
+				action.invoke(Option.<T>none());
+			}
+			
+		};
+	}
+	/**
+	 * Wraps the given observer into an action object which then dispatches
+	 * various incoming Option values to next(), finish() and error().
+	 * @param <T> the element type
+	 * @param observer the observer to wrap
+	 * @return the wrapper action
+	 */
+	public static <T> Action1<Option<T>> asAction(final Observer<? super T> observer) {
+		return new Action1<Option<T>>() {
+			@Override
+			public void invoke(Option<T> value) {
+				dispatch(observer, value);
+			}
+		};
+	}
+	/**
+	 * Dispatches the option to the various Observer methods.
+	 * @param <T> the value type
+	 * @param observer the observer
+	 * @param value the value to dispatch
+	 */
+	public static <T> void dispatch(Observer<? super T> observer, Option<T> value) {
+		if (value == Option.none()) {
+			observer.finish();
+		} else
+		if (Option.isError(value)) {
+			observer.error(((Option.Error<?>)value).error());
+		} else {
+			observer.next(value.value());
+		}
 	}
 }
 

@@ -65,7 +65,7 @@ public final class Test5 {
 		}), Observables.print());
 		
 		Observables.run(Observables.transform(Observables.range(1, 5), new Func2<Double, Integer, Integer>() {
-			
+				@Override
 				public Double invoke(Integer param1, Integer param2) {
 					return param1 * 0.5;
 				}
