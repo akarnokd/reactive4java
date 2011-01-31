@@ -7,5 +7,5 @@ TODO
 
 
 {{{
-    Observables.run(Observables.range(0, 10), Observables.printlnObserver());
+    Observables.run(Observables.range(0, 10), Observables.print());
 }}}
