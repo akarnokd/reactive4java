@@ -121,7 +121,11 @@ Buffers the incoming elements up to a given size and submits a list of Ts once t
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/buffer_xs_size.png
 
+{{{Observable<List<T>> ys = buffer(Observable<T> xs, long interval, TimeUnit unit);}}}
 
+Buffer the incoming Ts and release the list of Ts in the given timespan or when the finish() arrives. Even the empty buffers are submitted.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/buffer_xs_time_unit.png
 
 == removeTimestamped ==
 
