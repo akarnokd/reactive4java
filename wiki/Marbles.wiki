@@ -90,6 +90,13 @@ Signals a true if the source observable sends any elements before its finish.
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/any_xs.png
 
 
+{{{Observable<Boolean> ys = any(Observable<T> xs, Func1<Boolean, T> f);}}}
+
+Signals true if the source signals an element which matches the predicate before its finish (e.g., a sequence of {{{aaabb}}} and looking for a {{{b}}} the ys receives a true; a sequence of {{{aaaa}}} and looking for {{{b}}} will result in false.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/any_xs_f.png
+
+
 == removeTimestamped ==
 
 {{{Observable<T> ys = removeTimestamped(Observable<Timestamped<T>> xs);}}}
