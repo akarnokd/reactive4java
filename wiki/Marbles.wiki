@@ -9,10 +9,8 @@ This page lists the various operators and shows a marble diagram about how they 
 
 == Legend ==
 
-|| http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_values.png || Values of type T, U, V ||
-|| http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_errors.png || Errors originating from Observable< T >, Observable< U >, Observable< V > ||
-|| http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_terminates.png || Termination ||
-|| http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_functions.png || Functions ||
+|| http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_values.png || Values of type {{{T}}}, {{{U}}}, {{{V}}} || http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_terminates.png || Termination ||
+|| http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_errors.png || Errors originating from {{{Observable<T>}}}, {{{Observable<U>}}}, {{{Observable<V>}}} || http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/legend_functions.png || Functions ||
 
 = Methods =
 
