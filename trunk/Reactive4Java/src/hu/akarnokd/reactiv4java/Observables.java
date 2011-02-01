@@ -714,7 +714,7 @@ public final class Observables {
 		};
 	}
 	/**
-	 * Wraps the given action as an observable which reacts only to onNext() events.
+	 * Wraps the given action as an observable which reacts only to <code>next()</code> events.
 	 * @param <T> the type of the values
 	 * @param action the action to wrap
 	 * @return the observer wrapping the action
@@ -1544,11 +1544,14 @@ public final class Observables {
 
 					@Override
 					public void next(T value) {
-						if ((last == value || (last != null && last.equals(value))) || first) {
-							last = value;
+						if (first) {
 							first = false;
 							observer.next(value);
+						} else
+						if (last != value && (last == null || !last.equals(value))) {
+							observer.next(value);
 						}
+						last = value;
 					}
 					
 				});
@@ -3129,6 +3132,33 @@ public final class Observables {
 			};
 		};
 	}
+	/**
+	 * Creates an observer with debugging purposes. 
+	 * It prints the submitted values to STDOUT with a line break, the exceptions to STDERR
+	 * and prints an empty newline when it receives a finish().
+	 * @param <T> the value type
+	 * @param prefix the prefix to use when printing
+	 * @return the observer
+	 */
+	public static <T> Observer<T> println(final String prefix) {
+		return new Observer<T>() {
+			@Override
+			public void error(Throwable ex) {
+				System.err.print(prefix);
+				ex.printStackTrace();
+			}
+			@Override
+			public void finish() {
+				System.out.print(prefix);
+				System.out.println();
+			}
+			@Override
+			public void next(T value) {
+				System.out.print(prefix);
+				System.out.println(value);
+			};
+		};
+	}
 	/** 
 	 * Creates an observable which generates numbers from start.
 	 * @param start the start value.
@@ -4609,58 +4639,51 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final AtomicReference<UObserver<T>> rT = new AtomicReference<UObserver<T>>();
-				final AtomicReference<UObserver<U>> rU = new AtomicReference<UObserver<U>>();
-				final AtomicBoolean stop = new AtomicBoolean();
-				
-				UObserver<T> o1 = new UObserver<T>() {
+				final AtomicBoolean gate = new AtomicBoolean(true);
+				UObserver<U> signal = new UObserver<U>() {
+					@Override
+					public void next(U value) {
+						gate.set(false);
+					}
+
 					@Override
 					public void error(Throwable ex) {
-						unregister();
-						rU.get().unregister();
-						observer.error(ex);
+						
 					}
 
 					@Override
 					public void finish() {
-						unregister();
-						rU.get().unregister();
-						observer.finish();
+						
+					}
+					
+				};
+				UObserver<T> obs = new UObserver<T>() {
+					@Override
+					public void next(T value) {
+						if (gate.get()) {
+							observer.next(value);
+						} else {
+							observer.finish();
+						}
 					}
 
 					@Override
-					public void next(T value) {
-						if (!stop.get()) {
-							observer.next(value);
+					public void error(Throwable ex) {
+						if (gate.get()) {
+							observer.error(ex);
+						}
+					}
+
+					@Override
+					public void finish() {
+						if (gate.get()) {
+							observer.finish();
 						}
 					}
 					
 				};
-				UObserver<U> o2 = new UObserver<U>() {
-					@Override
-					public void error(Throwable ex) {
-						unregister();
-					}
-
-					@Override
-					public void finish() {
-						unregister();
-					}
-
-					@Override
-					public void next(U value) {
-						stop.set(true);
-						observer.finish();
-						unregister();
-						rT.get().unregister();
-					}
-					
-				};
-				rT.set(o1);
-				rU.set(o2);
-				o2.registerWith(signaller);
-				o1.registerWith(source);
-				return close(o1, o2);
+				obs.registerWith(source);
+				return close(obs, signal);
 			}
 		};
 	}
@@ -5559,6 +5582,33 @@ public final class Observables {
 				oV.registerWith(right);
 				return c;
 			}
+		};
+	}
+	/**
+	 * Creates an observer which calls the given functions on its similarly named methods.
+	 * @param <T> the value type to receive
+	 * @param next the action to invoke on next()
+	 * @param error the action to invoke on error()
+	 * @param finish the action to invoke on finish()
+	 * @return the observer
+	 */
+	public static <T> Observer<T> asObserver(final Action1<? super T> next, final Action1<? super Throwable> error, final Action0 finish) {
+		return new Observer<T>() {
+			@Override
+			public void next(T value) {
+				next.invoke(value);
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				error.invoke(ex);
+			}
+
+			@Override
+			public void finish() {
+				finish.invoke();
+			}
+			
 		};
 	}
 	/** Utility class. */
