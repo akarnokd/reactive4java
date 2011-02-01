@@ -235,6 +235,14 @@ Filters the incoming Ts based on the predicate and lets only those through which
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/filter_xs_pred_index.png
 
+== finish ==
+
+{{{Observable<T> ys = finish(Observable<T> xs, Action0 action);}}}
+
+Invoke the action when the source observable terminates via finish() or error().
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/finish_xs_action.png
+
 
 == removeTimestamped ==
 
