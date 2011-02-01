@@ -217,24 +217,6 @@ For each incoming Ts,  the {{{pump}}} is invoked in sequence on a thread pool, w
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/drain_xs_pump.png
 
-== filter ==
-
-=== regular ===
-
-{{{Observable<T> ys = filter(Observable<T> xs, Func1<Boolean, T> pred);}}}
-
-Filters the incoming Ts based on the predicate and lets only those through which match the predicate.
-
-http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/filter_xs_pred.png
-
-=== indexed ===
-
-{{{Observable<T> ys = filter(Observable<T> xs, Func1<Boolean, Integer, T> pred);}}}
-
-Filters the incoming Ts based on the predicate and lets only those through which match the predicate. The predicate receives a running counter about how many elements have been seen since the registration.
-
-http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/filter_xs_pred_index.png
-
 == finish ==
 
 {{{Observable<T> ys = finish(Observable<T> xs, Action0 action);}}}
@@ -252,3 +234,31 @@ Unwraps the Ts from the timestamped value.
 
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/remove_timestamped_xs.png
+
+== removeTimeInterval ==
+
+{{{Observable<T> ys = removeTimeInterval(Observable<Timestamped<T>> xs);}}}
+
+Unwraps the Ts from the TimeInterval value.
+
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/remove_timestamped_xs.png
+
+
+== where ==
+
+=== regular ===
+
+{{{Observable<T> ys = where(Observable<T> xs, Func1<Boolean, T> pred);}}}
+
+Filters the incoming Ts based on the predicate and lets only those through which match the predicate.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/filter_xs_pred.png
+
+=== indexed ===
+
+{{{Observable<T> ys = where(Observable<T> xs, Func1<Boolean, Integer, T> pred);}}}
+
+Filters the incoming Ts based on the predicate and lets only those through which match the predicate. The predicate receives a running counter about how many elements have been seen since the registration.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/filter_xs_pred_index.png
