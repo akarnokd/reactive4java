@@ -40,7 +40,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -89,37 +88,6 @@ public final class Observables {
 	}
 	/** The diagnostic states of the current runnable. */
 	enum ObserverState { OBSERVER_ERROR, OBSERVER_FINISHED, OBSERVER_RUNNING }
-	/**
-	 * A wrapper implementation for observer which is able to unregister from the Observable.
-	 * Use the registerWith() and unregister() methods instead of adding this to a register() call.
-	 * @author akarnokd, 2011.01.29.
-	 * @param <T> the element type to observe
-	 */
-	abstract static class UObserver<T> extends ScheduledObserver<T> {
-		@Override
-		public final void run() {
-			// not used
-		};
-	}
-	/**
-	 * The runnable instance which is aware of its scheduler's registration.
-	 * FIXME concurrency questions with the storage of the current future
-	 * @author akarnokd, 2011.01.29.
-	 */
-	abstract static class USchedulable extends ScheduledObserver<Void> {
-		@Override
-		public final void error(Throwable ex) {
-			// not used
-		}
-		@Override
-		public final void finish() {
-			// not used
-		}
-		@Override
-		public final void next(Void value) {
-			// not used
-		}
-	}
 	/** The common observable pool where the Observer methods get invoked by default. */
 	static final ExecutorService DEFAULT_OBSERVABLE_POOL = new ThreadPoolExecutor(0, 128, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
 	/** The defalt scheduler pool for delayed observable actions. */
@@ -453,7 +421,7 @@ public final class Observables {
 				final List<Closeable> disposers = new ArrayList<Closeable>();
 				final AtomicReference<Observable<T>> first = new AtomicReference<Observable<T>>();
 				for (final Observable<T> os : sources) {
-					UObserver<T> obs = new UObserver<T>() {
+					DefaultObserver<T> obs = new DefaultObserver<T>() {
 						/** We won the race. */
 						boolean weWon;
 						@Override
@@ -525,34 +493,53 @@ public final class Observables {
 		return new Observable<Boolean>() {
 			@Override
 			public Closeable register(final Observer<? super Boolean> observer) {
-				return source.register(new Observer<T>() {
-					/** Are we done? */
-					boolean done;
+				DefaultObserver<T> obs = new DefaultObserver<T>() {
 					@Override
 					public void error(Throwable ex) {
-						observer.error(ex);
+						lock();
+						try {
+							if (alive()) {
+								observer.error(ex);
+								close();
+							}
+						} finally {
+							unlock();
+						}
 					}
 
 					@Override
 					public void finish() {
-						if (!done) {
-							observer.next(false);
-							observer.finish();
+						lock();
+						try {
+							if (alive()) {
+								observer.next(false);
+								observer.finish();
+								close();
+							}
+						} finally {
+							unlock();
 						}
 					}
 
 					@Override
 					public void next(T value) {
-						if (!done) {
-							if (predicate.invoke(value)) {
-								done = true;
-								observer.next(true);
-								observer.finish();
+						lock();
+						try {
+							if (alive()) {
+								if (predicate.invoke(value)) {
+									observer.next(true);
+									observer.finish();
+									close();
+								}
 							}
+						} finally {
+							unlock();
 						}
 					}
 					
-				});
+				};
+				obs.registerWith(source);
+				return obs;
 			}
 		};
 	}
@@ -693,7 +680,7 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					@Override
 					public void run() {
 						for (T t : iterable) {
@@ -711,6 +698,33 @@ public final class Observables {
 				s.submitTo(pool);
 				return s;
 			}
+		};
+	}
+	/**
+	 * Creates an observer which calls the given functions on its similarly named methods.
+	 * @param <T> the value type to receive
+	 * @param next the action to invoke on next()
+	 * @param error the action to invoke on error()
+	 * @param finish the action to invoke on finish()
+	 * @return the observer
+	 */
+	public static <T> Observer<T> asObserver(final Action1<? super T> next, final Action1<? super Throwable> error, final Action0 finish) {
+		return new Observer<T>() {
+			@Override
+			public void error(Throwable ex) {
+				error.invoke(ex);
+			}
+
+			@Override
+			public void finish() {
+				finish.invoke();
+			}
+
+			@Override
+			public void next(T value) {
+				next.invoke(value);
+			}
+			
 		};
 	}
 	/**
@@ -802,7 +816,7 @@ public final class Observables {
 				}
 			}
 		);
-	}
+	}	
 	/**
 	 * Computes and signals the average value of the BigInteger source.
 	 * The source may not send nulls.
@@ -827,7 +841,7 @@ public final class Observables {
 				}
 			}
 		);
-	}	
+	}
 	/**
 	 * Computes and signals the average value of the Double source.
 	 * The source may not send nulls.
@@ -1007,42 +1021,73 @@ public final class Observables {
 			public Closeable register(final Observer<? super List<T>> observer) {
 				final BlockingQueue<T> buffer = new LinkedBlockingQueue<T>();
 				final AtomicInteger bufferLength = new AtomicInteger();
-				final ScheduledFuture<?> schedule = pool.scheduleAtFixedRate(new Runnable() {
+				
+				ScheduledObserver<T> s = new ScheduledObserver<T>() {
 					@Override
 					public void run() {
-						List<T> curr = new ArrayList<T>();
-						buffer.drainTo(curr);
-						bufferLength.addAndGet(-curr.size());
-						observer.next(curr);
+						lock();
+						try {
+							if (alive()) {
+								List<T> curr = new ArrayList<T>();
+								buffer.drainTo(curr);
+								bufferLength.addAndGet(-curr.size());
+								observer.next(curr);
+							}
+						} finally {
+							unlock();
+						}
 					}
-				}, time, time, unit);
-				return source.register(new Observer<T>() {
 					@Override
 					public void error(Throwable ex) {
-						observer.error(ex);
+						lock();
+						try {
+							if (alive()) {
+								observer.error(ex);
+								close();
+							}
+						} finally {
+							unlock();
+						}
 					}
 
 					@Override
 					public void finish() {
-						schedule.cancel(false);
-						List<T> curr = new ArrayList<T>();
-						buffer.drainTo(curr);
-						observer.next(curr);
-						observer.finish();
+						lock();
+						try {
+							if (alive()) {
+								List<T> curr = new ArrayList<T>();
+								buffer.drainTo(curr);
+								observer.next(curr);
+								observer.finish();
+								close();
+							}
+						} finally {
+							unlock();
+						}
 					}
 
 					/** The buffer to fill in. */
 					@Override
 					public void next(T value) {
-						buffer.add(value);
-						if (bufferLength.incrementAndGet() == bufferSize) {
-							List<T> curr = new ArrayList<T>();
-							buffer.drainTo(curr);
-							bufferLength.addAndGet(-curr.size());
-							observer.next(curr);
+						lock();
+						try {
+							if (alive()) {
+								buffer.add(value);
+								if (bufferLength.incrementAndGet() == bufferSize) {
+									List<T> curr = new ArrayList<T>();
+									buffer.drainTo(curr);
+									bufferLength.addAndGet(-curr.size());
+									observer.next(curr);
+								}
+							}
+						} finally {
+							unlock();
 						}
 					}
-				});
+				};
+				s.registerWith(source);
+				s.scheduleOnAtFixedRate(pool, time, time, unit);
+				return s;
 			}
 		};
 		
@@ -1074,30 +1119,38 @@ public final class Observables {
 	 * @param pool the scheduled execution pool to use
 	 * @return the observable of list of Ts
 	 */
-	public static <T> Observable<List<T>> buffer(final Observable<T> source, final long time, final TimeUnit unit, final ScheduledExecutorService pool) {
+	public static <T> Observable<List<T>> buffer(final Observable<T> source, 
+			final long time, final TimeUnit unit, final ScheduledExecutorService pool) {
 		return new Observable<List<T>>() {
 			@Override
 			public Closeable register(final Observer<? super List<T>> observer) {
-				final BlockingQueue<T> buffer = new LinkedBlockingQueue<T>();
-				final Lock lock = new ReentrantLock();
-				final AtomicBoolean finished = new AtomicBoolean();
 				ScheduledObserver<T> so = new ScheduledObserver<T>() {
+					final BlockingQueue<T> buffer = new LinkedBlockingQueue<T>();
 					@Override
 					public void error(Throwable ex) {
-						observer.error(ex);
+						lock();
+						try {
+							if (alive()) {
+								observer.error(ex);
+								close();
+							}
+						} finally {
+							unlock();
+						}
 					}
 					@Override
 					public void finish() {
-						lock.lock(); // avoid races with the timer
+						lock(); // avoid races with the timer
 						try {
-							finished.set(true);
-							List<T> curr = new ArrayList<T>();
-							buffer.drainTo(curr);
-							observer.next(curr);
-							observer.finish();
-							cancel();
+							if (alive()) {
+								List<T> curr = new ArrayList<T>();
+								buffer.drainTo(curr);
+								observer.next(curr);
+								observer.finish();
+								close();
+							}
 						} finally {
-							lock.unlock();
+							unlock();
 						}
 					}
 
@@ -1109,16 +1162,15 @@ public final class Observables {
 
 					@Override
 					public void run() {
-						if (lock.tryLock()) { // check if not finishing
-							try {
-								if (!finished.get()) {
-									List<T> curr = new ArrayList<T>();
-									buffer.drainTo(curr);
-									observer.next(curr);
-								}
-							} finally {
-								lock.unlock();
+						lock();
+						try {
+							if (alive()) {
+								List<T> curr = new ArrayList<T>();
+								buffer.drainTo(curr);
+								observer.next(curr);
 							}
+						} finally {
+							unlock();
 						}
 					}
 				};
@@ -1127,6 +1179,25 @@ public final class Observables {
 				return so;
 			}
 		};
+	}
+	/**
+	 * Repeat the source observable count times. Basically it creates
+	 * a list of observables, all the source instance and applies
+	 * the concat() operator on it.
+	 * @param <T> the element type
+	 * @param source the source observable
+	 * @param count the number of times to repeat
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> repeat(Observable<T> source, int count) {
+		if (count > 0) {
+			List<Observable<T>> srcs = new ArrayList<Observable<T>>(count);
+			for (int i = 0; i < count; i++) {
+				srcs.add(source);
+			}
+			return concat(srcs);
+		}
+		return empty();
 	}
 	/**
 	 * Wraps two or more closeables into one closeable.
@@ -1160,7 +1231,7 @@ public final class Observables {
 			}
 		};
 	}
-	/**
+/**
 	 * Creates a composite closeable from the array of closeables.
 	 * <code>IOException</code>s thrown from the closeables are suppressed.
 	 * @param closeables the closeables array
@@ -1180,21 +1251,6 @@ public final class Observables {
 			}
 		};
 	}
-//	/**
-//	 * Create a closable which cancels all futures of the array.
-//	 * @param futures the futures to cancel
-//	 * @return the composite closeable
-//	 */
-//	public static Closeable close0(final Iterable<? extends Future<?>> futures) {
-//		return new Closeable() {
-//			@Override
-//			public void close() throws IOException {
-//				for (Future<?> f : futures) {
-//					f.cancel(true);
-//				}
-//			}
-//		};
-//	}
 	/**
 	 * Concatenates the source observables in a way that when the first finish(), the
 	 * second gets registered and continued, and so on.
@@ -1209,26 +1265,48 @@ public final class Observables {
 			public Closeable register(final Observer<? super T> observer) {
 				final Iterator<Observable<T>> it = sources.iterator();
 				if (it.hasNext()) {
-					UObserver<T> obs = new UObserver<T>() {
+					DefaultObserver<T> obs = new DefaultObserver<T>() {
 						@Override
 						public void error(Throwable ex) {
-							unregister();
-							observer.error(ex);
+							lock();
+							try {
+								if (alive()) {
+									observer.error(ex);
+									close();
+								}
+							} finally {
+								unlock();
+							}
 						}
 
 						@Override
 						public void finish() {
-							unregister();
-							if (it.hasNext()) {
-								registerWith(it.next());
-							} else {
-								observer.finish();
+							lock();
+							try {
+								if (alive()) {
+									if (it.hasNext()) {
+										unregister();
+										registerWith(it.next());
+									} else {
+										observer.finish();
+										close();
+									}
+								}
+							} finally {
+								unlock();
 							}
 						}
 
 						@Override
 						public void next(T value) {
-							observer.next(value);
+							lock();
+							try {
+								if (alive()) {
+									observer.next(value);
+								}
+							} finally {
+								unlock();
+							}
 						}
 						
 					};
@@ -1280,6 +1358,7 @@ public final class Observables {
 		return new Observable<Integer>() {
 			@Override
 			public Closeable register(final Observer<? super Integer> observer) {
+				//FIXME sequence guaranties?
 				return source.register(new Observer<T>() {
 					/** The counter. */
 					int count;
@@ -1313,6 +1392,7 @@ public final class Observables {
 		return new Observable<Long>() {
 			@Override
 			public Closeable register(final Observer<? super Long> observer) {
+				//FIXME sequence guaranties?
 				return source.register(new Observer<T>() {
 					/** The counter. */
 					long count;
@@ -1457,58 +1537,88 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				ScheduledObserver<T> obs = new UObserver<T>() {
-					final ConcurrentHashMap<Runnable, Future<?>> outstanding = new ConcurrentHashMap<Runnable, Future<?>>();
+				DefaultObserver<T> obs = new DefaultObserver<T>() {
+					final BlockingQueue<Future<?>> outstanding = new LinkedBlockingQueue<Future<?>>();
+					@Override
+					public void close() {
+						lock();
+						try {
+							List<Future<?>> list = new LinkedList<Future<?>>();
+							outstanding.drainTo(list);
+							for (Future<?> f : list) {
+								f.cancel(true);
+							}
+							super.close();
+						} finally {
+							unlock();
+						}
+					}
+
 					@Override
 					public void error(final Throwable ex) {
-						Runnable r = new Runnable() {
-							@Override
-							public void run() {
-								try {
-									observer.error(ex);
-								} finally {
-									outstanding.remove(this);
-								}
+						lock();
+						try {
+							if (alive()) {
+								Runnable r = new Runnable() {
+									@Override
+									public void run() {
+										try {
+											observer.error(ex);
+											close();
+										} finally {
+											outstanding.poll();
+										}
+									}
+								};
+								outstanding.add(pool.schedule(r, time, unit));
 							}
-						};
-						outstanding.put(r, pool.schedule(r, time, unit));
+						} finally {
+							unlock();
+						}
 					}
 
 					@Override
 					public void finish() {
-						Runnable r = new Runnable() {
-							@Override
-							public void run() {
-								try {
-									observer.finish();
-								} finally {
-									outstanding.remove(this);
-								}
+						lock();
+						try {
+							if (alive()) {
+								Runnable r = new Runnable() {
+									@Override
+									public void run() {
+										try {
+											observer.finish();
+											close();
+										} finally {
+											outstanding.poll();
+										}
+									}
+								};
+								outstanding.add(pool.schedule(r, time, unit));
 							}
-						};
-						outstanding.put(r, pool.schedule(r, time, unit));
+						} finally {
+							unlock();
+						}
 					}
-
 					@Override
 					public void next(final T value) {
-						Runnable r = new Runnable() {
-							@Override
-							public void run() {
-								try {
-									observer.next(value);
-								} finally {
-									outstanding.remove(this);
-								}
+						lock();
+						try {
+							if (alive()) {
+								Runnable r = new Runnable() {
+									@Override
+									public void run() {
+										try {
+											observer.next(value);
+										} finally {
+											outstanding.poll();
+										}
+									}
+								};
+								outstanding.add(pool.schedule(r, time, unit));
 							}
-						};
-						outstanding.put(r, pool.schedule(r, time, unit));
-					}
-					@Override
-					public void close() {
-						for (Future<?> f : outstanding.values()) {
-							f.cancel(true);
+						} finally {
+							unlock();
 						}
-						super.close();
 					}
 				};
 				obs.registerWith(source);
@@ -1630,7 +1740,7 @@ public final class Observables {
 				final SingleLaneExecutor<T> exec = new SingleLaneExecutor<T>(pool, new Action1<T>() {
 					@Override
 					public void invoke(T value) {
-						(new UObserver<Void>() {
+						(new DefaultObserver<Void>() {
 							@Override
 							public void error(final Throwable ex) {
 								// FIXME what should happen in this case???
@@ -1658,11 +1768,11 @@ public final class Observables {
 						}).registerWith(pump.invoke(value));
 					};
 				});
-				UObserver<T> obs = new UObserver<T>() {
+				DefaultObserver<T> obs = new DefaultObserver<T>() {
 					@Override
-					public void next(T value) {
-						wip.incrementAndGet();
-						exec.add(value);
+					public void close() {
+						exec.close();
+						super.close();
 					}
 
 					@Override
@@ -1676,9 +1786,9 @@ public final class Observables {
 						unregister();
 					}
 					@Override
-					public void close() {
-						exec.close();
-						super.close();
+					public void next(T value) {
+						wip.incrementAndGet();
+						exec.add(value);
 					}
 				};
 				obs.registerWith(source);
@@ -1703,7 +1813,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					@Override
 					public void run() {
 						observer.finish();
@@ -1741,44 +1851,6 @@ public final class Observables {
 						if (clause.invoke(value)) {
 							observer.next(value);
 						}
-					}
-					
-				});
-			}
-		};
-	}
-	/**
-	 * Creates a filtered observable where only Ts are relayed which satisfy the clause.
-	 * The clause receives the index and the current element to test.
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param clause the filter clause, the first parameter receives the current index, the second receives the current element
-	 * @return the new observable
-	 */
-	public static <T> Observable<T> where(final Observable<T> source, 
-			final Func2<Boolean, Integer, T> clause) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				return source.register(new Observer<T>() {
-					/** The current element index. */
-					int index;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						if (clause.invoke(index, value)) {
-							observer.next(value);
-						}
-						index++;
 					}
 					
 				});
@@ -1941,7 +2013,7 @@ public final class Observables {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					@Override
 					public void run() {
 						T t = initial;
@@ -1995,7 +2067,7 @@ public final class Observables {
 			public Closeable register(final Observer<? super Timestamped<U>> observer) {
 				// the cancellation indicator
 				
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					T current = initial;
 					@Override
 					public void run() {
@@ -2729,7 +2801,7 @@ public final class Observables {
 				final AtomicInteger wip = new AtomicInteger(sourcesList.size() + 1);
 				final AtomicBoolean failed = new AtomicBoolean();
 				for (Observable<T> os : sourcesList) {
-					UObserver<T> obs = new UObserver<T>() {
+					DefaultObserver<T> obs = new DefaultObserver<T>() {
 						@Override
 						public void error(Throwable ex) {
 							if (failed.compareAndSet(false, true)) {
@@ -2996,7 +3068,7 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				
-				UObserver<T> obs = new UObserver<T>() {
+				DefaultObserver<T> obs = new DefaultObserver<T>() {
 					final SingleLaneExecutor<Runnable> run = new SingleLaneExecutor<Runnable>(pool,
 						new Action1<Runnable>() {
 							@Override
@@ -3007,13 +3079,9 @@ public final class Observables {
 					);
 
 					@Override
-					public void next(final T value) {
-						run.add(new Runnable() {
-							@Override
-							public void run() {
-								observer.next(value);
-							}
-						});
+					public void close() {
+						run.close();
+						super.close();
 					}
 
 					@Override
@@ -3037,9 +3105,13 @@ public final class Observables {
 					}
 					
 					@Override
-					public void close() {
-						run.close();
-						super.close();
+					public void next(final T value) {
+						run.add(new Runnable() {
+							@Override
+							public void run() {
+								observer.next(value);
+							}
+						});
 					}
 				};
 				obs.registerWith(source);
@@ -3190,7 +3262,7 @@ public final class Observables {
 		return new Observable<BigDecimal>() {
 			@Override
 			public Closeable register(final Observer<? super BigDecimal> observer) {
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					@Override
 					public void run() {
 						BigDecimal value = start;
@@ -3229,7 +3301,7 @@ public final class Observables {
 		return new Observable<BigInteger>() {
 			@Override
 			public Closeable register(final Observer<? super BigInteger> observer) {
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					@Override
 					public void run() {
 						BigInteger end = start.add(count);
@@ -3272,7 +3344,7 @@ public final class Observables {
 		return new Observable<Double>() {
 			@Override
 			public Closeable register(final Observer<? super Double> observer) {
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					@Override
 					public void run() {
 						for (int i = 0; i < count && !Thread.currentThread().isInterrupted(); i++) {
@@ -3313,7 +3385,7 @@ public final class Observables {
 		return new Observable<Float>() {
 			@Override
 			public Closeable register(final Observer<? super Float> observer) {
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					@Override
 					public void run() {
 						for (int i = 0; i < count && !Thread.currentThread().isInterrupted(); i++) {
@@ -3350,7 +3422,7 @@ public final class Observables {
 		return new Observable<Integer>() {
 			@Override
 			public Closeable register(final Observer<? super Integer> observer) {
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					@Override
 					public void run() {
 						for (int i = start; i < start + count && !cancelled(); i++) {
@@ -3388,7 +3460,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				UObserver<T> obs = new UObserver<T>() {
+				DefaultObserver<T> obs = new DefaultObserver<T>() {
 					/** Are we done? */
 					boolean done;
 					@Override
@@ -3428,15 +3500,6 @@ public final class Observables {
 		};
 	}
 	/**
-	 * Unwrap the values within a timestamped observable to its normal value.
-	 * @param <T> the element type
-	 * @param source the source which has its elements in a timestamped way.
-	 * @return the raw observables of Ts
-	 */
-	public static <T> Observable<T> removeTimestamped(Observable<Timestamped<T>> source) {
-		return select(source, Functions.<T>unwrapTimestamped());
-	}
-	/**
 	 * Unwrap the values within a timeinterval observable to its normal value.
 	 * @param <T> the element type
 	 * @param source the source which has its elements in a timeinterval way.
@@ -3444,6 +3507,15 @@ public final class Observables {
 	 */
 	public static <T> Observable<T> removeTimeInterval(Observable<TimeInterval<T>> source) {
 		return select(source, Functions.<T>unwrapTimeInterval());
+	}
+	/**
+	 * Unwrap the values within a timestamped observable to its normal value.
+	 * @param <T> the element type
+	 * @param source the source which has its elements in a timestamped way.
+	 * @return the raw observables of Ts
+	 */
+	public static <T> Observable<T> removeTimestamped(Observable<Timestamped<T>> source) {
+		return select(source, Functions.<T>unwrapTimestamped());
 	}
 	/**
 	 * Creates an observable which repeatedly calls the given function which generates the Ts indefinitely.
@@ -3629,7 +3701,7 @@ public final class Observables {
 			public Closeable register(final Observer<? super T> observer) {
 				final Iterator<Observable<T>> it = sources.iterator();
 				if (it.hasNext()) {
-					UObserver<T> obs = new UObserver<T>() {
+					DefaultObserver<T> obs = new DefaultObserver<T>() {
 						@Override
 						public void error(Throwable ex) {
 							unregister();
@@ -3679,7 +3751,7 @@ public final class Observables {
 			public Closeable register(final Observer<? super T> observer) {
 				final Iterator<Observable<T>> it = sources.iterator();
 				if (it.hasNext()) {
-					UObserver<T> obs = new UObserver<T>() {
+					DefaultObserver<T> obs = new DefaultObserver<T>() {
 						@Override
 						public void error(Throwable ex) {
 							unregister();
@@ -3719,7 +3791,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				UObserver<T> obs = new UObserver<T>() {
+				DefaultObserver<T> obs = new DefaultObserver<T>() {
 					@Override
 					public void error(Throwable ex) {
 						unregister();
@@ -3755,7 +3827,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				UObserver<T> obs = new UObserver<T>() {
+				DefaultObserver<T> obs = new DefaultObserver<T>() {
 					/** The remaining retry count. */
 					int remainingCount = count;
 					@Override
@@ -3987,16 +4059,9 @@ public final class Observables {
 					final AtomicReference<T> current = new AtomicReference<T>();
 					boolean firstNext = true;
 					@Override
-					public void run() {
-						if (!first.get()) {
-							observer.next(current.get());
-						}
-					}
-					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
 					}
-
 					@Override
 					public void finish() {
 						observer.finish();
@@ -4010,10 +4075,229 @@ public final class Observables {
 						}
 						current.set(value);
 					}
+
+					@Override
+					public void run() {
+						if (!first.get()) {
+							observer.next(current.get());
+						}
+					}
 				};
 				obs.scheduleOnAtFixedRate(pool, time, time, unit);
 				obs.registerWith(source);
 				return obs;
+			}
+		};
+	}
+	/**
+	 * Use the mapper to transform the T source into an U source.
+	 * @param <T> the type of the original observable
+	 * @param <U> the type of the new observable
+	 * @param source the source of Ts
+	 * @param mapper the mapper from Ts to Us
+	 * @return the observable on Us
+	 */
+	public static <T, U> Observable<U> select(final Observable<T> source, final Func1<U, T> mapper) {
+		return new Observable<U>() {
+			@Override
+			public Closeable register(final Observer<? super U> observer) {
+				return source.register(new Observer<T>() {
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						observer.next(mapper.invoke(value));
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Transforms the elements of the source observable into Us by using a selector which receives an index indicating
+	 * how many elements have been transformed this far.
+	 * @param <T> the source element type
+	 * @param <U> the output element type
+	 * @param source the source observable
+	 * @param selector the selector taking an index and the current T
+	 * @return the transformed observable
+	 */
+	public static <T, U> Observable<U> select(final Observable<T> source, final Func2<U, Integer, T> selector) {
+		return new Observable<U>() {
+			@Override
+			public Closeable register(final Observer<? super U> observer) {
+				return source.register(new Observer<T>() {
+					/** The running index. */
+					int index;
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						observer.next(selector.invoke(index++, value));
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Transform the given source of Ts into Us in a way that the 
+	 * selector might return an observable ofUs for a single T.
+	 * The observable is fully channelled to the output observable.
+	 * FIXME not sure how to do it
+	 * @param <T> the input element type
+	 * @param <U> the output element type
+	 * @param source the source of Ts
+	 * @param selector the selector to return an Iterable of Us 
+	 * @return the 
+	 */
+	public static <T, U> Observable<U> selectMany(final Observable<T> source, 
+			final Func1<Observable<U>, T> selector) {
+		return selectMany(source, selector, new Func2<U, T, U>() {
+			@Override
+			public U invoke(T param1, U param2) {
+				return param2;
+			};
+		});
+	}
+	/**
+	 * Creates an observable in which for each of Ts an observable of Vs are
+	 * requested which in turn will be transformed by the resultSelector for each
+	 * pair of T and V giving an U.
+	 * @param <T> the source element type
+	 * @param <U> the output element type
+	 * @param <V> the intermediate element type
+	 * @param source the source of Ts
+	 * @param collectionSelector the selector which returns an observable of intermediate Vs
+	 * @param resultSelector the selector which gives an U for a T and V
+	 * @return the observable of Us
+	 */
+	public static <T, U, V> Observable<U> selectMany(final Observable<T> source, 
+			final Func1<Observable<V>, T> collectionSelector, final Func2<U, T, V> resultSelector) {
+		return new Observable<U>() {
+			@Override
+			public Closeable register(final Observer<? super U> observer) {
+				final AtomicInteger wip = new AtomicInteger(1);
+				final AtomicBoolean failed = new AtomicBoolean();
+				return source.register(new Observer<T>() {
+
+					@Override
+					public void error(Throwable ex) {
+						if (failed.compareAndSet(false, true)) {
+							observer.error(ex);
+						} else {
+							wip.decrementAndGet();
+						}
+					}
+
+					@Override
+					public void finish() {
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+						}
+					}
+
+					@Override
+					public void next(final T value) {
+						DefaultObserver<V> obs = new DefaultObserver<V>() {
+
+							@Override
+							public void error(Throwable ex) {
+								unregister();
+								if (failed.compareAndSet(false, true)) {
+									observer.error(ex);
+								} else {
+									wip.decrementAndGet();
+								}
+							}
+
+							@Override
+							public void finish() {
+								unregister();
+								if (wip.decrementAndGet() == 0) {
+									observer.finish();
+								}
+							}
+
+							@Override
+							public void next(V x) {
+								if (!failed.get()) {
+									observer.next(resultSelector.invoke(value, x));
+								}
+							}
+							
+						};
+						wip.incrementAndGet();
+						obs.registerWith(collectionSelector.invoke(value));
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Creates an observable of Us in a way when a source T arrives, the observable of 
+	 * Us is completely drained into the output. This is done again and again for
+	 * each arriving Ts.
+	 * @param <T> the type of the source, irrelevant
+	 * @param <U> the output type
+	 * @param source the source of Ts
+	 * @param provider the source of Us
+	 * @return the observable for Us
+	 */
+	public static <T, U> Observable<U> selectMany(Observable<T> source, Observable<U> provider) {
+		return selectMany(source, Functions.<Observable<U>, T>constant(provider));
+	}
+	/**
+	 * Transform the given source of Ts into Us in a way that the selector might return zero to multiple elements of Us for a single T.
+	 * The iterable is flattened and submitted to the output
+	 * @param <T> the input element type
+	 * @param <U> the output element type
+	 * @param source the source of Ts
+	 * @param selector the selector to return an Iterable of Us 
+	 * @return the 
+	 */
+	public static <T, U> Observable<U> selectManyIterable(final Observable<T> source, 
+			final Func1<Iterable<U>, T> selector) {
+		return new Observable<U>() {
+			@Override
+			public Closeable register(final Observer<? super U> observer) {
+				return source.register(new Observer<T>() {
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						for (U u : selector.invoke(value)) {
+							observer.next(u);
+						}
+					}
+					
+				});
 			}
 		};
 	}
@@ -4056,7 +4340,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					@Override
 					public void run() {
 						observer.next(value);
@@ -4161,13 +4445,7 @@ public final class Observables {
 			public Closeable register(final Observer<? super T> observer) {
 				final AtomicBoolean gate = new AtomicBoolean();
 				final AtomicBoolean failed = new AtomicBoolean();
-				final UObserver<U> signal = new UObserver<U>() {
-					@Override
-					public void next(U value) {
-						gate.set(true);
-						unregister();
-					}
-
+				final DefaultObserver<U> signal = new DefaultObserver<U>() {
 					@Override
 					public void error(Throwable ex) {
 						if (failed.compareAndSet(false, true)) {
@@ -4180,16 +4458,15 @@ public final class Observables {
 					public void finish() {
 						unregister();
 					}
+
+					@Override
+					public void next(U value) {
+						gate.set(true);
+						unregister();
+					}
 					
 				};
-				UObserver<T> obs = new UObserver<T>() {
-					@Override
-					public void next(T value) {
-						if (gate.get()) {
-							observer.next(value);
-						}
-					}
-
+				DefaultObserver<T> obs = new DefaultObserver<T>() {
 					@Override
 					public void error(Throwable ex) {
 						if (failed.compareAndSet(false, true)) {
@@ -4202,6 +4479,13 @@ public final class Observables {
 					public void finish() {
 						observer.finish();
 						signal.unregister();
+					}
+
+					@Override
+					public void next(T value) {
+						if (gate.get()) {
+							observer.next(value);
+						}
 					}
 					
 				};
@@ -4274,7 +4558,7 @@ public final class Observables {
 		return new Observable<Void>() {
 			@Override
 			public Closeable register(final Observer<? super Void> observer) {
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					@Override
 					public void run() {
 						try {
@@ -4314,7 +4598,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					@Override
 					public void run() {
 						try {
@@ -4658,7 +4942,20 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				final AtomicBoolean gate = new AtomicBoolean(true);
-				final UObserver<U> signal = new UObserver<U>() {
+				final DefaultObserver<U> signal = new DefaultObserver<U>() {
+					@Override
+					public void error(Throwable ex) {
+						if (gate.compareAndSet(true, false)) {
+							observer.error(ex);
+						}
+						unregister();
+					}
+
+					@Override
+					public void finish() {
+						unregister();
+					}
+
 					@Override
 					public void next(U value) {
 						if (gate.compareAndSet(true, false)) {
@@ -4666,29 +4963,9 @@ public final class Observables {
 						}
 						unregister();
 					}
-
-					@Override
-					public void error(Throwable ex) {
-						if (gate.compareAndSet(true, false)) {
-							observer.error(ex);
-						}
-						unregister();
-					}
-
-					@Override
-					public void finish() {
-						unregister();
-					}
 					
 				};
-				UObserver<T> obs = new UObserver<T>() {
-					@Override
-					public void next(T value) {
-						if (gate.get()) {
-							observer.next(value);
-						}
-					}
-
+				DefaultObserver<T> obs = new DefaultObserver<T>() {
 					@Override
 					public void error(Throwable ex) {
 						if (gate.compareAndSet(true, false)) {
@@ -4702,6 +4979,13 @@ public final class Observables {
 						if (gate.compareAndSet(true, false)) {
 							observer.finish();
 							signal.unregister();
+						}
+					}
+
+					@Override
+					public void next(T value) {
+						if (gate.get()) {
+							observer.next(value);
 						}
 					}
 					
@@ -4725,7 +5009,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				UObserver<T> oT = new UObserver<T>() {
+				DefaultObserver<T> oT = new DefaultObserver<T>() {
 					/** The done indicator. */
 					boolean done;
 					@Override
@@ -4798,14 +5082,9 @@ public final class Observables {
 					/** The last seen value. */
 					final AtomicReference<T> last = new AtomicReference<T>();
 					@Override
-					public void run() {
-						observer.next(last.get());
-					}
-					@Override
 					public void error(Throwable ex) {
 						close();
 					}
-
 					@Override
 					public void finish() {
 						observer.finish();
@@ -4817,6 +5096,11 @@ public final class Observables {
 						cancel();
 						last.set(value);
 						scheduleOn(pool, delay, unit);
+					}
+
+					@Override
+					public void run() {
+						observer.next(last.get());
 					}
 					
 				};
@@ -4847,7 +5131,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					@Override
 					public void run() {
 						observer.error(ex);
@@ -4886,7 +5170,7 @@ public final class Observables {
 		return new Observable<Long>() {
 			@Override
 			public Closeable register(final Observer<? super Long> observer) {
-				USchedulable s = new USchedulable() {
+				DefaultSchedulable s = new DefaultSchedulable() {
 					long current = start;
 					@Override
 					public void run() {
@@ -5126,218 +5410,6 @@ public final class Observables {
 		};
 	}
 	/**
-	 * Use the mapper to transform the T source into an U source.
-	 * @param <T> the type of the original observable
-	 * @param <U> the type of the new observable
-	 * @param source the source of Ts
-	 * @param mapper the mapper from Ts to Us
-	 * @return the observable on Us
-	 */
-	public static <T, U> Observable<U> select(final Observable<T> source, final Func1<U, T> mapper) {
-		return new Observable<U>() {
-			@Override
-			public Closeable register(final Observer<? super U> observer) {
-				return source.register(new Observer<T>() {
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						observer.next(mapper.invoke(value));
-					}
-					
-				});
-			}
-		};
-	}
-	/**
-	 * Transforms the elements of the source observable into Us by using a selector which receives an index indicating
-	 * how many elements have been transformed this far.
-	 * @param <T> the source element type
-	 * @param <U> the output element type
-	 * @param source the source observable
-	 * @param selector the selector taking an index and the current T
-	 * @return the transformed observable
-	 */
-	public static <T, U> Observable<U> select(final Observable<T> source, final Func2<U, Integer, T> selector) {
-		return new Observable<U>() {
-			@Override
-			public Closeable register(final Observer<? super U> observer) {
-				return source.register(new Observer<T>() {
-					/** The running index. */
-					int index;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						observer.next(selector.invoke(index++, value));
-					}
-					
-				});
-			}
-		};
-	}
-	/**
-	 * Transform the given source of Ts into Us in a way that the selector might return zero to multiple elements of Us for a single T.
-	 * The iterable is flattened and submitted to the output
-	 * @param <T> the input element type
-	 * @param <U> the output element type
-	 * @param source the source of Ts
-	 * @param selector the selector to return an Iterable of Us 
-	 * @return the 
-	 */
-	public static <T, U> Observable<U> selectManyIterable(final Observable<T> source, 
-			final Func1<Iterable<U>, T> selector) {
-		return new Observable<U>() {
-			@Override
-			public Closeable register(final Observer<? super U> observer) {
-				return source.register(new Observer<T>() {
-
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						for (U u : selector.invoke(value)) {
-							observer.next(u);
-						}
-					}
-					
-				});
-			}
-		};
-	}
-	/**
-	 * Transform the given source of Ts into Us in a way that the 
-	 * selector might return an observable ofUs for a single T.
-	 * The observable is fully channelled to the output observable.
-	 * FIXME not sure how to do it
-	 * @param <T> the input element type
-	 * @param <U> the output element type
-	 * @param source the source of Ts
-	 * @param selector the selector to return an Iterable of Us 
-	 * @return the 
-	 */
-	public static <T, U> Observable<U> selectMany(final Observable<T> source, 
-			final Func1<Observable<U>, T> selector) {
-		return selectMany(source, selector, new Func2<U, T, U>() {
-			@Override
-			public U invoke(T param1, U param2) {
-				return param2;
-			};
-		});
-	}
-	/**
-	 * Creates an observable in which for each of Ts an observable of Vs are
-	 * requested which in turn will be transformed by the resultSelector for each
-	 * pair of T and V giving an U.
-	 * @param <T> the source element type
-	 * @param <U> the output element type
-	 * @param <V> the intermediate element type
-	 * @param source the source of Ts
-	 * @param collectionSelector the selector which returns an observable of intermediate Vs
-	 * @param resultSelector the selector which gives an U for a T and V
-	 * @return the observable of Us
-	 */
-	public static <T, U, V> Observable<U> selectMany(final Observable<T> source, 
-			final Func1<Observable<V>, T> collectionSelector, final Func2<U, T, V> resultSelector) {
-		return new Observable<U>() {
-			@Override
-			public Closeable register(final Observer<? super U> observer) {
-				final AtomicInteger wip = new AtomicInteger(1);
-				final AtomicBoolean failed = new AtomicBoolean();
-				return source.register(new Observer<T>() {
-
-					@Override
-					public void error(Throwable ex) {
-						if (failed.compareAndSet(false, true)) {
-							observer.error(ex);
-						} else {
-							wip.decrementAndGet();
-						}
-					}
-
-					@Override
-					public void finish() {
-						if (wip.decrementAndGet() == 0) {
-							observer.finish();
-						}
-					}
-
-					@Override
-					public void next(final T value) {
-						UObserver<V> obs = new UObserver<V>() {
-
-							@Override
-							public void error(Throwable ex) {
-								unregister();
-								if (failed.compareAndSet(false, true)) {
-									observer.error(ex);
-								} else {
-									wip.decrementAndGet();
-								}
-							}
-
-							@Override
-							public void finish() {
-								unregister();
-								if (wip.decrementAndGet() == 0) {
-									observer.finish();
-								}
-							}
-
-							@Override
-							public void next(V x) {
-								if (!failed.get()) {
-									observer.next(resultSelector.invoke(value, x));
-								}
-							}
-							
-						};
-						wip.incrementAndGet();
-						obs.registerWith(collectionSelector.invoke(value));
-					}
-					
-				});
-			}
-		};
-	}
-	/**
-	 * Creates an observable of Us in a way when a source T arrives, the observable of 
-	 * Us is completely drained into the output. This is done again and again for
-	 * each arriving Ts.
-	 * @param <T> the type of the source, irrelevant
-	 * @param <U> the output type
-	 * @param source the source of Ts
-	 * @param provider the source of Us
-	 * @return the observable for Us
-	 */
-	public static <T, U> Observable<U> selectMany(Observable<T> source, Observable<U> provider) {
-		return selectMany(source, Functions.<Observable<U>, T>constant(provider));
-	}
-	/**
 	 * Filters objects from source which are assignment compatible with T.
 	 * Note that due java erasure complex generic types can't be filtered this way in runtime (e.g., List&lt;String>.class is just List.class).
 	 * @param <T> the type of the expected values
@@ -5417,6 +5489,44 @@ public final class Observables {
 		};
 	}
 	/**
+	 * Creates a filtered observable where only Ts are relayed which satisfy the clause.
+	 * The clause receives the index and the current element to test.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param clause the filter clause, the first parameter receives the current index, the second receives the current element
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> where(final Observable<T> source, 
+			final Func2<Boolean, Integer, T> clause) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** The current element index. */
+					int index;
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						if (clause.invoke(index, value)) {
+							observer.next(value);
+						}
+						index++;
+					}
+					
+				});
+			}
+		};
+	}
+	/**
 	 * Splits the source stream into separate observables once
 	 * the windowClosing fires an event.
 	 * FIXME not sure how to implement
@@ -5466,7 +5576,7 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				final Iterator<V> it = right.iterator();
-				UObserver<U> obs = new UObserver<U>() {
+				DefaultObserver<U> obs = new DefaultObserver<U>() {
 					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
@@ -5514,41 +5624,40 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final Lock lock = new ReentrantLock();
 				final LinkedBlockingQueue<U> queueU = new LinkedBlockingQueue<U>();
 				final LinkedBlockingQueue<V> queueV = new LinkedBlockingQueue<V>();
 				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
 				final AtomicInteger wip = new AtomicInteger(2);
-				final UObserver<U> oU = new UObserver<U>() {
+				final DefaultObserver<U> oU = new DefaultObserver<U>() {
 					@Override
 					public void error(Throwable ex) {
-						lock.lock();
+						lock();
 						try {
-							if (wip.getAndSet(-1) != -1) { 
+							if (alive()) { 
 								observer.error(ex);
 								try { closeBoth.get().close(); } catch (IOException exc) { }
 							}
 						} finally {
-							lock.unlock();
+							unlock();
 						}
 					}
 
 					@Override
 					public void finish() {
-						lock.lock();
+						lock();
 						try {
 							if (wip.decrementAndGet() == 0) {
 								observer.finish();
 								try { closeBoth.get().close(); } catch (IOException ex) { }
 							}
 						} finally {
-							lock.unlock();
+							unlock();
 						}
 					}
 
 					@Override
 					public void next(U u) {
-						lock.lock();
+						lock();
 						try {
 							V v = queueV.poll();
 							if (v != null) {
@@ -5561,42 +5670,42 @@ public final class Observables {
 								}
 							}
 						} finally {
-							lock.unlock();
+							unlock();
 						}
 					}
 					
 				};
-				final UObserver<V> oV = new UObserver<V>() {
+				final DefaultObserver<V> oV = new DefaultObserver<V>() {
 
 					@Override
 					public void error(Throwable ex) {
-						lock.lock();
+						lock();
 						try {
-							if (wip.getAndSet(-1) != -1) { 
+							if (alive()) { 
 								observer.error(ex);
 								try { closeBoth.get().close(); } catch (IOException exc) { }
 							}
 						} finally {
-							lock.unlock();
+							unlock();
 						}
 					}
 
 					@Override
 					public void finish() {
-						lock.lock();
+						lock();
 						try {
 							if (wip.decrementAndGet() == 0) {
 								observer.finish();
 								try { closeBoth.get().close(); } catch (IOException ex) { }
 							}
 						} finally {
-							lock.unlock();
+							unlock();
 						}
 					}
 
 					@Override
 					public void next(V v) {
-						lock.lock();
+						lock();
 						try {
 							U u = queueU.poll();
 							if (u != null) {
@@ -5609,7 +5718,7 @@ public final class Observables {
 								}
 							}
 						} finally {
-							lock.unlock();
+							unlock();
 						}
 					}
 					
@@ -5620,33 +5729,6 @@ public final class Observables {
 				oV.registerWith(right);
 				return c;
 			}
-		};
-	}
-	/**
-	 * Creates an observer which calls the given functions on its similarly named methods.
-	 * @param <T> the value type to receive
-	 * @param next the action to invoke on next()
-	 * @param error the action to invoke on error()
-	 * @param finish the action to invoke on finish()
-	 * @return the observer
-	 */
-	public static <T> Observer<T> asObserver(final Action1<? super T> next, final Action1<? super Throwable> error, final Action0 finish) {
-		return new Observer<T>() {
-			@Override
-			public void next(T value) {
-				next.invoke(value);
-			}
-
-			@Override
-			public void error(Throwable ex) {
-				error.invoke(ex);
-			}
-
-			@Override
-			public void finish() {
-				finish.invoke();
-			}
-			
 		};
 	}
 	/** Utility class. */

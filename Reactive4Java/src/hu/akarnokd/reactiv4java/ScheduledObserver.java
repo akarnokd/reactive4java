@@ -22,7 +22,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A composite scheduler and observer class for
@@ -34,10 +37,13 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Closeable {
 	/** The future holding the reference to the scheduled part. */
-	final AtomicReference<Future<?>> future = new AtomicReference<Future<?>>();
+	protected final AtomicReference<Future<?>> future = new AtomicReference<Future<?>>();
 	/** The handler returned by the registration. */
-	final AtomicReference<Closeable> handler = new AtomicReference<Closeable>();
-	
+	protected final AtomicReference<Closeable> handler = new AtomicReference<Closeable>();
+	/** The lock that helps to ensure the next(), finish() and error() are never overlapping. */
+	private final Lock lock = new ReentrantLock(true);
+	/** Helper indicator that this observer may process its events: closed ones will ignore any further events. */
+	protected final AtomicBoolean live = new AtomicBoolean(true);
 	/**
 	 * Schedules this instance on the given pool with the defined delay.
 	 * If this instance has an associated future, that instance gets cancelled
@@ -137,19 +143,26 @@ public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Clo
 	}
 	@Override
 	public void close() {
+		lock();
+		try {
+			live.set(false);
+		} finally {
+			unlock();
+		}
 		cancel();
 		unregister();
 	}
-	/**
-	 * @return Returns the current future associated with this instance
-	 */
-	public Future<?> future() {
-		return future.get();
+	/** @return the liveness status. */
+	public boolean alive() {
+		return live.get();
 	}
-	/**
-	 * @return returns the handle which was returned back from the last Observable registration
-	 */
-	public Closeable handler() {
-		return handler.get();
+	/** Lock. */
+	protected void lock() {
+		lock.lock();
 	}
+	/** Unlock. */
+	protected void unlock() {
+		lock.unlock();
+	}
+	
 }
