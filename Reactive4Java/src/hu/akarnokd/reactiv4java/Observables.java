@@ -2726,13 +2726,15 @@ public final class Observables {
 				for (Observable<T> os : sources) {
 					sourcesList.add(os);
 				}				
-				final AtomicInteger wip = new AtomicInteger(sourcesList.size());
+				final AtomicInteger wip = new AtomicInteger(sourcesList.size() + 1);
+				final AtomicBoolean failed = new AtomicBoolean();
 				for (Observable<T> os : sourcesList) {
 					UObserver<T> obs = new UObserver<T>() {
 						@Override
 						public void error(Throwable ex) {
-							// FIXME what is the rule for the error?
-							wip.decrementAndGet();
+							if (failed.compareAndSet(false, true)) {
+								observer.error(ex);
+							}
 						}
 
 						@Override
@@ -2744,11 +2746,16 @@ public final class Observables {
 
 						@Override
 						public void next(T value) {
-							observer.next(value);
+							if (!failed.get()) {
+								observer.next(value);
+							}
 						}
 					};
 					obs.registerWith(os);
 					disposables.add(obs);
+				}
+				if (wip.decrementAndGet() == 0) {
+					observer.finish();
 				}
 				return close(disposables);
 			}
