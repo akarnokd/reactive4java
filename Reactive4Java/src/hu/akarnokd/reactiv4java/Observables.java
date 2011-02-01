@@ -321,7 +321,7 @@ public final class Observables {
 	 * @return the raw observables of Ts
 	 */
 	public static <T> Observable<Timestamped<T>> addTimestamped(Observable<T> source) {
-		return transform(source, Functions.<T>wrapTimestamped());
+		return select(source, Functions.<T>wrapTimestamped());
 	}
 	/**
 	 * Apply an accumulator function over the observable source and submit the accumulated value to the returned observable.
@@ -3427,7 +3427,16 @@ public final class Observables {
 	 * @return the raw observables of Ts
 	 */
 	public static <T> Observable<T> removeTimestamped(Observable<Timestamped<T>> source) {
-		return transform(source, Functions.<T>unwrapTimestamped());
+		return select(source, Functions.<T>unwrapTimestamped());
+	}
+	/**
+	 * Unwrap the values within a timeinterval observable to its normal value.
+	 * @param <T> the element type
+	 * @param source the source which has its elements in a timeinterval way.
+	 * @return the raw observables of Ts
+	 */
+	public static <T> Observable<T> removeTimeInterval(Observable<TimeInterval<T>> source) {
+		return select(source, Functions.<T>unwrapTimeInterval());
 	}
 	/**
 	 * Creates an observable which repeatedly calls the given function which generates the Ts indefinitely.
@@ -4143,53 +4152,55 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final AtomicBoolean canRelay = new AtomicBoolean();
-				final UObserver<U> oU = new UObserver<U>() {
+				final AtomicBoolean gate = new AtomicBoolean();
+				final AtomicBoolean failed = new AtomicBoolean();
+				final UObserver<U> signal = new UObserver<U>() {
+					@Override
+					public void next(U value) {
+						gate.set(true);
+						unregister();
+					}
 
 					@Override
 					public void error(Throwable ex) {
+						if (failed.compareAndSet(false, true)) {
+							observer.error(ex);
+						}
 						unregister();
 					}
 
 					@Override
 					public void finish() {
-						unregister();
-					}
-
-					@Override
-					public void next(U value) {
-						canRelay.set(true);
 						unregister();
 					}
 					
 				};
-				final UObserver<T> oT = new UObserver<T>() {
-
-					@Override
-					public void error(Throwable ex) {
-						unregister();
-						oU.unregister();
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						unregister();
-						oU.unregister();
-						observer.finish();
-					}
-
+				UObserver<T> obs = new UObserver<T>() {
 					@Override
 					public void next(T value) {
-						if (canRelay.get()) {
+						if (gate.get()) {
 							observer.next(value);
 						}
 					}
+
+					@Override
+					public void error(Throwable ex) {
+						if (failed.compareAndSet(false, true)) {
+							observer.error(ex);
+							signal.unregister();
+						}
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+						signal.unregister();
+					}
 					
 				};
-				oU.registerWith(signaller);
-				oT.registerWith(source);
-				return close(oU, oT);
+				obs.registerWith(source);
+				signal.registerWith(signaller);
+				return close(obs, signal);
 			}
 		};
 	}
@@ -5115,7 +5126,7 @@ public final class Observables {
 	 * @param mapper the mapper from Ts to Us
 	 * @return the observable on Us
 	 */
-	public static <T, U> Observable<U> transform(final Observable<T> source, final Func1<U, T> mapper) {
+	public static <T, U> Observable<U> select(final Observable<T> source, final Func1<U, T> mapper) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
