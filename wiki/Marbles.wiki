@@ -217,6 +217,24 @@ For each incoming Ts,  the {{{pump}}} is invoked in sequence on a thread pool, w
 
 http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/drain_xs_pump.png
 
+== filter ==
+
+=== regular ===
+
+{{{Observable<T> ys = filter(Observable<T> xs, Func1<Boolean, T> pred);}}}
+
+Filters the incoming Ts based on the predicate and lets only those through which match the predicate.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/filter_xs_pred.png
+
+=== indexed ===
+
+{{{Observable<T> ys = filter(Observable<T> xs, Func1<Boolean, Integer, T> pred);}}}
+
+Filters the incoming Ts based on the predicate and lets only those through which match the predicate. The predicate receives a running counter about how many elements have been seen since the registration.
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/filter_xs_pred_index.png
+
 
 == removeTimestamped ==
 
