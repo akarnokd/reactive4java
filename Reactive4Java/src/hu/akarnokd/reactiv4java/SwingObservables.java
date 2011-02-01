@@ -16,6 +16,7 @@
 package hu.akarnokd.reactiv4java;
 
 import java.awt.Adjustable;
+import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
@@ -24,14 +25,12 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import javax.swing.AbstractButton;
-import javax.swing.JComboBox;
-import javax.swing.JList;
-import javax.swing.JTable;
-import javax.swing.JTextField;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
@@ -61,66 +60,25 @@ public final class SwingObservables {
 			next(e);
 		}
 		/**
-		 * Convenience method to register an observable action listener with the given abstract button (JButton, JMenuItem, etc.).
-		 * The registration is performed via <code>AbstractButton.addActionListener()</code>. To deregister,
-		 * use the <code>AbstractButton.removeActionListener()</code> with the returned observable.
-		 * @param button the target button
-		 * @return the observable action listener
-		 */
-		public static ObservableActionListener register(AbstractButton button) {
-			if (button == null) {
-				throw new IllegalArgumentException("button is null");
-			}
-			ObservableActionListener o = new ObservableActionListener();
-			button.addActionListener(o);
-			return o;
-		}
-		/**
-		 * Convenience method to register an observable action listener with the given abstract button (JTextField, JPasswordField, JFormattedTextField etc.).
-		 * The registration is performed via <code>JTextField.addActionListener()</code>. To deregister,
-		 * use the <code>JTextField.removeActionListener()</code> with the returned observable.
-		 * @param field the target field
-		 * @return the observable action listener
-		 */
-		public static ObservableActionListener register(JTextField field) {
-			if (field == null) {
-				throw new IllegalArgumentException("field is null");
-			}
-			ObservableActionListener o = new ObservableActionListener();
-			field.addActionListener(o);
-			return o;
-		}
-		/**
-		 * Convenience method to register an observable action listener with the given JComboBox.
-		 * The registration is performed via <code>JComboBox.addActionListener()</code>. To deregister,
-		 * use the <code>JComboBox.removeActionListener()</code> with the returned observable.
-		 * @param field the target field
-		 * @return the observable action listener
-		 */
-		public static ObservableActionListener register(JComboBox field) {
-			if (field == null) {
-				throw new IllegalArgumentException("field is null");
-			}
-			ObservableActionListener o = new ObservableActionListener();
-			field.addActionListener(o);
-			return o;
-		}
-		/**
-		 * Convenience method to register an action listener on an object which should have an <code>addActionListener(ActionListener)</code>
-		 * public method. It uses reflection to detemine the method's existence. Throws IllegalArgumentException if the
-		 * component is null or does not have the required method.
-		 * @param component the target component.
-		 * @return the observable action listener
+		 * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addActionListener(ActionListener)</code> method.
+		 * @param component the target component
+		 * @return the new observable
 		 */
 		public static ObservableActionListener register(Object component) {
+			return new ObservableActionListener().registerWith(component);
+		}
+		/**
+		 * Convenience method to register this observable with the target component which must have a public <code>addActionListener(ActionListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableActionListener registerWith(Object component) {
 			if (component == null) {
 				throw new IllegalArgumentException("component is null");
 			}
 			try {
-				Method m = component.getClass().getMethod("addActionListener", ActionListener.class);
-				ObservableActionListener o = new ObservableActionListener();
-				m.invoke(component, o);
-				return o;
+				Method m = component.getClass().getMethod("addActionListener", KeyListener.class);
+				m.invoke(component, this);
 			} catch (NoSuchMethodException ex) {
 				throw new IllegalArgumentException(ex);
 			} catch (IllegalAccessException ex) {
@@ -128,6 +86,28 @@ public final class SwingObservables {
 			} catch (InvocationTargetException ex) {
 				throw new IllegalArgumentException(ex);
 			}
+			return this;
+		}
+		/**
+		 * Convenience method to unregister this observable from the target component which must have a public <code>removeActionListener(ActionListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableActionListener unregisterFrom(Object component) {
+			if (component == null) {
+				throw new IllegalArgumentException("component is null");
+			}
+			try {
+				Method m = component.getClass().getMethod("removeActionListener", KeyListener.class);
+				m.invoke(component, this);
+			} catch (NoSuchMethodException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (IllegalAccessException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (InvocationTargetException ex) {
+				throw new IllegalArgumentException(ex);
+			}
+			return this;
 		}
 	}
 	/**
@@ -141,21 +121,25 @@ public final class SwingObservables {
 			next(e);
 		}
 		/**
-		 * Convenience method to register an action listener on an object which should have an <code>addActionListener(ActionListener)</code>
-		 * public method. It uses reflection to detemine the method's existence. Throws IllegalArgumentException if the
-		 * component is null or does not have the required method.
-		 * @param component the target component.
-		 * @return the observable action listener
+		 * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addActionListener(ActionListener)</code> method.
+		 * @param component the target component
+		 * @return the new observable
 		 */
 		public static ObservableChangeListener register(Object component) {
+			return new ObservableChangeListener().registerWith(component);
+		}
+		/**
+		 * Convenience method to register this observable with the target component which must have a public <code>addChangeListener(ChangeListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableChangeListener registerWith(Object component) {
 			if (component == null) {
 				throw new IllegalArgumentException("component is null");
 			}
 			try {
-				Method m = component.getClass().getMethod("addChangeListener", ChangeListener.class);
-				ObservableChangeListener o = new ObservableChangeListener();
-				m.invoke(component, o);
-				return o;
+				Method m = component.getClass().getMethod("addChangeListener", KeyListener.class);
+				m.invoke(component, this);
 			} catch (NoSuchMethodException ex) {
 				throw new IllegalArgumentException(ex);
 			} catch (IllegalAccessException ex) {
@@ -163,6 +147,28 @@ public final class SwingObservables {
 			} catch (InvocationTargetException ex) {
 				throw new IllegalArgumentException(ex);
 			}
+			return this;
+		}
+		/**
+		 * Convenience method to unregister this observable from the target component which must have a public <code>removeChangeListener(ChangeListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableChangeListener unregisterFrom(Object component) {
+			if (component == null) {
+				throw new IllegalArgumentException("component is null");
+			}
+			try {
+				Method m = component.getClass().getMethod("removeChangeListener", KeyListener.class);
+				m.invoke(component, this);
+			} catch (NoSuchMethodException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (IllegalAccessException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (InvocationTargetException ex) {
+				throw new IllegalArgumentException(ex);
+			}
+			return this;
 		}
 	}
 	/**
@@ -187,7 +193,56 @@ public final class SwingObservables {
 		public void changedUpdate(DocumentEvent e) {
 			next(e);
 		}
-		
+		/**
+		 * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addDocumentListener(DocumentListener)</code> method.
+		 * @param component the target component
+		 * @return the new observable
+		 */
+		public static ObservableDocumentListener register(Object component) {
+			return new ObservableDocumentListener().registerWith(component);
+		}
+		/**
+		 * Convenience method to register this observable with the target component which must have a public <code>addDocumentListener(DocumentListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableDocumentListener registerWith(Object component) {
+			if (component == null) {
+				throw new IllegalArgumentException("component is null");
+			}
+			try {
+				Method m = component.getClass().getMethod("addDocumentListener", DocumentListener.class);
+				m.invoke(component, this);
+			} catch (NoSuchMethodException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (IllegalAccessException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (InvocationTargetException ex) {
+				throw new IllegalArgumentException(ex);
+			}
+			return this;
+		}
+		/**
+		 * Convenience method to unregister this observable from the target component which must have a public <code>removeDocumentListener(DocumentListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableDocumentListener unregisterFrom(Object component) {
+			if (component == null) {
+				throw new IllegalArgumentException("component is null");
+			}
+			try {
+				Method m = component.getClass().getMethod("removeDocumentListener", DocumentListener.class);
+				m.invoke(component, this);
+			} catch (NoSuchMethodException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (IllegalAccessException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (InvocationTargetException ex) {
+				throw new IllegalArgumentException(ex);
+			}
+			return this;
+		}
 	}
 	/**
 	 * The observable list data listener which relays the intervalAdded(), intervalRemoved() and contentsChanged() events
@@ -210,7 +265,56 @@ public final class SwingObservables {
 		public void contentsChanged(ListDataEvent e) {
 			next(e);
 		}
-		
+		/**
+		 * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addListDataListener(ListDataListener)</code> method.
+		 * @param component the target component
+		 * @return the new observable
+		 */
+		public static ObservableListDataListener register(Object component) {
+			return new ObservableListDataListener().registerWith(component);
+		}
+		/**
+		 * Convenience method to register this observable with the target component which must have a public <code>addListDataListener(ListDataListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableListDataListener registerWith(Object component) {
+			if (component == null) {
+				throw new IllegalArgumentException("component is null");
+			}
+			try {
+				Method m = component.getClass().getMethod("addListDataListener", ListDataListener.class);
+				m.invoke(component, this);
+			} catch (NoSuchMethodException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (IllegalAccessException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (InvocationTargetException ex) {
+				throw new IllegalArgumentException(ex);
+			}
+			return this;
+		}
+		/**
+		 * Convenience method to unregister this observable from the target component which must have a public <code>removeListDataListener(ListDataListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableListDataListener unregisterFrom(Object component) {
+			if (component == null) {
+				throw new IllegalArgumentException("component is null");
+			}
+			try {
+				Method m = component.getClass().getMethod("removeListDataListener", ListDataListener.class);
+				m.invoke(component, this);
+			} catch (NoSuchMethodException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (IllegalAccessException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (InvocationTargetException ex) {
+				throw new IllegalArgumentException(ex);
+			}
+			return this;
+		}
 	}
 	/**
 	 * The observable list selection listener which relays the valueChanged() events to next().
@@ -225,34 +329,54 @@ public final class SwingObservables {
 		}
 		
 		/**
-		 * Convenience method to register an observable list selection listener with the given JList and return this observable.
-		 * It calls the JList.addListSelectionListener(). To remove the observable, use the JList.removeListSelectionListener().
-		 * @param list the target jlist
-		 * @return creates a new observable for a ListSelectionListener.
+		 * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addListSelectionListener(ListSelectionListener)</code> method.
+		 * @param component the target component
+		 * @return the new observable
 		 */
-		public static ObservableListSelectionListener register(@SuppressWarnings("rawtypes") JList list) {
-			if (list == null) {
-				throw new IllegalArgumentException("list is null");
-			}
-			ObservableListSelectionListener o = new ObservableListSelectionListener();
-			list.addListSelectionListener(o);
-			return o;
+		public static ObservableListSelectionListener register(Object component) {
+			return new ObservableListSelectionListener().registerWith(component);
 		}
 		/**
-		 * Convenience method to register an observable list selection listener with the given JTable instance.
-		 * It uses the <code>table.getSelectionModel().addListSelectionListener()</code> for the registration. To remove the registration,
-		 * use the <code>table.getSelectionModel().removeListSelectionListener()</code>. Note
-		 * that the table table allows changing its selection model which might render this registration inoperable.
-		 * @param table the target table
-		 * @return creates a new observable for a ListDataListener.
+		 * Convenience method to register this observable with the target component which must have a public <code>addListSelectionListener(ListSelectionListener)</code> method. 
+		 * @param component the target component
+		 * @return this
 		 */
-		public static ObservableListSelectionListener register(JTable table) {
-			if (table == null) {
-				throw new IllegalArgumentException("table is null");
+		public ObservableListSelectionListener registerWith(Object component) {
+			if (component == null) {
+				throw new IllegalArgumentException("component is null");
 			}
-			ObservableListSelectionListener o = new ObservableListSelectionListener();
-			table.getSelectionModel().addListSelectionListener(o);
-			return o;
+			try {
+				Method m = component.getClass().getMethod("addListSelectionListener", ListSelectionListener.class);
+				m.invoke(component, this);
+			} catch (NoSuchMethodException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (IllegalAccessException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (InvocationTargetException ex) {
+				throw new IllegalArgumentException(ex);
+			}
+			return this;
+		}
+		/**
+		 * Convenience method to unregister this observable from the target component which must have a public <code>removeListSelectionListener(ListSelectionListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableListSelectionListener unregisterFrom(Object component) {
+			if (component == null) {
+				throw new IllegalArgumentException("component is null");
+			}
+			try {
+				Method m = component.getClass().getMethod("removeListSelectionListener", ListSelectionListener.class);
+				m.invoke(component, this);
+			} catch (NoSuchMethodException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (IllegalAccessException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (InvocationTargetException ex) {
+				throw new IllegalArgumentException(ex);
+			}
+			return this;
 		}
 	}
 	/**
@@ -266,31 +390,29 @@ public final class SwingObservables {
 			next(e);
 		}
 		/**
-		 * Convenience method to register with the given scrollbar by using the <code>Scrollbar.addAdjustmentListener()</code>.
-		 * @param scrollbar the target scrollbar
-		 * @return the observable
-		 */
-		public static ObservableAdjustmentListener register(Adjustable scrollbar) {
-			ObservableAdjustmentListener o = new ObservableAdjustmentListener();
-			scrollbar.addAdjustmentListener(o);
-			return o;
-		}
-		/**
-		 * Convenience method to register an action listener on an object which should have an <code>addAdjustmentListener()</code>
-		 * public method. It uses reflection to detemine the method's existence. Throws IllegalArgumentException if the
-		 * component is null or does not have the required method.
-		 * @param component the target component.
-		 * @return the observable action listener
+		 * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addAdjustmentListener(AdjustmentListener)</code> method.
+		 * @param component the target component
+		 * @return the new observable
 		 */
 		public static ObservableAdjustmentListener register(Object component) {
+			return new ObservableAdjustmentListener().registerWith(component);
+		}
+		/**
+		 * Convenience method to register this observable with the target component which must have a public <code>addAdjustmentListener(AdjustmentListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableAdjustmentListener registerWith(Object component) {
 			if (component == null) {
 				throw new IllegalArgumentException("component is null");
 			}
+			if (component instanceof Adjustable) {
+				((Adjustable)component).addAdjustmentListener(this);
+				return this;
+			}
 			try {
 				Method m = component.getClass().getMethod("addAdjustmentListener", AdjustmentListener.class);
-				ObservableAdjustmentListener o = new ObservableAdjustmentListener();
-				m.invoke(component, o);
-				return o;
+				m.invoke(component, this);
 			} catch (NoSuchMethodException ex) {
 				throw new IllegalArgumentException(ex);
 			} catch (IllegalAccessException ex) {
@@ -298,6 +420,32 @@ public final class SwingObservables {
 			} catch (InvocationTargetException ex) {
 				throw new IllegalArgumentException(ex);
 			}
+			return this;
+		}
+		/**
+		 * Convenience method to unregister this observable from the target component which must have a public <code>removeAdjustmentListener(AdjustmentListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableAdjustmentListener unregisterFrom(Object component) {
+			if (component == null) {
+				throw new IllegalArgumentException("component is null");
+			}
+			if (component instanceof Adjustable) {
+				((Adjustable)component).removeAdjustmentListener(this);
+				return this;
+			}
+			try {
+				Method m = component.getClass().getMethod("removeAdjustmentListener", AdjustmentListener.class);
+				m.invoke(component, this);
+			} catch (NoSuchMethodException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (IllegalAccessException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (InvocationTargetException ex) {
+				throw new IllegalArgumentException(ex);
+			}
+			return this;
 		}
 	}
 	/**
@@ -323,21 +471,27 @@ public final class SwingObservables {
 			next(e);
 		}
 		/**
-		 * Convenience method to register an action listener on an object which should have an <code>addAdjustmentListener()</code>
+		 * Convenience method to register an action listener on an object which should have an <code>addKeyListener()</code>
 		 * public method. It uses reflection to detemine the method's existence. Throws IllegalArgumentException if the
 		 * component is null or does not have the required method.
 		 * @param component the target component.
 		 * @return the observable action listener
 		 */
 		public static ObservableKeyListener register(Object component) {
+			return new ObservableKeyListener().registerWith(component);
+		}
+		/**
+		 * Convenience method to register this observable with the target component which must have a public <code>addKeyListener(KeyListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableKeyListener registerWith(Object component) {
 			if (component == null) {
 				throw new IllegalArgumentException("component is null");
 			}
 			try {
 				Method m = component.getClass().getMethod("addKeyListener", KeyListener.class);
-				ObservableKeyListener o = new ObservableKeyListener();
-				m.invoke(component, o);
-				return o;
+				m.invoke(component, this);
 			} catch (NoSuchMethodException ex) {
 				throw new IllegalArgumentException(ex);
 			} catch (IllegalAccessException ex) {
@@ -345,12 +499,36 @@ public final class SwingObservables {
 			} catch (InvocationTargetException ex) {
 				throw new IllegalArgumentException(ex);
 			}
+			return this;
+		}
+		/**
+		 * Convenience method to unregister this observable from the target component which must have a public <code>removeKeyListener(KeyListener)</code> method. 
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableKeyListener unregisterFrom(Object component) {
+			if (component == null) {
+				throw new IllegalArgumentException("component is null");
+			}
+			try {
+				Method m = component.getClass().getMethod("removeKeyListener", KeyListener.class);
+				m.invoke(component, this);
+			} catch (NoSuchMethodException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (IllegalAccessException ex) {
+				throw new IllegalArgumentException(ex);
+			} catch (InvocationTargetException ex) {
+				throw new IllegalArgumentException(ex);
+			}
+			return this;
 		}
 	}
 	/**
-	 * The observable key listener which relays all mouse related events (movement, clicks) to next().
+	 * The observable mouse listener which relays all mouse related events (movement, clicks, wheel) to next().
 	 * events and relays it to next(). The original type can be determined by using <code>MouseEvent.getID()</code>
 	 * which can be one of the following value: 
+	 * <ul>
+	 * <li>MouseListener events
 	 * <ul>
 	 * <li><code>MouseEvent.MOUSE_CLICKED</code></li>
 	 * <li><code>MouseEvent.MOUSE_PRESSED</code></li>
@@ -358,10 +536,23 @@ public final class SwingObservables {
 	 * <li><code>MouseEvent.MOUSE_ENTERED</code></li>
 	 * <li><code>MouseEvent.MOUSE_EXITED</code></li>
 	 * </ul>
+	 * </li>
+	 * <li>MouseMotionListener events
+	 * <ul>
+	 * <li><code>MouseEvent.MOUSE_MOVED</code></li>
+	 * <li><code>MouseEvent.MOUSE_DRAGGED</code></li>
+	 * </ul>
+	 * </li>
+	 * <li>MouseWheelListener events
+	 * <ul>
+	 * <li><code>MouseEvent.MOUSE_WHEEL</code></li>
+	 * </ul>
+	 * </li>
+	 * </ul>
 	 * This observable never signals finish() or error().
 	 * @author akarnokd, 2011.02.01.
 	 */
-	public static class ObservableMouseListener extends DefaultObservable<MouseEvent> implements MouseListener {
+	public static class ObservableMouseListener extends DefaultObservable<MouseEvent> implements MouseListener, MouseMotionListener, MouseWheelListener {
 		@Override
 		public void mouseClicked(MouseEvent e) {
 			next(e);
@@ -385,6 +576,60 @@ public final class SwingObservables {
 		@Override
 		public void mouseExited(MouseEvent e) {
 			next(e);
+		}
+
+		@Override
+		public void mouseWheelMoved(MouseWheelEvent e) {
+			next(e);
+		}
+
+		@Override
+		public void mouseDragged(MouseEvent e) {
+			next(e);
+		}
+
+		@Override
+		public void mouseMoved(MouseEvent e) {
+			next(e);
+		}
+		/**
+		 * Convenience method to register an observer on the component for all mouse event types.
+		 * To unregister, use the <code>Component.removeMouseListener()</code>, <code>Component.removeMouseMotionListener()</code> and
+		 * <code>Component.removeMouseWheelListener()</code> methods. 
+		 * @param component the target component.
+		 * @return the new observable
+		 */
+		public static ObservableMouseListener register(Component component) {
+			return new ObservableMouseListener().registerWith(component);
+		}
+		/**
+		 * Convenience method to register this observer with the target component for all mouse event types.
+		 * To deregister this observable, use the <code>unregisterFrom()</code>.
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableMouseListener registerWith(Component component) {
+			if (component == null) {
+				throw new IllegalArgumentException("component is null");
+			}
+			component.addMouseListener(this);
+			component.addMouseMotionListener(this);
+			component.addMouseWheelListener(this);
+			return this;
+		}
+		/**
+		 * Unregister all mouse events from the given component.
+		 * @param component the target component
+		 * @return this
+		 */
+		public ObservableMouseListener unregisterFrom(Component component) {
+			if (component == null) {
+				throw new IllegalArgumentException("component is null");
+			}
+			component.removeMouseListener(this);
+			component.removeMouseMotionListener(this);
+			component.removeMouseWheelListener(this);
+			return this;
 		}
 	}
 }
