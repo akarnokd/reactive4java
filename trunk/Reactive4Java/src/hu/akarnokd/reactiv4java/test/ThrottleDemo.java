@@ -88,7 +88,7 @@ public class ThrottleDemo extends JFrame {
 		ObservableDocumentListener dl = ObservableDocumentListener.register(textField.getDocument()); 
 //		dl.register(Observables.println("DL: "));
 		
-		Observable<String> extract = Observables.transform(dl, new Func1<String, DocumentEvent>() {
+		Observable<String> extract = Observables.select(dl, new Func1<String, DocumentEvent>() {
 			@Override
 			public String invoke(DocumentEvent param1) {
 				return textField.getText();

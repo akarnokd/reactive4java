@@ -52,7 +52,7 @@ public final class Test3 {
 		
 		Observable<GroupedObservable<Integer, Integer>> groups = Observables.groupBy(
 				
-				Observables.transform(Observables.concat(tss, tss), Functions.<Integer>unwrapTimestamped())
+				Observables.select(Observables.concat(tss, tss), Functions.<Integer>unwrapTimestamped())
 				, Functions.<Integer>identity())
 				;
 		

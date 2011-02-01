@@ -543,6 +543,19 @@ public final class Functions {
 		};
 	}
 	/**
+	 * A convenience function which unwraps the T from a TimeInterval of T.
+	 * @param <T> the value type
+	 * @return the unwrapper function
+	 */
+	public static <T> Func1<T, TimeInterval<T>> unwrapTimeInterval() {
+		return new Func1<T, TimeInterval<T>>() {
+			@Override
+			public T invoke(TimeInterval<T> param1) {
+				return param1.value();
+			}
+		};
+	}
+	/**
 	 * Wrap the given type into a timestamped container of T.
 	 * @param <T> the type of the contained element
 	 * @return the function performing the wrapping
