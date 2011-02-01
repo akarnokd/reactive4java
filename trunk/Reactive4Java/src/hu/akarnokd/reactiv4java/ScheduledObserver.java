@@ -126,7 +126,7 @@ public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Clo
 	 * without affecting the scheduler part's registration.
 	 * If you need to deregister both, use the close() method instead.
 	 */
-	public void unregister() {
+	protected void unregister() {
 		replace((Closeable)null);
 	}
 	/**
@@ -134,7 +134,7 @@ public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Clo
 	 * the observable registration.
 	 * If you need to deregister both, use the close() method instead.
 	 */
-	public void cancel() {
+	protected void cancel() {
 		replace((Future<?>)null);
 	}
 	/** @return the convenience method for Thread.currentThread().isInterrupted(). */
@@ -143,26 +143,95 @@ public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Clo
 	}
 	@Override
 	public void close() {
+		cancel();
+		unregister();
 		lock();
 		try {
 			live.set(false);
 		} finally {
 			unlock();
 		}
-		cancel();
-		unregister();
 	}
 	/** @return the liveness status. */
-	public boolean alive() {
+	private boolean alive() {
 		return live.get();
 	}
 	/** Lock. */
-	protected void lock() {
+	private void lock() {
 		lock.lock();
 	}
 	/** Unlock. */
-	protected void unlock() {
+	private void unlock() {
 		lock.unlock();
 	}
-	
+	@Override
+	public final void run() {
+		lock();
+		try {
+			if (alive()) {
+				serializedRun();
+			}
+		} finally {
+			unlock();
+		}
+	}
+	@Override
+	public final void next(T value) {
+		lock();
+		try {
+			if (alive()) {
+				serializedNext(value);
+			}
+		} finally {
+			unlock();
+		}
+	}
+	@Override
+	public final void error(Throwable t) {
+		lock();
+		try {
+			if (alive()) {
+				serializedError(t);
+			}
+		} finally {
+			unlock();
+		}
+	}
+	@Override
+	public final void finish() {
+		lock();
+		try {
+			if (alive()) {
+				serializedFinish();
+			}
+		} finally {
+			unlock();
+		}
+	}
+	/** 
+	 * Override this method to implement the run() semantics. This
+	 * method is guaranteed to be executed in exclusive mode and
+	 * only when this observer is alive.
+	 */
+	protected abstract void serializedRun();
+	/**
+	 * Override this method to implement the next() semantics. This
+	 * method is guaranteed to be executed in exclusive mode and
+	 * only when this observer is alive.
+	 * @param value the received value
+	 */
+	protected abstract void serializedNext(T value);
+	/**
+	 * Override this method to implement the error() semantics. This
+	 * method is guaranteed to be executed in exclusive mode and
+	 * only when this observer is alive.
+	 * @param ex the received exception
+	 */
+	protected abstract void serializedError(Throwable ex);
+	/**
+	 * Override this method to implement the finish() semantics. This
+	 * method is guaranteed to be executed in exclusive mode and
+	 * only when this observer is alive.
+	 */
+	protected abstract void serializedFinish();
 }

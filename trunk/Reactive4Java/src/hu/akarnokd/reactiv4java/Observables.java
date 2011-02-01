@@ -425,7 +425,7 @@ public final class Observables {
 						/** We won the race. */
 						boolean weWon;
 						@Override
-						public void error(Throwable ex) {
+						public void serializedError(Throwable ex) {
 							if (!weWon) {
 								if (first.compareAndSet(null, os)) {
 									weWon = true;
@@ -438,7 +438,7 @@ public final class Observables {
 							}
 						}
 						@Override
-						public void finish() {
+						public void serializedFinish() {
 							if (!weWon) {
 								if (first.compareAndSet(null, os)) {
 									weWon = true;
@@ -451,7 +451,7 @@ public final class Observables {
 							}
 						}
 						@Override
-						public void next(T value) {
+						public void serializedNext(T value) {
 							if (!weWon) {
 								if (first.compareAndSet(null, os)) {
 									weWon = true;
@@ -495,45 +495,24 @@ public final class Observables {
 			public Closeable register(final Observer<? super Boolean> observer) {
 				DefaultObserver<T> obs = new DefaultObserver<T>() {
 					@Override
-					public void error(Throwable ex) {
-						lock();
-						try {
-							if (alive()) {
-								observer.error(ex);
-								close();
-							}
-						} finally {
-							unlock();
-						}
+					public void serializedError(Throwable ex) {
+						observer.error(ex);
+						close();
 					}
 
 					@Override
-					public void finish() {
-						lock();
-						try {
-							if (alive()) {
-								observer.next(false);
-								observer.finish();
-								close();
-							}
-						} finally {
-							unlock();
-						}
+					public void serializedFinish() {
+						observer.next(false);
+						observer.finish();
+						close();
 					}
 
 					@Override
-					public void next(T value) {
-						lock();
-						try {
-							if (alive()) {
-								if (predicate.invoke(value)) {
-									observer.next(true);
-									observer.finish();
-									close();
-								}
-							}
-						} finally {
-							unlock();
+					public void serializedNext(T value) {
+						if (predicate.invoke(value)) {
+							observer.next(true);
+							observer.finish();
+							close();
 						}
 					}
 					
@@ -5628,49 +5607,69 @@ public final class Observables {
 				final LinkedBlockingQueue<V> queueV = new LinkedBlockingQueue<V>();
 				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
 				final AtomicInteger wip = new AtomicInteger(2);
+				final Lock lockBoth = new ReentrantLock(true);
 				final DefaultObserver<U> oU = new DefaultObserver<U>() {
 					@Override
 					public void error(Throwable ex) {
-						lock();
+						lockBoth.lock();
 						try {
-							if (alive()) { 
-								observer.error(ex);
-								try { closeBoth.get().close(); } catch (IOException exc) { }
+							lock();
+							try {
+								if (alive()) { 
+									observer.error(ex);
+									try { closeBoth.get().close(); } catch (IOException exc) { }
+								}
+							} finally {
+								unlock();
 							}
 						} finally {
-							unlock();
+							lockBoth.unlock();
 						}
 					}
 
 					@Override
 					public void finish() {
-						lock();
+						lockBoth.lock();
 						try {
-							if (wip.decrementAndGet() == 0) {
-								observer.finish();
-								try { closeBoth.get().close(); } catch (IOException ex) { }
+							lock();
+							try {
+								if (alive()) {
+									if (wip.decrementAndGet() == 0) {
+										observer.finish();
+										try { closeBoth.get().close(); } catch (IOException ex) { }
+									}
+								}
+							} finally {
+								unlock();
 							}
 						} finally {
-							unlock();
+							lockBoth.unlock();
 						}
 					}
-
+					
 					@Override
 					public void next(U u) {
-						lock();
+						lockBoth.lock();
 						try {
-							V v = queueV.poll();
-							if (v != null) {
-								observer.next(selector.invoke(u, v));
-							} else {
-								if (wip.get() == 2) {
-									queueU.add(u);
-								} else {
-									this.finish();
+							lock();
+							try {
+								if (alive()) {
+									V v = queueV.poll();
+									if (v != null) {
+										observer.next(selector.invoke(u, v));
+									} else {
+										if (wip.get() == 2) {
+											queueU.add(u);
+										} else {
+											this.finish();
+										}
+									}
 								}
+							} finally {
+								unlock();
 							}
 						} finally {
-							unlock();
+							lockBoth.unlock();
 						}
 					}
 					
@@ -5679,46 +5678,50 @@ public final class Observables {
 
 					@Override
 					public void error(Throwable ex) {
-						lock();
+						lockBoth.lock();
 						try {
 							if (alive()) { 
 								observer.error(ex);
 								try { closeBoth.get().close(); } catch (IOException exc) { }
 							}
 						} finally {
-							unlock();
+							lockBoth.unlock();
 						}
 					}
 
 					@Override
 					public void finish() {
-						lock();
+						lockBoth.lock();
 						try {
-							if (wip.decrementAndGet() == 0) {
-								observer.finish();
-								try { closeBoth.get().close(); } catch (IOException ex) { }
+							if (alive()) {
+								if (wip.decrementAndGet() == 0) {
+									observer.finish();
+									try { closeBoth.get().close(); } catch (IOException ex) { }
+								}
 							}
 						} finally {
-							unlock();
+							lockBoth.unlock();
 						}
 					}
 
 					@Override
 					public void next(V v) {
-						lock();
+						lockBoth.lock();
 						try {
-							U u = queueU.poll();
-							if (u != null) {
-								observer.next(selector.invoke(u, v));
-							} else {
-								if (wip.get() == 2) {
-									queueV.add(v);
+							if (alive()) { 
+								U u = queueU.poll();
+								if (u != null) {
+									observer.next(selector.invoke(u, v));
 								} else {
-									this.finish();
+									if (wip.get() == 2) {
+										queueV.add(v);
+									} else {
+										this.finish();
+									}
 								}
 							}
 						} finally {
-							unlock();
+							lockBoth.unlock();
 						}
 					}
 					

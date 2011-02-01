@@ -23,15 +23,15 @@ package hu.akarnokd.reactiv4java;
  */
 public abstract class DefaultSchedulable extends ScheduledObserver<Void> {
 	@Override
-	public final void error(Throwable ex) {
+	protected final void serializedError(Throwable ex) {
 		// not used
 	}
 	@Override
-	public final void finish() {
+	protected final void serializedFinish() {
 		// not used
 	}
 	@Override
-	public final void next(Void value) {
+	protected final void serializedNext(Void value) {
 		// not used
 	}
 }
