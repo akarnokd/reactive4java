@@ -4640,20 +4640,21 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				final AtomicBoolean gate = new AtomicBoolean(true);
-				UObserver<U> signal = new UObserver<U>() {
+				final UObserver<U> signal = new UObserver<U>() {
 					@Override
 					public void next(U value) {
 						gate.set(false);
+						unregister();
 					}
 
 					@Override
 					public void error(Throwable ex) {
-						
+						unregister();
 					}
 
 					@Override
 					public void finish() {
-						
+						unregister();
 					}
 					
 				};
@@ -4671,6 +4672,7 @@ public final class Observables {
 					public void error(Throwable ex) {
 						if (gate.get()) {
 							observer.error(ex);
+							signal.unregister();
 						}
 					}
 
@@ -4678,11 +4680,13 @@ public final class Observables {
 					public void finish() {
 						if (gate.get()) {
 							observer.finish();
+							signal.unregister();
 						}
 					}
 					
 				};
 				obs.registerWith(source);
+				signal.registerWith(signaller);
 				return close(obs, signal);
 			}
 		};
