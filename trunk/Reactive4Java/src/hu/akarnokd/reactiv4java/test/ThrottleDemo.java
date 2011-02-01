@@ -94,6 +94,7 @@ public class ThrottleDemo extends JFrame {
 				return textField.getText();
 			}
 		});
+		extract.register(Observables.println("EXTRACT: "));
 
 		Observable<String> distinct = Observables.distinct(extract);
 		distinct.register(Observables.println("DISTINCT: "));

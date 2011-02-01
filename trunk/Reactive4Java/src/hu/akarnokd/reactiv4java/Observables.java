@@ -1755,7 +1755,7 @@ public final class Observables {
 	 * @param clause the filter clause, the first parameter receives the current index, the second receives the current element
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> filter(final Observable<T> source, 
+	public static <T> Observable<T> where(final Observable<T> source, 
 			final Func2<Boolean, Integer, T> clause) {
 		return new Observable<T>() {
 			@Override
@@ -4643,12 +4643,17 @@ public final class Observables {
 				final UObserver<U> signal = new UObserver<U>() {
 					@Override
 					public void next(U value) {
-						gate.set(false);
+						if (gate.compareAndSet(true, false)) {
+							observer.finish();
+						}
 						unregister();
 					}
 
 					@Override
 					public void error(Throwable ex) {
+						if (gate.compareAndSet(true, false)) {
+							observer.error(ex);
+						}
 						unregister();
 					}
 
@@ -4663,14 +4668,12 @@ public final class Observables {
 					public void next(T value) {
 						if (gate.get()) {
 							observer.next(value);
-						} else {
-							observer.finish();
 						}
 					}
 
 					@Override
 					public void error(Throwable ex) {
-						if (gate.get()) {
+						if (gate.compareAndSet(true, false)) {
 							observer.error(ex);
 							signal.unregister();
 						}
@@ -4678,7 +4681,7 @@ public final class Observables {
 
 					@Override
 					public void finish() {
-						if (gate.get()) {
+						if (gate.compareAndSet(true, false)) {
 							observer.finish();
 							signal.unregister();
 						}
@@ -5145,7 +5148,7 @@ public final class Observables {
 	 * @param selector the selector taking an index and the current T
 	 * @return the transformed observable
 	 */
-	public static <T, U> Observable<U> transform(final Observable<T> source, final Func2<U, Integer, T> selector) {
+	public static <T, U> Observable<U> select(final Observable<T> source, final Func2<U, Integer, T> selector) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
@@ -5180,7 +5183,7 @@ public final class Observables {
 	 * @param selector the selector to return an Iterable of Us 
 	 * @return the 
 	 */
-	public static <T, U> Observable<U> transformIterable(final Observable<T> source, 
+	public static <T, U> Observable<U> selectManyIterable(final Observable<T> source, 
 			final Func1<Iterable<U>, T> selector) {
 		return new Observable<U>() {
 			@Override
@@ -5219,9 +5222,9 @@ public final class Observables {
 	 * @param selector the selector to return an Iterable of Us 
 	 * @return the 
 	 */
-	public static <T, U> Observable<U> transformObservable(final Observable<T> source, 
+	public static <T, U> Observable<U> selectMany(final Observable<T> source, 
 			final Func1<Observable<U>, T> selector) {
-		return transformObservable(source, selector, new Func2<U, T, U>() {
+		return selectMany(source, selector, new Func2<U, T, U>() {
 			@Override
 			public U invoke(T param1, U param2) {
 				return param2;
@@ -5240,22 +5243,29 @@ public final class Observables {
 	 * @param resultSelector the selector which gives an U for a T and V
 	 * @return the observable of Us
 	 */
-	public static <T, U, V> Observable<U> transformObservable(final Observable<T> source, 
+	public static <T, U, V> Observable<U> selectMany(final Observable<T> source, 
 			final Func1<Observable<V>, T> collectionSelector, final Func2<U, T, V> resultSelector) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
-				final AtomicInteger wip = new AtomicInteger();
+				final AtomicInteger wip = new AtomicInteger(1);
+				final AtomicBoolean failed = new AtomicBoolean();
 				return source.register(new Observer<T>() {
 
 					@Override
 					public void error(Throwable ex) {
-						observer.error(ex);
+						if (failed.compareAndSet(false, true)) {
+							observer.error(ex);
+						} else {
+							wip.decrementAndGet();
+						}
 					}
 
 					@Override
 					public void finish() {
-						//observer.finish();
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+						}
 					}
 
 					@Override
@@ -5265,7 +5275,11 @@ public final class Observables {
 							@Override
 							public void error(Throwable ex) {
 								unregister();
-								wip.decrementAndGet();
+								if (failed.compareAndSet(false, true)) {
+									observer.error(ex);
+								} else {
+									wip.decrementAndGet();
+								}
 							}
 
 							@Override
@@ -5278,7 +5292,9 @@ public final class Observables {
 
 							@Override
 							public void next(V x) {
-								observer.next(resultSelector.invoke(value, x));
+								if (!failed.get()) {
+									observer.next(resultSelector.invoke(value, x));
+								}
 							}
 							
 						};
@@ -5300,8 +5316,8 @@ public final class Observables {
 	 * @param provider the source of Us
 	 * @return the observable for Us
 	 */
-	public static <T, U> Observable<U> transformObservable(Observable<T> source, Observable<U> provider) {
-		return transformObservable(source, Functions.<Observable<U>, T>constant(provider));
+	public static <T, U> Observable<U> selectMany(Observable<T> source, Observable<U> provider) {
+		return selectMany(source, Functions.<Observable<U>, T>constant(provider));
 	}
 	/**
 	 * Filters objects from source which are assignment compatible with T.
