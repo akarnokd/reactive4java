@@ -101,10 +101,10 @@ public class ThrottleDemo extends JFrame {
 		Observable<String> throttle = Observables.throttle(distinct, 500, TimeUnit.MILLISECONDS);
 		throttle.register(Observables.println("THROTTLE: "));
 		
-		Observable<String> takeuntil = Observables.takeUntil(throttle, dl);
-		takeuntil.register(Observables.println("TAKEUNTIL: "));
+//		Observable<String> takeuntil = Observables.takeUntil(throttle, dl);
+//		takeuntil.register(Observables.println("TAKEUNTIL: "));
 		
-		Observable<String> result = Observables.observeOnEdt(takeuntil);
+		Observable<String> result = Observables.observeOnEdt(throttle);
 		result.register(Observables.println("RESULT: "));
 			
 		result.register(Observables.asObserver(new Action1<String>() {
