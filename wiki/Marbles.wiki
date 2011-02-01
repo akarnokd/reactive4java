@@ -247,3 +247,8 @@ http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/finish_
 == removeTimestamped ==
 
 {{{Observable<T> ys = removeTimestamped(Observable<Timestamped<T>> xs);}}}
+
+Unwraps the Ts from the timestamped value.
+
+
+http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/marbles/remove_timestamped_xs.png
