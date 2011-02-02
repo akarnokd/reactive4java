@@ -124,7 +124,7 @@ public abstract class DefaultRunnableObserver<T> implements RunnableClosableObse
 	 * that registration is unregistered.
 	 * @param observable the target observable
 	 */
-	public void registerWith(Observable<T> observable) {
+	public void registerWith(Observable<? extends T> observable) {
 		replace(observable.register(this)); // FIXME assignment delay???
 	}
 	/**
@@ -151,23 +151,5 @@ public abstract class DefaultRunnableObserver<T> implements RunnableClosableObse
 	public void close() {
 		cancel();
 		unregister();
-//		lock();
-//		try {
-//			live.set(false);
-//		} finally {
-//			unlock();
-//		}
 	}
-//	/** @return the liveness status. */
-//	public boolean alive() {
-//		return live.get();
-//	}
-//	/** Lock. */
-//	protected void lock() {
-//		lock.lock();
-//	}
-//	/** Unlock. */
-//	protected void unlock() {
-//		lock.unlock();
-//	}
 }

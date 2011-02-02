@@ -428,6 +428,14 @@ public final class Observables {
 					DefaultObserver<T> obs = new DefaultObserver<T>() {
 						/** We won the race. */
 						boolean weWon;
+						/** Cancel everyone else. */
+						void cancelRest() {
+							for (int i = 0; i < observers.size(); i++) {
+								if (i != thisIndex) {
+									observers.get(i).close();
+								}
+							}
+						}
 						/** @return Check if we won the race. */
 						boolean didWeWon() {
 							if (!weWon) {
@@ -439,14 +447,6 @@ public final class Observables {
 								}
 							}
 							return weWon;
-						}
-						/** Cancel everyone else. */
-						void cancelRest() {
-							for (int i = 0; i < observers.size(); i++) {
-								if (i != thisIndex) {
-									observers.get(i).close();
-								}
-							}
 						}
 						@Override
 						public void error(Throwable ex) {
@@ -1011,18 +1011,10 @@ public final class Observables {
 				
 				DefaultRunnableObserver<T> s = new DefaultRunnableObserver<T>() {
 					@Override
-					public void run() {
-						List<T> curr = new ArrayList<T>();
-						buffer.drainTo(curr);
-						bufferLength.addAndGet(-curr.size());
-						observer.next(curr);
-					}
-					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
 						close();
 					}
-
 					@Override
 					public void finish() {
 						List<T> curr = new ArrayList<T>();
@@ -1042,6 +1034,14 @@ public final class Observables {
 							bufferLength.addAndGet(-curr.size());
 							observer.next(curr);
 						}
+					}
+
+					@Override
+					public void run() {
+						List<T> curr = new ArrayList<T>();
+						buffer.drainTo(curr);
+						bufferLength.addAndGet(-curr.size());
+						observer.next(curr);
 					}
 				};
 				s.registerWith(source);
@@ -1119,25 +1119,6 @@ public final class Observables {
 		};
 	}
 	/**
-	 * Repeat the source observable count times. Basically it creates
-	 * a list of observables, all the source instance and applies
-	 * the concat() operator on it.
-	 * @param <T> the element type
-	 * @param source the source observable
-	 * @param count the number of times to repeat
-	 * @return the new observable
-	 */
-	public static <T> Observable<T> repeat(Observable<T> source, int count) {
-		if (count > 0) {
-			List<Observable<T>> srcs = new ArrayList<Observable<T>>(count);
-			for (int i = 0; i < count; i++) {
-				srcs.add(source);
-			}
-			return concat(srcs);
-		}
-		return empty();
-	}
-	/**
 	 * Wraps two or more closeables into one closeable.
 	 * <code>IOException</code>s thrown from the closeables are suppressed.
 	 * @param c0 the first closeable
@@ -1169,71 +1150,71 @@ public final class Observables {
 			}
 		};
 	}
-/**
-	 * Creates a composite closeable from the array of closeables.
-	 * <code>IOException</code>s thrown from the closeables are suppressed.
-	 * @param closeables the closeables array
-	 * @return the composite closeable
-	 */
-	static Closeable close(final Iterable<? extends Closeable> closeables) {
-		return new Closeable() {
-			@Override
-			public void close() throws IOException {
-				for (Closeable c : closeables) {
-					try {
-						c.close();
-					} catch (IOException ex) {
-						
+	/**
+		 * Creates a composite closeable from the array of closeables.
+		 * <code>IOException</code>s thrown from the closeables are suppressed.
+		 * @param closeables the closeables array
+		 * @return the composite closeable
+		 */
+		static Closeable close(final Iterable<? extends Closeable> closeables) {
+			return new Closeable() {
+				@Override
+				public void close() throws IOException {
+					for (Closeable c : closeables) {
+						try {
+							c.close();
+						} catch (IOException ex) {
+							
+						}
 					}
 				}
-			}
-		};
-	}
-	/**
-	 * Concatenates the source observables in a way that when the first finish(), the
-	 * second gets registered and continued, and so on.
-	 * FIXME not sure how it should handle closability
-	 * @param <T> the type of the values to observe
-	 * @param sources the source list of subsequent observables
-	 * @return the concatenated observable
-	 */
-	public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				final Iterator<Observable<T>> it = sources.iterator();
-				if (it.hasNext()) {
-					DefaultObserver<T> obs = new DefaultObserver<T>() {
-						@Override
-						public void error(Throwable ex) {
-							observer.error(ex);
+			};
+		}
+/**
+ * Concatenates the source observables in a way that when the first finish(), the
+ * second gets registered and continued, and so on.
+ * FIXME not sure how it should handle closability
+ * @param <T> the type of the values to observe
+ * @param sources the source list of subsequent observables
+ * @return the concatenated observable
+ */
+public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
+	return new Observable<T>() {
+		@Override
+		public Closeable register(final Observer<? super T> observer) {
+			final Iterator<Observable<T>> it = sources.iterator();
+			if (it.hasNext()) {
+				DefaultObserver<T> obs = new DefaultObserver<T>() {
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+						close();
+					}
+
+					@Override
+					public void finish() {
+						if (it.hasNext()) {
+							unregister();
+							registerWith(it.next());
+						} else {
+							observer.finish();
 							close();
 						}
+					}
 
-						@Override
-						public void finish() {
-							if (it.hasNext()) {
-								unregister();
-								registerWith(it.next());
-							} else {
-								observer.finish();
-								close();
-							}
-						}
-
-						@Override
-						public void next(T value) {
-							observer.next(value);
-						}
-						
-					};
-					obs.registerWith(it.next());
-					return obs;
-				}
-				return Observables.<T>empty().register(observer);
+					@Override
+					public void next(T value) {
+						observer.next(value);
+					}
+					
+				};
+				obs.registerWith(it.next());
+				return obs;
 			}
-		};
-	}
+			return Observables.<T>empty().register(observer);
+		}
+	};
+}
 	/**
 	 * Concatenate two observables in a way when the first finish() the second is registered
 	 * and continued with.
@@ -2202,6 +2183,90 @@ public final class Observables {
 		};
 	}
 	/**
+	 * Invoke the given callable on the default pool and observe its result via the returned observable.
+	 * Any exception thrown by the callable is relayed via the error() message.
+	 * @param <T> the return type
+	 * @param call the callable
+	 * @return the observable
+	 */
+	public static <T> Observable<T> invokeAsync(final Callable<? extends T> call) {
+		return invokeAsync(call, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Invoke the given callable on the given pool and observe its result via the returned observable.
+	 * Any exception thrown by the callable is relayed via the error() message.
+	 * @param <T> the return type
+	 * @param call the callable
+	 * @param pool the thread pool
+	 * @return the observable
+	 */
+	public static <T> Observable<T> invokeAsync(final Callable<? extends T> call, final ExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final Future<?> f = pool.submit(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							observer.next(call.call());
+							observer.finish();
+						} catch (Throwable ex) {
+							observer.error(ex);
+						}
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() throws IOException {
+						f.cancel(true);
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Invoke the given callable on the given pool and observe its result via the returned observable.
+	 * Any exception thrown by the callable is relayed via the error() message.
+	 * @param <T> the return type
+	 * @param run the runnable
+	 * @return the observable
+	 */
+	public static <T> Observable<T> invokeAsync(final Runnable run) {
+		return invokeAsync(run, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Invoke the given callable on the given pool and observe its result via the returned observable.
+	 * Any exception thrown by the callable is relayed via the error() message.
+	 * @param <T> the return type
+	 * @param run the runnable
+	 * @param pool the thread pool
+	 * @return the observable
+	 */
+	public static <T> Observable<T> invokeAsync(final Runnable run, final ExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final Future<?> f = pool.submit(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							run.run();
+							observer.finish();
+						} catch (Throwable ex) {
+							observer.error(ex);
+						}
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() throws IOException {
+						f.cancel(true);
+					}
+				};
+			}
+		};
+	}
+	/**
 	 * Signals true if the source observable fires finish() without ever firing next().
 	 * This means once the next() is fired, the resulting observer will return early.
 	 * @param source the source observable of any type
@@ -2364,118 +2429,6 @@ public final class Observables {
 				};
 			}
 		};
-	}
-	/**
-	 * Wraps the given observer into a form, which ensures that only one observer or runnable
-	 * method is invoked at the same time and error() and finish() messages disable
-	 * any further message relaying. If you have a class that implements some of these interfaces by itself, assign
-	 * it to each of the parameters.
-	 * @param <T> the element type
-	 * @param observer the observer to wrap
-	 * @param run the runnable to wrap
-	 * @param close the closeable to wrap
-	 * @param lock the lock to use for exclusion.
-	 * @return the new observable
-	 */
-	public static <T> RunnableClosableObserver<T> sequential(final Observer<T> observer, final Runnable run, final Closeable close, final Lock lock) {
-		if (observer == null) {
-			throw new IllegalArgumentException("observer is null");
-		}
-		if (run == null) {
-			throw new IllegalArgumentException("run is null");
-		}
-		if (close == null) {
-			throw new IllegalArgumentException("close is null");
-		}
-		if (lock == null) {
-			throw new IllegalArgumentException("lock is null");
-		}
-		return new RunnableClosableObserver<T>() {
-			/** The aliveness indicator. */
-			private final AtomicBoolean alive = new AtomicBoolean(true);
-			@Override
-			public void next(T value) {
-				lock.lock();
-				try {
-					if (alive.get())  {
-						observer.next(value);
-					}
-				} finally {
-					lock.unlock();
-				}
-			}
-
-			@Override
-			public void error(Throwable ex) {
-				lock.lock();
-				try {
-					if (alive.get())  {
-						observer.error(ex);
-						alive.set(false);
-					}
-				} finally {
-					lock.unlock();
-				}
-			}
-
-			@Override
-			public void finish() {
-				lock.lock();
-				try {
-					if (alive.get())  {
-						observer.finish();
-						alive.set(false);
-					}
-				} finally {
-					lock.unlock();
-				}
-			}
-			@Override
-			public void run() {
-				lock.lock();
-				try {
-					if (alive.get())  {
-						run.run();
-					}
-				} finally {
-					lock.unlock();
-				}
-			}
-			@Override
-			public void close() throws IOException {
-				lock.lock();
-				try {
-					close.close(); // FIXME not sure
-				} finally {
-					alive.set(false);
-					lock.unlock();
-				}
-				
-//				lock.lock();
-//				try {
-//					if (alive.get())  {
-//						try {
-//							close.close(); 
-//						} finally {
-//							alive.set(false);
-//						}
-//					}
-//				} finally {
-//					lock.unlock();
-//				}
-			}
-		};
-	}
-	/**
-	 * Wraps the given observer into a form, which ensures that only one observer
-	 * method is invoked at the same time and error() and finish() messages disable
-	 * any further message relaying. It uses a fair ReentrantLock.
-	 * @param <T> the element type
-	 * @param observer the observer to wrap
-	 * @return the new wrapped observer
-	 */
-	public static <T> Observer<T> sequential(Observer<T> observer) {
-		return sequential(observer, Functions.EMPTY_RUNNABLE, Functions.EMPTY_CLOSEABLE, new ReentrantLock(true));
 	}
 	/**
 	 * Returns the maximum value encountered in the source observable onse it finish().
@@ -2774,7 +2727,7 @@ public final class Observables {
 				});
 			}
 		};
-	}
+	};
 	/**
 	 * Returns the minimum value encountered in the source observable onse it finish().
 	 * @param <T> the element type
@@ -2815,7 +2768,7 @@ public final class Observables {
 				});
 			}
 		};
-	};
+	}
 	/**
 	 * Returns an observable which provides with the list of <code>T</code>s which had their keys as minimums.
 	 * The returned observer may finish() if the source sends finish() without any next().
@@ -3007,7 +2960,7 @@ public final class Observables {
 				return obs;
 			}
 		};
-	}
+	};
 	/**
 	 * Wrap the observable to the Event Dispatch Thread for listening to events.
 	 * @param <T> the value type to observe
@@ -3016,7 +2969,7 @@ public final class Observables {
 	 */
 	public static <T> Observable<T> observeOnEdt(Observable<T> observable) {
 		return observeOn(observable, EDT_EXECUTOR);
-	};
+	}
 	/**
 	 * Creates an observer with debugging purposes. 
 	 * It prints the submitted values to STDOUT separated by commas and line-broken by 80 characters, the exceptions to STDERR
@@ -3489,6 +3442,25 @@ public final class Observables {
 				};
 			}
 		};
+	}
+	/**
+	 * Repeat the source observable count times. Basically it creates
+	 * a list of observables, all the source instance and applies
+	 * the concat() operator on it.
+	 * @param <T> the element type
+	 * @param source the source observable
+	 * @param count the number of times to repeat
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> repeat(Observable<T> source, int count) {
+		if (count > 0) {
+			List<Observable<T>> srcs = new ArrayList<Observable<T>>(count);
+			for (int i = 0; i < count; i++) {
+				srcs.add(source);
+			}
+			return concat(srcs);
+		}
+		return empty();
 	}
 	/**
 	 * Creates an observable which repeates the given value indefinitely
@@ -4198,6 +4170,118 @@ public final class Observables {
 		};
 	}
 	/**
+	 * Wraps the given observer into a form, which ensures that only one observer
+	 * method is invoked at the same time and error() and finish() messages disable
+	 * any further message relaying. It uses a fair ReentrantLock.
+	 * @param <T> the element type
+	 * @param observer the observer to wrap
+	 * @return the new wrapped observer
+	 */
+	public static <T> Observer<T> sequential(Observer<T> observer) {
+		return sequential(observer, Functions.EMPTY_RUNNABLE, Functions.EMPTY_CLOSEABLE, new ReentrantLock(true));
+	}
+	/**
+	 * Wraps the given observer into a form, which ensures that only one observer or runnable
+	 * method is invoked at the same time and error() and finish() messages disable
+	 * any further message relaying. If you have a class that implements some of these interfaces by itself, assign
+	 * it to each of the parameters.
+	 * @param <T> the element type
+	 * @param observer the observer to wrap
+	 * @param run the runnable to wrap
+	 * @param close the closeable to wrap
+	 * @param lock the lock to use for exclusion.
+	 * @return the new observable
+	 */
+	public static <T> RunnableClosableObserver<T> sequential(final Observer<T> observer, final Runnable run, final Closeable close, final Lock lock) {
+		if (observer == null) {
+			throw new IllegalArgumentException("observer is null");
+		}
+		if (run == null) {
+			throw new IllegalArgumentException("run is null");
+		}
+		if (close == null) {
+			throw new IllegalArgumentException("close is null");
+		}
+		if (lock == null) {
+			throw new IllegalArgumentException("lock is null");
+		}
+		return new RunnableClosableObserver<T>() {
+			/** The aliveness indicator. */
+			private final AtomicBoolean alive = new AtomicBoolean(true);
+			@Override
+			public void close() throws IOException {
+				lock.lock();
+				try {
+					close.close(); // FIXME not sure
+				} finally {
+					alive.set(false);
+					lock.unlock();
+				}
+				
+//				lock.lock();
+//				try {
+//					if (alive.get())  {
+//						try {
+//							close.close(); 
+//						} finally {
+//							alive.set(false);
+//						}
+//					}
+//				} finally {
+//					lock.unlock();
+//				}
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				lock.lock();
+				try {
+					if (alive.get())  {
+						observer.error(ex);
+						alive.set(false);
+					}
+				} finally {
+					lock.unlock();
+				}
+			}
+
+			@Override
+			public void finish() {
+				lock.lock();
+				try {
+					if (alive.get())  {
+						observer.finish();
+						alive.set(false);
+					}
+				} finally {
+					lock.unlock();
+				}
+			}
+			@Override
+			public void next(T value) {
+				lock.lock();
+				try {
+					if (alive.get())  {
+						observer.next(value);
+					}
+				} finally {
+					lock.unlock();
+				}
+			}
+			@Override
+			public void run() {
+				lock.lock();
+				try {
+					if (alive.get())  {
+						run.run();
+					}
+				} finally {
+					lock.unlock();
+				}
+			}
+		};
+	}
+	/**
 	 * Returns the single element of the given observable source.
 	 * If the source is empty, a NoSuchElementException is thrown.
 	 * If the source has more than one element, a TooManyElementsException is thrown.
@@ -4832,64 +4916,106 @@ public final class Observables {
 	 * @param signaller the source of Us
 	 * @return the new observable
 	 */
-	public static <T, U> Observable<T> takeUntil(final Observable<T> source, final Observable<U> signaller) {
+	public static <T, U> Observable<T> takeUntil(final Observable<? extends T> source, 
+			final Observable<U> signaller) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final AtomicBoolean gate = new AtomicBoolean(true);
-				final DefaultObserver<U> signal = new DefaultObserver<U>() {
-					@Override
-					public void error(Throwable ex) {
-						if (gate.compareAndSet(true, false)) {
-							observer.error(ex);
-						}
-						unregister();
-					}
+				// FIXME implement correctly?!
+				
+				return source.register(new Observer<T>() {
+					final Lock lock = new ReentrantLock(true);
+					boolean alive = true;
+					final Closeable u = signaller.register(new Observer<U>() {
 
-					@Override
-					public void finish() {
-						unregister();
-					}
+						@Override
+						public void next(U value) {
+							lock.lock();
+							try {
+								if (alive) {
+									observer.finish();
+									alive = false;
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
 
-					@Override
-					public void next(U value) {
-						if (gate.compareAndSet(true, false)) {
-							observer.finish();
+						@Override
+						public void error(Throwable ex) {
+							lock.lock();
+							try {
+								if (alive) {
+									observer.error(ex);
+									alive = false;
+								}
+							} finally {
+								lock.unlock();
+							}
 						}
-						unregister();
-					}
-					
-				};
-				DefaultObserver<T> obs = new DefaultObserver<T>() {
-					@Override
-					public void error(Throwable ex) {
-						if (gate.compareAndSet(true, false)) {
-							observer.error(ex);
-							signal.unregister();
-						}
-					}
 
-					@Override
-					public void finish() {
-						if (gate.compareAndSet(true, false)) {
-							observer.finish();
-							signal.unregister();
+						@Override
+						public void finish() {
+							// no operation
 						}
-					}
+					});
 
 					@Override
 					public void next(T value) {
-						if (gate.get()) {
-							observer.next(value);
+						lock.lock();
+						try {
+							if (alive) {
+								observer.next(value);
+							}
+						} finally {
+							lock.unlock();
 						}
 					}
-					
-				};
-				obs.registerWith(source);
-				signal.registerWith(signaller);
-				return close(obs, signal);
+
+					@Override
+					public void error(Throwable ex) {
+						lock.lock();
+						try {
+							if (alive) {
+								observer.error(ex);
+								alive = false;
+								close(u);
+							}
+						} finally {
+							lock.unlock();
+						}
+					}
+
+					@Override
+					public void finish() {
+						lock.lock();
+						try {
+							if (alive) {
+								observer.finish();
+								alive = false;
+								close(u);
+							}
+						} finally {
+							lock.unlock();
+						}
+					}
+				});
 			}
 		};
+	}
+	/**
+	 * Invoke the <code>close()</code> method on the closeable instance
+	 * and throw away any <code>IOException</code> it might raise.
+	 * @param c the closeable instance, <code>null</code>s are simply ignored
+	 */
+	static void close(Closeable c) {
+		if (c != null) {
+			try {
+				c.close();
+			} catch (IOException ex) {
+				
+			}
+		}
 	}
 	/**
 	 * Creates an observable which takes values from source until
@@ -4899,8 +5025,8 @@ public final class Observables {
 	 * @param predicate the predicate
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> takeWhile(final Observable<T> source, 
-			final Func1<Boolean, T> predicate) {
+	public static <T> Observable<T> takeWhile(final Observable<? extends T> source, 
+			final Func1<Boolean, ? super T> predicate) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -5524,6 +5650,7 @@ public final class Observables {
 				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
 				final AtomicInteger wip = new AtomicInteger(2);
 				final Lock lockBoth = new ReentrantLock(true);
+				
 				final DefaultObserver<U> oU = new DefaultObserver<U>() {
 					@Override
 					public void error(Throwable ex) {
@@ -5622,90 +5749,6 @@ public final class Observables {
 				return c;
 			}
 		};
-	}
-	/**
-	 * Invoke the given callable on the given pool and observe its result via the returned observable.
-	 * Any exception thrown by the callable is relayed via the error() message.
-	 * @param <T> the return type
-	 * @param call the callable
-	 * @param pool the thread pool
-	 * @return the observable
-	 */
-	public static <T> Observable<T> invokeAsync(final Callable<? extends T> call, final ExecutorService pool) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				final Future<?> f = pool.submit(new Runnable() {
-					@Override
-					public void run() {
-						try {
-							observer.next(call.call());
-							observer.finish();
-						} catch (Throwable ex) {
-							observer.error(ex);
-						}
-					}
-				});
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						f.cancel(true);
-					}
-				};
-			}
-		};
-	}
-	/**
-	 * Invoke the given callable on the given pool and observe its result via the returned observable.
-	 * Any exception thrown by the callable is relayed via the error() message.
-	 * @param <T> the return type
-	 * @param run the runnable
-	 * @param pool the thread pool
-	 * @return the observable
-	 */
-	public static <T> Observable<T> invokeAsync(final Runnable run, final ExecutorService pool) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				final Future<?> f = pool.submit(new Runnable() {
-					@Override
-					public void run() {
-						try {
-							run.run();
-							observer.finish();
-						} catch (Throwable ex) {
-							observer.error(ex);
-						}
-					}
-				});
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						f.cancel(true);
-					}
-				};
-			}
-		};
-	}
-	/**
-	 * Invoke the given callable on the default pool and observe its result via the returned observable.
-	 * Any exception thrown by the callable is relayed via the error() message.
-	 * @param <T> the return type
-	 * @param call the callable
-	 * @return the observable
-	 */
-	public static <T> Observable<T> invokeAsync(final Callable<? extends T> call) {
-		return invokeAsync(call, DEFAULT_OBSERVABLE_POOL);
-	}
-	/**
-	 * Invoke the given callable on the given pool and observe its result via the returned observable.
-	 * Any exception thrown by the callable is relayed via the error() message.
-	 * @param <T> the return type
-	 * @param run the runnable
-	 * @return the observable
-	 */
-	public static <T> Observable<T> invokeAsync(final Runnable run) {
-		return invokeAsync(run, DEFAULT_OBSERVABLE_POOL);
 	}
 	/** Utility class. */
 	private Observables() {

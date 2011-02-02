@@ -18,8 +18,6 @@ package hu.akarnokd.reactiv4java;
 
 import java.io.Closeable;
 import java.util.Comparator;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -458,76 +456,6 @@ public final class Functions {
 			public Boolean invoke(T param) {
 				return value != param && (value == null || !value.equals(param));
 			};
-		};
-	}
-	/**
-	 * Creates an integer iterator which returns numbers from the start position in the count size.
-	 * @param start the starting value.
-	 * @param count the number of elements to return, negative count means counting down from the start.
-	 * @return the iterator.
-	 */
-	public static Iterable<Integer> range(final int start, final int count) {
-		return new Iterable<Integer>() {
-			@Override
-			public Iterator<Integer> iterator() {
-				return new Iterator<Integer>() {
-					int current = start;
-					final boolean down = count < 0;
-					@Override
-					public boolean hasNext() {
-						return down ? current > start + count : current < start + count;
-					}
-					@Override
-					public Integer next() {
-						if (hasNext()) {
-							if (down) {
-								return current--;
-							}
-							return current++;
-						}
-						throw new NoSuchElementException();
-					}
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
-		};
-	}
-	/**
-	 * Creates an long iterator which returns numbers from the start position in the count size.
-	 * @param start the starting value.
-	 * @param count the number of elements to return, negative count means counting down from the start.
-	 * @return the iterator.
-	 */
-	public static Iterable<Long> range(final long start, final long count) {
-		return new Iterable<Long>() {
-			@Override
-			public Iterator<Long> iterator() {
-				return new Iterator<Long>() {
-					long current = start;
-					final boolean down = count < 0;
-					@Override
-					public boolean hasNext() {
-						return down ? current > start + count : current < start + count;
-					}
-					@Override
-					public Long next() {
-						if (hasNext()) {
-							if (down) {
-								return current--;
-							}
-							return current++;
-						}
-						throw new NoSuchElementException();
-					}
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
 		};
 	}
 	/**
