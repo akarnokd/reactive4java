@@ -20,7 +20,6 @@ import java.io.Closeable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -37,7 +36,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public final class SingleLaneExecutor<T> implements Closeable {
 	/** The executor pool. */
-	final ExecutorService pool;
+	final Scheduler pool;
 	/** Keeps track of the queue size. */
 	final AtomicInteger wip = new AtomicInteger();
 	/** The queue of items. */
@@ -70,7 +69,7 @@ public final class SingleLaneExecutor<T> implements Closeable {
 	 * @param pool the executor service to use as the pool.
 	 * @param action the action to invoke when processing a queue item
 	 */
-	public SingleLaneExecutor(ExecutorService pool, Action1<? super T> action) {
+	public SingleLaneExecutor(Scheduler pool, Action1<? super T> action) {
 		if (pool == null) {
 			throw new IllegalArgumentException("pool is null");
 		}
@@ -89,7 +88,7 @@ public final class SingleLaneExecutor<T> implements Closeable {
 		if (wip.incrementAndGet() == 1) {
 			FutureTask<Void> f =  new FutureTask<Void>(processor, null);
 			future.set(f);
-			pool.submit(f);
+			pool.schedule(f);
 		}
 	}
 	/**

@@ -39,6 +39,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -58,6 +59,8 @@ public final class SwingObservables {
 	private SwingObservables() {
 		// utility class
 	}
+	/** The common observable pool where the Observer methods get invoked by default. */
+	static final AtomicReference<Scheduler> DEFAULT_EDT_SCHEDULER = new AtomicReference<Scheduler>(new DefaultEdtScheduler());
 	/**
 	 * The observable action listener which relays the actionPerformed() calls to next() calls.
 	 * This observable never signals finish() or error().
@@ -700,5 +703,48 @@ public final class SwingObservables {
 		};
 		
 		return listener.cast(Proxy.newProxyInstance(listener.getClassLoader(), new Class<?>[] { listener }, handler));
+	}
+	/**
+	 * Wrap the observable to the Event Dispatch Thread for listening to events.
+	 * @param <T> the value type to observe
+	 * @param observable the original observable
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> observeOnEdt(Observable<T> observable) {
+		return Observables.observeOn(observable, DEFAULT_EDT_SCHEDULER.get());
+	}
+	/**
+	 * @return the current default pool used by the Observables methods
+	 */
+	public static Scheduler getDefaultEdtScheduler() {
+		return DEFAULT_EDT_SCHEDULER.get();
+	}
+	/**
+	 * Replace the current default scheduler with the specified  new scheduler.
+	 * This method is threadsafe
+	 * @param newScheduler the new scheduler
+	 * @return the current scheduler
+	 */
+	public static Scheduler replaceDefaultEdtScheduler(Scheduler newScheduler) {
+		if (newScheduler == null) {
+			throw new IllegalArgumentException("newScheduler is null");
+		}
+		return DEFAULT_EDT_SCHEDULER.getAndSet(newScheduler);
+	}
+	/**
+	 * Restore the default scheduler back to the <code>DefaultScheduler</code>
+	 * used when this class was initialized.
+	 */
+	public static void restoreDefaultEdtScheduler() {
+		DEFAULT_EDT_SCHEDULER.set(new DefaultEdtScheduler());
+	}
+	/**
+	 * Wrap the observable to the Event Dispatch Thread for subscribing to events.
+	 * @param <T> the value type to observe
+	 * @param observable the original observable
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> subscribeOnEdt(Observable<T> observable) {
+		return Observables.subscribeOn(observable, DEFAULT_EDT_SCHEDULER.get());
 	}
 }

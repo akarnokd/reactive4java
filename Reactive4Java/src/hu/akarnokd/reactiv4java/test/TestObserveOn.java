@@ -17,8 +17,7 @@ package hu.akarnokd.reactiv4java.test;
 
 import hu.akarnokd.reactiv4java.Observable;
 import hu.akarnokd.reactiv4java.Observables;
-
-import java.util.concurrent.ExecutorService;
+import hu.akarnokd.reactiv4java.Scheduler;
 
 /**
  * @author akarnokd, 2011.01.29.
@@ -37,7 +36,7 @@ public final class TestObserveOn {
 	 */
 	public static void main(String[] args) throws Exception {
 		Observable<Integer> xs = Observables.range(0, 10);
-		ExecutorService exec = Observables.getDefaultPool();
+		Scheduler exec = Observables.getDefaultScheduler();
 		Observable<Integer> ys = Observables.observeOn(xs, exec);
 		
 		ys.register(Observables.println());

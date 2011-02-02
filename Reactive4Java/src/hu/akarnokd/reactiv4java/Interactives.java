@@ -436,6 +436,54 @@ public final class Interactives {
 			}
 		};
 	}
+	/**
+	 * Creates an iterable which filters the source iterable with the
+	 * given predicate function. The predicate receives an index
+	 * telling how many elements were processed thus far.
+	 * @param <T> the element type
+	 * @param source the source iterable
+	 * @param predicate the predicate function
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> where(final Iterable<T> source, Func2<Boolean, Integer, T> predicate) {
+		/*
+		 * int i = 0;
+		 * for (T t : source) {
+		 *     if (predicate(i, t) {
+		 *         yield t;
+		 *     }
+		 *     i++;
+		 * }
+		 */
+		
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				final Iterator<T> it = source.iterator();
+				return new Iterator<T>() {
+					/** The current element count. */
+					int count;
+					@Override
+					public boolean hasNext() {
+						// TODO Auto-generated method stub
+						return false;
+					}
+
+					@Override
+					public T next() {
+						// TODO Auto-generated method stub
+						return null;
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+					
+				};
+			}
+		};
+	}
 	/** Utility class. */
 	private Interactives() {
 		// utility class

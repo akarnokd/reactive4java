@@ -19,6 +19,7 @@ import hu.akarnokd.reactiv4java.Action1;
 import hu.akarnokd.reactiv4java.Func1;
 import hu.akarnokd.reactiv4java.Observable;
 import hu.akarnokd.reactiv4java.Observables;
+import hu.akarnokd.reactiv4java.SwingObservables;
 import hu.akarnokd.reactiv4java.SwingObservables.ObservableDocumentListener;
 
 import java.awt.Container;
@@ -105,7 +106,7 @@ public class ThrottleDemo extends JFrame {
 //		Observable<String> takeuntil = Observables.takeUntil(throttle, dl);
 //		takeuntil.register(Observables.println("TAKEUNTIL: "));
 		
-		Observable<String> result = Observables.observeOnEdt(throttle);
+		Observable<String> result = SwingObservables.observeOnEdt(throttle);
 		result.register(Observables.println("RESULT: "));
 			
 		result.register(Observables.asObserver(new Action1<String>() {
