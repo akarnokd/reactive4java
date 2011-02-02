@@ -60,7 +60,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * <li>http://rxwiki.wikidot.com/101samples#toc3</li>
  * </ul>
  * 
- * @author akarnokd
+ * @author akarnokd, 2011.01.26
  *
  */
 public final class Observables {
@@ -99,7 +99,7 @@ public final class Observables {
 		scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
 		scheduler.allowCoreThreadTimeOut(true);
 		
-		/* FIXME
+		/* 
 		 * the setRemoveOnCancelPolicy() was introduced in Java 7 to
 		 * allow the option to remove tasks from work queue if its initial delay hasn't
 		 * elapsed -> therfore, if no other tasks are present, the scheduler might go idle earlier
@@ -293,7 +293,6 @@ public final class Observables {
 	}
 	/**
 	 * Apply an accumulator function over the observable source and submit the accumulated value to the returned observable.
-	 * FIXME not sure about the lack initial value
 	 * @param <T> the element type
 	 * @param source the source observable
 	 * @param accumulator the accumulator function where the first parameter is the current accumulated value and the second is the now received value.
@@ -409,7 +408,6 @@ public final class Observables {
 	/**
 	 * Channels the values of the first observable who fires first from the given set of observables.
 	 * E.g., <code>O3 = Amb(O1, O2)</code> if O1 starts to submit events first, O3 will relay these events and events of O2 will be completely ignored
-	 * FIXME what about closing?   
 	 * @param <T> the type of the observed element
 	 * @param sources the iterable list of source observables.
 	 * @return the observable which reacted first
@@ -418,56 +416,67 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final List<Closeable> disposers = new ArrayList<Closeable>();
-				final AtomicReference<Observable<T>> first = new AtomicReference<Observable<T>>();
+				final List<DefaultObserver<T>> observers = new ArrayList<DefaultObserver<T>>();
+
+				List<Observable<T>> observables = new ArrayList<Observable<T>>();
+				
+				final AtomicReference<Object> first = new AtomicReference<Object>();
+				int i = 0;
 				for (final Observable<T> os : sources) {
+					observables.add(os);
+					final int thisIndex = i;
 					DefaultObserver<T> obs = new DefaultObserver<T>() {
 						/** We won the race. */
 						boolean weWon;
-						@Override
-						public void serializedError(Throwable ex) {
+						/** @return Check if we won the race. */
+						boolean didWeWon() {
 							if (!weWon) {
-								if (first.compareAndSet(null, os)) {
+								if (first.compareAndSet(null, this)) {
 									weWon = true;
-									observer.error(ex);
+									cancelRest();
 								} else {
 									close();
 								}
-							} else {
+							}
+							return weWon;
+						}
+						/** Cancel everyone else. */
+						void cancelRest() {
+							for (int i = 0; i < observers.size(); i++) {
+								if (i != thisIndex) {
+									observers.get(i).close();
+								}
+							}
+						}
+						@Override
+						public void error(Throwable ex) {
+							if (didWeWon()) {
 								observer.error(ex);
 							}
 						}
 						@Override
-						public void serializedFinish() {
-							if (!weWon) {
-								if (first.compareAndSet(null, os)) {
-									weWon = true;
-									observer.finish();
-								} else {
-									close();
-								}
-							} else {
+						public void finish() {
+							if (didWeWon()) {
 								observer.finish();
 							}
 						}
 						@Override
-						public void serializedNext(T value) {
-							if (!weWon) {
-								if (first.compareAndSet(null, os)) {
-									weWon = true;
-									observer.next(value);
-								} else {
-									close();
-								}
-							} else {
+						public void next(T value) {
+							if (didWeWon()) {
 								observer.next(value);
+							} else {
+								close();
 							}
 						};
 					};
-					obs.registerWith(os);
-					disposers.add(obs);
+					observers.add(obs);
 				}
-				return close(disposers);
+				i = 0;
+				for (final Observable<T> os : observables) {
+					observers.get(i).registerWith(os);
+					i++;
+				}
+				return close(observers);
 			}
 		};
 	}
@@ -495,20 +504,20 @@ public final class Observables {
 			public Closeable register(final Observer<? super Boolean> observer) {
 				DefaultObserver<T> obs = new DefaultObserver<T>() {
 					@Override
-					public void serializedError(Throwable ex) {
+					public void error(Throwable ex) {
 						observer.error(ex);
 						close();
 					}
 
 					@Override
-					public void serializedFinish() {
+					public void finish() {
 						observer.next(false);
 						observer.finish();
 						close();
 					}
 
 					@Override
-					public void serializedNext(T value) {
+					public void next(T value) {
 						if (predicate.invoke(value)) {
 							observer.next(true);
 							observer.finish();
@@ -533,7 +542,6 @@ public final class Observables {
 	}
 	/**
 	 * Convert the given observable instance into a classical iterable instance.
-	 * FIXME how to propagte exception values?
 	 * @param <T> the element type to iterate
 	 * @param observable the original observable
 	 * @param pool the pool where to await elements from the observable.
@@ -1004,63 +1012,35 @@ public final class Observables {
 				ScheduledObserver<T> s = new ScheduledObserver<T>() {
 					@Override
 					public void run() {
-						lock();
-						try {
-							if (alive()) {
-								List<T> curr = new ArrayList<T>();
-								buffer.drainTo(curr);
-								bufferLength.addAndGet(-curr.size());
-								observer.next(curr);
-							}
-						} finally {
-							unlock();
-						}
+						List<T> curr = new ArrayList<T>();
+						buffer.drainTo(curr);
+						bufferLength.addAndGet(-curr.size());
+						observer.next(curr);
 					}
 					@Override
 					public void error(Throwable ex) {
-						lock();
-						try {
-							if (alive()) {
-								observer.error(ex);
-								close();
-							}
-						} finally {
-							unlock();
-						}
+						observer.error(ex);
+						close();
 					}
 
 					@Override
 					public void finish() {
-						lock();
-						try {
-							if (alive()) {
-								List<T> curr = new ArrayList<T>();
-								buffer.drainTo(curr);
-								observer.next(curr);
-								observer.finish();
-								close();
-							}
-						} finally {
-							unlock();
-						}
+						List<T> curr = new ArrayList<T>();
+						buffer.drainTo(curr);
+						observer.next(curr);
+						observer.finish();
+						close();
 					}
 
 					/** The buffer to fill in. */
 					@Override
 					public void next(T value) {
-						lock();
-						try {
-							if (alive()) {
-								buffer.add(value);
-								if (bufferLength.incrementAndGet() == bufferSize) {
-									List<T> curr = new ArrayList<T>();
-									buffer.drainTo(curr);
-									bufferLength.addAndGet(-curr.size());
-									observer.next(curr);
-								}
-							}
-						} finally {
-							unlock();
+						buffer.add(value);
+						if (bufferLength.incrementAndGet() == bufferSize) {
+							List<T> curr = new ArrayList<T>();
+							buffer.drainTo(curr);
+							bufferLength.addAndGet(-curr.size());
+							observer.next(curr);
 						}
 					}
 				};
@@ -1107,30 +1087,16 @@ public final class Observables {
 					final BlockingQueue<T> buffer = new LinkedBlockingQueue<T>();
 					@Override
 					public void error(Throwable ex) {
-						lock();
-						try {
-							if (alive()) {
-								observer.error(ex);
-								close();
-							}
-						} finally {
-							unlock();
-						}
+						observer.error(ex);
+						close();
 					}
 					@Override
 					public void finish() {
-						lock(); // avoid races with the timer
-						try {
-							if (alive()) {
-								List<T> curr = new ArrayList<T>();
-								buffer.drainTo(curr);
-								observer.next(curr);
-								observer.finish();
-								close();
-							}
-						} finally {
-							unlock();
-						}
+						List<T> curr = new ArrayList<T>();
+						buffer.drainTo(curr);
+						observer.next(curr);
+						observer.finish();
+						close();
 					}
 
 					/** The buffer to fill in. */
@@ -1141,16 +1107,9 @@ public final class Observables {
 
 					@Override
 					public void run() {
-						lock();
-						try {
-							if (alive()) {
-								List<T> curr = new ArrayList<T>();
-								buffer.drainTo(curr);
-								observer.next(curr);
-							}
-						} finally {
-							unlock();
-						}
+						List<T> curr = new ArrayList<T>();
+						buffer.drainTo(curr);
+						observer.next(curr);
 					}
 				};
 				so.scheduleOnAtFixedRate(pool, time, time, unit);
@@ -2469,103 +2428,109 @@ public final class Observables {
 		};
 	}
 	/**
-	 * Wraps the observers registering at the output into an observer
-	 * which uses java.util.concurrent.locks.ReentrantLock on all of its methods.
-	 * Each individual registering observer uses its own Lock object.
+	 * Wraps the given observer into a form, which ensures that only one observer or runnable
+	 * method is invoked at the same time and error() and finish() messages disable
+	 * any further message relaying. If you have a class that implements some of these interfaces by itself, assign
+	 * it to each of the parameters.
 	 * @param <T> the element type
-	 * @param source the source of Ts
+	 * @param observer the observer to wrap
+	 * @param run the runnable to wrap
+	 * @param close the closeable to wrap
+	 * @param lock the lock to use for exclusion.
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> lock(final Observable<T> source) {
-		return new Observable<T>() {
+	public static <T> RunnableClosableObserver<T> sequential(final Observer<T> observer, final Runnable run, final Closeable close, final Lock lock) {
+		if (observer == null) {
+			throw new IllegalArgumentException("observer is null");
+		}
+		if (run == null) {
+			throw new IllegalArgumentException("run is null");
+		}
+		if (close == null) {
+			throw new IllegalArgumentException("close is null");
+		}
+		if (lock == null) {
+			throw new IllegalArgumentException("lock is null");
+		}
+		return new RunnableClosableObserver<T>() {
+			/** The aliveness indicator. */
+			private final AtomicBoolean alive = new AtomicBoolean(true);
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				return source.register(new Observer<T>() {
-					final Lock lock = new ReentrantLock();
-					@Override
-					public synchronized void error(Throwable ex) {
-						lock.lock();
-						try {
-							observer.error(ex);
-						} finally {
-							lock.unlock();
-						}
+			public void next(T value) {
+				lock.lock();
+				try {
+					if (alive.get())  {
+						observer.next(value);
 					}
+				} finally {
+					lock.unlock();
+				}
+			}
 
-					@Override
-					public synchronized void finish() {
-						lock.lock();
-						try {
-							observer.finish();
-						} finally {
-							lock.unlock();
-						}
+			@Override
+			public void error(Throwable ex) {
+				lock.lock();
+				try {
+					if (alive.get())  {
+						observer.error(ex);
+						alive.set(false);
 					}
+				} finally {
+					lock.unlock();
+				}
+			}
 
-					@Override
-					public synchronized void next(T value) {
-						lock.lock();
-						try {
-							observer.next(value);
-						} finally {
-							lock.unlock();
-						}
+			@Override
+			public void finish() {
+				lock.lock();
+				try {
+					if (alive.get())  {
+						observer.finish();
+						alive.set(false);
 					}
-					
-				});
+				} finally {
+					lock.unlock();
+				}
+			}
+			@Override
+			public void run() {
+				lock.lock();
+				try {
+					if (alive.get())  {
+						run.run();
+					}
+				} finally {
+					lock.unlock();
+				}
+			}
+			@Override
+			public void close() throws IOException {
+				close.close(); // FIXME not sure
+//				lock.lock();
+//				try {
+//					if (alive.get())  {
+//						try {
+//							close.close(); 
+//						} finally {
+//							alive.set(false);
+//						}
+//					}
+//				} finally {
+//					lock.unlock();
+//				}
 			}
 		};
 	}
 	/**
-	 * Wraps the observers registering at the output into an observer
-	 * which uses java.util.concurrent.locks.ReentrantLock on all of its methods.
-	 * Each individual registering observer uses the shared lock object.
+	 * Wraps the given observer into a form, which ensures that only one observer
+	 * method is invoked at the same time and error() and finish() messages disable
+	 * any further message relaying. It uses a fair ReentrantLock.
 	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param on the shared lock instance
-	 * @return the new observable
+	 * @param observer the observer to wrap
+	 * @return the new wrapped observer
 	 */
-	public static <T> Observable<T> lock(final Observable<T> source, final Lock on) {
-		if (on == null) {
-			throw new IllegalArgumentException("on is null");
-		}
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				return source.register(new Observer<T>() {
-					@Override
-					public synchronized void error(Throwable ex) {
-						on.lock();
-						try {
-							observer.error(ex);
-						} finally {
-							on.unlock();
-						}
-					}
-
-					@Override
-					public synchronized void finish() {
-						on.lock();
-						try {
-							observer.finish();
-						} finally {
-							on.unlock();
-						}
-					}
-
-					@Override
-					public synchronized void next(T value) {
-						on.lock();
-						try {
-							observer.next(value);
-						} finally {
-							on.unlock();
-						}
-					}
-					
-				});
-			}
-		};
+	public static <T> Observer<T> sequential(Observer<T> observer) {
+		return sequential(observer, Functions.EMPTY_RUNNABLE, Functions.EMPTY_CLOSEABLE, new ReentrantLock(true));
 	}
 	/**
 	 * Returns the maximum value encountered in the source observable onse it finish().

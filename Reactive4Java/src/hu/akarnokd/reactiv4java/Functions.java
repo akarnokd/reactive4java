@@ -16,6 +16,7 @@
 
 package hu.akarnokd.reactiv4java;
 
+import java.io.Closeable;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -585,5 +586,18 @@ public final class Functions {
 	private Functions() {
 		// TODO Auto-generated constructor stub
 	}
-	
+	/** An empty runnable. */
+	public static final Runnable EMPTY_RUNNABLE = new Runnable() {
+		@Override
+		public void run() {
+			
+		};
+	};
+	/** An empty runnable. */
+	public static final Closeable EMPTY_CLOSEABLE = new Closeable() {
+		@Override
+		public void close() {
+			
+		};
+	};
 }

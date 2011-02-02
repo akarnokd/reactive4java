@@ -20,12 +20,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A composite scheduler and observer class for
@@ -35,15 +33,15 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author akarnokd, 2011.01.30.
  * @param <T> the observed type
  */
-public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Closeable {
+public abstract class ScheduledObserver<T> implements RunnableClosableObserver<T> {
 	/** The future holding the reference to the scheduled part. */
 	protected final AtomicReference<Future<?>> future = new AtomicReference<Future<?>>();
 	/** The handler returned by the registration. */
 	protected final AtomicReference<Closeable> handler = new AtomicReference<Closeable>();
-	/** The lock that helps to ensure the next(), finish() and error() are never overlapping. */
-	private final Lock lock = new ReentrantLock(true);
-	/** Helper indicator that this observer may process its events: closed ones will ignore any further events. */
-	protected final AtomicBoolean live = new AtomicBoolean(true);
+//	/** The lock that helps to ensure the next(), finish() and error() are never overlapping. */
+//	private final Lock lock = new ReentrantLock(true);
+//	/** Helper indicator that this observer may process its events: closed ones will ignore any further events. */
+//	protected final AtomicBoolean live = new AtomicBoolean(true);
 	/**
 	 * Schedules this instance on the given pool with the defined delay.
 	 * If this instance has an associated future, that instance gets cancelled
@@ -90,7 +88,9 @@ public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Clo
 	 * @return the future returned by the registration
 	 */
 	public Future<?> scheduleOnAtFixedRate(ScheduledExecutorService pool, long initialDelay, long delay, TimeUnit unit) {
-		return replace(pool.scheduleAtFixedRate(this, initialDelay, delay, unit));
+		FutureTask<T> f = new FutureTask<T>(this, null);
+		replace(f);
+		return pool.scheduleAtFixedRate(f, initialDelay, delay, unit);
 	}
 	/**
 	 * Registers this instance on the given pool as a repeatable task
@@ -101,7 +101,9 @@ public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Clo
 	 * @param unit the time unit of the initialDelay and delay parameters
 	 */
 	public void scheduleOnWithFixedDelay(ScheduledExecutorService pool, long initialDelay, long delay, TimeUnit unit) {
-		replace(pool.scheduleWithFixedDelay(this, initialDelay, delay, unit));
+		FutureTask<T> f = new FutureTask<T>(this, null);
+		replace(f);
+		pool.scheduleWithFixedDelay(f, initialDelay, delay, unit);
 	}
 	/**
 	 * Submit this task to the given executor service without any scheduling
@@ -110,7 +112,9 @@ public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Clo
 	 * @param pool the target executor service
 	 */
 	public void submitTo(ExecutorService pool) {
-		replace(pool.submit(this));
+		FutureTask<T> f = new FutureTask<T>(this, null);
+		replace(f);
+		pool.submit(f);
 	}
 	/**
 	 * Register with the given observable and store the closeable handle
@@ -119,7 +123,7 @@ public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Clo
 	 * @param observable the target observable
 	 */
 	public void registerWith(Observable<T> observable) {
-		replace(observable.register(this));
+		replace(observable.register(this)); // FIXME assignment delay???
 	}
 	/**
 	 * Deregisters the current instance from the associated observer
@@ -145,93 +149,23 @@ public abstract class ScheduledObserver<T> implements Observer<T>, Runnable, Clo
 	public void close() {
 		cancel();
 		unregister();
-		lock();
-		try {
-			live.set(false);
-		} finally {
-			unlock();
-		}
+//		lock();
+//		try {
+//			live.set(false);
+//		} finally {
+//			unlock();
+//		}
 	}
-	/** @return the liveness status. */
-	private boolean alive() {
-		return live.get();
-	}
-	/** Lock. */
-	private void lock() {
-		lock.lock();
-	}
-	/** Unlock. */
-	private void unlock() {
-		lock.unlock();
-	}
-	@Override
-	public final void run() {
-		lock();
-		try {
-			if (alive()) {
-				serializedRun();
-			}
-		} finally {
-			unlock();
-		}
-	}
-	@Override
-	public final void next(T value) {
-		lock();
-		try {
-			if (alive()) {
-				serializedNext(value);
-			}
-		} finally {
-			unlock();
-		}
-	}
-	@Override
-	public final void error(Throwable t) {
-		lock();
-		try {
-			if (alive()) {
-				serializedError(t);
-			}
-		} finally {
-			unlock();
-		}
-	}
-	@Override
-	public final void finish() {
-		lock();
-		try {
-			if (alive()) {
-				serializedFinish();
-			}
-		} finally {
-			unlock();
-		}
-	}
-	/** 
-	 * Override this method to implement the run() semantics. This
-	 * method is guaranteed to be executed in exclusive mode and
-	 * only when this observer is alive.
-	 */
-	protected abstract void serializedRun();
-	/**
-	 * Override this method to implement the next() semantics. This
-	 * method is guaranteed to be executed in exclusive mode and
-	 * only when this observer is alive.
-	 * @param value the received value
-	 */
-	protected abstract void serializedNext(T value);
-	/**
-	 * Override this method to implement the error() semantics. This
-	 * method is guaranteed to be executed in exclusive mode and
-	 * only when this observer is alive.
-	 * @param ex the received exception
-	 */
-	protected abstract void serializedError(Throwable ex);
-	/**
-	 * Override this method to implement the finish() semantics. This
-	 * method is guaranteed to be executed in exclusive mode and
-	 * only when this observer is alive.
-	 */
-	protected abstract void serializedFinish();
+//	/** @return the liveness status. */
+//	public boolean alive() {
+//		return live.get();
+//	}
+//	/** Lock. */
+//	protected void lock() {
+//		lock.lock();
+//	}
+//	/** Unlock. */
+//	protected void unlock() {
+//		lock.unlock();
+//	}
 }
