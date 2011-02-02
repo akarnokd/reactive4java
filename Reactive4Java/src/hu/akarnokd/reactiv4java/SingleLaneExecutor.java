@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -86,7 +87,9 @@ public final class SingleLaneExecutor<T> implements Closeable {
 	public void add(T item) {
 		queue.add(item);
 		if (wip.incrementAndGet() == 1) {
-			future.set(pool.submit(processor));
+			FutureTask<Void> f =  new FutureTask<Void>(processor, null);
+			future.set(f);
+			pool.submit(f);
 		}
 	}
 	/**

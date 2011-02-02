@@ -39,9 +39,6 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -682,41 +679,6 @@ public final class SwingObservables {
 			return invoke(component, "remove", ItemListener.class, this);
 		}
 	}
-	/**
-	 * Defines a composite class holding a dynamic method invocation arguments, i.e., [method, arguments...].
-	 * @author akarnokd, 2011.02.01.
-	 */
-	public static final class Dynamic {
-		/** The original method name. */
-		public final String method;
-		/** The original method arguments. */
-		public final List<Object> arguments;
-		/**
-		 * Construct a new dynamic object with the given parameters.
-		 * @param method the method name
-		 * @param arguments the argument list
-		 */
-		public Dynamic(String method, Object... arguments) {
-			this.method = method;
-			this.arguments = Collections.unmodifiableList(Arrays.asList(arguments));
-		}
-		@Override
-		public boolean equals(Object obj) {
-			if (obj instanceof Dynamic) {
-				Dynamic d = (Dynamic)obj;
-				return method.equals(d.method) && arguments.equals(d.arguments);
-			}
-			return false;
-		}
-		@Override
-		public int hashCode() {
-			return (17 + method.hashCode()) * 31 + arguments.hashCode();
-		}
-		@Override
-		public String toString() {
-			return method + " " + arguments;
-		}
-	};
 	/**
 	 * Create a dynamic observer for the given listener interface by
 	 * proxying all method calls. None of the methods of the listener interface should require something meaningful to be returned, i.e., they all

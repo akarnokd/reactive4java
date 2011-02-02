@@ -1525,39 +1525,7 @@ public final class Observables {
 	 * @return the observable
 	 */
 	public static <T> Observable<T> distinct(final Observable<T> source) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				return source.register(new Observer<T>() {
-					/** Indication as the first. */
-					boolean first = true;
-					/** The last value. */
-					T last;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						if (first) {
-							first = false;
-							observer.next(value);
-						} else
-						if (last != value && (last == null || !last.equals(value))) {
-							observer.next(value);
-						}
-						last = value;
-					}
-					
-				});
-			}
-		};
+		return distinct(source, Functions.<T>identity());
 	}
 	/**
 	 * Returns Ts from the source observable if the subsequent keys extracted by <code>keyExtractor</code> are different.
@@ -1589,11 +1557,14 @@ public final class Observables {
 					@Override
 					public void next(T value) {
 						U key = keyExtractor.invoke(value);
-						if ((lastKey == key || (lastKey != null && lastKey.equals(key))) || first) {
-							lastKey = key;
+						if (first) {
 							first = false;
 							observer.next(value);
+						} else
+						if (lastKey != value && (lastKey == null || !lastKey.equals(key))) {
+							observer.next(value);
 						}
+						lastKey = key;
 					}
 					
 				});
@@ -1821,23 +1792,20 @@ public final class Observables {
 	 * @return the observable 
 	 */
 	public static <T> Observable<List<T>> forkJoin(final Iterable<Observable<T>> sources) {
-		final List<AtomicReference<T>> lastValues = new ArrayList<AtomicReference<T>>();
-		final List<Observable<T>> observableList = new ArrayList<Observable<T>>();
-		for (Observable<T> o : sources) {
-			observableList.add(o);
-			lastValues.add(new AtomicReference<T>());
-		}
-		final AtomicInteger wip = new AtomicInteger(observableList.size());
-		
 		return new Observable<List<T>>() {
 			@Override
 			public Closeable register(final Observer<? super List<T>> observer) {
+				final List<AtomicReference<T>> lastValues = new ArrayList<AtomicReference<T>>();
+				final List<Observable<T>> observableList = new ArrayList<Observable<T>>();
+				final List<Observer<T>> observers = new ArrayList<Observer<T>>();
+				final AtomicInteger wip = new AtomicInteger(observableList.size() + 1);
+				
 				int i = 0;
-				List<Closeable> closeables = new ArrayList<Closeable>();
-				for (Observable<T> o : observableList) {
+				for (Observable<T> o : sources) {
 					final int j = i;
-					
-					closeables.add(o.register(new Observer<T>() {
+					observableList.add(o);
+					lastValues.add(new AtomicReference<T>());
+					observers.add(new Observer<T>() {
 						/** The last value. */
 						T last;
 						@Override
@@ -1849,14 +1817,7 @@ public final class Observables {
 						@Override
 						public void finish() {
 							lastValues.get(j).set(last);
-							if (wip.decrementAndGet() == 0) {
-								List<T> values = new ArrayList<T>();
-								for (AtomicReference<T> r : lastValues) {
-									values.add(r.get());
-								}
-								observer.next(values);
-								observer.finish();
-							}
+							runIfComplete(observer, lastValues, wip);
 						}
 
 						@Override
@@ -1864,11 +1825,35 @@ public final class Observables {
 							last = value;
 						}
 						
-					}));
-					
+					});
+				}
+				List<Closeable> closeables = new ArrayList<Closeable>();
+				i = 0;
+				for (Observable<T> o : observableList) {
+					closeables.add(o.register(observers.get(i)));
 					i++;
 				}
+				runIfComplete(observer, lastValues, wip);
 				return close(closeables);
+			}
+			/**
+			 * Runs the completion sequence once the WIP drops to zero.
+			 * @param observer the observer who will receive the values
+			 * @param lastValues the array of last values
+			 * @param wip the work in progress counter
+			 */
+			public void runIfComplete(
+					final Observer<? super List<T>> observer,
+					final List<AtomicReference<T>> lastValues,
+					final AtomicInteger wip) {
+				if (wip.decrementAndGet() == 0) {
+					List<T> values = new ArrayList<T>();
+					for (AtomicReference<T> r : lastValues) {
+						values.add(r.get());
+					}
+					observer.next(values);
+					observer.finish();
+				}
 			}
 		};
 	}
