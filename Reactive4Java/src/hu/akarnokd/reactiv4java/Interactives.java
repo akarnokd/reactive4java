@@ -15,7 +15,6 @@
  */
 package hu.akarnokd.reactiv4java;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -350,9 +349,91 @@ public final class Interactives {
 						}
 					};
 				}
-				return Collections.emptyIterator();
+				return Interactives.<T>empty().iterator();
 			}
 			
+		};
+	}
+	/** The common empty iterator. */
+	private static final Iterator<Object> EMPTY_ITERATOR = new Iterator<Object>() {
+		@Override
+		public boolean hasNext() {
+			return false;
+		}
+		@Override
+		public Object next() {
+			throw new NoSuchElementException();
+		}
+		@Override
+		public void remove() {
+			throw new IllegalStateException();
+		}
+	};
+	/** The common empty iterable. */
+	private static final Iterable<Object> EMPTY_ITERABLE = new Iterable<Object>() {
+		@Override
+		public Iterator<Object> iterator() {
+			return EMPTY_ITERATOR;
+		}
+	};
+	/**
+	 * Returns an empty iterable which will not produce elements.
+	 * Its <code>hasNext()</code> returns always false,
+	 * <code>next()</code> throws a <code>NoSuchElementException</code>
+	 * and <code>remove()</code> throws an <code>IllegalStateException</code>.
+	 * Note that the <code>Collections.emptyIterable()</code> static method is introduced by Java 7.
+	 * @param <T> the element type, irrelevant
+	 * @return the iterable
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> Iterable<T> empty() {
+		return (Iterable<T>)EMPTY_ITERABLE;
+	}
+	/**
+	 * Returns an iterator which will throw the given
+	 * <code>Throwable</code> exception when the client invokes
+	 * <code>next()</code> the first time. Any subsequent
+	 * <code>next()</code> call will simply throw a <code>NoSuchElementException</code>.
+	 * Calling <code>remove()</code> will always throw a <code>IllegalStateException</code>.
+	 * If the given Throwable instance extends a <code>RuntimeException</code>, it is throws
+	 * as is, but when the throwable is a checked exception, it is wrapped
+	 * into a <code>RuntimeException</code>. 
+	 * FIXME not sure about next() semantics
+	 * @param <T> the element type, irrelevant
+	 * @param t the exception to throw
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> throwException(final Throwable t) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					/** First call? */
+					boolean first = true;
+					@Override
+					public boolean hasNext() {
+						return first;
+					}
+
+					@Override
+					public T next() {
+						if (first) {
+							first = false;
+							if (t instanceof RuntimeException) {
+								throw (RuntimeException)t;
+							}
+							throw new RuntimeException(t);
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new IllegalStateException();
+					}
+					
+				};
+			}
 		};
 	}
 	/** Utility class. */
