@@ -19,6 +19,7 @@ package hu.akarnokd.reactiv4java.test;
 import hu.akarnokd.reactiv4java.Action0;
 import hu.akarnokd.reactiv4java.Func0;
 import hu.akarnokd.reactiv4java.Functions;
+import hu.akarnokd.reactiv4java.Interactives;
 import hu.akarnokd.reactiv4java.Observable;
 import hu.akarnokd.reactiv4java.Observables;
 
@@ -78,7 +79,7 @@ public final class Test6 {
 			}
 		}));
 		
-		run(Observables.startWith(Observables.range(5, 10), Functions.range(0, 5)));
+		run(Observables.startWith(Observables.range(5, 10), Interactives.range(0, 5)));
 		
 		run(Observables.sumInt(Observables.range(0, 101)));
 		

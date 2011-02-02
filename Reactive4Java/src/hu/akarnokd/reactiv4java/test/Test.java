@@ -20,7 +20,7 @@ import hu.akarnokd.reactiv4java.Action1;
 import hu.akarnokd.reactiv4java.ActionObservable;
 import hu.akarnokd.reactiv4java.Func0;
 import hu.akarnokd.reactiv4java.FunctionIterable;
-import hu.akarnokd.reactiv4java.Functions;
+import hu.akarnokd.reactiv4java.Interactives;
 import hu.akarnokd.reactiv4java.Observable;
 import hu.akarnokd.reactiv4java.Observables;
 import hu.akarnokd.reactiv4java.Observer;
@@ -59,7 +59,7 @@ public final class Test {
 		} catch (NoSuchElementException ex) {
 			ex.printStackTrace();
 		}
-		Func0<Func0<Option<Integer>>> xs = FunctionIterable.asFIterable(Functions.range(0, 10));
+		Func0<Func0<Option<Integer>>> xs = FunctionIterable.asFIterable(Interactives.range(0, 10));
 		Func0<Option<Integer>> xse = xs.invoke();
 		Option<Integer> x = null;
 		while ((x = xse.invoke()) != Option.<Integer>none()) {
