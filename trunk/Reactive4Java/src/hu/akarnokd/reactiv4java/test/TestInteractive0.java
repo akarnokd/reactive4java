@@ -53,6 +53,12 @@ public final class TestInteractive0 {
 		
 		run(Interactives.concat(Interactives.singleton(0), Interactives.range(1, 9)));
 		
+		try {
+			run(Interactives.throwException(new NullPointerException()));
+		} catch (RuntimeException ex) {
+			ex.printStackTrace();
+		}
+		
 		System.out.printf("%nMain finished%n");
 	}
 

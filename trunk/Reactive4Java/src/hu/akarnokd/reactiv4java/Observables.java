@@ -4923,7 +4923,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 			public Closeable register(final Observer<? super T> observer) {
 				// FIXME implement correctly?!
 				
-				return source.register(new Observer<T>() {
+				return new CloseableObserver<T>() {
 					final Lock lock = new ReentrantLock(true);
 					boolean alive = true;
 					final Closeable u = signaller.register(new Observer<U>() {
@@ -4959,7 +4959,8 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 							// no operation
 						}
 					});
-
+					/** The registration handle to the source. */
+					final Closeable me = source.register(this);
 					@Override
 					public void next(T value) {
 						lock.lock();
@@ -4979,7 +4980,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 							if (alive) {
 								observer.error(ex);
 								alive = false;
-								close(u);
+								close0(u);
 							}
 						} finally {
 							lock.unlock();
@@ -4993,13 +4994,18 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 							if (alive) {
 								observer.finish();
 								alive = false;
-								close(u);
+								close0(u);
 							}
 						} finally {
 							lock.unlock();
 						}
 					}
-				});
+					@Override
+					public void close() throws IOException {
+						close0(u);
+						close0(me);
+					}
+				};
 			}
 		};
 	}
@@ -5008,7 +5014,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * and throw away any <code>IOException</code> it might raise.
 	 * @param c the closeable instance, <code>null</code>s are simply ignored
 	 */
-	static void close(Closeable c) {
+	static void close0(Closeable c) {
 		if (c != null) {
 			try {
 				c.close();
