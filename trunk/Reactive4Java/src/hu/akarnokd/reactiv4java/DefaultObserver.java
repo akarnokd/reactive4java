@@ -24,7 +24,7 @@ package hu.akarnokd.reactiv4java;
  */
 public abstract class DefaultObserver<T> extends ScheduledObserver<T> {
 	@Override
-	protected final void serializedRun() {
-		// not used
-	};
+	public final void run() {
+		// no op
+	}
 }

@@ -13,25 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package hu.akarnokd.reactiv4java;
 
+import java.io.Closeable;
+
 /**
- * The runnable instance which is aware of its scheduler's registration.
- * FIXME concurrency questions with the storage of the current future
- * @author akarnokd, 2011.01.29.
+ * A combinational interface for a runnable, closable and an observer, i.e. an observer which has an attached scheduled counterpart and offers the option
+ * to close.
+ * @author akarnokd, 2011.02.02.
+ * @param <T> the element type of the observer
  */
-public abstract class DefaultSchedulable extends ScheduledObserver<Void> {
-	@Override
-	public void error(Throwable ex) {
-		// no op
-	}
-	@Override
-	public void finish() {
-		// no op
-	}
-	@Override
-	public void next(Void value) {
-		// no op
-	}
+public interface RunnableClosableObserver<T> extends Runnable, Observer<T>, Closeable {
+
 }
