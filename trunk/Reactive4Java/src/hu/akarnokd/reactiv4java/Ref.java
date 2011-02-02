@@ -17,7 +17,7 @@
 package hu.akarnokd.reactiv4java;
 
 /**
- * A simple reference object holding something that can be changed. Not threadsafe and not ment to be
+ * A simple reference object holding something that can be changed. Not threadsafe and not ment to be.
  * @author akarnokd
  * @param <T> the type of the contained object
  */
