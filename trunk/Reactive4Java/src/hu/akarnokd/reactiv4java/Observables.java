@@ -1206,45 +1206,24 @@ public final class Observables {
 					DefaultObserver<T> obs = new DefaultObserver<T>() {
 						@Override
 						public void error(Throwable ex) {
-							lock();
-							try {
-								if (alive()) {
-									observer.error(ex);
-									close();
-								}
-							} finally {
-								unlock();
-							}
+							observer.error(ex);
+							close();
 						}
 
 						@Override
 						public void finish() {
-							lock();
-							try {
-								if (alive()) {
-									if (it.hasNext()) {
-										unregister();
-										registerWith(it.next());
-									} else {
-										observer.finish();
-										close();
-									}
-								}
-							} finally {
-								unlock();
+							if (it.hasNext()) {
+								unregister();
+								registerWith(it.next());
+							} else {
+								observer.finish();
+								close();
 							}
 						}
 
 						@Override
 						public void next(T value) {
-							lock();
-							try {
-								if (alive()) {
-									observer.next(value);
-								}
-							} finally {
-								unlock();
-							}
+							observer.next(value);
 						}
 						
 					};
@@ -1479,84 +1458,58 @@ public final class Observables {
 					final BlockingQueue<Future<?>> outstanding = new LinkedBlockingQueue<Future<?>>();
 					@Override
 					public void close() {
-						lock();
-						try {
-							List<Future<?>> list = new LinkedList<Future<?>>();
-							outstanding.drainTo(list);
-							for (Future<?> f : list) {
-								f.cancel(true);
-							}
-							super.close();
-						} finally {
-							unlock();
+						List<Future<?>> list = new LinkedList<Future<?>>();
+						outstanding.drainTo(list);
+						for (Future<?> f : list) {
+							f.cancel(true);
 						}
+						super.close();
 					}
 
 					@Override
 					public void error(final Throwable ex) {
-						lock();
-						try {
-							if (alive()) {
-								Runnable r = new Runnable() {
-									@Override
-									public void run() {
-										try {
-											observer.error(ex);
-											close();
-										} finally {
-											outstanding.poll();
-										}
-									}
-								};
-								outstanding.add(pool.schedule(r, time, unit));
+						Runnable r = new Runnable() {
+							@Override
+							public void run() {
+								try {
+									observer.error(ex);
+									close();
+								} finally {
+									outstanding.poll();
+								}
 							}
-						} finally {
-							unlock();
-						}
+						};
+						outstanding.add(pool.schedule(r, time, unit));
 					}
 
 					@Override
 					public void finish() {
-						lock();
-						try {
-							if (alive()) {
-								Runnable r = new Runnable() {
-									@Override
-									public void run() {
-										try {
-											observer.finish();
-											close();
-										} finally {
-											outstanding.poll();
-										}
-									}
-								};
-								outstanding.add(pool.schedule(r, time, unit));
+						Runnable r = new Runnable() {
+							@Override
+							public void run() {
+								try {
+									observer.finish();
+									close();
+								} finally {
+									outstanding.poll();
+								}
 							}
-						} finally {
-							unlock();
-						}
+						};
+						outstanding.add(pool.schedule(r, time, unit));
 					}
 					@Override
 					public void next(final T value) {
-						lock();
-						try {
-							if (alive()) {
-								Runnable r = new Runnable() {
-									@Override
-									public void run() {
-										try {
-											observer.next(value);
-										} finally {
-											outstanding.poll();
-										}
-									}
-								};
-								outstanding.add(pool.schedule(r, time, unit));
+						Runnable r = new Runnable() {
+							@Override
+							public void run() {
+								try {
+									observer.next(value);
+								} finally {
+									outstanding.poll();
+								}
 							}
-						} finally {
-							unlock();
-						}
+						};
+						outstanding.add(pool.schedule(r, time, unit));
 					}
 				};
 				obs.registerWith(source);
@@ -5578,15 +5531,8 @@ public final class Observables {
 					public void error(Throwable ex) {
 						lockBoth.lock();
 						try {
-							lock();
-							try {
-								if (alive()) { 
-									observer.error(ex);
-									try { closeBoth.get().close(); } catch (IOException exc) { }
-								}
-							} finally {
-								unlock();
-							}
+							observer.error(ex);
+							try { closeBoth.get().close(); } catch (IOException exc) { }
 						} finally {
 							lockBoth.unlock();
 						}
@@ -5596,16 +5542,9 @@ public final class Observables {
 					public void finish() {
 						lockBoth.lock();
 						try {
-							lock();
-							try {
-								if (alive()) {
-									if (wip.decrementAndGet() == 0) {
-										observer.finish();
-										try { closeBoth.get().close(); } catch (IOException ex) { }
-									}
-								}
-							} finally {
-								unlock();
+							if (wip.decrementAndGet() == 0) {
+								observer.finish();
+								try { closeBoth.get().close(); } catch (IOException ex) { }
 							}
 						} finally {
 							lockBoth.unlock();
@@ -5616,22 +5555,15 @@ public final class Observables {
 					public void next(U u) {
 						lockBoth.lock();
 						try {
-							lock();
-							try {
-								if (alive()) {
-									V v = queueV.poll();
-									if (v != null) {
-										observer.next(selector.invoke(u, v));
-									} else {
-										if (wip.get() == 2) {
-											queueU.add(u);
-										} else {
-											this.finish();
-										}
-									}
+							V v = queueV.poll();
+							if (v != null) {
+								observer.next(selector.invoke(u, v));
+							} else {
+								if (wip.get() == 2) {
+									queueU.add(u);
+								} else {
+									this.finish();
 								}
-							} finally {
-								unlock();
 							}
 						} finally {
 							lockBoth.unlock();
@@ -5645,10 +5577,8 @@ public final class Observables {
 					public void error(Throwable ex) {
 						lockBoth.lock();
 						try {
-							if (alive()) { 
-								observer.error(ex);
-								try { closeBoth.get().close(); } catch (IOException exc) { }
-							}
+							observer.error(ex);
+							try { closeBoth.get().close(); } catch (IOException exc) { }
 						} finally {
 							lockBoth.unlock();
 						}
@@ -5658,11 +5588,9 @@ public final class Observables {
 					public void finish() {
 						lockBoth.lock();
 						try {
-							if (alive()) {
-								if (wip.decrementAndGet() == 0) {
-									observer.finish();
-									try { closeBoth.get().close(); } catch (IOException ex) { }
-								}
+							if (wip.decrementAndGet() == 0) {
+								observer.finish();
+								try { closeBoth.get().close(); } catch (IOException ex) { }
 							}
 						} finally {
 							lockBoth.unlock();
@@ -5673,16 +5601,14 @@ public final class Observables {
 					public void next(V v) {
 						lockBoth.lock();
 						try {
-							if (alive()) { 
-								U u = queueU.poll();
-								if (u != null) {
-									observer.next(selector.invoke(u, v));
+							U u = queueU.poll();
+							if (u != null) {
+								observer.next(selector.invoke(u, v));
+							} else {
+								if (wip.get() == 2) {
+									queueV.add(v);
 								} else {
-									if (wip.get() == 2) {
-										queueV.add(v);
-									} else {
-										this.finish();
-									}
+									this.finish();
 								}
 							}
 						} finally {
