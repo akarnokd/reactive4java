@@ -18,10 +18,8 @@ package hu.akarnokd.reactiv4java;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -49,10 +47,10 @@ public abstract class DefaultRunnableObserver<T> implements RunnableClosableObse
 	 * @param delay the delay
 	 * @param unit the time unit of the delay
 	 */
-	public void scheduleOn(ScheduledExecutorService pool, long delay, TimeUnit unit) {
+	public void schedule(Scheduler pool, long delay, TimeUnit unit) {
 		FutureTask<T> f = new FutureTask<T>(this, null);
 		replace(f);
-		pool.schedule(f, delay, unit);
+		pool.schedule(f, unit.toNanos(delay));
 	}
 	/**
 	 * Replace the future registration with the current contents
@@ -87,25 +85,11 @@ public abstract class DefaultRunnableObserver<T> implements RunnableClosableObse
 	 * @param initialDelay the initial schedule delay
 	 * @param delay the delay between runs
 	 * @param unit the time unit of the initialDelay and delay parameters
-	 * @return the future returned by the registration
 	 */
-	public Future<?> scheduleOnAtFixedRate(ScheduledExecutorService pool, long initialDelay, long delay, TimeUnit unit) {
+	public void schedule(Scheduler pool, long initialDelay, long delay, TimeUnit unit) {
 		FutureTask<T> f = new FutureTask<T>(this, null);
 		replace(f);
-		return pool.scheduleAtFixedRate(f, initialDelay, delay, unit);
-	}
-	/**
-	 * Registers this instance on the given pool as a repeatable task
-	 * which gets repeated with a fixed delay between run finish and starts, and after an initial delay.
-	 * @param pool the target scheduler pool
-	 * @param initialDelay the initial schedule delay
-	 * @param delay the delay between completion and next start
-	 * @param unit the time unit of the initialDelay and delay parameters
-	 */
-	public void scheduleOnWithFixedDelay(ScheduledExecutorService pool, long initialDelay, long delay, TimeUnit unit) {
-		FutureTask<T> f = new FutureTask<T>(this, null);
-		replace(f);
-		pool.scheduleWithFixedDelay(f, initialDelay, delay, unit);
+		pool.schedule(f, unit.toNanos(initialDelay), unit.toNanos(delay));
 	}
 	/**
 	 * Submit this task to the given executor service without any scheduling
@@ -113,10 +97,10 @@ public abstract class DefaultRunnableObserver<T> implements RunnableClosableObse
 	 * If this instance has an associated future, that instance gets cancelled
 	 * @param pool the target executor service
 	 */
-	public void submitTo(ExecutorService pool) {
+	public void schedule(Scheduler pool) {
 		FutureTask<T> f = new FutureTask<T>(this, null);
 		replace(f);
-		pool.submit(f);
+		pool.schedule(f);
 	}
 	/**
 	 * Register with the given observable and store the closeable handle
@@ -124,7 +108,7 @@ public abstract class DefaultRunnableObserver<T> implements RunnableClosableObse
 	 * that registration is unregistered.
 	 * @param observable the target observable
 	 */
-	public void registerWith(Observable<? extends T> observable) {
+	public void register(Observable<? extends T> observable) {
 		replace(observable.register(this)); // FIXME assignment delay???
 	}
 	/**

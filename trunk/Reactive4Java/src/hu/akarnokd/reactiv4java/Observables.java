@@ -18,8 +18,6 @@ package hu.akarnokd.reactiv4java;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -35,13 +33,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -89,37 +81,7 @@ public final class Observables {
 	/** The diagnostic states of the current runnable. */
 	enum ObserverState { OBSERVER_ERROR, OBSERVER_FINISHED, OBSERVER_RUNNING }
 	/** The common observable pool where the Observer methods get invoked by default. */
-	static final ExecutorService DEFAULT_OBSERVABLE_POOL = new ThreadPoolExecutor(0, 128, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
-	/** The defalt scheduler pool for delayed observable actions. */
-	static final ScheduledExecutorService DEFAULT_SCHEDULED_POOL;
-	/** The wrapper for the Event dispatch thread calls. */
-	private static final ExecutorService EDT_EXECUTOR =  new EdtExecutorService();
-	static {
-		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
-		scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
-		scheduler.allowCoreThreadTimeOut(true);
-		
-		/* 
-		 * the setRemoveOnCancelPolicy() was introduced in Java 7 to
-		 * allow the option to remove tasks from work queue if its initial delay hasn't
-		 * elapsed -> therfore, if no other tasks are present, the scheduler might go idle earlier
-		 * instead of waiting for the initial delay to pass to discover there is nothing to do.
-		 * Because the library is currenlty aimed at Java 6, we use a reflection to set this policy
-		 * on a Java 7 runtime. 
-		 */
-		try {
-			Method m = scheduler.getClass().getMethod("setRemoveOnCancelPolicy", Boolean.TYPE);
-			m.invoke(scheduler, true);
-		} catch (InvocationTargetException ex) {
-			
-		} catch (NoSuchMethodException e) {
-		} catch (SecurityException e) {
-		} catch (IllegalAccessException e) {
-		} catch (IllegalArgumentException e) {
-		}
-		
-		DEFAULT_SCHEDULED_POOL = scheduler;
-	}
+	static final AtomicReference<Scheduler> DEFAULT_SCHEDULER = new AtomicReference<Scheduler>(new DefaultScheduler());
 	/**
 	 * Creates an observable which accumultates the given source and submits each intermediate results to its subscribers.
 	 * Example:<br>
@@ -473,7 +435,7 @@ public final class Observables {
 				}
 				i = 0;
 				for (final Observable<T> os : observables) {
-					observers.get(i).registerWith(os);
+					observers.get(i).register(os);
 					i++;
 				}
 				return close(observers);
@@ -526,7 +488,7 @@ public final class Observables {
 					}
 					
 				};
-				obs.registerWith(source);
+				obs.register(source);
 				return obs;
 			}
 		};
@@ -538,7 +500,7 @@ public final class Observables {
 	 * @return the iterable
 	 */
 	public static <T> Iterable<T> asIterable(final Observable<T> observable) {
-		return asIterable(observable, DEFAULT_OBSERVABLE_POOL); 
+		return asIterable(observable, DEFAULT_SCHEDULER.get()); 
 	}
 	/**
 	 * Convert the given observable instance into a classical iterable instance.
@@ -548,7 +510,7 @@ public final class Observables {
 	 * @return the iterable
 	 */
 	public static <T> Iterable<T> asIterable(final Observable<T> observable, 
-			final ExecutorService pool) {
+			final Scheduler pool) {
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
@@ -652,7 +614,7 @@ public final class Observables {
 	 * @return the observable 
 	 */
 	public static <T> Observable<T> asObservable(final Iterable<T> iterable) {
-		return asObservable(iterable, DEFAULT_OBSERVABLE_POOL);
+		return asObservable(iterable, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Wrap the iterable object into an observable and use the
@@ -662,7 +624,8 @@ public final class Observables {
 	 * @param pool the thread pool where to generate the events from the iterable
 	 * @return the observable 
 	 */
-	public static <T> Observable<T> asObservable(final Iterable<T> iterable, final ExecutorService pool) {
+	public static <T> Observable<T> asObservable(final Iterable<T> iterable, 
+			final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -682,7 +645,7 @@ public final class Observables {
 						}
 					}
 				};
-				s.submitTo(pool);
+				s.schedule(pool);
 				return s;
 			}
 		};
@@ -937,7 +900,8 @@ public final class Observables {
 	 * @param bufferSize the target buffer size
 	 * @return the observable of the list
 	 */
-	public static <T> Observable<List<T>> buffer(final Observable<T> source, final int bufferSize) {
+	public static <T> Observable<List<T>> buffer(final Observable<T> source, 
+			final int bufferSize) {
 		return new Observable<List<T>>() {
 			@Override
 			public Closeable register(final Observer<? super List<T>> observer) {
@@ -987,7 +951,7 @@ public final class Observables {
 	 */
 	public static <T> Observable<List<T>> buffer(final Observable<T> source, 
 			final int bufferSize, final long time, final TimeUnit unit) {
-		return buffer(source, bufferSize, time, unit, DEFAULT_SCHEDULED_POOL);
+		return buffer(source, bufferSize, time, unit, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Buffer the Ts of the source until the buffer reaches its capacity or the current time unit runs out.
@@ -1002,7 +966,7 @@ public final class Observables {
 	 */
 	public static <T> Observable<List<T>> buffer(final Observable<T> source, 
 			final int bufferSize, final long time, final TimeUnit unit, 
-			final ScheduledExecutorService pool) {
+			final Scheduler pool) {
 		return new Observable<List<T>>() {
 			@Override
 			public Closeable register(final Observer<? super List<T>> observer) {
@@ -1044,8 +1008,8 @@ public final class Observables {
 						observer.next(curr);
 					}
 				};
-				s.registerWith(source);
-				s.scheduleOnAtFixedRate(pool, time, time, unit);
+				s.register(source);
+				s.schedule(pool, time, time, unit);
 				return s;
 			}
 		};
@@ -1056,7 +1020,7 @@ public final class Observables {
 	 * Each next() invocation contains a new and modifiable list of Ts. The signaled List of Ts might be empty if
 	 * no Ts appeared from the original source within the current timespan.
 	 * The last T of the original source triggers an early submission to the output.
-	 * The scheduling is done on the default ScheduledExecutorService.
+	 * The scheduling is done on the default Scheduler.
 	 * @param <T> the type of elements to observe
 	 * @param source the source of Ts.
 	 * @param time the time value to split the buffer contents.
@@ -1064,7 +1028,7 @@ public final class Observables {
 	 * @return the observable of list of Ts
 	 */
 	public static <T> Observable<List<T>> buffer(final Observable<T> source, final long time, final TimeUnit unit) {
-		return buffer(source, time, unit, DEFAULT_SCHEDULED_POOL);
+		return buffer(source, time, unit, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Buffers the source observable Ts into a list of Ts periodically and submits them to the returned observable.
@@ -1079,7 +1043,7 @@ public final class Observables {
 	 * @return the observable of list of Ts
 	 */
 	public static <T> Observable<List<T>> buffer(final Observable<T> source, 
-			final long time, final TimeUnit unit, final ScheduledExecutorService pool) {
+			final long time, final TimeUnit unit, final Scheduler pool) {
 		return new Observable<List<T>>() {
 			@Override
 			public Closeable register(final Observer<? super List<T>> observer) {
@@ -1112,8 +1076,8 @@ public final class Observables {
 						observer.next(curr);
 					}
 				};
-				so.scheduleOnAtFixedRate(pool, time, time, unit);
-				so.registerWith(source);
+				so.schedule(pool, time, time, unit);
+				so.register(source);
 				return so;
 			}
 		};
@@ -1195,7 +1159,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					public void finish() {
 						if (it.hasNext()) {
 							unregister();
-							registerWith(it.next());
+							register(it.next());
 						} else {
 							observer.finish();
 							close();
@@ -1208,7 +1172,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					}
 					
 				};
-				obs.registerWith(it.next());
+				obs.register(it.next());
 				return obs;
 			}
 			return Observables.<T>empty().register(observer);
@@ -1419,7 +1383,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the delayed observable of Ts
 	 */
 	public static <T> Observable<T> delay(final Observable<T> source, final long time, final TimeUnit unit) {
-		return delay(source, time, unit, DEFAULT_SCHEDULED_POOL);
+		return delay(source, time, unit, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Delays the propagation of events of the source by the given amount. It uses the pool for the scheduled waits.
@@ -1431,18 +1395,18 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the pool to use for scheduling
 	 * @return the delayed observable of Ts
 	 */
-	public static <T> Observable<T> delay(final Observable<T> source, final long time, final TimeUnit unit, final ScheduledExecutorService pool) {
+	public static <T> Observable<T> delay(final Observable<T> source, final long time, final TimeUnit unit, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				DefaultObserver<T> obs = new DefaultObserver<T>() {
-					final BlockingQueue<Future<?>> outstanding = new LinkedBlockingQueue<Future<?>>();
+					final BlockingQueue<Closeable> outstanding = new LinkedBlockingQueue<Closeable>();
 					@Override
 					public void close() {
-						List<Future<?>> list = new LinkedList<Future<?>>();
+						List<Closeable> list = new LinkedList<Closeable>();
 						outstanding.drainTo(list);
-						for (Future<?> f : list) {
-							f.cancel(true);
+						for (Closeable c : list) {
+							close0(c);
 						}
 						super.close();
 					}
@@ -1460,7 +1424,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 								}
 							}
 						};
-						outstanding.add(pool.schedule(r, time, unit));
+						outstanding.add(pool.schedule(r, unit.toNanos(time)));
 					}
 
 					@Override
@@ -1476,7 +1440,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 								}
 							}
 						};
-						outstanding.add(pool.schedule(r, time, unit));
+						outstanding.add(pool.schedule(r, unit.toNanos(time)));
 					}
 					@Override
 					public void next(final T value) {
@@ -1490,10 +1454,10 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 								}
 							}
 						};
-						outstanding.add(pool.schedule(r, time, unit));
+						outstanding.add(pool.schedule(r, unit.toNanos(time)));
 					}
 				};
-				obs.registerWith(source);
+				obs.register(source);
 				return obs;
 			}
 		};
@@ -1561,7 +1525,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the new observable
 	 */
 	public static <T> Observable<Void> drain(final Observable<T> source, final Func1<Observable<Void>, T> pump) {
-		return drain(source, pump, DEFAULT_OBSERVABLE_POOL);
+		return drain(source, pump, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Maintains a queue of Ts which is then drained by the pump.
@@ -1573,7 +1537,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the new observable
 	 */
 	public static <T> Observable<Void> drain(final Observable<T> source, 
-			final Func1<Observable<Void>, T> pump, final ExecutorService pool) {
+			final Func1<Observable<Void>, T> pump, final Scheduler pool) {
 		return new Observable<Void>() {
 			@Override
 			public Closeable register(final Observer<? super Void> observer) {
@@ -1608,7 +1572,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 								unregister();
 								throw new AssertionError();
 							};
-						}).registerWith(pump.invoke(value));
+						}).register(pump.invoke(value));
 					};
 				});
 				DefaultObserver<T> obs = new DefaultObserver<T>() {
@@ -1634,7 +1598,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						exec.add(value);
 					}
 				};
-				obs.registerWith(source);
+				obs.register(source);
 				return obs;
 			}
 		};
@@ -1644,7 +1608,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return Returns an empty observable which signals only finish() on the default observer pool.
 	 */
 	public static <T> Observable<T> empty() {
-		return empty(DEFAULT_OBSERVABLE_POOL);
+		return empty(DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Returns an empty observable which signals only finish() on the given pool.
@@ -1652,7 +1616,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the pool to invoke the the finish()
 	 * @return the observable
 	 */
-	public static <T> Observable<T> empty(final ExecutorService pool) {
+	public static <T> Observable<T> empty(final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -1662,7 +1626,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						observer.finish();
 					}
 				};
-				s.submitTo(pool);
+				s.schedule(pool);
 				return s;
 			}
 		};
@@ -1851,7 +1815,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 */
 	public static <T, U> Observable<U> generate(final T initial, final Func1<Boolean, T> condition, 
 			final Func1<T, T> next, final Func1<U, T> selector) {
-		return generate(initial, condition, next, selector, DEFAULT_OBSERVABLE_POOL);
+		return generate(initial, condition, next, selector, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Generates a stream of Us by using a value T stream.
@@ -1866,7 +1830,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T, U> Observable<U> generate(final T initial, final Func1<Boolean, T> condition, 
-			final Func1<T, T> next, final Func1<U, T> selector, final ExecutorService pool) {
+			final Func1<T, T> next, final Func1<U, T> selector, final Scheduler pool) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
@@ -1883,7 +1847,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 					}
 				};
-				s.submitTo(pool);
+				s.schedule(pool);
 				return s;
 			}
 		};
@@ -1902,7 +1866,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 */
 	public static <T, U> Observable<Timestamped<U>> generateTimed(final T initial, final Func1<Boolean, T> condition, 
 			final Func1<T, T> next, final Func1<U, T> selector, final Func1<Long, T> delay) {
-		return generateTimed(initial, condition, next, selector, delay, DEFAULT_SCHEDULED_POOL);
+		return generateTimed(initial, condition, next, selector, delay, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Generates a stream of Us by using a value T stream.
@@ -1918,7 +1882,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T, U> Observable<Timestamped<U>> generateTimed(final T initial, final Func1<Boolean, T> condition, 
-			final Func1<T, T> next, final Func1<U, T> selector, final Func1<Long, T> delay, final ScheduledExecutorService pool) {
+			final Func1<T, T> next, final Func1<U, T> selector, final Func1<Long, T> delay, final Scheduler pool) {
 		return new Observable<Timestamped<U>>() {
 			@Override
 			public Closeable register(final Observer<? super Timestamped<U>> observer) {
@@ -1932,7 +1896,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						final T tn = next.invoke(current);
 						current = tn;
 						if (condition.invoke(tn) && !cancelled()) {
-							scheduleOn(pool, delay.invoke(tn), TimeUnit.MILLISECONDS);
+							schedule(pool, delay.invoke(tn), TimeUnit.MILLISECONDS);
 						} else {
 							if (!cancelled()) {
 								observer.finish();
@@ -1943,7 +1907,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 				};
 				
 				if (condition.invoke(initial)) {
-					s.scheduleOn(pool, delay.invoke(initial), TimeUnit.MILLISECONDS);
+					s.schedule(pool, delay.invoke(initial), TimeUnit.MILLISECONDS);
 				}
 				
 				return s;
@@ -1951,23 +1915,29 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 		};
 	}
 	/**
-	 * @return the default pool used by the Observables methods by default
+	 * @return the current default pool used by the Observables methods
 	 */
-	public static ExecutorService getDefaultPool() {
-		return DEFAULT_OBSERVABLE_POOL;
+	public static Scheduler getDefaultScheduler() {
+		return DEFAULT_SCHEDULER.get();
 	}
 	/**
-	 * @return the default scheduler pool used by the Observables methods by default
+	 * Replace the current default scheduler with the specified  new scheduler.
+	 * This method is threadsafe
+	 * @param newScheduler the new scheduler
+	 * @return the current scheduler
 	 */
-	public static ScheduledExecutorService getDefaultSchedulerPool() {
-		return DEFAULT_SCHEDULED_POOL;
+	public static Scheduler replaceDefaultScheduler(Scheduler newScheduler) {
+		if (newScheduler == null) {
+			throw new IllegalArgumentException("newScheduler is null");
+		}
+		return DEFAULT_SCHEDULER.getAndSet(newScheduler);
 	}
 	/**
-	 * Returns an executor service which executes the tasks on the event dispatch thread.
-	 * @return the executor service for the EDT
+	 * Restore the default scheduler back to the <code>DefaultScheduler</code>
+	 * used when this class was initialized.
 	 */
-	public static ExecutorService getEdtExecutor() {
-		return EDT_EXECUTOR;
+	public static void restoreDefaultScheduler() {
+		DEFAULT_SCHEDULER.set(new DefaultScheduler());
 	}
 	/**
 	 * Group the specified source accoring to the keys provided by the extractor function.
@@ -2190,7 +2160,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T> Observable<T> invokeAsync(final Callable<? extends T> call) {
-		return invokeAsync(call, DEFAULT_OBSERVABLE_POOL);
+		return invokeAsync(call, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Invoke the given callable on the given pool and observe its result via the returned observable.
@@ -2200,11 +2170,11 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the thread pool
 	 * @return the observable
 	 */
-	public static <T> Observable<T> invokeAsync(final Callable<? extends T> call, final ExecutorService pool) {
+	public static <T> Observable<T> invokeAsync(final Callable<? extends T> call, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final Future<?> f = pool.submit(new Runnable() {
+				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
 						try {
@@ -2215,12 +2185,6 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 					}
 				});
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						f.cancel(true);
-					}
-				};
 			}
 		};
 	}
@@ -2232,7 +2196,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T> Observable<T> invokeAsync(final Runnable run) {
-		return invokeAsync(run, DEFAULT_OBSERVABLE_POOL);
+		return invokeAsync(run, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Invoke the given callable on the given pool and observe its result via the returned observable.
@@ -2242,11 +2206,11 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the thread pool
 	 * @return the observable
 	 */
-	public static <T> Observable<T> invokeAsync(final Runnable run, final ExecutorService pool) {
+	public static <T> Observable<T> invokeAsync(final Runnable run, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final Future<?> f = pool.submit(new Runnable() {
+				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
 						try {
@@ -2257,12 +2221,6 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 					}
 				});
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						f.cancel(true);
-					}
-				};
 			}
 		};
 	}
@@ -2665,7 +2623,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 							}
 						}
 					};
-					obs.registerWith(os);
+					obs.register(os);
 					disposables.add(obs);
 				}
 				if (wip.decrementAndGet() == 0) {
@@ -2905,7 +2863,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the new observable
 	 */
 	public static <T> Observable<T> observeOn(final Observable<T> source, 
-			final ExecutorService pool) {
+			final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -2956,20 +2914,11 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						});
 					}
 				};
-				obs.registerWith(source);
+				obs.register(source);
 				return obs;
 			}
 		};
 	};
-	/**
-	 * Wrap the observable to the Event Dispatch Thread for listening to events.
-	 * @param <T> the value type to observe
-	 * @param observable the original observable
-	 * @return the new observable
-	 */
-	public static <T> Observable<T> observeOnEdt(Observable<T> observable) {
-		return observeOn(observable, EDT_EXECUTOR);
-	}
 	/**
 	 * Creates an observer with debugging purposes. 
 	 * It prints the submitted values to STDOUT separated by commas and line-broken by 80 characters, the exceptions to STDERR
@@ -3089,7 +3038,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 */
 	public static Observable<BigDecimal> range(final BigDecimal start, final int count, 
 			final BigDecimal step) {
-		return range(start, count, step, DEFAULT_OBSERVABLE_POOL);
+		return range(start, count, step, DEFAULT_SCHEDULER.get());
 	}
 	/** 
 	 * Creates an observable which generates BigDecimal numbers from start.
@@ -3100,7 +3049,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static Observable<BigDecimal> range(final BigDecimal start, final int count, 
-			final BigDecimal step, final ExecutorService pool) {
+			final BigDecimal step, final Scheduler pool) {
 		return new Observable<BigDecimal>() {
 			@Override
 			public Closeable register(final Observer<? super BigDecimal> observer) {
@@ -3117,7 +3066,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 					}
 				};
-				s.submitTo(pool);
+				s.schedule(pool);
 				return s;
 			}
 		};
@@ -3129,7 +3078,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static Observable<BigInteger> range(final BigInteger start, final BigInteger count) {
-		return range(start, count, DEFAULT_OBSERVABLE_POOL);
+		return range(start, count, DEFAULT_SCHEDULER.get());
 	}
 	/** 
 	 * Creates an observable which generates BigInteger numbers from start.
@@ -3139,7 +3088,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static Observable<BigInteger> range(final BigInteger start, 
-			final BigInteger count, final ExecutorService pool) {
+			final BigInteger count, final Scheduler pool) {
 		return new Observable<BigInteger>() {
 			@Override
 			public Closeable register(final Observer<? super BigInteger> observer) {
@@ -3156,7 +3105,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 					}
 				};
-				s.submitTo(pool);
+				s.schedule(pool);
 				return s;
 			}
 		};
@@ -3170,7 +3119,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 */
 	public static Observable<Double> range(final double start, final int count, 
 			final double step) {
-		return range(start, count, step, DEFAULT_OBSERVABLE_POOL);
+		return range(start, count, step, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Creates an observable which produces Double values from <code>start</code> in <code>count</code>
@@ -3182,22 +3131,22 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable of float
 	 */
 	public static Observable<Double> range(final double start, final int count, 
-			final double step, final ExecutorService pool) {
+			final double step, final Scheduler pool) {
 		return new Observable<Double>() {
 			@Override
 			public Closeable register(final Observer<? super Double> observer) {
 				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
-						for (int i = 0; i < count && !Thread.currentThread().isInterrupted(); i++) {
+						for (int i = 0; i < count && !cancelled(); i++) {
 							observer.next(start + i * step);
 						}
-						if (!Thread.currentThread().isInterrupted()) {
+						if (!cancelled()) {
 							observer.finish();
 						}
 					}
 				};
-				s.submitTo(pool);
+				s.schedule(pool);
 				return s;
 			}
 		};
@@ -3211,7 +3160,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static Observable<Float> range(final float start, final int count, final float step) {
-		return range(start, count, step, DEFAULT_OBSERVABLE_POOL);
+		return range(start, count, step, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Creates an observable which produces Float values from <code>start</code> in <code>count</code>
@@ -3223,7 +3172,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable of float
 	 */
 	public static Observable<Float> range(final float start, final int count, 
-			final float step, final ExecutorService pool) {
+			final float step, final Scheduler pool) {
 		return new Observable<Float>() {
 			@Override
 			public Closeable register(final Observer<? super Float> observer) {
@@ -3238,7 +3187,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 					}
 				};
-				s.submitTo(pool);
+				s.schedule(pool);
 				return s;
 			}
 		};
@@ -3251,7 +3200,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static Observable<Integer> range(final int start, final int count) {
-		return range(start, count, DEFAULT_OBSERVABLE_POOL);
+		return range(start, count, DEFAULT_SCHEDULER.get());
 	}
 	/** 
 	 * Creates an observable which generates numbers from start.
@@ -3260,7 +3209,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the execution thread pool.
 	 * @return the observable
 	 */
-	public static Observable<Integer> range(final int start, final int count, final ExecutorService pool) {
+	public static Observable<Integer> range(final int start, final int count, final Scheduler pool) {
 		return new Observable<Integer>() {
 			@Override
 			public Closeable register(final Observer<? super Integer> observer) {
@@ -3275,7 +3224,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 					}
 				};
-				s.submitTo(pool);
+				s.schedule(pool);
 				return s;
 			}
 		};
@@ -3336,7 +3285,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					}
 					
 				};
-				obs.registerWith(source);
+				obs.register(source);
 				return obs;
 			}
 		};
@@ -3367,7 +3316,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T> Observable<T> repeat(final Func0<T> func) {
-		return repeat(func, DEFAULT_OBSERVABLE_POOL);
+		return repeat(func, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Creates an observable which repeatedly calls the given function which generates the Ts indefinitely.
@@ -3377,25 +3326,20 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the pool where the generator loop runs
 	 * @return the observable
 	 */
-	public static <T> Observable<T> repeat(final Func0<T> func, final ExecutorService pool) {
+	public static <T> Observable<T> repeat(final Func0<T> func, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final AtomicBoolean cancel = new AtomicBoolean();
-				pool.execute(new Runnable() {
+				DefaultRunnable dr = new DefaultRunnable() {
 					@Override
 					public void run() {
-						while (!cancel.get()) {
+						while (!cancelled()) {
 							observer.next(func.invoke());
 						}
 					}
-				});
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						cancel.set(true);
-					}
 				};
+				dr.schedule(pool);
+				return dr;
 			}
 		};
 	}
@@ -3408,7 +3352,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T> Observable<T> repeat(final Func0<T> func, final int count) {
-		return repeat(func, count, DEFAULT_OBSERVABLE_POOL);
+		return repeat(func, count, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Creates an observable which repeatedly calls the given function <code>count</code> times to generate Ts
@@ -3419,27 +3363,24 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the pool where the loop should be executed
 	 * @return the observable
 	 */
-	public static <T> Observable<T> repeat(final Func0<T> func, final int count, final ExecutorService pool) {
+	public static <T> Observable<T> repeat(final Func0<T> func, final int count, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final AtomicBoolean cancel = new AtomicBoolean();
-				pool.execute(new Runnable() {
+				DefaultRunnable r = new DefaultRunnable() {
 					@Override
 					public void run() {
 						int i = count;
-						while (!cancel.get() && i-- > 0) {
+						while (!cancelled() && i-- > 0) {
 							observer.next(func.invoke());
 						}
-						observer.finish();
-					}
-				});
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						cancel.set(true);
+						if (!cancelled()) {
+							observer.finish();
+						}
 					}
 				};
+				r.schedule(pool);
+				return r;
 			}
 		};
 	}
@@ -3471,7 +3412,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T> Observable<T> repeat(final T value) {
-		return repeat(value, DEFAULT_OBSERVABLE_POOL);
+		return repeat(value, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Creates an observable which repeates the given value indefinitely
@@ -3482,27 +3423,8 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the pool where the loop should be executed
 	 * @return the observable
 	 */
-	public static <T> Observable<T> repeat(final T value, final ExecutorService pool) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				final AtomicBoolean cancel = new AtomicBoolean();
-				pool.execute(new Runnable() {
-					@Override
-					public void run() {
-						while (!cancel.get()) {
-							observer.next(value);
-						}
-					}
-				});
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						cancel.set(true);
-					}
-				};
-			}
-		};
+	public static <T> Observable<T> repeat(final T value, final Scheduler pool) {
+		return repeat(Functions.constant0(value), pool);
 	}
 	/**
 	 * Creates an observable which repeates the given value <code>count</code> times
@@ -3513,7 +3435,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T> Observable<T> repeat(final T value, final int count) {
-		return repeat(value, count, DEFAULT_OBSERVABLE_POOL);
+		return repeat(value, count, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Creates an observable which repeates the given value <code>count</code> times
@@ -3524,28 +3446,8 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the pool where the loop should be executed
 	 * @return the observable
 	 */
-	public static <T> Observable<T> repeat(final T value, final int count, final ExecutorService pool) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				final AtomicBoolean cancel = new AtomicBoolean();
-				pool.execute(new Runnable() {
-					@Override
-					public void run() {
-						int i = count;
-						while (!cancel.get() && i-- > 0) {
-							observer.next(value);
-						}
-					}
-				});
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						cancel.set(true);
-					}
-				};
-			}
-		};
+	public static <T> Observable<T> repeat(final T value, final int count, final Scheduler pool) {
+		return repeat(Functions.constant0(value), count, pool);
 	}
 	/**
 	 * Returns an observable which listens to elements from a source until it signals an error()
@@ -3567,7 +3469,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						public void error(Throwable ex) {
 							unregister();
 							if (it.hasNext()) {
-								registerWith(it.next());
+								register(it.next());
 							} else {
 								observer.finish();
 							}
@@ -3577,7 +3479,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						public void finish() {
 							unregister();
 							if (it.hasNext()) {
-								registerWith(it.next());
+								register(it.next());
 							} else {
 								observer.finish();
 							}
@@ -3589,7 +3491,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 						
 					};
-					obs.registerWith(it.next());
+					obs.register(it.next());
 					return obs;
 				}
 				return Observables.<T>empty().register(observer);
@@ -3617,7 +3519,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						public void error(Throwable ex) {
 							unregister();
 							if (it.hasNext()) {
-								registerWith(it.next());
+								register(it.next());
 							} else {
 								observer.finish();
 							}
@@ -3635,7 +3537,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 						
 					};
-					obs.registerWith(it.next());
+					obs.register(it.next());
 					return obs;
 				}
 				return Observables.<T>empty().register(observer);
@@ -3656,7 +3558,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					@Override
 					public void error(Throwable ex) {
 						unregister();
-						registerWith(source);
+						register(source);
 					}
 
 					@Override
@@ -3671,7 +3573,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					}
 					
 				};
-				obs.registerWith(source);
+				obs.register(source);
 				return obs;
 			}
 		};
@@ -3695,7 +3597,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					public void error(Throwable ex) {
 						unregister();
 						if (remainingCount-- > 0) {
-							registerWith(source);
+							register(source);
 						} else {
 							observer.error(ex); // FIXME not sure
 						}
@@ -3713,7 +3615,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					}
 					
 				};
-				obs.registerWith(source);
+				obs.register(source);
 				return obs;
 			}
 		};
@@ -3895,7 +3797,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the sampled observable
 	 */
 	public static <T> Observable<T> sample(final Observable<T> source, final long time, final TimeUnit unit) {
-		return sample(source, time, unit, DEFAULT_SCHEDULED_POOL);
+		return sample(source, time, unit, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Periodically sample the given source observable, which means tracking the last value of
@@ -3909,7 +3811,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the sampled observable
 	 */
 	public static <T> Observable<T> sample(final Observable<T> source, final long time, final TimeUnit unit, 
-			final ScheduledExecutorService pool) {
+			final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -3944,8 +3846,8 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 					}
 				};
-				obs.scheduleOnAtFixedRate(pool, time, time, unit);
-				obs.registerWith(source);
+				obs.schedule(pool, time, time, unit);
+				obs.register(source);
 				return obs;
 			}
 		};
@@ -4107,7 +4009,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 							}
 							
 						};
-						obs.registerWith(collectionSelector.invoke(value));
+						obs.register(collectionSelector.invoke(value));
 						if (wip.decrementAndGet() == 0) {
 							if (!failed.get()) {
 								observer.finish();
@@ -4307,7 +4209,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T> Observable<T> singleton(final T value) {
-		return singleton(value, DEFAULT_OBSERVABLE_POOL);
+		return singleton(value, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Returns the single value in the observables.
@@ -4316,7 +4218,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the pool where to submit the value to the observers
 	 * @return the observable
 	 */
-	public static <T> Observable<T> singleton(final T value, final ExecutorService pool) {
+	public static <T> Observable<T> singleton(final T value, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -4327,7 +4229,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						observer.finish();
 					}
 				};
-				s.submitTo(pool);
+				s.schedule(pool);
 				return s;
 			}
 		};
@@ -4468,8 +4370,8 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					}
 					
 				};
-				obs.registerWith(source);
-				signal.registerWith(signaller);
+				obs.register(source);
+				signal.register(signaller);
 				return close(obs, signal);
 			}
 		};
@@ -4524,7 +4426,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static Observable<Void> start(final Action0 action) {
-		return start(action, DEFAULT_OBSERVABLE_POOL);
+		return start(action, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Invokes the action asynchronously on the given pool and
@@ -4533,7 +4435,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the pool where the action should run
 	 * @return the observable
 	 */
-	public static Observable<Void> start(final Action0 action, final ExecutorService pool) {
+	public static Observable<Void> start(final Action0 action, final Scheduler pool) {
 		return new Observable<Void>() {
 			@Override
 			public Closeable register(final Observer<? super Void> observer) {
@@ -4548,7 +4450,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 					}
 				};
-				s.submitTo(pool);
+				s.schedule(pool);
 				return s;
 			}
 		};
@@ -4562,7 +4464,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T> Observable<T> start(final Func0<T> func) {
-		return start(func, DEFAULT_OBSERVABLE_POOL);
+		return start(func, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Invokes the function asynchronously on the given pool and
@@ -4573,7 +4475,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the pool where the action should run
 	 * @return the observable
 	 */
-	public static <T> Observable<T> start(final Func0<T> func, final ExecutorService pool) {
+	public static <T> Observable<T> start(final Func0<T> func, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -4589,7 +4491,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 					}
 				};
-				s.submitTo(pool);
+				s.schedule(pool);
 				return s;
 			}
 		};
@@ -4603,7 +4505,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the new observable
 	 */
 	public static <T> Observable<T> startWith(Observable<T> source, Iterable<T> values) {
-		return startWith(source, values, DEFAULT_OBSERVABLE_POOL);
+		return startWith(source, values, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Start with the given iterable of values before relaying the Ts from the
@@ -4614,7 +4516,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the pool where the iterable values should be emitted
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> startWith(Observable<T> source, Iterable<T> values, ExecutorService pool) {
+	public static <T> Observable<T> startWith(Observable<T> source, Iterable<T> values, Scheduler pool) {
 		return concat(asObservable(values, pool), source);
 	}
 	/**
@@ -4626,29 +4528,28 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the new observable
 	 */
 	public static <T> Observable<T> subscribeOn(final Observable<T> observable, 
-			final ExecutorService pool) {
+			final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				// start the registration asynchronously
-				final Future<Closeable> future = pool.submit(new Callable<Closeable>() {
+				final BlockingQueue<Closeable> cq = new LinkedBlockingQueue<Closeable>();
+				pool.schedule(new Runnable() {
 					@Override
-					public Closeable call() throws Exception {
-						return observable.register(observer);
+					public void run() {
+						cq.add(observable.register(observer));
 					}
 				}); 
 				// use the disposable future when the deregistration is required
 				return new Closeable() {
 					@Override
 					public void close() {
-						pool.submit(new Runnable() {
+						pool.schedule(new Runnable() {
 							@Override
 							public void run() {
 								try {
-									future.get().close(); // wait until the dispose becomes available then call it
+									cq.take().close(); // wait until the dispose becomes available then call it
 								} catch (InterruptedException e) {
-									throw new RuntimeException();
-								} catch (ExecutionException e) {
 									throw new RuntimeException();
 								} catch (IOException e) {
 									throw new RuntimeException();
@@ -4659,15 +4560,6 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 				};
 			}
 		};
-	}
-	/**
-	 * Wrap the observable to the Event Dispatch Thread for subscribing to events.
-	 * @param <T> the value type to observe
-	 * @param observable the original observable
-	 * @return the new observable
-	 */
-	public static <T> Observable<T> subscribeOnEdt(Observable<T> observable) {
-		return subscribeOn(observable, EDT_EXECUTOR);
 	}
 	/**
 	 * Computes the sum of the source Ts by using a <code>sum</code> function.
@@ -5068,7 +4960,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					}
 					
 				};
-				oT.registerWith(source);
+				oT.register(source);
 				return oT;
 			}
 		};
@@ -5086,7 +4978,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 */
 	public static <T> Observable<T> throttle(final Observable<T> source, 
 			final long delay, final TimeUnit unit) {
-		return throttle(source, delay, unit, DEFAULT_SCHEDULED_POOL);
+		return throttle(source, delay, unit, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Creates and observable which fires the last value
@@ -5101,7 +4993,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T> Observable<T> throttle(final Observable<T> source, 
-			final long delay, final TimeUnit unit, final ScheduledExecutorService pool) {
+			final long delay, final TimeUnit unit, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -5122,7 +5014,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					public void next(T value) {
 						cancel();
 						last.set(value);
-						scheduleOn(pool, delay, unit);
+						schedule(pool, delay, unit);
 					}
 
 					@Override
@@ -5131,7 +5023,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					}
 					
 				};
-				obs.registerWith(source);
+				obs.register(source);
 				return obs;
 			}
 		};
@@ -5144,7 +5036,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the new observable
 	 */
 	public static <T> Observable<T> throwException(final Throwable ex) {
-		return throwException(ex, DEFAULT_OBSERVABLE_POOL);
+		return throwException(ex, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Creates an observable which instantly sends the exception to
@@ -5154,7 +5046,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the pool from where to send the values
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> throwException(final Throwable ex, final ExecutorService pool) {
+	public static <T> Observable<T> throwException(final Throwable ex, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -5164,7 +5056,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						observer.error(ex);
 					}
 				};
-				s.submitTo(pool);
+				s.schedule(pool);
 				return s;
 			}
 		};
@@ -5179,7 +5071,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observer
 	 */
 	public static Observable<Long> tick(final long start, final long end, final long delay, final TimeUnit unit) {
-		return tick(start, end, delay, unit, DEFAULT_SCHEDULED_POOL);
+		return tick(start, end, delay, unit, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Returns an observable which produces an ordered sequence of numbers with the specified delay.
@@ -5190,7 +5082,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @param pool the scheduler pool for the wait
 	 * @return the observer
 	 */
-	public static Observable<Long> tick(final long start, final long end, final long delay, final TimeUnit unit, final ScheduledExecutorService pool) {
+	public static Observable<Long> tick(final long start, final long end, final long delay, final TimeUnit unit, final Scheduler pool) {
 		if (start > end) {
 			throw new IllegalArgumentException("ensure start <= end");
 		}
@@ -5209,7 +5101,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 						}
 					}
 				};
-				s.scheduleOnAtFixedRate(pool, delay, delay, unit);
+				s.schedule(pool, delay, delay, unit);
 				return s;
 			}
 		};
@@ -5222,7 +5114,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observer
 	 */
 	public static Observable<Long> tick(final long delay, final TimeUnit unit) {
-		return tick(0, Long.MAX_VALUE, delay, unit, DEFAULT_SCHEDULED_POOL);
+		return tick(0, Long.MAX_VALUE, delay, unit, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Creates an observable which relays events if they arrive
@@ -5239,7 +5131,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 */
 	public static <T> Observable<T> timeout(final Observable<T> source, 
 			final long time, final TimeUnit unit) {
-		return timeout(source, time, unit, DEFAULT_SCHEDULED_POOL);
+		return timeout(source, time, unit, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Creates an observable which relays events if they arrive
@@ -5258,7 +5150,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	public static <T> Observable<T> timeout(final Observable<T> source, 
 			final long time, final TimeUnit unit,
 			final Observable<T> other) {
-		return timeout(source, time, unit, other, DEFAULT_SCHEDULED_POOL);
+		return timeout(source, time, unit, other, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Creates an observable which relays events if they arrive
@@ -5278,7 +5170,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	public static <T> Observable<T> timeout(final Observable<T> source, 
 			final long time, final TimeUnit unit,
 			final Observable<T> other,
-			final ScheduledExecutorService pool) {
+			final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -5340,12 +5232,12 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 								lock.unlock();
 							}
 						} else {
-							scheduleOn(pool, time, unit);
+							schedule(pool, time, unit);
 						}
 					}
 				};
-				so.registerWith(source);
-				so.scheduleOn(pool, time, unit);
+				so.register(source);
+				so.schedule(pool, time, unit);
 				return so;
 			}
 		};
@@ -5365,7 +5257,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observer.
 	 */
 	public static <T> Observable<T> timeout(final Observable<T> source, 
-			final long time, final TimeUnit unit, final ScheduledExecutorService pool) {
+			final long time, final TimeUnit unit, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -5426,12 +5318,12 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 								lock.unlock();
 							}
 						} else {
-							scheduleOn(pool, time, unit);
+							schedule(pool, time, unit);
 						}
 					}
 				};
-				so.registerWith(source);
-				so.scheduleOn(pool, time, unit);
+				so.register(source);
+				so.schedule(pool, time, unit);
 				return so;
 			}
 		};
@@ -5565,7 +5457,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 */
 	static <T, U> Observable<Observable<T>> window(final Observable<T> source, 
 			final Func0<Observable<U>> windowClosing) {
-		return window(source, windowClosing, DEFAULT_OBSERVABLE_POOL);
+		return window(source, windowClosing, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Splits the source stream into separate observables once
@@ -5579,7 +5471,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable on sequences of observables of Ts
 	 */
 	static <T, U> Observable<Observable<T>> window(final Observable<T> source, 
-			final Func0<Observable<U>> windowClosing, final ExecutorService pool) {
+			final Func0<Observable<U>> windowClosing, final Scheduler pool) {
 		throw new UnsupportedOperationException();
 	}
 	/**
@@ -5625,7 +5517,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					}
 					
 				};
-				obs.registerWith(left);
+				obs.register(left);
 				return obs;
 			}
 		};
@@ -5750,8 +5642,8 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 				};
 				Closeable c = close(oU, oV);
 				closeBoth.set(c);
-				oU.registerWith(left);
-				oV.registerWith(right);
+				oU.register(left);
+				oV.register(right);
 				return c;
 			}
 		};
