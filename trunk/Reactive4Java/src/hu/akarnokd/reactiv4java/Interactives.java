@@ -135,17 +135,13 @@ public final class Interactives {
 			public Iterator<Integer> iterator() {
 				return new Iterator<Integer>() {
 					int current = start;
-					final boolean down = count < 0;
 					@Override
 					public boolean hasNext() {
-						return down ? current > start + count : current < start + count;
+						return current < start + count;
 					}
 					@Override
 					public Integer next() {
 						if (hasNext()) {
-							if (down) {
-								return current--;
-							}
 							return current++;
 						}
 						throw new NoSuchElementException();
@@ -170,17 +166,13 @@ public final class Interactives {
 			public Iterator<Long> iterator() {
 				return new Iterator<Long>() {
 					long current = start;
-					final boolean down = count < 0;
 					@Override
 					public boolean hasNext() {
-						return down ? current > start + count : current < start + count;
+						return current < start + count;
 					}
 					@Override
 					public Long next() {
 						if (hasNext()) {
-							if (down) {
-								return current--;
-							}
 							return current++;
 						}
 						throw new NoSuchElementException();
@@ -445,7 +437,7 @@ public final class Interactives {
 	 * @param predicate the predicate function
 	 * @return the new iterable
 	 */
-	public static <T> Iterable<T> where(final Iterable<T> source, Func2<Boolean, Integer, T> predicate) {
+	public static <T> Iterable<T> where(final Iterable<T> source, final Func2<Boolean, Integer, T> predicate) {
 		/*
 		 * int i = 0;
 		 * for (T t : source) {
@@ -463,21 +455,171 @@ public final class Interactives {
 				return new Iterator<T>() {
 					/** The current element count. */
 					int count;
+					/** The temporary store for peeked elements. */
+					final LinkedList<T> peek = new LinkedList<T>();
 					@Override
 					public boolean hasNext() {
-						// TODO Auto-generated method stub
-						return false;
+						if (peek.size() == 0) {
+							while (it.hasNext()) {
+								T value = it.next();
+								if (predicate.invoke(count, value)) {
+									peek.add(value);
+									count++;
+									return true;
+								}
+								count++;
+							}
+							return false;
+						}
+						return true;
 					}
 
 					@Override
 					public T next() {
-						// TODO Auto-generated method stub
-						return null;
+						if (hasNext()) {
+							return peek.removeFirst();
+						}
+						throw new NoSuchElementException(); 
 					}
 
 					@Override
 					public void remove() {
 						it.remove();
+					}
+					
+				};
+			}
+		};
+	}
+	/**
+	 * Creates an iterable which filters the source iterable with the
+	 * given predicate function. The predicate receives the value and
+	 * must return a boolean wether to accept that entry.
+	 * @param <T> the element type
+	 * @param source the source iterable
+	 * @param predicate the predicate function
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> where(final Iterable<T> source, final Func1<Boolean, T> predicate) {
+		return where(source, new Func2<Boolean, Integer, T>() {
+			@Override
+			public Boolean invoke(Integer param1, T param2) {
+				return predicate.invoke(param2);
+			}
+		});
+	}
+	/**
+	 * Creates an iterable which is a transforms the source
+	 * elements by using the selector function.
+	 * The function receives the current index and the current element.
+	 * @param <T> the source element type
+	 * @param <U> the output element type
+	 * @param source the source iterable
+	 * @param selector the selector function
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> select(final Iterable<T> source, final Func2<U, Integer, T> selector) {
+		return new Iterable<U>() {
+			@Override
+			public Iterator<U> iterator() {
+				final Iterator<T> it = source.iterator();
+				return new Iterator<U>() {
+					/** The current counter. */
+					int count;
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					@Override
+					public U next() {
+						return selector.invoke(count++, it.next());
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+					
+				};
+			}
+		};
+	}
+	/**
+	 * Creates an iterable which is a transforms the source
+	 * elements by using the selector function.
+	 * The function receives the current index and the current element.
+	 * @param <T> the source element type
+	 * @param <U> the output element type
+	 * @param source the source iterable
+	 * @param selector the selector function
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> select(final Iterable<T> source, final Func1<U, T> selector) {
+		return select(source, new Func2<U, Integer, T>() {
+			@Override
+			public U invoke(Integer param1, T param2) {
+				return selector.invoke(param2);
+			};
+		});
+	};
+	/**
+	 * Creates an iterable which returns a stream of Us for each source Ts.
+	 * The iterable stream of Us is returned by the supplied selector function.
+	 * @param <T> the source element type
+	 * @param <U> the output element type
+	 * @param source the source
+	 * @param selector the selector for multiple Us for each T
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> selectMany(final Iterable<T> source, 
+			final Func1<Iterable<U>, T> selector) {
+		/*
+		 * for (T t : source) {
+		 *     for (U u : selector(t)) {
+		 *         yield u;
+		 *     }
+		 * } 
+		 */
+		return new Iterable<U>() {
+			@Override
+			public Iterator<U> iterator() {
+				final Iterator<T> it = source.iterator();
+				return new Iterator<U>() {
+					/** The current selected iterator. */
+					Iterator<U> sel;
+					@Override
+					public boolean hasNext() {
+						if (sel == null || !sel.hasNext()) {
+							while (true) {
+								if (it.hasNext()) {
+									sel = selector.invoke(it.next()).iterator();
+									if (sel.hasNext()) {
+										return true;
+									}
+								} else {
+									break;
+								}
+							}
+							return false;
+						}
+						return true;
+					}
+
+					@Override
+					public U next() {
+						if (hasNext()) {
+							return sel.next();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						if (sel == null) {
+							throw new IllegalStateException();
+						}
+						sel.remove();
 					}
 					
 				};

@@ -16,6 +16,8 @@
 
 package hu.akarnokd.reactiv4java.test;
 
+import hu.akarnokd.reactiv4java.Func1;
+import hu.akarnokd.reactiv4java.Func2;
 import hu.akarnokd.reactiv4java.Interactives;
 
 
@@ -46,6 +48,11 @@ public final class TestInteractive0 {
 	 * @throws Exception on error
 	 */
 	public static void main(String[] args) throws Exception {
+		try {
+			run(Interactives.throwException(new NullPointerException()));
+		} catch (RuntimeException ex) {
+			ex.printStackTrace();
+		}
 		
 		run(Interactives.singleton(1));
 		
@@ -53,11 +60,21 @@ public final class TestInteractive0 {
 		
 		run(Interactives.concat(Interactives.singleton(0), Interactives.range(1, 9)));
 		
-		try {
-			run(Interactives.throwException(new NullPointerException()));
-		} catch (RuntimeException ex) {
-			ex.printStackTrace();
-		}
+		run(Interactives.where(Interactives.range(0, 10), new Func2<Boolean, Integer, Integer>() {
+			@Override
+			public Boolean invoke(Integer param1, Integer param2) {
+				System.out.printf("[%d]", param1);
+				return param2 % 2 == 0;
+			}
+		}));
+		
+		run(Interactives.selectMany(Interactives.range(0, 2), new Func1<Iterable<Integer>, Integer>() {
+			@Override
+			public Iterable<Integer> invoke(Integer param1) {
+				return Interactives.range(0, param1);
+			}
+		}));
+		
 		
 		System.out.printf("%nMain finished%n");
 	}
