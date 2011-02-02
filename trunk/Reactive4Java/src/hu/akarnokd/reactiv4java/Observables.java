@@ -667,7 +667,7 @@ public final class Observables {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
 						for (T t : iterable) {
@@ -1009,7 +1009,7 @@ public final class Observables {
 				final BlockingQueue<T> buffer = new LinkedBlockingQueue<T>();
 				final AtomicInteger bufferLength = new AtomicInteger();
 				
-				ScheduledObserver<T> s = new ScheduledObserver<T>() {
+				DefaultRunnableObserver<T> s = new DefaultRunnableObserver<T>() {
 					@Override
 					public void run() {
 						List<T> curr = new ArrayList<T>();
@@ -1083,7 +1083,7 @@ public final class Observables {
 		return new Observable<List<T>>() {
 			@Override
 			public Closeable register(final Observer<? super List<T>> observer) {
-				ScheduledObserver<T> so = new ScheduledObserver<T>() {
+				DefaultRunnableObserver<T> so = new DefaultRunnableObserver<T>() {
 					final BlockingQueue<T> buffer = new LinkedBlockingQueue<T>();
 					@Override
 					public void error(Throwable ex) {
@@ -1704,7 +1704,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
 						observer.finish();
@@ -1904,7 +1904,7 @@ public final class Observables {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
 						T t = initial;
@@ -1958,7 +1958,7 @@ public final class Observables {
 			public Closeable register(final Observer<? super Timestamped<U>> observer) {
 				// the cancellation indicator
 				
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					T current = initial;
 					@Override
 					public void run() {
@@ -2458,7 +2458,14 @@ public final class Observables {
 			}
 			@Override
 			public void close() throws IOException {
-				close.close(); // FIXME not sure
+				lock.lock();
+				try {
+					close.close(); // FIXME not sure
+				} finally {
+					alive.set(false);
+					lock.unlock();
+				}
+				
 //				lock.lock();
 //				try {
 //					if (alive.get())  {
@@ -3159,7 +3166,7 @@ public final class Observables {
 		return new Observable<BigDecimal>() {
 			@Override
 			public Closeable register(final Observer<? super BigDecimal> observer) {
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
 						BigDecimal value = start;
@@ -3198,7 +3205,7 @@ public final class Observables {
 		return new Observable<BigInteger>() {
 			@Override
 			public Closeable register(final Observer<? super BigInteger> observer) {
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
 						BigInteger end = start.add(count);
@@ -3241,7 +3248,7 @@ public final class Observables {
 		return new Observable<Double>() {
 			@Override
 			public Closeable register(final Observer<? super Double> observer) {
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
 						for (int i = 0; i < count && !Thread.currentThread().isInterrupted(); i++) {
@@ -3282,7 +3289,7 @@ public final class Observables {
 		return new Observable<Float>() {
 			@Override
 			public Closeable register(final Observer<? super Float> observer) {
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
 						for (int i = 0; i < count && !Thread.currentThread().isInterrupted(); i++) {
@@ -3319,7 +3326,7 @@ public final class Observables {
 		return new Observable<Integer>() {
 			@Override
 			public Closeable register(final Observer<? super Integer> observer) {
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
 						for (int i = start; i < start + count && !cancelled(); i++) {
@@ -3949,7 +3956,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final ScheduledObserver<T> obs = new ScheduledObserver<T>() {
+				final DefaultRunnableObserver<T> obs = new DefaultRunnableObserver<T>() {
 					/** Are we waiting for the first event? */
 					final AtomicBoolean first = new AtomicBoolean(true);
 					/** The current value. */
@@ -4077,6 +4084,7 @@ public final class Observables {
 	 * Creates an observable in which for each of Ts an observable of Vs are
 	 * requested which in turn will be transformed by the resultSelector for each
 	 * pair of T and V giving an U.
+	 * FIXME concurrency related questions
 	 * @param <T> the source element type
 	 * @param <U> the output element type
 	 * @param <V> the intermediate element type
@@ -4098,15 +4106,16 @@ public final class Observables {
 					public void error(Throwable ex) {
 						if (failed.compareAndSet(false, true)) {
 							observer.error(ex);
-						} else {
-							wip.decrementAndGet();
 						}
+						wip.decrementAndGet();
 					}
 
 					@Override
 					public void finish() {
 						if (wip.decrementAndGet() == 0) {
-							observer.finish();
+							if (!failed.get()) {
+								observer.finish();
+							}
 						}
 					}
 
@@ -4119,16 +4128,17 @@ public final class Observables {
 								unregister();
 								if (failed.compareAndSet(false, true)) {
 									observer.error(ex);
-								} else {
-									wip.decrementAndGet();
 								}
+								wip.decrementAndGet();
 							}
 
 							@Override
 							public void finish() {
 								unregister();
 								if (wip.decrementAndGet() == 0) {
-									observer.finish();
+									if (!failed.get()) {
+										observer.finish();
+									}
 								}
 							}
 
@@ -4140,8 +4150,12 @@ public final class Observables {
 							}
 							
 						};
-						wip.incrementAndGet();
 						obs.registerWith(collectionSelector.invoke(value));
+						if (wip.decrementAndGet() == 0) {
+							if (!failed.get()) {
+								observer.finish();
+							}
+						}
 					}
 					
 				});
@@ -4237,7 +4251,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
 						observer.next(value);
@@ -4281,7 +4295,6 @@ public final class Observables {
 							remaining--;
 						}
 					}
-					
 				});
 			}
 		};
@@ -4455,7 +4468,7 @@ public final class Observables {
 		return new Observable<Void>() {
 			@Override
 			public Closeable register(final Observer<? super Void> observer) {
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
 						try {
@@ -4495,7 +4508,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
 						try {
@@ -4975,7 +4988,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final ScheduledObserver<T> obs = new ScheduledObserver<T>() {
+				final DefaultRunnableObserver<T> obs = new DefaultRunnableObserver<T>() {
 					/** The last seen value. */
 					final AtomicReference<T> last = new AtomicReference<T>();
 					@Override
@@ -5028,7 +5041,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void run() {
 						observer.error(ex);
@@ -5067,7 +5080,7 @@ public final class Observables {
 		return new Observable<Long>() {
 			@Override
 			public Closeable register(final Observer<? super Long> observer) {
-				DefaultSchedulable s = new DefaultSchedulable() {
+				DefaultRunnable s = new DefaultRunnable() {
 					long current = start;
 					@Override
 					public void run() {
@@ -5152,7 +5165,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				ScheduledObserver<T> so = new ScheduledObserver<T>() {
+				DefaultRunnableObserver<T> so = new DefaultRunnableObserver<T>() {
 					/** The lock to prevent overlapping of run and observer messages. */
 					final Lock lock = new ReentrantLock();
 					/** Flag to indicate if a timeout happened. */
@@ -5239,7 +5252,7 @@ public final class Observables {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				ScheduledObserver<T> so = new ScheduledObserver<T>() {
+				DefaultRunnableObserver<T> so = new DefaultRunnableObserver<T>() {
 					/** The lock to prevent overlapping of run and observer messages. */
 					final Lock lock = new ReentrantLock();
 					/** Flag to indicate if a timeout happened. */
@@ -5624,6 +5637,90 @@ public final class Observables {
 				return c;
 			}
 		};
+	}
+	/**
+	 * Invoke the given callable on the given pool and observe its result via the returned observable.
+	 * Any exception thrown by the callable is relayed via the error() message.
+	 * @param <T> the return type
+	 * @param call the callable
+	 * @param pool the thread pool
+	 * @return the observable
+	 */
+	public static <T> Observable<T> invokeAsync(final Callable<? extends T> call, final ExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final Future<?> f = pool.submit(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							observer.next(call.call());
+							observer.finish();
+						} catch (Throwable ex) {
+							observer.error(ex);
+						}
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() throws IOException {
+						f.cancel(true);
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Invoke the given callable on the given pool and observe its result via the returned observable.
+	 * Any exception thrown by the callable is relayed via the error() message.
+	 * @param <T> the return type
+	 * @param run the runnable
+	 * @param pool the thread pool
+	 * @return the observable
+	 */
+	public static <T> Observable<T> invokeAsync(final Runnable run, final ExecutorService pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final Future<?> f = pool.submit(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							run.run();
+							observer.finish();
+						} catch (Throwable ex) {
+							observer.error(ex);
+						}
+					}
+				});
+				return new Closeable() {
+					@Override
+					public void close() throws IOException {
+						f.cancel(true);
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Invoke the given callable on the default pool and observe its result via the returned observable.
+	 * Any exception thrown by the callable is relayed via the error() message.
+	 * @param <T> the return type
+	 * @param call the callable
+	 * @return the observable
+	 */
+	public static <T> Observable<T> invokeAsync(final Callable<? extends T> call) {
+		return invokeAsync(call, DEFAULT_OBSERVABLE_POOL);
+	}
+	/**
+	 * Invoke the given callable on the given pool and observe its result via the returned observable.
+	 * Any exception thrown by the callable is relayed via the error() message.
+	 * @param <T> the return type
+	 * @param run the runnable
+	 * @return the observable
+	 */
+	public static <T> Observable<T> invokeAsync(final Runnable run) {
+		return invokeAsync(run, DEFAULT_OBSERVABLE_POOL);
 	}
 	/** Utility class. */
 	private Observables() {
