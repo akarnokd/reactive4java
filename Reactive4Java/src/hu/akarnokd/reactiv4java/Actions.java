@@ -67,4 +67,17 @@ public final class Actions {
 			}
 		};
 	}
+	/**
+	 * Wrap the given action into a runnable instance.
+	 * @param action the target action
+	 * @return the wrapper runnable
+	 */
+	public static Runnable asRunnable(final Action0 action) {
+		return new Runnable() {
+			@Override
+			public void run() {
+				action.invoke();
+			}
+		};
+	}
 }

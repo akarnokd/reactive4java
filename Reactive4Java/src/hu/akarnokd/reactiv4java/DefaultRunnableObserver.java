@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author akarnokd, 2011.01.30.
  * @param <T> the observed type
  */
-public abstract class ScheduledObserver<T> implements RunnableClosableObserver<T> {
+public abstract class DefaultRunnableObserver<T> implements RunnableClosableObserver<T> {
 	/** The future holding the reference to the scheduled part. */
 	protected final AtomicReference<Future<?>> future = new AtomicReference<Future<?>>();
 	/** The handler returned by the registration. */
@@ -50,7 +50,9 @@ public abstract class ScheduledObserver<T> implements RunnableClosableObserver<T
 	 * @param unit the time unit of the delay
 	 */
 	public void scheduleOn(ScheduledExecutorService pool, long delay, TimeUnit unit) {
-		replace(pool.schedule(this, delay, unit));
+		FutureTask<T> f = new FutureTask<T>(this, null);
+		replace(f);
+		pool.schedule(f, delay, unit);
 	}
 	/**
 	 * Replace the future registration with the current contents

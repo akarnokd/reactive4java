@@ -22,7 +22,7 @@ package hu.akarnokd.reactiv4java;
  * @author akarnokd, 2011.01.29.
  * @param <T> the element type to observe
  */
-public abstract class DefaultObserver<T> extends ScheduledObserver<T> {
+public abstract class DefaultObserver<T> extends DefaultRunnableObserver<T> {
 	@Override
 	public final void run() {
 		// no op

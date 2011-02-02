@@ -21,7 +21,7 @@ package hu.akarnokd.reactiv4java;
  * FIXME concurrency questions with the storage of the current future
  * @author akarnokd, 2011.01.29.
  */
-public abstract class DefaultSchedulable extends ScheduledObserver<Void> {
+public abstract class DefaultRunnable extends DefaultRunnableObserver<Void> {
 	@Override
 	public void error(Throwable ex) {
 		// no op
