@@ -17,6 +17,7 @@
 package hu.akarnokd.reactive4java;
 
 import java.io.Closeable;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Comparator;
 import java.util.concurrent.Callable;
@@ -551,4 +552,70 @@ public final class Functions {
 			
 		};
 	};
+	/** Function to sum integers in aggregators. */
+	static final Func2<Integer, Integer, Integer> SUM_INTEGER = new Func2<Integer, Integer, Integer>() {
+		@Override
+		public Integer invoke(Integer param1, Integer param2) {
+			return param1 != null ? param1 + param2 : param2;
+		}
+	};
+	/** Function to sum integers in aggregators. */
+	static final Func2<Float, Float, Float> SUM_FLOAT = new Func2<Float, Float, Float>() {
+		@Override
+		public Float invoke(Float param1, Float param2) {
+			return param1 != null ? param1 + param2 : param2;
+		}
+	};
+	/** Function to sum integers in aggregators. */
+	static final Func2<Double, Double, Double> SUM_DOUBLE = new Func2<Double, Double, Double>() {
+		@Override
+		public Double invoke(Double param1, Double param2) {
+			return param1 != null ? param1 + param2 : param2;
+		}
+	};
+	/** Function to sum integers in aggregators. */
+	static final Func2<Long, Long, Long> SUM_LONG = new Func2<Long, Long, Long>() {
+		@Override
+		public Long invoke(Long param1, Long param2) {
+			return param1 != null ? param1 + param2 : param2;
+		}
+	};
+	/** Function to sum integers in aggregators. */
+	static final Func2<BigInteger, BigInteger, BigInteger> SUM_BIGINTEGER = new Func2<BigInteger, BigInteger, BigInteger>() {
+		@Override
+		public BigInteger invoke(BigInteger param1, BigInteger param2) {
+			return param1 != null ? param1.add(param2) : param2;
+		}
+	};
+	/** Function to sum integers in aggregators. */
+	static final Func2<BigDecimal, BigDecimal, BigDecimal> SUM_BIGDECIMAL = new Func2<BigDecimal, BigDecimal, BigDecimal>() {
+		@Override
+		public BigDecimal invoke(BigDecimal param1, BigDecimal param2) {
+			return param1 != null ? param1.add(param2) : param2;
+		}
+	};
+	/** @return Function to sum integers in aggregators. */
+	public static Func2<Integer, Integer, Integer> sumInteger() {
+		return SUM_INTEGER;
+	}
+	/** @return Function to sum integers in aggregators. */
+	public static Func2<Long, Long, Long> sumLong() {
+		return SUM_LONG;
+	}
+	/** @return Function to sum integers in aggregators. */
+	public static Func2<Float, Float, Float> sumFloat() {
+		return SUM_FLOAT;
+	}
+	/** @return Function to sum integers in aggregators. */
+	public static Func2<Double, Double, Double> sumDouble() {
+		return SUM_DOUBLE;
+	}
+	/** @return Function to sum integers in aggregators. */
+	public static Func2<BigInteger, BigInteger, BigInteger> sumBigInteger() {
+		return SUM_BIGINTEGER;
+	}
+	/** @return Function to sum integers in aggregators. */
+	public static Func2<BigDecimal, BigDecimal, BigDecimal> sumBigDecimal() {
+		return SUM_BIGDECIMAL;
+	}
 }

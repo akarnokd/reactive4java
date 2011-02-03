@@ -1503,4 +1503,93 @@ public final class Interactives {
 		list.add(second);
 		return resumeAlways(list);
 	}
+	/**
+	 * Generates an iterable which acts like a running sum when iterating over the source iterable, e.g.,
+	 * For each element in T, it computes a value by using the current aggregation value and returns it.
+	 * The first call to the aggregator function will receive a zero for its first argument.
+	 * @param <T> the source element type
+	 * @param <U> the destination element type
+	 * @param source the source of Ts
+	 * @param seed the initial value of the running aggregation
+	 * @param aggregator the function which takes the current running aggregation value, the current element and produces a new aggregation value.
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> scan(final Iterable<? extends T> source, final U seed, final Func2<? extends U, ? super U, ? super T> aggregator) {
+		return new Iterable<U>() {
+			@Override
+			public Iterator<U> iterator() {
+				final Iterator<? extends T> it = source.iterator();
+				return new Iterator<U>() {
+					/** The current value. */
+					U current = seed;
+					
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					@Override
+					public U next() {
+						current = aggregator.invoke(current, it.next());
+						return current;
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Generates an iterable which acts like a running sum when iterating over the source iterable, e.g.,
+	 * For each element in T, it computes a value by using the current aggregation value and returns it.
+	 * The first call to the aggregator function will receive a zero for its first argument.
+	 * @param <T> the source element type
+	 * @param <U> the destination element type
+	 * @param source the source of Ts
+	 * @param aggregator the function which takes the current running aggregation value, the current element and produces a new aggregation value.
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> scan(final Iterable<? extends T> source, final Func2<? extends U, ? super U, ? super T> aggregator) {
+		return scan(source, null, aggregator);
+	}
+	/**
+	 * Returns the last element of the iterable or throws a <code>NoSuchElementException</code> if the iterable is empty.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @return the last value
+	 */
+	public static <T> T last(final Iterable<? extends T> source) {
+		Iterator<? extends T> it = source.iterator();
+		if (it.hasNext()) {
+			T t = null;
+			while (it.hasNext()) {
+				t = it.next();
+			}
+			return t;
+		}
+		throw new NoSuchElementException();
+	}
+	/**
+	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
+	 * how many iterator attaches to it and each iterator see only the values.
+	 * FIXME how to implement?!
+	 * @param <T> the source element type
+	 * @param <U> the result element type
+	 * @param source the source of Ts
+	 * @param func ???
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> publish(final Iterable<T> source, final Func1<Iterable<U>, Iterable<T>> func) {
+		final LinkedList<U> buffer = new LinkedList<U>();
+		final Iterator<T> it = source.iterator();
+		return new Iterable<U>() {
+			@Override
+			public Iterator<U> iterator() {
+				return func.invoke(source).iterator();
+			}
+		};
+	}
 }
