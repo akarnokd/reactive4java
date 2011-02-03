@@ -48,8 +48,13 @@ public final class TestInteractive0 {
 	 * waiting on the observable completion
 	 */
 	static void run(Iterable<?> source) {
-		Interactives.run(source, Interactives.print());
-		System.out.println();
+		try {
+			Interactives.run(source, Interactives.print());
+			System.out.println();
+		} catch (Throwable t) {
+			System.err.print(", ");
+			t.printStackTrace();
+		}
 	}
 	
 	/**
@@ -57,11 +62,7 @@ public final class TestInteractive0 {
 	 * @throws Exception on error
 	 */
 	public static void main(String[] args) throws Exception {
-		try {
-			run(throwException(new NullPointerException()));
-		} catch (RuntimeException ex) {
-			ex.printStackTrace();
-		}
+		run(throwException(new NullPointerException()));
 		
 		run(singleton(1));
 		
@@ -110,22 +111,26 @@ public final class TestInteractive0 {
 		run(it);
 		run(it);
 		
-		run(generate(0, Functions.lessThan(10), incrementInt()));
+		Iterable<Integer> gen0to10 = generate(0, Functions.lessThan(10), incrementInt());
+		run(gen0to10);
 		
 		run(materialize(concat(range(0, 10), throwException(new RuntimeException()))));
 
 		run(materialize(generate(0, lessThan(10), incrementInt())));
 
-		try {
-			Iterable<Option<Object>> materialize = materialize(concat(range(0, 10), throwException(new RuntimeException())));
-			run(dematerialize(materialize));
-		} catch (Throwable t) {
-			t.printStackTrace();
-		}
+		final Iterable<Object> cc = concat(range(0, 10), throwException(new RuntimeException()));
+		Iterable<Option<Object>> materialize = materialize(cc);
+		run(dematerialize(materialize));
 		
-//		run(merge(range(0, 10), range(1000, 10)));
+		run(merge(range(0, 10), range(1000, 10)));
 		
-		run(merge(generate(0, lessThan(10), incrementInt(), 5, 1, TimeUnit.SECONDS), generate(10, lessThan(20), incrementInt(), 4, 1, TimeUnit.SECONDS)));
+		run(merge(generate(0, lessThan(10), incrementInt(), 5, 1, TimeUnit.SECONDS), throwException(new RuntimeException())));
+
+		run(retry(cc, 4));
+		
+		run(count(cc));
+		
+		run(count(gen0to10));
 		
 		System.out.printf("%nMain finished%n");
 	}

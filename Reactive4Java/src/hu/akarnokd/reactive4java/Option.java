@@ -97,7 +97,7 @@ public abstract class Option<T> {
 		}
 		@Override
 		public String toString() {
-			return ex.toString();
+			return "Error of " + ex.toString();
 		}
 		/** @return the contained throwable value. */
 		public Throwable error() {
