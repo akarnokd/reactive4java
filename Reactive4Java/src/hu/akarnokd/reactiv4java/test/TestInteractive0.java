@@ -16,6 +16,8 @@
 
 package hu.akarnokd.reactiv4java.test;
 
+import java.util.Arrays;
+
 import hu.akarnokd.reactiv4java.Func1;
 import hu.akarnokd.reactiv4java.Func2;
 import hu.akarnokd.reactiv4java.Functions;
@@ -70,7 +72,7 @@ public final class TestInteractive0 {
 			}
 		}));
 		
-		run(Interactives.selectMany(Interactives.range(0, 2), new Func1<Iterable<Integer>, Integer>() {
+		run(Interactives.selectMany(Interactives.range(0, 10), new Func1<Iterable<Integer>, Integer>() {
 			@Override
 			public Iterable<Integer> invoke(Integer param1) {
 				return Interactives.range(0, param1);
@@ -98,6 +100,10 @@ public final class TestInteractive0 {
 			run(g);
 		}
 		
+		Iterable<Integer> it = Interactives.distinctSet(Arrays.asList(1, 2, 3, 2, 1));
+		
+		run(it);
+		run(it);
 		
 		System.out.printf("%nMain finished%n");
 	}

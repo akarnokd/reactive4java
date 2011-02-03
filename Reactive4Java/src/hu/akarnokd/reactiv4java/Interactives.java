@@ -434,14 +434,28 @@ public final class Interactives {
 	}
 	/**
 	 * Creates an iterable which filters the source iterable with the
-	 * given predicate function. The predicate receives an index
+	 * given predicate factory function. The predicate returned by the factory receives an index
 	 * telling how many elements were processed thus far.
 	 * @param <T> the element type
 	 * @param source the source iterable
-	 * @param predicate the predicate function
+	 * @param predicate the predicate
 	 * @return the new iterable
 	 */
-	public static <T> Iterable<T> where(final Iterable<T> source, final Func2<Boolean, Integer, T> predicate) {
+	public static <T> Iterable<T> where(final Iterable<? extends T> source, final Func2<Boolean, Integer, ? super T> predicate) {
+		return where(source, Functions.constant0(predicate));
+	}
+	/**
+	 * Creates an iterable which filters the source iterable with the
+	 * given predicate factory function. The predicate returned by the factory receives an index
+	 * telling how many elements were processed thus far.
+	 * Use this construct if you want to use some memorizing predicat function (e.g., filter by subsequent distinct, filter by first occurrences only)
+	 * which need to be invoked per iterator() basis.
+	 * @param <T> the element type
+	 * @param source the source iterable
+	 * @param predicateFactory the predicate factory which should return a new predicate function for each iterator.
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> where(final Iterable<? extends T> source, final Func0<? extends Func2<Boolean, Integer, ? super T>> predicateFactory) {
 		/*
 		 * int i = 0;
 		 * for (T t : source) {
@@ -455,7 +469,8 @@ public final class Interactives {
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
-				final Iterator<T> it = source.iterator();
+				final Func2<Boolean, Integer, ? super T> predicate = predicateFactory.invoke();
+				final Iterator<? extends T> it = source.iterator();
 				return new Iterator<T>() {
 					/** The current element count. */
 					int count;
@@ -504,13 +519,13 @@ public final class Interactives {
 	 * @param predicate the predicate function
 	 * @return the new iterable
 	 */
-	public static <T> Iterable<T> where(final Iterable<T> source, final Func1<Boolean, T> predicate) {
-		return where(source, new Func2<Boolean, Integer, T>() {
+	public static <T> Iterable<T> where(final Iterable<? extends T> source, final Func1<Boolean, ? super T> predicate) {
+		return where(source, Functions.constant0(new Func2<Boolean, Integer, T>() {
 			@Override
 			public Boolean invoke(Integer param1, T param2) {
 				return predicate.invoke(param2);
 			}
-		});
+		}));
 	}
 	/**
 	 * Creates an iterable which is a transforms the source
@@ -522,11 +537,11 @@ public final class Interactives {
 	 * @param selector the selector function
 	 * @return the new iterable
 	 */
-	public static <T, U> Iterable<U> select(final Iterable<T> source, final Func2<U, Integer, T> selector) {
+	public static <T, U> Iterable<U> select(final Iterable<? extends T> source, final Func2<? extends U, Integer, ? super T> selector) {
 		return new Iterable<U>() {
 			@Override
 			public Iterator<U> iterator() {
-				final Iterator<T> it = source.iterator();
+				final Iterator<? extends T> it = source.iterator();
 				return new Iterator<U>() {
 					/** The current counter. */
 					int count;
@@ -559,7 +574,7 @@ public final class Interactives {
 	 * @param selector the selector function
 	 * @return the new iterable
 	 */
-	public static <T, U> Iterable<U> select(final Iterable<T> source, final Func1<U, T> selector) {
+	public static <T, U> Iterable<U> select(final Iterable<? extends T> source, final Func1<? extends U, ? super T> selector) {
 		return select(source, new Func2<U, Integer, T>() {
 			@Override
 			public U invoke(Integer param1, T param2) {
@@ -576,8 +591,8 @@ public final class Interactives {
 	 * @param selector the selector for multiple Us for each T
 	 * @return the new iterable
 	 */
-	public static <T, U> Iterable<U> selectMany(final Iterable<T> source, 
-			final Func1<Iterable<U>, T> selector) {
+	public static <T, U> Iterable<U> selectMany(final Iterable<? extends T> source, 
+			final Func1<? extends Iterable<? extends U>, ? super T> selector) {
 		/*
 		 * for (T t : source) {
 		 *     for (U u : selector(t)) {
@@ -588,10 +603,10 @@ public final class Interactives {
 		return new Iterable<U>() {
 			@Override
 			public Iterator<U> iterator() {
-				final Iterator<T> it = source.iterator();
+				final Iterator<? extends T> it = source.iterator();
 				return new Iterator<U>() {
 					/** The current selected iterator. */
-					Iterator<U> sel;
+					Iterator<? extends U> sel;
 					@Override
 					public boolean hasNext() {
 						if (sel == null || !sel.hasNext()) {
@@ -644,13 +659,13 @@ public final class Interactives {
 	 * @param valueSelector the value selector
 	 * @return the new iterable
 	 */
-	public static <T, U, V> Iterable<GroupedIterable<V, U>> groupBy(final Iterable<T> source, 
-			final Func1<V, T> keySelector, final Func1<U, T> valueSelector) {
+	public static <T, U, V> Iterable<GroupedIterable<V, U>> groupBy(final Iterable<? extends T> source, 
+			final Func1<? extends V, ? super T> keySelector, final Func1<? extends U, ? super T> valueSelector) {
 		return distinctSet(new Iterable<GroupedIterable<V, U>>() {
 			@Override
 			public Iterator<GroupedIterable<V, U>> iterator() {
 				final Map<V, DefaultGroupedIterable<V, U>> groups = new LinkedHashMap<V, DefaultGroupedIterable<V, U>>();
-				final Iterator<T> it = source.iterator();
+				final Iterator<? extends T> it = source.iterator();
 				return new Iterator<GroupedIterable<V, U>>() {
 					Iterator<DefaultGroupedIterable<V, U>> groupIt;
 					@Override
@@ -706,20 +721,72 @@ public final class Interactives {
 	 * @param source the source of Ts
 	 * @param keySelector the key selector for only-once filtering
 	 * @param valueSelector the value select for the output of the first key cases
-	 * @return the new observable
+	 * @return the new iterable
 	 */
-	public static <T, U, V> Iterable<U> distinctSet(final Iterable<T> source, 
-			final Func1<V, ? super T> keySelector, final Func1<U, ? super T> valueSelector) {
-		return select(where(source, new Func1<Boolean, T>() {
-			final Set<V> memory = new HashSet<V>();
+	public static <T, U, V> Iterable<U> distinctSet(final Iterable<? extends T> source, 
+			final Func1<? extends V, ? super T> keySelector, final Func1<? extends U, ? super T> valueSelector) {
+		return select(where(source,
+		new Func0<Func2<Boolean, Integer, T>>() {
 			@Override
-			public Boolean invoke(T param1) {
-				return memory.add(keySelector.invoke(param1));
+			public Func2<Boolean, Integer, T> invoke() {
+				return new Func2<Boolean, Integer, T>() {
+					final Set<V> memory = new HashSet<V>();
+					@Override
+					public Boolean invoke(Integer index, T param1) {
+						return memory.add(keySelector.invoke(param1));
+					};
+				};
 			};
-		}), new Func1<U, T>() {
+		})
+		, new Func1<U, T>() {
 			@Override
 			public U invoke(T param1) {
 				return valueSelector.invoke(param1);
+			};
+		});
+	}
+	/**
+	 * Returns an iterable which filters its elements based if they vere ever seen before in
+	 * the current iteration.
+	 * Value equality is computed by reference equality and <code>equals()</code>
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> distinctSet(final Iterable<? extends T> source) {
+		return distinctSet(source, Functions.<T>identity(), Functions.<T>identity());
+	}
+	/**
+	 * Creates an iterable which ensures that subsequent values of T are not equal  (reference and equals).
+	 * @param <T> the element type
+	 * @param source the source iterable
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> distinct(final Iterable<? extends T> source) {
+		return where(source,
+		new Func0<Func2<Boolean, Integer, T>>() {
+			@Override
+			public Func2<Boolean, Integer, T> invoke() {
+				return new Func2<Boolean, Integer, T>() {
+					/** Is this the first element? */
+					boolean first = true;
+					/** The last seen element. */
+					T last;
+					@Override
+					public Boolean invoke(Integer index, T param1) {
+						if (first) {
+							first = false;
+							last = param1;
+							return true;
+						}
+						if (last == param1 || (last != null && last.equals(param1))) {
+							last = param1;
+							return false;
+						}
+						last = param1;
+						return true;
+					};
+				};
 			};
 		});
 	}
