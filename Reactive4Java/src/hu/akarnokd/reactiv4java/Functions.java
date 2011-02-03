@@ -17,6 +17,7 @@
 package hu.akarnokd.reactiv4java;
 
 import java.io.Closeable;
+import java.math.BigInteger;
 import java.util.Comparator;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -88,7 +89,7 @@ public final class Functions {
 	 * @param func the function to wrap
 	 * @return the callable wrapper
 	 */
-	public static <T> Callable<T> asCallable(final Func0<T> func) {
+	public static <T> Callable<T> asCallable(final Func0<? extends T> func) {
 		return new Callable<T>() {
 			@Override
 			public T call() throws Exception {
@@ -102,7 +103,7 @@ public final class Functions {
 	 * @param func the function to wrap
 	 * @return the comparator
 	 */
-	public static <T> Comparator<T> asComparator(final Func2<Integer, T, T> func) {
+	public static <T> Comparator<T> asComparator(final Func2<Integer, ? super T, ? super T> func) {
 		return new Comparator<T>() {
 			@Override
 			public int compare(T o1, T o2) {
@@ -116,7 +117,7 @@ public final class Functions {
 	 * @param call the original call function
 	 * @return the Func0 function wrapping the call
 	 */
-	public static <T> Func0<T> asFunction(final Callable<T> call) {
+	public static <T> Func0<T> asFunction(final Callable<? extends T> call) {
 		return new Func0<T>() {
 			@Override
 			public T invoke() {
@@ -134,7 +135,7 @@ public final class Functions {
 	 * @param comparator the comparator
 	 * @return the wrapped comparator
 	 */
-	public static <T> Func2<Integer, T, T> asFunction(final Comparator<T> comparator) {
+	public static <T> Func2<Integer, T, T> asFunction(final Comparator<? super T> comparator) {
 		return new Func2<Integer, T, T>() {
 			@Override
 			public Integer invoke(T param1, T param2) {
@@ -187,7 +188,7 @@ public final class Functions {
 	 * @param source the source atomic reference
 	 * @return the function
 	 */
-	public static <T> Func0<T> atomicSource(final AtomicReference<T> source) {
+	public static <T> Func0<T> atomicSource(final AtomicReference<? extends T> source) {
 		return new Func0<T>() {
 			@Override
 			public T invoke() {
@@ -283,7 +284,7 @@ public final class Functions {
 	 * @param comparator the comparator for Ts.
 	 * @return the function
 	 */
-	public static <T> Func1<Boolean, T> greaterOrEqual(final T value, final Comparator<T> comparator) {
+	public static <T> Func1<Boolean, T> greaterOrEqual(final T value, final Comparator<? super T> comparator) {
 		return new Func1<Boolean, T>() {
 			@Override
 			public Boolean invoke(T param1) {
@@ -314,7 +315,7 @@ public final class Functions {
 	 * @param comparator the comparator for Ts.
 	 * @return the function
 	 */
-	public static <T> Func1<Boolean, T> greaterThan(final T value, final Comparator<T> comparator) {
+	public static <T> Func1<Boolean, T> greaterThan(final T value, final Comparator<? super T> comparator) {
 		return new Func1<Boolean, T>() {
 			@Override
 			public Boolean invoke(T param1) {
@@ -382,6 +383,28 @@ public final class Functions {
 		};
 	}
 	/**
+	 * @return a function which returns param + 1 for <code>BigInteger</code>s.
+	 */
+	public static Func1<BigInteger, BigInteger> incrementBigInteger() {
+		return new Func1<BigInteger, BigInteger>() {
+			@Override
+			public BigInteger invoke(BigInteger param1) {
+				return param1.add(BigInteger.ONE);
+			}
+		};
+	}
+	/**
+	 * @return a function which returns param - 1 for <code>BigInteger</code>s.
+	 */
+	public static Func1<BigInteger, BigInteger> decrementBigInteger() {
+		return new Func1<BigInteger, BigInteger>() {
+			@Override
+			public BigInteger invoke(BigInteger param1) {
+				return param1.subtract(BigInteger.ONE);
+			}
+		};
+	}
+	/**
 	 * Create a function which returns true for submitted values less or equal 
 	 * than the given value.
 	 * @param <T> a type which is comparable to itself
@@ -404,7 +427,7 @@ public final class Functions {
 	 * @param comparator the comparator
 	 * @return the function
 	 */
-	public static <T> Func1<Boolean, T> lessOrEqual(final T value, final Comparator<T> comparator) {
+	public static <T> Func1<Boolean, T> lessOrEqual(final T value, final Comparator<? super T> comparator) {
 		return new Func1<Boolean, T>() {
 			@Override
 			public Boolean invoke(T param1) {
@@ -435,7 +458,7 @@ public final class Functions {
 	 * @param comparator the comparator
 	 * @return the function
 	 */
-	public static <T> Func1<Boolean, T> lessThan(final T value, final Comparator<T> comparator) {
+	public static <T> Func1<Boolean, T> lessThan(final T value, final Comparator<? super T> comparator) {
 		return new Func1<Boolean, T>() {
 			@Override
 			public Boolean invoke(T param1) {

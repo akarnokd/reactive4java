@@ -75,7 +75,7 @@ public final class TestInteractive0 {
 		run(Interactives.selectMany(Interactives.range(0, 10), new Func1<Iterable<Integer>, Integer>() {
 			@Override
 			public Iterable<Integer> invoke(Integer param1) {
-				return Interactives.range(0, param1);
+				return Interactives.range(0, param1 + 1);
 			}
 		}));
 		
@@ -104,6 +104,8 @@ public final class TestInteractive0 {
 		
 		run(it);
 		run(it);
+		
+		run(Interactives.generate(0, Functions.lessThan(10), Functions.incrementInt()));
 		
 		System.out.printf("%nMain finished%n");
 	}
