@@ -1969,11 +1969,11 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T, U, Key> Observable<GroupedObservable<Key, U>> groupBy(final Observable<T> source, final Func1<Key, T> keyExtractor, final Func1<U, T> valueExtractor) {
-		final ConcurrentMap<Key, GroupedRegisteringObservable<Key, U>> knownGroups = new ConcurrentHashMap<Key, GroupedRegisteringObservable<Key, U>>();
 		return new Observable<GroupedObservable<Key, U>>() {
 			@Override
 			public Closeable register(
 					final Observer<? super GroupedObservable<Key, U>> observer) {
+				final ConcurrentMap<Key, GroupedRegisteringObservable<Key, U>> knownGroups = new ConcurrentHashMap<Key, GroupedRegisteringObservable<Key, U>>();
 				return source.register(new Observer<T>() {
 					@Override
 					public void error(Throwable ex) {
