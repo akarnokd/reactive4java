@@ -15,6 +15,8 @@
  */
 package hu.akarnokd.reactive4java;
 
+import hu.akarnokd.reactive4java.Interactives.LinkedBuffer.N;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -1573,23 +1575,201 @@ public final class Interactives {
 		throw new NoSuchElementException();
 	}
 	/**
+	 * A linked buffer, which can be only filled and queried.
+	 * @author akarnokd, 2011.02.03.
+	 * @param <T> the element type
+	 */
+	static class LinkedBuffer<T> {
+		/** The node. */
+		static class N<T> {
+			/** The element value. */
+			T value;
+			/** The next node. */
+			N<T> next;
+		}
+		/** The head pointer. */
+		final N<T> head = new N<T>();
+		/** The tail pointer. */
+		N<T> tail = head;
+		/** The size. */
+		int size;
+		/**
+		 * Add a new value.
+		 * @param value the new value
+		 */
+		public void add(T value) {
+			N<T> n = new N<T>();
+			n.value = value;
+			tail.next = n;
+			tail = n;
+			size++;
+		}
+	}
+	/**
 	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
 	 * how many iterator attaches to it and each iterator see only the values.
-	 * FIXME how to implement?!
+	 * Note: the name is not a misspelling, see <a href='http://en.wikipedia.org/wiki/Memoization'>Memoization</a>.
 	 * @param <T> the source element type
-	 * @param <U> the result element type
 	 * @param source the source of Ts
-	 * @param func ???
 	 * @return the new iterable
 	 */
-	public static <T, U> Iterable<U> publish(final Iterable<T> source, final Func1<Iterable<U>, Iterable<T>> func) {
-		final LinkedList<U> buffer = new LinkedList<U>();
-		final Iterator<T> it = source.iterator();
-		return new Iterable<U>() {
+	public static <T> Iterable<T> memoizeAll(final Iterable<? extends T> source) {
+		final Iterator<? extends T> it = source.iterator();
+		final LinkedBuffer<T> buffer = new LinkedBuffer<T>();
+		return new Iterable<T>() {
 			@Override
-			public Iterator<U> iterator() {
-				return func.invoke(source).iterator();
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					/** The element count. */
+					int count = 0;
+					/** The current node pointer. */
+					N<T> pointer = buffer.head;
+					@Override
+					public boolean hasNext() {
+						return count < buffer.size || it.hasNext();
+					}
+
+					@Override
+					public T next() {
+						if (hasNext()) {
+							if (count < buffer.size) {
+								T value = pointer.next.value;
+								pointer = pointer.next;
+								count++;
+								return value;
+							} else {
+								T value = it.next();
+								buffer.add(value);
+								count++;
+								pointer = pointer.next;
+								return value;
+							}
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+					
+				};
 			}
 		};
+	}
+	/**
+	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
+	 * how many iterator attaches to it and each iterator see only the values.
+	 * @param <T> the source element type
+	 * @param <U> the return types
+	 * @param source the source of Ts
+	 * @param func invoke the function on the buffering iterable and return an iterator over it.
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> publish(final Iterable<? extends T> source, 
+			final Func1<? extends Iterable<U>, ? super Iterable<T>> func) {
+		return func.invoke(memoizeAll(source));
+	}
+	/**
+	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
+	 * how many iterator attaches to it and each iterator see only the same cached values.
+	 * @param <T> the source element type
+	 * @param <U> the return types
+	 * @param source the source of Ts
+	 * @param func invoke the function on the buffering iterable and return an iterator over it.
+	 * @param initial the initial value to append to the output stream
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> publish(final Iterable<? extends T> source, 
+			final Func1<? extends Iterable<? extends U>, ? super Iterable<? super T>> func, final U initial) {
+		return startWith(func.invoke(memoizeAll(source)), initial);
+	}
+	/**
+	 * Enumerates the source iterable once and caches its results.
+	 * Any iterator party will basically drain this cache, e.g.,
+	 * reiterating over this iterable will produce no results.
+	 * Note: the name is not a misspelling, see <a href='http://en.wikipedia.org/wiki/Memoization'>Memoization</a>.
+	 * FIXME not sure about the buffer sizes.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param bufferSize the size of the buffering
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> memoize(final Iterable<? extends T> source, final int bufferSize) {
+		if (bufferSize < 0) {
+			throw new IllegalArgumentException("bufferSize < 0");
+		}
+		return new Iterable<T>() {
+			/** The source iterator. */
+			Iterator<? extends T> it = source.iterator();
+			/** The ring buffer of the memory. */
+			final Object[] ringBuffer = new Object[bufferSize];
+			/** The buffer head index. */
+			int head;
+			/** The buffer tail index. */
+			int tail;
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					int count;
+
+					@Override
+					public boolean hasNext() {
+						return head + count < tail || it.hasNext();
+					}
+
+					@Override
+					public T next() {
+						if (hasNext()) {
+							if (head + count < tail) {
+								@SuppressWarnings("unchecked") T value = (T)ringBuffer[(head + count) % bufferSize];
+								count++;
+								return value;
+							} else {
+								T value = it.next();
+								ringBuffer[(head + count) % bufferSize] = value;
+								count++;
+								tail++;
+								return value;
+							}
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
+	 * how many iterator attaches to it and each iterator may only see one source element.
+	 * @param <T> the source element type
+	 * @param <U> the return types
+	 * @param source the source of Ts
+	 * @param func invoke the function on the buffering iterable and return an iterator over it.
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> replay(final Iterable<? extends T> source, 
+			final Func1<? extends Iterable<U>, ? super Iterable<T>> func) {
+		return func.invoke(memoize(source, 1));
+	}
+	/**
+	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
+	 * how many iterator attaches to it and each iterator see only the some cached values.
+	 * @param <T> the source element type
+	 * @param <U> the return types
+	 * @param source the source of Ts
+	 * @param func invoke the function on the buffering iterable and return an iterator over it.
+	 * @param bufferSize the buffer size
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> replay(final Iterable<? extends T> source, 
+			final Func1<? extends Iterable<U>, ? super Iterable<T>> func, 
+					final int bufferSize) {
+		return func.invoke(memoize(source, bufferSize));
 	}
 }

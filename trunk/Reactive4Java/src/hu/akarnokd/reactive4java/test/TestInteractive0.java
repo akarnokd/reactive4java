@@ -16,9 +16,31 @@
 
 package hu.akarnokd.reactive4java.test;
 
-import static hu.akarnokd.reactive4java.Functions.*;
-import static hu.akarnokd.reactive4java.Interactives.*;
-
+import static hu.akarnokd.reactive4java.Functions.identity;
+import static hu.akarnokd.reactive4java.Functions.incrementInt;
+import static hu.akarnokd.reactive4java.Functions.lessThan;
+import static hu.akarnokd.reactive4java.Interactives.catchException;
+import static hu.akarnokd.reactive4java.Interactives.concat;
+import static hu.akarnokd.reactive4java.Interactives.count;
+import static hu.akarnokd.reactive4java.Interactives.dematerialize;
+import static hu.akarnokd.reactive4java.Interactives.distinctSet;
+import static hu.akarnokd.reactive4java.Interactives.generate;
+import static hu.akarnokd.reactive4java.Interactives.groupBy;
+import static hu.akarnokd.reactive4java.Interactives.materialize;
+import static hu.akarnokd.reactive4java.Interactives.memoize;
+import static hu.akarnokd.reactive4java.Interactives.memoizeAll;
+import static hu.akarnokd.reactive4java.Interactives.merge;
+import static hu.akarnokd.reactive4java.Interactives.publish;
+import static hu.akarnokd.reactive4java.Interactives.range;
+import static hu.akarnokd.reactive4java.Interactives.resumeAlways;
+import static hu.akarnokd.reactive4java.Interactives.resumeOnError;
+import static hu.akarnokd.reactive4java.Interactives.retry;
+import static hu.akarnokd.reactive4java.Interactives.scan;
+import static hu.akarnokd.reactive4java.Interactives.select;
+import static hu.akarnokd.reactive4java.Interactives.selectMany;
+import static hu.akarnokd.reactive4java.Interactives.singleton;
+import static hu.akarnokd.reactive4java.Interactives.throwException;
+import static hu.akarnokd.reactive4java.Interactives.where;
 import hu.akarnokd.reactive4java.Func1;
 import hu.akarnokd.reactive4java.Func2;
 import hu.akarnokd.reactive4java.Functions;
@@ -27,6 +49,8 @@ import hu.akarnokd.reactive4java.Interactives;
 import hu.akarnokd.reactive4java.Option;
 
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 
@@ -141,6 +165,54 @@ public final class TestInteractive0 {
 		run(resumeAlways(Arrays.<Iterable<?>>asList(gen0to10, cc, gen0to10, cc)));
 		
 		run(scan(gen0to10, Functions.sumInteger()));
+
+		Iterable<Integer> random = select(range(0, 10), new Func1<Integer, Integer>() {
+			Random r = new Random();
+			@Override
+			public Integer invoke(Integer param1) {
+				return param1 + r.nextInt(10);
+			}
+		});
+		
+		run(random);
+		run(random);
+		
+		Iterable<Integer> p = memoizeAll(random);
+		
+		run(p);
+		run(p);
+		
+		System.out.println("Publish(I, F)");
+		
+		Func1<Iterable<Integer>, Iterable<Integer>> f = new Func1<Iterable<Integer>, Iterable<Integer>>() {
+			@Override
+			public Iterable<Integer> invoke(Iterable<Integer> param1) {
+				System.out.printf("f%n%n");
+				run(param1);
+				return param1;
+			}
+		};
+
+		Iterable<Integer> p1 = publish(random, f);
+		run(p1);
+		run(p1);
+
+		Iterable<Integer> p2 = publish(range(10, 5), f);
+		run(p2);
+		run(p2);
+
+		System.out.println("Memorize");
+		
+		Iterable<Integer> p3 = memoize(range(0, 2), 0);
+
+		Iterator<Integer> p3i1 = p3.iterator();
+		Iterator<Integer> p3i2 = p3.iterator();
+		
+		System.out.println(p3i1.next());
+		System.out.println(p3i1.next());
+		System.out.println(p3i2.next());
+		System.out.println(p3i2.next());
+		
 		
 		System.out.printf("%nMain finished%n");
 	}
