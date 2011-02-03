@@ -140,6 +140,8 @@ public final class TestInteractive0 {
 		System.out.println("Resume always:");
 		run(resumeAlways(Arrays.<Iterable<?>>asList(gen0to10, cc, gen0to10, cc)));
 		
+		run(scan(gen0to10, Functions.sumInteger()));
+		
 		System.out.printf("%nMain finished%n");
 	}
 
