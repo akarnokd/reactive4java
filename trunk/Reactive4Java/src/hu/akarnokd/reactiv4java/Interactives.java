@@ -790,8 +790,66 @@ public final class Interactives {
 			};
 		});
 	}
+	/**
+	 * Returns an iterable which prefixes the source iterable values
+	 * by a constant.
+	 * It is equivalent to <code>concat(singleton(value), source)</code>.
+	 * @param <T> the lement type
+	 * @param source the source iterable
+	 * @param value the value to prefix
+	 * @return the new iterable.
+	 */
+	public static <T> Iterable<T> startWith(Iterable<? extends T> source, final T value) {
+		return concat(singleton(value), source);
+	}
 	/** Utility class. */
 	private Interactives() {
 		// utility class
+	}
+	/**
+	 * A generator function which returns Ts based on the termination condition and the way it computes the next values.
+	 * This is equivalent to:
+	 * <code><pre>
+	 * T value = seed;
+	 * while (predicate(value)) {
+	 *     yield value;
+	 *     value = next(value);
+	 * }
+	 * </pre></code>
+	 * @param <T> the element type
+	 * @param seed the initial value
+	 * @param predicate the predicate to terminate the process
+	 * @param next the function that computes the next value.
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> generate(final T seed, final Func1<Boolean, ? super T> predicate, final Func1<? extends T, ? super T> next) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					T value = seed;
+					@Override
+					public boolean hasNext() {
+						return predicate.invoke(value);
+					}
+
+					@Override
+					public T next() {
+						if (hasNext()) {
+							T current = value;
+							value = next.invoke(value);
+							return current;
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+					
+				};
+			}
+		};
 	}
 }
