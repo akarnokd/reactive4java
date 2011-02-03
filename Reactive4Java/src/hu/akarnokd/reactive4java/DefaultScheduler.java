@@ -43,7 +43,7 @@ public class DefaultScheduler implements Scheduler {
 	 * <ul>
 	 * <li>ThreadPoolExecutor, having
 	 * <ul>
-	 * <li>1 core thread</li>
+	 * <li><code>Runtime.getRuntime().availableProcessors()</code> core thread</li>
 	 * <li>1 second idle timeout</li>
 	 * <li>core threads may timeout</li>
 	 * <li>unbounded worker queue</li>
@@ -52,7 +52,7 @@ public class DefaultScheduler implements Scheduler {
 	 * </li>
 	 * <li>ScheduledThreadPoolExecutor
 	 * <ul>
-	 * <li>1 core thread</li>
+	 * <li><code>Runtime.getRuntime().availableProcessors()</code> core thread</li>
 	 * <li>1 second idle timeout</li>
 	 * <li>core threads may timeout</li>
 	 * <li>unbounded worker queue</li>
@@ -62,11 +62,11 @@ public class DefaultScheduler implements Scheduler {
 	 * </ul>
 	 */
 	public DefaultScheduler() {
-		ThreadPoolExecutor threadpool = new ThreadPoolExecutor(1, Integer.MAX_VALUE, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+		ThreadPoolExecutor threadpool = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Integer.MAX_VALUE, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
 		threadpool.allowCoreThreadTimeOut(true);
 		
 		
-		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
+		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(Runtime.getRuntime().availableProcessors());
 		scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
 		scheduler.allowCoreThreadTimeOut(true);
 		
