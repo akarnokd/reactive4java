@@ -18,6 +18,8 @@ package hu.akarnokd.reactiv4java.test;
 
 import hu.akarnokd.reactiv4java.Func1;
 import hu.akarnokd.reactiv4java.Func2;
+import hu.akarnokd.reactiv4java.Functions;
+import hu.akarnokd.reactiv4java.GroupedIterable;
 import hu.akarnokd.reactiv4java.Interactives;
 
 
@@ -74,6 +76,27 @@ public final class TestInteractive0 {
 				return Interactives.range(0, param1);
 			}
 		}));
+		
+		run(Interactives.distinctSet(
+				Interactives.concat(
+						Interactives.range(0, 10), 
+						Interactives.range(5, 10)), 
+				Functions.identity(), 
+				Functions.identity()));
+		
+		Iterable<GroupedIterable<Boolean, Integer>> ie = Interactives.groupBy(Interactives.range(0, 10),
+			new Func1<Boolean, Integer>() {
+				@Override
+				public Boolean invoke(Integer param1) {
+					return param1 % 2 == 0;
+				}
+			},
+			Functions.<Integer>identity()
+		);
+		for (GroupedIterable<Boolean, Integer> g : ie) {
+			System.out.print(g.key());
+			run(g);
+		}
 		
 		
 		System.out.printf("%nMain finished%n");

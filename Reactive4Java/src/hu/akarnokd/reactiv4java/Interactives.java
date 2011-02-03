@@ -15,10 +15,14 @@
  */
 package hu.akarnokd.reactiv4java;
 
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 /**
  * The interactive (i.e., <code>Iterable</code> based) counterparts
@@ -625,6 +629,99 @@ public final class Interactives {
 				};
 			}
 		};
+	}
+	/**
+	 * Creates an iterable which traverses the source iterable,
+	 * and based on the key selector, groups values extracted by valueSelector into GroupedIterables,
+	 * which can be interated over later on.
+	 * The equivalence of the keys are determined via reference
+	 * equality and <code>equals()</code> equality.
+	 * @param <T> the source element type
+	 * @param <U> the result group element type
+	 * @param <V> the result group keys
+	 * @param source the source of Ts
+	 * @param keySelector the key selector
+	 * @param valueSelector the value selector
+	 * @return the new iterable
+	 */
+	public static <T, U, V> Iterable<GroupedIterable<V, U>> groupBy(final Iterable<T> source, 
+			final Func1<V, T> keySelector, final Func1<U, T> valueSelector) {
+		return distinctSet(new Iterable<GroupedIterable<V, U>>() {
+			@Override
+			public Iterator<GroupedIterable<V, U>> iterator() {
+				final Map<V, DefaultGroupedIterable<V, U>> groups = new LinkedHashMap<V, DefaultGroupedIterable<V, U>>();
+				final Iterator<T> it = source.iterator();
+				return new Iterator<GroupedIterable<V, U>>() {
+					Iterator<DefaultGroupedIterable<V, U>> groupIt;
+					@Override
+					public boolean hasNext() {
+						return it.hasNext() || (groupIt != null && groupIt.hasNext());
+					}
+
+					@Override
+					public GroupedIterable<V, U> next() {
+						if (hasNext()) {
+							if (groupIt == null) {
+								while (it.hasNext()) {
+									T t = it.next();
+									V v = keySelector.invoke(t);
+									U u = valueSelector.invoke(t);
+									DefaultGroupedIterable<V, U> g = groups.get(v);
+									if (g == null) {
+										g = new DefaultGroupedIterable<V, U>(v);
+										groups.put(v, g);
+									}
+									g.add(u);
+								}
+								groupIt = groups.values().iterator();
+							}
+							return groupIt.next(); 
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+					
+				};
+			}
+		}, new Func1<V, GroupedIterable<V, U>>() {
+			@Override
+			public V invoke(GroupedIterable<V, U> param1) {
+				return param1.key();
+			}
+			
+		}, Functions.<GroupedIterable<V, U>>identity());
+	}
+	/**
+	 * Returns an iterable which filters its elements by an unique key
+	 * in a way that when multiple source items produce the same key, only
+	 * the first one ever seen gets relayed further on.
+	 * Key equality is computed by reference equality and <code>equals()</code>
+	 * @param <T> the source element type
+	 * @param <U> the output element type
+	 * @param <V> the key element type.
+	 * @param source the source of Ts
+	 * @param keySelector the key selector for only-once filtering
+	 * @param valueSelector the value select for the output of the first key cases
+	 * @return the new observable
+	 */
+	public static <T, U, V> Iterable<U> distinctSet(final Iterable<T> source, 
+			final Func1<V, ? super T> keySelector, final Func1<U, ? super T> valueSelector) {
+		return select(where(source, new Func1<Boolean, T>() {
+			final Set<V> memory = new HashSet<V>();
+			@Override
+			public Boolean invoke(T param1) {
+				return memory.add(keySelector.invoke(param1));
+			};
+		}), new Func1<U, T>() {
+			@Override
+			public U invoke(T param1) {
+				return valueSelector.invoke(param1);
+			};
+		});
 	}
 	/** Utility class. */
 	private Interactives() {
