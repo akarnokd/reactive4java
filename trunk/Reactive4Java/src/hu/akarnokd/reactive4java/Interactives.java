@@ -1173,4 +1173,127 @@ public final class Interactives {
 		list.add(second);
 		return merge(list);
 	}
+	/**
+	 * Creates an iterator which attempts to re-iterate the source if it threw an exception.
+	 * <code><pre>
+	 * while (count-- > 0) {
+	 * 	  try {
+	 *        for (T t : source) {
+	 *            yield t;
+	 *        }
+	 *        break;
+	 *    } catch (Throwable t) {
+	 *        if (count <= 0) {
+	 *            throw t;
+	 *        }
+	 *    }
+	 * }
+	 * </pre></code>
+	 * @param <T> the source type
+	 * @param source the source of Ts
+	 * @param count the number of retry attempts
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> retry(final Iterable<? extends T> source, final int count) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					/** The retry count. */
+					int retries = count;
+					/** The peek store. */
+					final SingleContainer<Option<? extends T>> peek = new SingleContainer<Option<? extends T>>();
+					/** The current iterator. */
+					Iterator<? extends T> it = source.iterator();
+					@Override
+					public boolean hasNext() {
+						if (peek.isEmpty()) {
+							while (it.hasNext()) {
+								try {
+									peek.add(Option.some(it.next()));
+									break;
+								} catch (Throwable t) {
+									if (retries-- > 0) {
+										it = source.iterator();
+									} else {
+										peek.add(Option.<T>error(t));
+										break;
+									}
+								}
+							}
+						}
+						return !peek.isEmpty();
+					}
+
+					@Override
+					public T next() {
+						if (hasNext()) {
+							return peek.take().value();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+					
+				};
+			}
+		};
+	}
+	/**
+	 * Counts the elements of the iterable source.
+	 * @param <T> the element type
+	 * @param source the source iterable
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<Integer> count(final Iterable<T> source) {
+		return new Iterable<Integer>() {
+			@Override
+			public Iterator<Integer> iterator() {
+				final Iterator<T> it = source.iterator();
+				return new Iterator<Integer>() {
+					/** The peek ahead container. */
+					final SingleContainer<Option<Integer>> peek = new SingleContainer<Option<Integer>>();
+					/** Computation already done. */
+					boolean done;
+					@Override
+					public boolean hasNext() {
+						if (!done) {
+							if (peek.isEmpty()) {
+								int count = 0;
+								try {
+									while (it.hasNext()) {
+										it.next();
+										count++;
+									}
+									peek.add(Option.some(count));
+								} catch (Throwable t) {
+									peek.add(Option.<Integer>error(t));
+								} finally {
+									done = true;
+								} 
+							}
+						}
+						return !peek.isEmpty();
+					}
+
+					@Override
+					public Integer next() {
+						if (hasNext()) {
+							return peek.take().value();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+					
+				};
+			}
+		};
+	}
 }
