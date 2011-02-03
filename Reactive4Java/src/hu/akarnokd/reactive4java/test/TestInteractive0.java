@@ -132,6 +132,14 @@ public final class TestInteractive0 {
 		
 		run(count(gen0to10));
 		
+		run(catchException(cc));
+		
+		System.out.println("Resume on error:");
+		run(resumeOnError(cc, cc));
+		
+		System.out.println("Resume always:");
+		run(resumeAlways(Arrays.<Iterable<?>>asList(gen0to10, cc, gen0to10, cc)));
+		
 		System.out.printf("%nMain finished%n");
 	}
 

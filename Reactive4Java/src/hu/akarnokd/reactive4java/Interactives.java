@@ -1296,4 +1296,211 @@ public final class Interactives {
 			}
 		};
 	}
+	/**
+	 * Creates an iterable which if iterates over the sourec and encounters an exception,
+	 * the iteration is continued on the new iterable returned by the handler function.
+	 * @param <T> the element type
+	 * @param source the source iterable.
+	 * @param handler the exception handler.
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> catchException(final Iterable<? extends T> source, final Func1<? extends Iterable<? extends T>, ? super Throwable> handler) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					/** The current iterator. */
+					Iterator<? extends T> it = source.iterator();
+					/** The peek ahead container. */
+					final SingleContainer<T> peek = new SingleContainer<T>();
+					@Override
+					public boolean hasNext() {
+						if (peek.isEmpty()) {
+							while (true) {
+								try {
+									if (it.hasNext()) {
+										peek.add(it.next());
+									}
+									break;
+								} catch (Throwable t) {
+									it = handler.invoke(t).iterator();
+								}
+							}
+						}
+						return !peek.isEmpty();
+					}
+
+					@Override
+					public T next() {
+						if (hasNext()) {
+							return peek.take();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+					
+				};
+			}
+		};
+	}
+	/**
+	 * Creates an iterable which if iterates over the sourec and encounters an exception, it simply stops the iteration, consuming the exception.
+	 * @param <T> the element type
+	 * @param source the source iterable.
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> catchException(final Iterable<? extends T> source) {
+		Iterable<? extends T> e = empty();
+		return catchException(source, Functions.constant(e));
+	}
+	/**
+	 * Creates an iterable which resumes with the next iterable from the sources when one throws an exception.
+	 * @param <T> the source element type
+	 * @param sources the list of sources to try one after another
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> resumeOnError(final Iterable<? extends Iterable<? extends T>> sources) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				final Iterator<? extends Iterable<? extends T>> iter0 = sources.iterator();
+				if (iter0.hasNext()) {
+					return new Iterator<T>() {
+						/** The current iterator. */
+						Iterator<? extends T> it = iter0.next().iterator();
+						/** The peek ahead container. */
+						final SingleContainer<Option<? extends T>> peek = new SingleContainer<Option<? extends T>>();
+						@Override
+						public boolean hasNext() {
+							if (peek.isEmpty()) {
+								while (true) {
+									try {
+										if (it.hasNext()) {
+											peek.add(Option.some(it.next()));
+										}
+										break;
+									} catch (Throwable t) {
+										if (iter0.hasNext()) {
+											it = iter0.next().iterator();
+										} else {
+											peek.add(Option.<T>error(t));
+											break;
+										}
+									}
+								}
+							}
+							return !peek.isEmpty();
+						}
+	
+						@Override
+						public T next() {
+							if (hasNext()) {
+								return peek.take().value();
+							}
+							throw new NoSuchElementException();
+						}
+	
+						@Override
+						public void remove() {
+							it.remove();
+						}
+					};
+				}
+				return Interactives.<T>empty().iterator();
+			}
+		};
+	}
+	/**
+	 * Creates an iterable which resumes with the next iterable from the sources when one throws an exception.
+	 * @param <T> the source element type
+	 * @param first the first source
+	 * @param second the second source
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> resumeOnError(final Iterable<? extends T> first, final Iterable<? extends T> second) {
+		List<Iterable<? extends T>> list = new ArrayList<Iterable<? extends T>>(2);
+		list.add(first);
+		list.add(second);
+		return resumeOnError(list);
+	}
+	/**
+	 * Creates an iterable which resumes with the next iterable from the sources when one throws an exception or completes normally.
+	 * @param <T> the source element type
+	 * @param sources the list of sources to try one after another
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> resumeAlways(final Iterable<? extends Iterable<? extends T>> sources) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				final Iterator<? extends Iterable<? extends T>> iter0 = sources.iterator();
+				if (iter0.hasNext()) {
+					return new Iterator<T>() {
+						/** The current iterator. */
+						Iterator<? extends T> it = iter0.next().iterator();
+						/** The peek ahead container. */
+						final SingleContainer<Option<? extends T>> peek = new SingleContainer<Option<? extends T>>();
+						@Override
+						public boolean hasNext() {
+							if (peek.isEmpty()) {
+								while (true) {
+									try {
+										if (it.hasNext()) {
+											peek.add(Option.some(it.next()));
+											break;
+										} else {
+											if (iter0.hasNext()) {
+												it = iter0.next().iterator();
+											} else {
+												break;
+											}
+										}
+									} catch (Throwable t) {
+										if (iter0.hasNext()) {
+											it = iter0.next().iterator();
+										} else {
+											peek.add(Option.<T>error(t));
+											break;
+										}
+									}
+								}
+							}
+							return !peek.isEmpty();
+						}
+	
+						@Override
+						public T next() {
+							if (hasNext()) {
+								return peek.take().value();
+							}
+							throw new NoSuchElementException();
+						}
+	
+						@Override
+						public void remove() {
+							it.remove();
+						}
+					};
+				}
+				return Interactives.<T>empty().iterator();
+			}
+		};
+	}
+	/**
+	 * Creates an iterable which resumes with the next iterable from the sources when one throws an exception.
+	 * @param <T> the source element type
+	 * @param first the first source
+	 * @param second the second source
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> resumeAlways(final Iterable<? extends T> first, final Iterable<? extends T> second) {
+		List<Iterable<? extends T>> list = new ArrayList<Iterable<? extends T>>(2);
+		list.add(first);
+		list.add(second);
+		return resumeAlways(list);
+	}
 }
