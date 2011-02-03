@@ -15,6 +15,9 @@
  */
 package hu.akarnokd.reactive4java;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -23,6 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The interactive (i.e., <code>Iterable</code> based) counterparts
@@ -853,6 +860,89 @@ public final class Interactives {
 		};
 	}
 	/**
+	 * A generator function which returns Ts based on the termination condition and the way it computes the next values,
+	 * but the first T to be returned is preceded by an <code>initialDelay</code> amount of wait and each
+	 * subsequent element is then generated after <code>betweenDelay</code> sleep.
+	 * The sleeping is blocking the current thread which invokes the hasNext()/next() methods.
+	 * This is equivalent to:
+	 * <code><pre>
+	 * T value = seed;
+	 * sleep(initialDelay);
+	 * if (predicate(value)) {
+	 *     yield value;
+	 * }
+	 * sleep(betweenDelay);
+	 * while (predicate(value)) {
+	 *     yield value;
+	 *     value = next(value);
+	 *     sleep(betweenDelay);
+	 * }
+	 * </pre></code>
+	 * @param <T> the element type
+	 * @param seed the initial value
+	 * @param predicate the predicate to terminate the process
+	 * @param next the function that computes the next value.
+	 * @param initialDelay the initial delay
+	 * @param betweenDelay the between delay
+	 * @param unit the time unit for initialDelay and betweenDelay
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> generate(final T seed, final Func1<Boolean, ? super T> predicate, 
+			final Func1<? extends T, ? super T> next,
+			final long initialDelay, final long betweenDelay, final TimeUnit unit) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					T value = seed;
+					/** Keeps track of whether there should be an initial delay? */
+					boolean shouldInitialWait = true;
+					/** Keeps track of whether there should be an initial delay? */
+					boolean shouldBetweenWait;
+					@Override
+					public boolean hasNext() {
+						if (shouldInitialWait) {
+							shouldInitialWait = false;
+							try {
+								unit.sleep(initialDelay);
+							} catch (InterruptedException e) {
+								return false; // FIXME not soure about this
+							}
+						} else {
+							if (shouldBetweenWait) {
+								shouldBetweenWait = false;
+								try {
+									unit.sleep(betweenDelay);
+								} catch (InterruptedException e) {
+									return false; // FIXME not soure about this
+								}
+							}
+						}
+						return predicate.invoke(value);
+					}
+
+					@Override
+					public T next() {
+						if (hasNext()) {
+							shouldBetweenWait = true;
+							T current = value;
+							value = next.invoke(value);
+							return current;
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+					
+				};
+			}
+		};
+		
+	}
+	/**
 	 * Transforms the sequence of the source iterable into an option sequence of
 	 * Option.some(), Option.none() and Option.error() values, depending on
 	 * what the source's hasNext() and next() produces.
@@ -916,11 +1006,11 @@ public final class Interactives {
 	 * @param source the source of T options
 	 * @return the new iterable
 	 */
-	public static <T> Iterable<T> dematerialize(final Iterable<Option<? extends T>> source) {
+	public static <T> Iterable<T> dematerialize(final Iterable<? extends Option<? extends T>> source) {
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
-				final Iterator<Option<? extends T>> it = source.iterator();
+				final Iterator<? extends Option<? extends T>> it = source.iterator();
 				return new Iterator<T>() {
 					final SingleContainer<Option<? extends T>> peek = new SingleContainer<Option<? extends T>>();
 					@Override
@@ -953,5 +1043,134 @@ public final class Interactives {
 				};
 			}
 		};
+	}
+	/**
+	 * Merges a bunch of iterable streams where each of the iterable will run by
+	 * a scheduler and their events are merged together in a single stream.
+	 * The returned iterator throws an <code>UnsupportedOperationException</code> in its <code>remove()</code> method.
+	 * @param <T> the element type
+	 * @param sources the iterable of source iterables.
+	 * @param scheduler the scheduler for running each inner iterable in parallel
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> merge(final Iterable<? extends Iterable<? extends T>> sources, final Scheduler scheduler) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				final BlockingQueue<Option<T>> queue = new LinkedBlockingQueue<Option<T>>();
+				final AtomicInteger wip = new AtomicInteger(1);
+				final List<Closeable> handlers = new LinkedList<Closeable>();
+				for (final Iterable<? extends T> iter : sources) {
+					Runnable r = new Runnable() {
+						@Override
+						public void run() {
+							try {
+								for (T t : iter) {
+									if (!Thread.currentThread().isInterrupted()) {
+										queue.add(Option.some(t));
+									}
+								}
+								if (wip.decrementAndGet() == 0) {
+									if (!Thread.currentThread().isInterrupted()) {
+										queue.add(Option.<T>none());
+									}
+								}
+							} catch (Throwable t) {
+								queue.add(Option.<T>error(t));
+							}
+						}
+					};
+					wip.incrementAndGet();
+					handlers.add(scheduler.schedule(r));
+				}
+				if (wip.decrementAndGet() == 0) {
+					queue.add(Option.<T>none());
+				}
+				return new Iterator<T>() {
+					final SingleContainer<Option<T>> peek = new SingleContainer<Option<T>>();
+					/** Are we broken? */
+					boolean broken;
+					@Override
+					public boolean hasNext() {
+						if (!broken) {
+							if (peek.isEmpty()) {
+								try {
+									Option<T> t = queue.take();
+									if (Option.isSome(t)) {
+										peek.add(t);
+									} else
+									if (Option.isError(t)) {
+										peek.add(t);
+										broken = true;
+									}
+								} catch (InterruptedException ex) {
+									return false; // FIXME not sure about this
+								}
+							}
+						}
+						return !peek.isEmpty();
+					}
+
+					@Override
+					public T next() {
+						if (hasNext()) {
+							try {
+								return peek.take().value();
+							} catch (RuntimeException ex) {
+								for (Closeable h : handlers) {
+									close0(h);
+								}
+								throw ex;
+							}
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+					
+				};
+			}
+		};
+	}
+	/**
+	 * Merges a bunch of iterable streams where each of the iterable will run by
+	 * a scheduler and their events are merged together in a single stream.
+	 * The returned iterator throws an <code>UnsupportedOperationException</code> in its <code>remove()</code> method.
+	 * @param <T> the element type
+	 * @param sources the iterable of source iterables.
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> merge(final Iterable<? extends Iterable<? extends T>> sources) {
+		return merge(sources, Observables.getDefaultScheduler());
+	}
+	/**
+	 * Invoke the <code>close()</code> method on the closeable instance
+	 * and throw away any <code>IOException</code> it might raise.
+	 * @param c the closeable instance, <code>null</code>s are simply ignored
+	 */
+	static void close0(Closeable c) {
+		if (c != null) {
+			try {
+				c.close();
+			} catch (IOException ex) {
+				
+			}
+		}
+	}
+	/**
+	 * Merges two iterable streams.
+	 * @param <T> the element type
+	 * @param first the first iterable
+	 * @param second the second iterable
+	 * @return the resulting stream of Ts
+	 */
+	public static <T> Iterable<T> merge(final Iterable<? extends T> first, final Iterable<? extends T> second) {
+		List<Iterable<? extends T>> list = new ArrayList<Iterable<? extends T>>(2);
+		list.add(first);
+		list.add(second);
+		return merge(list);
 	}
 }

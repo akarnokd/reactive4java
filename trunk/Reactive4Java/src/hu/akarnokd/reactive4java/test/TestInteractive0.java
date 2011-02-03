@@ -24,8 +24,10 @@ import hu.akarnokd.reactive4java.Func2;
 import hu.akarnokd.reactive4java.Functions;
 import hu.akarnokd.reactive4java.GroupedIterable;
 import hu.akarnokd.reactive4java.Interactives;
+import hu.akarnokd.reactive4java.Option;
 
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -113,6 +115,17 @@ public final class TestInteractive0 {
 		run(materialize(concat(range(0, 10), throwException(new RuntimeException()))));
 
 		run(materialize(generate(0, lessThan(10), incrementInt())));
+
+		try {
+			Iterable<Option<Object>> materialize = materialize(concat(range(0, 10), throwException(new RuntimeException())));
+			run(dematerialize(materialize));
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+		
+//		run(merge(range(0, 10), range(1000, 10)));
+		
+		run(merge(generate(0, lessThan(10), incrementInt(), 5, 1, TimeUnit.SECONDS), generate(10, lessThan(20), incrementInt(), 4, 1, TimeUnit.SECONDS)));
 		
 		System.out.printf("%nMain finished%n");
 	}
