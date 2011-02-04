@@ -41,6 +41,7 @@ import static hu.akarnokd.reactive4java.Interactives.selectMany;
 import static hu.akarnokd.reactive4java.Interactives.singleton;
 import static hu.akarnokd.reactive4java.Interactives.throwException;
 import static hu.akarnokd.reactive4java.Interactives.where;
+import static hu.akarnokd.reactive4java.Interactives.any;
 import hu.akarnokd.reactive4java.Func1;
 import hu.akarnokd.reactive4java.Func2;
 import hu.akarnokd.reactive4java.Functions;
@@ -218,6 +219,8 @@ public final class TestInteractive0 {
 		System.out.println(p3i1.next());
 		System.out.println(p3i3.next());
 		
+		run(any(range(1, 10)));
+		run(any(range(1, 10), Functions.equal(0)));
 		
 		System.out.printf("%nMain finished%n");
 	}
