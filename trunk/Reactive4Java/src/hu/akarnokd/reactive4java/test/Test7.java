@@ -18,7 +18,7 @@ package hu.akarnokd.reactive4java.test;
 
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observables;
+import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.concurrent.TimeUnit;
 
@@ -42,7 +42,7 @@ public final class Test7 {
 	 * waiting on the observable completion
 	 */
 	static void run(Observable<?> observable) throws InterruptedException {
-		Observables.run(observable, Observables.print());
+		Reactive.run(observable, Reactive.print());
 	}
 	
 	/**
@@ -51,28 +51,28 @@ public final class Test7 {
 	 */
 	public static void main(String[] args) throws Exception {
 		run(
-			Observables.takeUntil(
-				Observables.tick(1, TimeUnit.SECONDS),
-				Observables.tick(5, TimeUnit.SECONDS)
+			Reactive.takeUntil(
+				Reactive.tick(1, TimeUnit.SECONDS),
+				Reactive.tick(5, TimeUnit.SECONDS)
 			)
 		);
 
 		run(
-			Observables.take(
-				Observables.tick(1, TimeUnit.SECONDS),
+			Reactive.take(
+				Reactive.tick(1, TimeUnit.SECONDS),
 				10
 			)
 		);
 		
-		run(Observables.takeWhile(Observables.tick(1, TimeUnit.SECONDS), Functions.lessThan(5L)));
+		run(Reactive.takeWhile(Reactive.tick(1, TimeUnit.SECONDS), Functions.lessThan(5L)));
 		
 		
 		run(
-			Observables.addTimestamped(
-				Observables.throttle(
-					Observables.concat(
-						Observables.tick(0, 10, 200, TimeUnit.MILLISECONDS),
-						Observables.tick(10, 5, 1, TimeUnit.SECONDS)
+			Reactive.addTimestamped(
+				Reactive.throttle(
+					Reactive.concat(
+						Reactive.tick(0, 10, 200, TimeUnit.MILLISECONDS),
+						Reactive.tick(10, 5, 1, TimeUnit.SECONDS)
 					),
 				500, TimeUnit.MILLISECONDS)
 			)

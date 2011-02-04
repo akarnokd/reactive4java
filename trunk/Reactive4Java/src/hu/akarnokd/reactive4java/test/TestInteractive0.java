@@ -19,35 +19,35 @@ package hu.akarnokd.reactive4java.test;
 import static hu.akarnokd.reactive4java.base.Functions.identity;
 import static hu.akarnokd.reactive4java.base.Functions.incrementInt;
 import static hu.akarnokd.reactive4java.base.Functions.lessThan;
-import static hu.akarnokd.reactive4java.interactive.Interactives.any;
-import static hu.akarnokd.reactive4java.interactive.Interactives.catchException;
-import static hu.akarnokd.reactive4java.interactive.Interactives.concat;
-import static hu.akarnokd.reactive4java.interactive.Interactives.count;
-import static hu.akarnokd.reactive4java.interactive.Interactives.dematerialize;
-import static hu.akarnokd.reactive4java.interactive.Interactives.distinctSet;
-import static hu.akarnokd.reactive4java.interactive.Interactives.generate;
-import static hu.akarnokd.reactive4java.interactive.Interactives.groupBy;
-import static hu.akarnokd.reactive4java.interactive.Interactives.materialize;
-import static hu.akarnokd.reactive4java.interactive.Interactives.memoize;
-import static hu.akarnokd.reactive4java.interactive.Interactives.memoizeAll;
-import static hu.akarnokd.reactive4java.interactive.Interactives.merge;
-import static hu.akarnokd.reactive4java.interactive.Interactives.publish;
-import static hu.akarnokd.reactive4java.interactive.Interactives.range;
-import static hu.akarnokd.reactive4java.interactive.Interactives.resumeAlways;
-import static hu.akarnokd.reactive4java.interactive.Interactives.resumeOnError;
-import static hu.akarnokd.reactive4java.interactive.Interactives.retry;
-import static hu.akarnokd.reactive4java.interactive.Interactives.scan;
-import static hu.akarnokd.reactive4java.interactive.Interactives.select;
-import static hu.akarnokd.reactive4java.interactive.Interactives.selectMany;
-import static hu.akarnokd.reactive4java.interactive.Interactives.singleton;
-import static hu.akarnokd.reactive4java.interactive.Interactives.throwException;
-import static hu.akarnokd.reactive4java.interactive.Interactives.where;
+import static hu.akarnokd.reactive4java.interactive.Interactive.any;
+import static hu.akarnokd.reactive4java.interactive.Interactive.catchException;
+import static hu.akarnokd.reactive4java.interactive.Interactive.concat;
+import static hu.akarnokd.reactive4java.interactive.Interactive.count;
+import static hu.akarnokd.reactive4java.interactive.Interactive.dematerialize;
+import static hu.akarnokd.reactive4java.interactive.Interactive.distinctSet;
+import static hu.akarnokd.reactive4java.interactive.Interactive.generate;
+import static hu.akarnokd.reactive4java.interactive.Interactive.groupBy;
+import static hu.akarnokd.reactive4java.interactive.Interactive.materialize;
+import static hu.akarnokd.reactive4java.interactive.Interactive.memoize;
+import static hu.akarnokd.reactive4java.interactive.Interactive.memoizeAll;
+import static hu.akarnokd.reactive4java.interactive.Interactive.merge;
+import static hu.akarnokd.reactive4java.interactive.Interactive.publish;
+import static hu.akarnokd.reactive4java.interactive.Interactive.range;
+import static hu.akarnokd.reactive4java.interactive.Interactive.resumeAlways;
+import static hu.akarnokd.reactive4java.interactive.Interactive.resumeOnError;
+import static hu.akarnokd.reactive4java.interactive.Interactive.retry;
+import static hu.akarnokd.reactive4java.interactive.Interactive.scan;
+import static hu.akarnokd.reactive4java.interactive.Interactive.select;
+import static hu.akarnokd.reactive4java.interactive.Interactive.selectMany;
+import static hu.akarnokd.reactive4java.interactive.Interactive.singleton;
+import static hu.akarnokd.reactive4java.interactive.Interactive.throwException;
+import static hu.akarnokd.reactive4java.interactive.Interactive.where;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.interactive.GroupedIterable;
-import hu.akarnokd.reactive4java.interactive.Interactives;
+import hu.akarnokd.reactive4java.interactive.Interactive;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -74,7 +74,7 @@ public final class TestInteractive0 {
 	 */
 	static void run(Iterable<?> source) {
 		try {
-			Interactives.run(source, Interactives.print());
+			Interactive.run(source, Interactive.print());
 			System.out.println();
 		} catch (Throwable t) {
 			System.err.print(", ");

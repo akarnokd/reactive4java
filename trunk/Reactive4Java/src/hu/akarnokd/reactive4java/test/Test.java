@@ -19,9 +19,9 @@ package hu.akarnokd.reactive4java.test;
 import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Option;
-import hu.akarnokd.reactive4java.interactive.Interactives;
+import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observables;
+import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.Observer;
 import hu.akarnokd.reactive4java.util.FunctionIterable;
 
@@ -58,7 +58,7 @@ public final class Test {
 		} catch (NoSuchElementException ex) {
 			ex.printStackTrace();
 		}
-		Func0<Func0<Option<Integer>>> xs = FunctionIterable.asFIterable(Interactives.range(0, 10));
+		Func0<Func0<Option<Integer>>> xs = FunctionIterable.asFIterable(Interactive.range(0, 10));
 		Func0<Option<Integer>> xse = xs.invoke();
 		Option<Integer> x = null;
 		while ((x = xse.invoke()) != Option.<Integer>none()) {
@@ -71,7 +71,7 @@ public final class Test {
 		}
 		
 		final CountDownLatch latch = new CountDownLatch(1); 
-		Action1<Action1<Option<Integer>>> oxs = Observables.asFObservable(Observables.range(20, 10));
+		Action1<Action1<Option<Integer>>> oxs = Reactive.asFObservable(Reactive.range(20, 10));
 		
 		oxs.invoke(new Action1<Option<Integer>>() {
 			@Override
@@ -86,7 +86,7 @@ public final class Test {
 		
 		latch.await();
 		
-		Observable<Integer> oys = Observables.asObservable(oxs);
+		Observable<Integer> oys = Reactive.asObservable(oxs);
 		oys.register(new Observer<Integer>() {
 			@Override
 			public void finish() {
@@ -104,18 +104,18 @@ public final class Test {
 			}
 		});
 		
-		Observables.asObservable(ys).register(Observables.toObserver(new Action1<Integer>() {
+		Reactive.asObservable(ys).register(Reactive.toObserver(new Action1<Integer>() {
 			@Override
 			public void invoke(Integer value) {
 				System.out.printf("%s %d%n", Thread.currentThread(), value);
 			}
 		}));
 		
-		Observables.delay(Observables.range(100, 10), 5, TimeUnit.SECONDS).register(Observables.println());
+		Reactive.delay(Reactive.range(100, 10), 5, TimeUnit.SECONDS).register(Reactive.println());
 
-		System.out.println(Observables.first(Observables.range(1, 1)));
+		System.out.println(Reactive.first(Reactive.range(1, 1)));
 		
-		System.out.println(Observables.first(Observables.range(2, 0)));
+		System.out.println(Reactive.first(Reactive.range(2, 0)));
 	}
 
 }

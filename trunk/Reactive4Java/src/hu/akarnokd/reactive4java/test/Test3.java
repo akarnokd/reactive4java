@@ -19,7 +19,7 @@ package hu.akarnokd.reactive4java.test;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.reactive.GroupedObservable;
 import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observables;
+import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.Observer;
 import hu.akarnokd.reactive4java.reactive.Timestamped;
 
@@ -44,15 +44,15 @@ public final class Test3 {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		Observable<Timestamped<Integer>> tss = Observables.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
+		Observable<Timestamped<Integer>> tss = Reactive.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
 				Functions.<Integer>identity(), Functions.<Long, Integer>constant(1000L));
 		
-		Observable<Timestamped<Integer>> tss2 = Observables.generateTimed(10, Functions.lessThan(20), Functions.incrementInt(), 
+		Observable<Timestamped<Integer>> tss2 = Reactive.generateTimed(10, Functions.lessThan(20), Functions.incrementInt(), 
 				Functions.<Integer>identity(), Functions.<Long, Integer>constant(1000L));
 		
-		Observable<GroupedObservable<Integer, Integer>> groups = Observables.groupBy(
+		Observable<GroupedObservable<Integer, Integer>> groups = Reactive.groupBy(
 				
-				Observables.select(Observables.concat(tss, tss), Observables.<Integer>unwrapTimestamped())
+				Reactive.select(Reactive.concat(tss, tss), Reactive.<Integer>unwrapTimestamped())
 				, Functions.<Integer>identity())
 				;
 		
@@ -91,7 +91,7 @@ public final class Test3 {
 		});
 		
 		AtomicBoolean sw = new AtomicBoolean(true);
-		Observables.ifThen(Functions.atomicSource(sw), tss, tss2).register(Observables.println());
+		Reactive.ifThen(Functions.atomicSource(sw), tss, tss2).register(Reactive.println());
 		Thread.sleep(3000);
 		sw.set(false);
 		
