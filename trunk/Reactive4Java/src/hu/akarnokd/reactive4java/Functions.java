@@ -618,4 +618,38 @@ public final class Functions {
 	public static Func2<BigDecimal, BigDecimal, BigDecimal> sumBigDecimal() {
 		return SUM_BIGDECIMAL;
 	}
+	/** A helper function which returns its first parameter. */
+	private static final Func2<Object, Object, Object> IDENTITY_FIRST = new Func2<Object, Object, Object>() {
+		@Override
+		public Object invoke(Object param1, Object param2) {
+			return param1;
+		}
+	};
+	/** A helper function which returns its second parameter. */
+	private static final Func2<Object, Object, Object> IDENTITY_SECOND = new Func2<Object, Object, Object>() {
+		@Override
+		public Object invoke(Object param1, Object param2) {
+			return param2;
+		}
+	};
+	/**
+	 * Returns a helper function of two parameters which always returns its first parameter.
+	 * @param <T> the result and the first parameter type
+	 * @param <U> the second parameter type, irrelevant
+	 * @return the function
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T, U> Func2<T, T, U> identityFirst() {
+		return (Func2<T, T, U>)IDENTITY_FIRST;
+	}
+	/**
+	 * Returns a helper function of two parameters which always returns its second parameter.
+	 * @param <T> the result and the second parameter type
+	 * @param <U> the first parameter type, irrelevant
+	 * @return the function
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T, U> Func2<T, U, T> identitySecond() {
+		return (Func2<T, U, T>)IDENTITY_SECOND;
+	}
 }

@@ -19,6 +19,8 @@ import hu.akarnokd.reactive4java.Interactives.LinkedBuffer.N;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1773,7 +1775,9 @@ public final class Interactives {
 						if (hasNext()) {
 							if (buffer.tail == myHead) {
 								T value = it.next();
-								buffer.add(value);
+								if (bufferSize > 0) {
+									buffer.add(value);
+								}
 								myHead++;
 								return value;
 							} else {
@@ -1805,7 +1809,7 @@ public final class Interactives {
 	 */
 	public static <T, U> Iterable<U> replay(final Iterable<? extends T> source, 
 			final Func1<? extends Iterable<U>, ? super Iterable<T>> func) {
-		return func.invoke(memoize(source, 1));
+		return func.invoke(memoize(source, 0));
 	}
 	/**
 	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
@@ -1821,5 +1825,317 @@ public final class Interactives {
 			final Func1<? extends Iterable<U>, ? super Iterable<T>> func, 
 					final int bufferSize) {
 		return func.invoke(memoize(source, bufferSize));
+	}
+	/**
+	 * Determines if the given source has any elements at all.
+	 * @param <T> the source element type, irrelevant here
+	 * @param source the source of Ts
+	 * @return the new iterable with a single true or false
+	 */
+	public static <T> Iterable<Boolean> any(final Iterable<T> source) {
+		return new Iterable<Boolean>() {
+			@Override
+			public Iterator<Boolean> iterator() {
+				return new Iterator<Boolean>() {
+					/** The source's iterator. */
+					Iterator<T> it = source.iterator();
+					final SingleContainer<Boolean> peek = new SingleContainer<Boolean>();
+					/** Query once. */
+					boolean once = true;
+					@Override
+					public boolean hasNext() {
+						if (once) {
+							once = false;
+							if (peek.isEmpty()) {
+								peek.add(it.hasNext());
+							}
+						}
+						return !peek.isEmpty();
+					}
+
+					@Override
+					public Boolean next() {
+						if (hasNext()) {
+							return peek.take();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+					
+				};
+			}
+		};
+	}
+	/**
+	 * Tests if there is any element of the source that satisfies the given predicate function.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param predicate the predicate tester function
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<Boolean> any(final Iterable<? extends T> source, final Func1<Boolean, ? super T> predicate) {
+		return any(where(source, predicate));
+	}
+	/**
+	 * Creates an iterable which traverses the source iterable and maintains a running sum value based
+	 * on the <code>sum</code> function parameter. Once the source is depleted, it
+	 * applies the <code>divide</code> function and returns its result.
+	 * This operator is a general base for averaging (where {@code sum(u, t) => u + t}, {@code divide(u, index) => u / index}),
+	 * summing (where {@code sum(u, t) => u + t}, and {@code divide(u, index) => u)}),
+	 * minimum, maximum, etc.
+	 * If the traversal of the source fails due an exception, that exception is reflected on the
+	 * {@code next()} call of the returned iterator.
+	 * @param <T> the source element type
+	 * @param <U> the itermediate aggregation type
+	 * @param <V> the resulting aggregation type
+	 * @param source the source of Ts
+	 * @param sum the function which takes the current itermediate value, 
+	 * the current source value and should produce a new intermediate value.
+	 * for the first element of T, the U parameter will receive null
+	 * @param divide the function which takes the last intermediate value and a total count of Ts seen and should return the final aggregation value.
+	 * @return the new iterable
+	 */
+	public static <T, U, V> Iterable<V> aggregate(final Iterable<? extends T> source, 
+			final Func2<? extends U, ? super U, ? super T> sum, 
+			final Func2<? extends V, ? super U, ? super Integer> divide) {
+		return new Iterable<V>() {
+			@Override
+			public Iterator<V> iterator() {
+				return new Iterator<V>() {
+					/** The source iterator. */
+					final Iterator<? extends T> it = source.iterator();
+					/** The single result container. */
+					final SingleContainer<Option<? extends V>> result = new SingleContainer<Option<? extends V>>(); 
+					/** We have finished the aggregation. */
+					boolean done;
+					@Override
+					public boolean hasNext() {
+						if (!done) {
+							done = false;
+							if (result.isEmpty()) {
+								try {
+									U intermediate = null;
+									int count = 0;
+									while (it.hasNext()) {
+										intermediate = sum.invoke(intermediate, it.next());
+										count++;
+									}
+									if (count > 0) {
+										result.add(Option.some(divide.invoke(intermediate, count)));
+									}
+								} catch (Throwable t) {
+									result.add(Option.<V>error(t));
+								}
+							}
+						}
+						return !result.isEmpty();
+					}
+
+					@Override
+					public V next() {
+						if (hasNext()) {
+							return result.take().value();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+					
+				};
+			}
+		};
+	}
+	/**
+	 * Returns an iterable which averages the source Integer values.
+	 * @param source the source of Integer values
+	 * @return the new iterable
+	 */
+	public static Iterable<Double> averageInt(Iterable<Integer> source) {
+		return aggregate(source,
+			new Func2<Double, Double, Integer>() {
+				@Override
+				public Double invoke(Double param1, Integer param2) {
+					return param1 != null ? param1 + param2 : param2.doubleValue();
+				}
+			},
+			new Func2<Double, Double, Integer>() {
+				@Override
+				public Double invoke(Double param1, Integer param2) {
+					return param1 / param2;
+				}
+			}
+		);
+	}
+	/**
+	 * Returns an iterable which averages the source Integer values.
+	 * @param source the source of Integer values
+	 * @return the new iterable
+	 */
+	public static Iterable<Double> averageLong(Iterable<Long> source) {
+		return aggregate(source,
+			new Func2<Double, Double, Long>() {
+				@Override
+				public Double invoke(Double param1, Long param2) {
+					return param1 != null ? param1 + param2 : param2.doubleValue();
+				}
+			},
+			new Func2<Double, Double, Integer>() {
+				@Override
+				public Double invoke(Double param1, Integer param2) {
+					return param1 / param2;
+				}
+			}
+		);
+	}
+	/**
+	 * Returns an iterable which averages the source Double values.
+	 * @param source the source of Double values
+	 * @return the new iterable
+	 */
+	public static Iterable<Double> averageDouble(Iterable<Double> source) {
+		return aggregate(source,
+			new Func2<Double, Double, Double>() {
+				@Override
+				public Double invoke(Double param1, Double param2) {
+					return param1 != null ? param1 + param2 : param2.doubleValue();
+				}
+			},
+			new Func2<Double, Double, Integer>() {
+				@Override
+				public Double invoke(Double param1, Integer param2) {
+					return param1 / param2;
+				}
+			}
+		);
+	}
+	/**
+	 * Returns an iterable which averages the source Float values.
+	 * @param source the source of Float values
+	 * @return the new iterable
+	 */
+	public static Iterable<Float> averageFloat(Iterable<Float> source) {
+		return aggregate(source,
+			new Func2<Float, Float, Float>() {
+				@Override
+				public Float invoke(Float param1, Float param2) {
+					return param1 != null ? param1 + param2 : param2.floatValue();
+				}
+			},
+			new Func2<Float, Float, Integer>() {
+				@Override
+				public Float invoke(Float param1, Integer param2) {
+					return param1 / param2;
+				}
+			}
+		);
+	}
+	/**
+	 * Returns an iterable which averages the source BigInteger values.
+	 * @param source the source of BigInteger values
+	 * @return the new iterable
+	 */
+	public static Iterable<BigDecimal> averageBigInteger(Iterable<BigInteger> source) {
+		return aggregate(source,
+			new Func2<BigInteger, BigInteger, BigInteger>() {
+				@Override
+				public BigInteger invoke(BigInteger param1, BigInteger param2) {
+					return param1 != null ? param1.add(param2) : param2;
+				}
+			},
+			new Func2<BigDecimal, BigInteger, Integer>() {
+				@Override
+				public BigDecimal invoke(BigInteger param1, Integer param2) {
+					return new BigDecimal(param1).divide(new BigDecimal(param2), BigDecimal.ROUND_HALF_UP);
+				}
+			}
+		);
+	}
+	/**
+	 * Returns an iterable which averages the source BigDecimal values.
+	 * @param source the source of BigDecimal values
+	 * @return the new iterable
+	 */
+	public static Iterable<BigDecimal> averageBigDecimal(Iterable<BigDecimal> source) {
+		return aggregate(source,
+			new Func2<BigDecimal, BigDecimal, BigDecimal>() {
+				@Override
+				public BigDecimal invoke(BigDecimal param1, BigDecimal param2) {
+					return param1 != null ? param1.add(param2) : param2;
+				}
+			},
+			new Func2<BigDecimal, BigDecimal, Integer>() {
+				@Override
+				public BigDecimal invoke(BigDecimal param1, Integer param2) {
+					return param1.divide(new BigDecimal(param2), BigDecimal.ROUND_HALF_UP);
+				}
+			}
+		);
+	}
+	/**
+	 * Sum the source of Integer values and returns it as a single element.
+	 * @param source the source
+	 * @return the new iterable
+	 */
+	public static Iterable<Integer> sumInt(Iterable<Integer> source) {
+		return aggregate(source,
+			Functions.sumInteger(), Functions.<Integer, Integer>identityFirst()
+		);
+	}
+	/**
+	 * Sum the source of Long values and returns it as a single element.
+	 * @param source the source
+	 * @return the new iterable
+	 */
+	public static Iterable<Long> sumLong(Iterable<Long> source) {
+		return aggregate(source,
+				Functions.sumLong(), Functions.<Long, Integer>identityFirst()
+			);
+	}
+	/**
+	 * Sum the source of Float values and returns it as a single element.
+	 * @param source the source
+	 * @return the new iterable
+	 */
+	public static Iterable<Float> sumFloat(Iterable<Float> source) {
+		return aggregate(source,
+			Functions.sumFloat(), Functions.<Float, Integer>identityFirst()
+		);
+	}
+	/**
+	 * Sum the source of Double values and returns it as a single element.
+	 * @param source the source
+	 * @return the new iterable
+	 */
+	public static Iterable<Double> sumDouble(Iterable<Double> source) {
+		return aggregate(source,
+			Functions.sumDouble(), Functions.<Double, Integer>identityFirst()
+		);
+	}
+	/**
+	 * Sum the source of Integer values and return it as a single element.
+	 * @param source the source
+	 * @return the new iterable
+	 */
+	public static Iterable<BigInteger> sumBigInteger(Iterable<BigInteger> source) {
+		return aggregate(source,
+			Functions.sumBigInteger(), Functions.<BigInteger, Integer>identityFirst()
+		);
+	}
+	/**
+	 * Sum the source of Integer values and return it as a single element.
+	 * @param source the source
+	 * @return the new iterable
+	 */
+	public static Iterable<BigDecimal> sumBigDecimal(Iterable<BigDecimal> source) {
+		return aggregate(source,
+			Functions.sumBigDecimal(), Functions.<BigDecimal, Integer>identityFirst()
+		);
 	}
 }
