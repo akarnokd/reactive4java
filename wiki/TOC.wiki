@@ -1,6 +1,8 @@
 #summary Table of contents
 
   * [GettingStarted Getting started]
+  * [UserGuide User Guide]
+  * [DeveloperGuide Developer Guide]
   * [Marbles Marble diagrams]
   * [HelperMethods Helper methods and classes]
     * [HelperMethods#Functions Functions]
