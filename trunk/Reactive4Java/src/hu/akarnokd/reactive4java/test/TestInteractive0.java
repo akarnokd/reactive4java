@@ -203,15 +203,20 @@ public final class TestInteractive0 {
 
 		System.out.println("Memorize");
 		
-		Iterable<Integer> p3 = memoize(range(0, 2), 0);
+		Iterable<Integer> p3 = memoize(range(0, 3), 2);
 
 		Iterator<Integer> p3i1 = p3.iterator();
 		Iterator<Integer> p3i2 = p3.iterator();
+		Iterator<Integer> p3i3 = p3.iterator();
 		
 		System.out.println(p3i1.next());
 		System.out.println(p3i1.next());
 		System.out.println(p3i2.next());
 		System.out.println(p3i2.next());
+		System.out.println(p3i3.next());
+		System.out.println(p3i3.next());
+		System.out.println(p3i1.next());
+		System.out.println(p3i3.next());
 		
 		
 		System.out.printf("%nMain finished%n");
