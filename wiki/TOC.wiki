@@ -2,9 +2,10 @@
 
   * [GettingStarted Getting started]
   * [Marbles Marble diagrams]
-  * [HelperMethods Helper methods]
-    * [Functions Functions]
-    * [Actions Actions]
+  * [HelperMethods Helper methods and classes]
+    * [HelperMethods#Functions Functions]
+    * [HelperMethods#Actions Actions]
+    * [HelperMethods#Classes Classes]
   * [Operators Operators]
     * [Interactive Interactive operators]
       * [InteractiveImperative Imperative use]
