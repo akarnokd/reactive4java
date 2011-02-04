@@ -3,3 +3,21 @@
 = Introduction =
 
 This page lists all helper methods that lets you connect the default types and operators of the Java world and the Reactive4Java library.
+
+= Actions =
+
+The {{{hu.akarnokd.reactive4java.Actions}}} utility class lists static helper methods that can be used to work with the {{{hu.akarnokd.reactive4java.Action0}}} and {{{hu.akarnokd.reactive4java.Action1}}} classes, which involves typical transformations from and to {{{Runnable}}}s.
+
+|| *Method* || *Description* ||
+
+= Functions =
+
+The {{{hu.akarnokd.reactive4java.Functions}}} utility class lists static helper methods that can be used to work with the {{{hu.akarnokd.reactive4java.Func0}}},{{{hu.akarnokd.reactive4java.Func1}}} and {{{hu.akarnokd.reactive4java.Func2}}} classes.
+
+|| *Method* || *Description* ||
+
+= Classes =
+
+The role of the following classes is to support the library's various operations (mostly) internally.
+
+|| *Class* || *Description* ||
