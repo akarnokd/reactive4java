@@ -1685,6 +1685,60 @@ public final class Interactives {
 		return startWith(func.invoke(memoizeAll(source)), initial);
 	}
 	/**
+	 * A simple circular buffer with absolute indices.
+	 * @author akarnokd, 2011.02.04.
+	 * @param <T> the contained element type
+	 */
+	static class CircularBuffer<T> {
+		/** The buffer. */
+		final Object[] buffer;
+		/** The head pointer. */
+		int head;
+		/** The tail pointer. */
+		int tail;
+		/**
+		 * Construct a new circular buffer.
+		 * @param size the buffer size
+		 */
+		public CircularBuffer(int size) {
+			buffer = new Object[size];
+		}
+		/** @return is the buffer empty? */
+		public boolean isEmpty() {
+			return head == tail;
+		}
+		/**
+		 * Add a new value to the buffer.
+		 * If the buffer would overflow, it automatically removes the current head element.
+		 * @param value the value
+		 */
+		public void add(T value) {
+			buffer[(tail++) % buffer.length] = value;
+			if (size() > buffer.length) {
+				head++;
+			}
+		}
+		/**
+		 * Retrieve a buffer element based on an absolute index.
+		 * @param index the absolute index
+		 * @return the value
+		 */
+		@SuppressWarnings("unchecked")
+		public T get(int index) {
+			if (index < head) {
+				throw new IllegalArgumentException("read before head");
+			}
+			if (index >= tail) {
+				throw new IllegalArgumentException("read after tail");
+			}
+			return (T)buffer[index % buffer.length];
+		}
+		/** @return the current size of the buffer. */
+		public int size() {
+			return tail - head;
+		}
+	}
+	/**
 	 * Enumerates the source iterable once and caches its results.
 	 * Any iterator party will basically drain this cache, e.g.,
 	 * reiterating over this iterable will produce no results.
@@ -1703,33 +1757,29 @@ public final class Interactives {
 			/** The source iterator. */
 			Iterator<? extends T> it = source.iterator();
 			/** The ring buffer of the memory. */
-			final Object[] ringBuffer = new Object[bufferSize];
-			/** The buffer head index. */
-			int head;
-			/** The buffer tail index. */
-			int tail;
+			final CircularBuffer<T> buffer = new CircularBuffer<T>(bufferSize);
 			@Override
 			public Iterator<T> iterator() {
 				return new Iterator<T>() {
-					int count;
+					int myHead;
 
 					@Override
 					public boolean hasNext() {
-						return head + count < tail || it.hasNext();
+						return buffer.tail > Math.max(myHead, buffer.head) || it.hasNext();
 					}
 
 					@Override
 					public T next() {
 						if (hasNext()) {
-							if (head + count < tail) {
-								@SuppressWarnings("unchecked") T value = (T)ringBuffer[(head + count) % bufferSize];
-								count++;
+							if (buffer.tail == myHead) {
+								T value = it.next();
+								buffer.add(value);
+								myHead++;
 								return value;
 							} else {
-								T value = it.next();
-								ringBuffer[(head + count) % bufferSize] = value;
-								count++;
-								tail++;
+								myHead = Math.max(myHead, buffer.head);
+								T value = buffer.get(myHead);
+								myHead++;
 								return value;
 							}
 						}
