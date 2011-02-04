@@ -16,12 +16,12 @@
 
 package hu.akarnokd.reactive4java.test;
 
-import hu.akarnokd.reactive4java.Functions;
-import hu.akarnokd.reactive4java.GroupedObservable;
-import hu.akarnokd.reactive4java.Observable;
-import hu.akarnokd.reactive4java.Observables;
-import hu.akarnokd.reactive4java.Observer;
-import hu.akarnokd.reactive4java.Timestamped;
+import hu.akarnokd.reactive4java.base.Functions;
+import hu.akarnokd.reactive4java.reactive.GroupedObservable;
+import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observables;
+import hu.akarnokd.reactive4java.reactive.Observer;
+import hu.akarnokd.reactive4java.reactive.Timestamped;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -52,7 +52,7 @@ public final class Test3 {
 		
 		Observable<GroupedObservable<Integer, Integer>> groups = Observables.groupBy(
 				
-				Observables.select(Observables.concat(tss, tss), Functions.<Integer>unwrapTimestamped())
+				Observables.select(Observables.concat(tss, tss), Observables.<Integer>unwrapTimestamped())
 				, Functions.<Integer>identity())
 				;
 		
