@@ -3000,8 +3000,110 @@ public final class Interactive {
 			}
 		};
 	}
+	/**
+	 * Convert the given iterator to the Enumerator semantics.
+	 * @param <T> the element type
+	 * @param it the source iterator
+	 * @return the new enumerator
+	 */
+	public static <T> Enumerator<T> toEnumerator(final Iterator<? extends T> it) {
+		return new Enumerator<T>() {
+			/** The current value. */
+			T value;
+			/** The current value is set. */
+			boolean hasValue;
+			@Override
+			public boolean next() {
+				if (it.hasNext()) {
+					value = it.next();
+					hasValue = true;
+					return false;
+				}
+				hasValue = false;
+				return false;
+			}
+			@Override
+			public T current() {
+				if (hasValue) {
+					return value;
+				}
+				throw new NoSuchElementException();
+			}
+			
+		};
+	}
+	/**
+	 * Convert the given enumerator to the Iterator semantics.
+	 * @param <T> the element type
+	 * @param en the source enumerator
+	 * @return the new iterator
+	 */
+	public static <T> Iterator<T> toIterator(final Enumerator<? extends T> en) {
+		return new Iterator<T>() {
+			/** The peek-ahead buffer. */
+			final SingleContainer<Option<? extends T>> peek = new SingleContainer<Option<? extends T>>();
+			/** Completion indicator. */
+			boolean done;
+			@Override
+			public boolean hasNext() {
+				if (!done && peek.isEmpty()) {
+					try {
+						if (en.next()) {
+							peek.add(Option.some(en.current()));
+						} else {
+							done = true;
+						}
+					} catch (Throwable t) {
+						done = true;
+						peek.add(Option.<T>error(t));
+					}
+				}
+				return peek.isEmpty();
+			}
+			@Override
+			public T next() {
+				if (hasNext()) {
+					return peek.take().value();
+				}
+				throw new NoSuchElementException();
+			}
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException();
+			}
+		};
+	}
+	/**
+	 * Convert the source enumerable into the Iterable semantics.
+	 * @param <T> the source element type
+	 * @param e the enumerable
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> toIterable(final Enumerable<? extends T> e) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return toIterator(e.enumerator());
+			}
+		};
+	}
+	/**
+	 * Convert the source Iterable into the Enumerable semantics.
+	 * @param <T> the source element type
+	 * @param e the iterable
+	 * @return the new enumerable
+	 */
+	public static <T> Enumerable<T> toEnumerable(final Iterable<? extends T> e) {
+		return new Enumerable<T>() {
+			@Override
+			public Enumerator<T> enumerator() {
+				return toEnumerator(e.iterator());
+			}
+		};
+	}
 	/** Utility class. */
 	private Interactive() {
 		// utility class
 	}
+	
 }
