@@ -2,7 +2,7 @@
 
 = Introduction =
 
-This page lists all helper methods that lets you connect the default types and operators of the Java world and the Reactive4Java library.
+This page lists all helper methods that lets you connect the default types and operators of the Java world and the !Reactive4Java library.
 
 = Actions =
 
