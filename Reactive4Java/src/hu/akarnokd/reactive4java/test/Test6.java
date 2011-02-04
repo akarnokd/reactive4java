@@ -16,12 +16,12 @@
 
 package hu.akarnokd.reactive4java.test;
 
-import hu.akarnokd.reactive4java.Action0;
-import hu.akarnokd.reactive4java.Func0;
-import hu.akarnokd.reactive4java.Functions;
-import hu.akarnokd.reactive4java.Interactives;
-import hu.akarnokd.reactive4java.Observable;
-import hu.akarnokd.reactive4java.Observables;
+import hu.akarnokd.reactive4java.base.Action0;
+import hu.akarnokd.reactive4java.base.Func0;
+import hu.akarnokd.reactive4java.base.Functions;
+import hu.akarnokd.reactive4java.interactive.Interactives;
+import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observables;
 
 import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;

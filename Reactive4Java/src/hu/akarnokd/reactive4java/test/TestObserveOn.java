@@ -15,9 +15,9 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import hu.akarnokd.reactive4java.Observable;
-import hu.akarnokd.reactive4java.Observables;
-import hu.akarnokd.reactive4java.Scheduler;
+import hu.akarnokd.reactive4java.base.Scheduler;
+import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observables;
 
 /**
  * @author akarnokd, 2011.01.29.

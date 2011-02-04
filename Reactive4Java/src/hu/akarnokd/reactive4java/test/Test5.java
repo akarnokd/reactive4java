@@ -16,10 +16,10 @@
 
 package hu.akarnokd.reactive4java.test;
 
-import hu.akarnokd.reactive4java.Func1;
-import hu.akarnokd.reactive4java.Func2;
-import hu.akarnokd.reactive4java.Observable;
-import hu.akarnokd.reactive4java.Observables;
+import hu.akarnokd.reactive4java.base.Func1;
+import hu.akarnokd.reactive4java.base.Func2;
+import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observables;
 
 /**
  * Test program for the MinLinq stuff.

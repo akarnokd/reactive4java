@@ -16,15 +16,14 @@
 
 package hu.akarnokd.reactive4java.test;
 
-import hu.akarnokd.reactive4java.Action1;
-import hu.akarnokd.reactive4java.ActionObservable;
-import hu.akarnokd.reactive4java.Func0;
-import hu.akarnokd.reactive4java.FunctionIterable;
-import hu.akarnokd.reactive4java.Interactives;
-import hu.akarnokd.reactive4java.Observable;
-import hu.akarnokd.reactive4java.Observables;
-import hu.akarnokd.reactive4java.Observer;
-import hu.akarnokd.reactive4java.Option;
+import hu.akarnokd.reactive4java.base.Action1;
+import hu.akarnokd.reactive4java.base.Func0;
+import hu.akarnokd.reactive4java.base.Option;
+import hu.akarnokd.reactive4java.interactive.Interactives;
+import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observables;
+import hu.akarnokd.reactive4java.reactive.Observer;
+import hu.akarnokd.reactive4java.util.FunctionIterable;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -72,7 +71,7 @@ public final class Test {
 		}
 		
 		final CountDownLatch latch = new CountDownLatch(1); 
-		Action1<Action1<Option<Integer>>> oxs = ActionObservable.asFObservable(Observables.range(20, 10));
+		Action1<Action1<Option<Integer>>> oxs = Observables.asFObservable(Observables.range(20, 10));
 		
 		oxs.invoke(new Action1<Option<Integer>>() {
 			@Override
@@ -87,7 +86,7 @@ public final class Test {
 		
 		latch.await();
 		
-		Observable<Integer> oys = ActionObservable.asObservable(oxs);
+		Observable<Integer> oys = Observables.asObservable(oxs);
 		oys.register(new Observer<Integer>() {
 			@Override
 			public void finish() {
@@ -105,7 +104,7 @@ public final class Test {
 			}
 		});
 		
-		Observables.asObservable(ys).register(Observables.asObserver(new Action1<Integer>() {
+		Observables.asObservable(ys).register(Observables.toObserver(new Action1<Integer>() {
 			@Override
 			public void invoke(Integer value) {
 				System.out.printf("%s %d%n", Thread.currentThread(), value);

@@ -15,12 +15,12 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import hu.akarnokd.reactive4java.Action1;
-import hu.akarnokd.reactive4java.Func1;
-import hu.akarnokd.reactive4java.Observable;
-import hu.akarnokd.reactive4java.Observables;
-import hu.akarnokd.reactive4java.SwingObservables;
-import hu.akarnokd.reactive4java.SwingObservables.ObservableDocumentListener;
+import hu.akarnokd.reactive4java.base.Action1;
+import hu.akarnokd.reactive4java.base.Func1;
+import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observables;
+import hu.akarnokd.reactive4java.swing.SwingObservables;
+import hu.akarnokd.reactive4java.swing.SwingObservables.ObservableDocumentListener;
 
 import java.awt.Container;
 import java.util.concurrent.TimeUnit;
@@ -109,7 +109,7 @@ public class ThrottleDemo extends JFrame {
 		Observable<String> result = SwingObservables.observeOnEdt(throttle);
 		result.register(Observables.println("RESULT: "));
 			
-		result.register(Observables.asObserver(new Action1<String>() {
+		result.register(Observables.toObserver(new Action1<String>() {
 			@Override
 			public void invoke(String value) {
 				DefaultListModel<String> model = new DefaultListModel<String>();

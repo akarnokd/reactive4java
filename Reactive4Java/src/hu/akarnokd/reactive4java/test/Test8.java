@@ -16,8 +16,8 @@
 
 package hu.akarnokd.reactive4java.test;
 
-import hu.akarnokd.reactive4java.Observable;
-import hu.akarnokd.reactive4java.Observables;
+import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observables;
 
 import java.util.concurrent.TimeUnit;
 
