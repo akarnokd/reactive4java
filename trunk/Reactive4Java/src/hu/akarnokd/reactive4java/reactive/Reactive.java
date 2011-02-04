@@ -4930,7 +4930,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	}
 	/**
 	 * Creates an observable which takes values from source until
-	 * the predicate returns true, then skips the remaining values.
+	 * the predicate returns false for the current element, then skips the remaining values.
 	 * @param <T> the element type
 	 * @param source the source of Ts
 	 * @param predicate the predicate
