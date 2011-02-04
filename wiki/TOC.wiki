@@ -1,0 +1,7 @@
+#summary Table of contents
+
+  * [GettingStarted Getting started]
+  * [Marbles Marble diagrams]
+  * [HelperMethods Helper methods]
+  * [Operators Eperators]
+  * [Examples Examples]
