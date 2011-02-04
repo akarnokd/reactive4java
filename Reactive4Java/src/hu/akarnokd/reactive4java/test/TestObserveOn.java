@@ -17,7 +17,7 @@ package hu.akarnokd.reactive4java.test;
 
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observables;
+import hu.akarnokd.reactive4java.reactive.Reactive;
 
 /**
  * @author akarnokd, 2011.01.29.
@@ -35,11 +35,11 @@ public final class TestObserveOn {
 	 * @throws Exception ignored
 	 */
 	public static void main(String[] args) throws Exception {
-		Observable<Integer> xs = Observables.range(0, 10);
-		Scheduler exec = Observables.getDefaultScheduler();
-		Observable<Integer> ys = Observables.observeOn(xs, exec);
+		Observable<Integer> xs = Reactive.range(0, 10);
+		Scheduler exec = Reactive.getDefaultScheduler();
+		Observable<Integer> ys = Reactive.observeOn(xs, exec);
 		
-		ys.register(Observables.println());
+		ys.register(Reactive.println());
 		
 //		exec.shutdown();
 //		exec.awaitTermination(Long.MAX_VALUE, TimeUnit.MICROSECONDS);

@@ -17,7 +17,7 @@
 package hu.akarnokd.reactive4java.test;
 
 import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observables;
+import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
@@ -41,24 +41,24 @@ public final class Test4 {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		Observable<Long> tick = Observables.tick(1, TimeUnit.SECONDS);
+		Observable<Long> tick = Reactive.tick(1, TimeUnit.SECONDS);
 		
-		Closeable c = tick.register(Observables.println());
+		Closeable c = tick.register(Reactive.println());
 		
 		Thread.sleep(5500);
 		
 		c.close();
 		
-		System.out.println(Observables.last(Observables.range(0, 10)));
+		System.out.println(Reactive.last(Reactive.range(0, 10)));
 		
-		System.out.println(Observables.latest(Observables.range(0, 10)).iterator().next());
+		System.out.println(Reactive.latest(Reactive.range(0, 10)).iterator().next());
 		
-		for (Long t : Observables.latest(Observables.tick(0, 20, 1, TimeUnit.SECONDS))) {
+		for (Long t : Reactive.latest(Reactive.tick(0, 20, 1, TimeUnit.SECONDS))) {
 			System.out.println(t);
 			Thread.sleep(3000);
 		}
 		
-		c = Observables.sample(Observables.tick(1L, TimeUnit.SECONDS), 3L, TimeUnit.SECONDS).register(Observables.println());
+		c = Reactive.sample(Reactive.tick(1L, TimeUnit.SECONDS), 3L, TimeUnit.SECONDS).register(Reactive.println());
 		
 		Thread.sleep(10000);
 		

@@ -68,7 +68,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author akarnokd, 2011.01.26
  *
  */
-public final class Observables {
+public final class Reactive {
 
 	/**
 	 * A variant of the registering observable which stores a group key.
@@ -264,7 +264,7 @@ public final class Observables {
 	 * @return the raw observables of Ts
 	 */
 	public static <T> Observable<Timestamped<T>> addTimestamped(Observable<? extends T> source) {
-		return select(source, Observables.<T>wrapTimestamped());
+		return select(source, Reactive.<T>wrapTimestamped());
 	}
 	/**
 	 * Apply an accumulator function over the observable source and submit the accumulated value to the returned observable.
@@ -1188,7 +1188,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 				obs.register(it.next());
 				return obs;
 			}
-			return Observables.<T>empty().register(observer);
+			return Reactive.<T>empty().register(observer);
 		}
 	};
 }
@@ -2028,7 +2028,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable
 	 */
 	public static <T> Observable<T> ifThen(final Func0<Boolean> condition, final Observable<T> then) {
-		return ifThen(condition, then, Observables.<T>never());
+		return ifThen(condition, then, Reactive.<T>never());
 	}
 	/**
 	 * Returns an observable where the submitted condition decides whether the <code>then</code> or <code>orElse</code> 
@@ -3310,7 +3310,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the raw observables of Ts
 	 */
 	public static <T> Observable<T> removeTimeInterval(Observable<TimeInterval<T>> source) {
-		return select(source, Observables.<T>unwrapTimeInterval());
+		return select(source, Reactive.<T>unwrapTimeInterval());
 	}
 	/**
 	 * Unwrap the values within a timestamped observable to its normal value.
@@ -3319,7 +3319,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the raw observables of Ts
 	 */
 	public static <T> Observable<T> removeTimestamped(Observable<Timestamped<T>> source) {
-		return select(source, Observables.<T>unwrapTimestamped());
+		return select(source, Reactive.<T>unwrapTimestamped());
 	}
 	/**
 	 * Creates an observable which repeatedly calls the given function which generates the Ts indefinitely.
@@ -3507,7 +3507,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					obs.register(it.next());
 					return obs;
 				}
-				return Observables.<T>empty().register(observer);
+				return Reactive.<T>empty().register(observer);
 			}
 		};
 	}
@@ -3553,7 +3553,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 					obs.register(it.next());
 					return obs;
 				}
-				return Observables.<T>empty().register(observer);
+				return Reactive.<T>empty().register(observer);
 			}
 		};
 	}
@@ -5668,7 +5668,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 	 * @return the observable object
 	 */
 	public static <T> Observable<T> asObservable(final Action1<Action1<Option<T>>> source) {
-		return Observables.create(new Func1<Action0, Observer<? super T>>() {
+		return Reactive.create(new Func1<Action0, Observer<? super T>>() {
 			@Override
 			public Action0 invoke(final Observer<? super T> o) {
 				source.invoke(asAction(o));
@@ -5749,7 +5749,7 @@ public static <T> Observable<T> concat(final Iterable<Observable<T>> sources) {
 		}
 	}
 	/** Utility class. */
-	private Observables() {
+	private Reactive() {
 		// utility class
 	}
 	/**

@@ -19,9 +19,9 @@ package hu.akarnokd.reactive4java.test;
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Functions;
-import hu.akarnokd.reactive4java.interactive.Interactives;
+import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observables;
+import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +46,7 @@ public final class Test6 {
 	 * waiting on the observable completion
 	 */
 	static void run(Observable<?> observable) throws InterruptedException {
-		Observables.run(observable, Observables.print());
+		Reactive.run(observable, Reactive.print());
 	}
 	
 	/**
@@ -55,35 +55,35 @@ public final class Test6 {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		run(Observables.skipUntil(
-					Observables.tick(0, 10, 1, TimeUnit.SECONDS), 
-					Observables.tick(0, 1, 3, TimeUnit.SECONDS)
+		run(Reactive.skipUntil(
+					Reactive.tick(0, 10, 1, TimeUnit.SECONDS), 
+					Reactive.tick(0, 1, 3, TimeUnit.SECONDS)
 			));
 		
-		run(Observables.skipWhile(
-					Observables.range(0, 10),
+		run(Reactive.skipWhile(
+					Reactive.range(0, 10),
 					Functions.lessThan(5)
 			));
 
-		run(Observables.start(new Action0() {
+		run(Reactive.start(new Action0() {
 			@Override
 			public void invoke() {
 				System.err.println("Hello world");
 			}
 		}));
 		
-		run(Observables.start(new Func0<String>() {
+		run(Reactive.start(new Func0<String>() {
 			@Override
 			public String invoke() {
 				return "Hello world Function!";
 			}
 		}));
 		
-		run(Observables.startWith(Observables.range(5, 10), Interactives.range(0, 5)));
+		run(Reactive.startWith(Reactive.range(5, 10), Interactive.range(0, 5)));
 		
-		run(Observables.sumInt(Observables.range(0, 101)));
+		run(Reactive.sumInt(Reactive.range(0, 101)));
 		
-		run(Observables.sumBigDecimal(Observables.range(BigDecimal.ZERO, 100, new BigDecimal("0.001"))));
+		run(Reactive.sumBigDecimal(Reactive.range(BigDecimal.ZERO, 100, new BigDecimal("0.001"))));
 	}
 
 }

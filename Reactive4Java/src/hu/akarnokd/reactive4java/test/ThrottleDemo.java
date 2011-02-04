@@ -18,7 +18,7 @@ package hu.akarnokd.reactive4java.test;
 import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observables;
+import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.swing.SwingObservables;
 import hu.akarnokd.reactive4java.swing.SwingObservables.ObservableDocumentListener;
 
@@ -89,27 +89,27 @@ public class ThrottleDemo extends JFrame {
 		ObservableDocumentListener dl = ObservableDocumentListener.register(textField.getDocument()); 
 //		dl.register(Observables.println("DL: "));
 		
-		Observable<String> extract = Observables.select(dl, new Func1<String, DocumentEvent>() {
+		Observable<String> extract = Reactive.select(dl, new Func1<String, DocumentEvent>() {
 			@Override
 			public String invoke(DocumentEvent param1) {
 				return textField.getText();
 			}
 		});
-		extract.register(Observables.println("EXTRACT: "));
+		extract.register(Reactive.println("EXTRACT: "));
 
-		Observable<String> distinct = Observables.distinct(extract);
-		distinct.register(Observables.println("DISTINCT: "));
+		Observable<String> distinct = Reactive.distinct(extract);
+		distinct.register(Reactive.println("DISTINCT: "));
 		
-		Observable<String> throttle = Observables.throttle(distinct, 500, TimeUnit.MILLISECONDS);
-		throttle.register(Observables.println("THROTTLE: "));
+		Observable<String> throttle = Reactive.throttle(distinct, 500, TimeUnit.MILLISECONDS);
+		throttle.register(Reactive.println("THROTTLE: "));
 		
 //		Observable<String> takeuntil = Observables.takeUntil(throttle, dl);
 //		takeuntil.register(Observables.println("TAKEUNTIL: "));
 		
 		Observable<String> result = SwingObservables.observeOnEdt(throttle);
-		result.register(Observables.println("RESULT: "));
+		result.register(Reactive.println("RESULT: "));
 			
-		result.register(Observables.toObserver(new Action1<String>() {
+		result.register(Reactive.toObserver(new Action1<String>() {
 			@Override
 			public void invoke(String value) {
 				DefaultListModel<String> model = new DefaultListModel<String>();

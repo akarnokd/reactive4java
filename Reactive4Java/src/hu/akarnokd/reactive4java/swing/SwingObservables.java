@@ -18,7 +18,7 @@ package hu.akarnokd.reactive4java.swing;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.reactive.DefaultObservable;
 import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observables;
+import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.Observer;
 import hu.akarnokd.reactive4java.util.DefaultEdtScheduler;
 
@@ -718,7 +718,7 @@ public final class SwingObservables {
 	 * @return the new observable
 	 */
 	public static <T> Observable<T> observeOnEdt(Observable<T> observable) {
-		return Observables.observeOn(observable, DEFAULT_EDT_SCHEDULER.get());
+		return Reactive.observeOn(observable, DEFAULT_EDT_SCHEDULER.get());
 	}
 	/**
 	 * @return the current default pool used by the Observables methods
@@ -752,6 +752,6 @@ public final class SwingObservables {
 	 * @return the new observable
 	 */
 	public static <T> Observable<T> subscribeOnEdt(Observable<T> observable) {
-		return Observables.subscribeOn(observable, DEFAULT_EDT_SCHEDULER.get());
+		return Reactive.subscribeOn(observable, DEFAULT_EDT_SCHEDULER.get());
 	}
 }
