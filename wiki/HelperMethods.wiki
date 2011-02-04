@@ -9,6 +9,11 @@ This page lists all helper methods that lets you connect the default types and o
 The {{{hu.akarnokd.reactive4java.Actions}}} utility class lists static helper methods that can be used to work with the {{{hu.akarnokd.reactive4java.Action0}}} and {{{hu.akarnokd.reactive4java.Action1}}} classes, which involves typical transformations from and to {{{Runnable}}}s.
 
 || *Method* || *Description* ||
+|| {{{noAction0()}}} || Returns an {{{Action0}}} instance which does nothing. ||
+|| {{{noAction1()}}} || Returns an {{{Action1}}} instance which does nothing. ||
+|| {{{asRunnable(Action0)}}} || Wraps the {{{Action0}}} instance into a {{{Runnable}}}. ||
+|| {{{asAction0(Runnable)}}} || Wraps the {{{Runnable}}} instance into an {{{Action0}}}. ||
+|| {{{asAction1(Runnable)}}} || Wraps the {{{Runnable}}} instance into an {{{Action1}}} ||
 
 = Functions =
 
