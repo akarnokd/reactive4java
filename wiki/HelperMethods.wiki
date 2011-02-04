@@ -6,7 +6,7 @@ This page lists all helper methods that lets you connect the default types and o
 
 = Actions =
 
-The [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Action0.html hu.akarnokd.reactive4java.Actions] utility class lists static helper methods that can be used to work with the {{{hu.akarnokd.reactive4java.Action0}}} and {{{hu.akarnokd.reactive4java.Action1}}} classes, which involves typical transformations from and to {{{Runnable}}}s.
+The [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Action0.html hu.akarnokd.reactive4java.base.Actions] utility class lists static helper methods that can be used to work with the {{{Action0}}} and {{{Action1}}} classes, which involves typical transformations from and to {{{Runnable}}}s.
 
 || *Method* || *Description* || *Javadoc* ||
 || {{{noAction0()}}} || Returns an {{{Action0}}} instance which does nothing. ||  ||
@@ -17,7 +17,7 @@ The [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu
 
 = Functions =
 
-The {{{hu.akarnokd.reactive4java.Functions}}} utility class lists static helper methods that can be used to work with the {{{hu.akarnokd.reactive4java.Func0}}},{{{hu.akarnokd.reactive4java.Func1}}} and {{{hu.akarnokd.reactive4java.Func2}}} classes.
+The {{{hu.akarnokd.reactive4java.base.Functions}}} utility class lists static helper methods that can be used to work with the {{{Func0}}},{{{Func1}}} and {{{Func2}}} classes.
 
 || *Method* || *Description* ||
 
