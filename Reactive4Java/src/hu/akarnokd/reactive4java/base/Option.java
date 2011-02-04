@@ -157,5 +157,17 @@ public abstract class Option<T> {
 	public static boolean isSome(Option<?> o) {
 		return o != null && o.getClass() == Some.class;
 	}
+	/**
+	 * Extracts the error value from the option.
+	 * It throws an IllegalArgumentException if o is not an <code>Error</code> instance.
+	 * @param o the option to get the error from
+	 * @return the inner throwable
+	 */
+	public static Throwable getError(Option<?> o) {
+		if (isError(o)) {
+			return ((Error<?>)o).error();
+		}
+		throw new IllegalArgumentException("o is not an error");
+	}
 	
 }

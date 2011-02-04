@@ -770,6 +770,45 @@ public final class Interactive {
 		});
 	}
 	/**
+	 * Creates an iterable which ensures that subsequent values of 
+	 * T are not equal in respect to the extracted keys (reference and equals).
+	 * @param <T> the element type
+	 * @param <U> the key type
+	 * @param source the source iterable
+	 * @param keyExtractor 
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<T> distinct(final Iterable<? extends T> source,
+			final Func1<U, T> keyExtractor) {
+		return where(source,
+		new Func0<Func2<Boolean, Integer, T>>() {
+			@Override
+			public Func2<Boolean, Integer, T> invoke() {
+				return new Func2<Boolean, Integer, T>() {
+					/** Is this the first element? */
+					boolean first = true;
+					/** The last seen element. */
+					U last;
+					@Override
+					public Boolean invoke(Integer index, T param1) {
+						U key = keyExtractor.invoke(param1);
+						if (first) {
+							first = false;
+							last = key;
+							return true;
+						}
+						if (last == key || (last != null && last.equals(key))) {
+							last = key;
+							return false;
+						}
+						last = key;
+						return true;
+					};
+				};
+			};
+		});
+	}
+	/**
 	 * Returns an iterable which filters its elements based if they vere ever seen before in
 	 * the current iteration.
 	 * Value equality is computed by reference equality and <code>equals()</code>
@@ -2647,6 +2686,316 @@ public final class Interactive {
 						it.remove();
 					}
 					
+				};
+			}
+		};
+	}
+	/**
+	 * Relays the source iterable's values until the gate returns false.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param gate the gate to stop the relaying
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> relayWhile(final Iterable<? extends T> source, final Func0<Boolean> gate) {
+		return where(source, new Func0<Func2<Boolean, Integer, T>>() {
+			@Override
+			public Func2<Boolean, Integer, T> invoke() {
+				return new Func2<Boolean, Integer, T>() {
+					/** The activity checker which turns to false once the gate returns false. */
+					boolean active = true;
+					@Override
+					public Boolean invoke(Integer param1, T param2) {
+						active &= gate.invoke();
+						return active;
+					};
+				};
+			}
+		});
+	}
+	/**
+	 * Returns an iterable which ensures the source iterable is
+	 * only traversed once and clients may take values from each other,
+	 * e.g., they share the same iterator.
+	 * @param <T> the source element type
+	 * @param source the source iterable
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> share(final Iterable<T> source) {
+		return new Iterable<T>() {
+			final Iterator<T> it = source.iterator();
+			@Override
+			public Iterator<T> iterator() {
+				return it;
+			}
+		};
+	}
+	/**
+	 * Applies the <code>func</code> function for a shared instance of the source,
+	 * e.g., <code>func.invoke(share(source))</code>.
+	 * @param <T> the source element type
+	 * @param <U> the return types
+	 * @param source the source of Ts
+	 * @param func invoke the function on the buffering iterable and return an iterator over it.
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> prune(final Iterable<? extends T> source, 
+			final Func1<? extends Iterable<U>, ? super Iterable<? extends T>> func) {
+		return func.invoke(share(source));
+	}
+	/**
+	 * Returns an iterable which reiterates over and over again on <code>source</code>
+	 * as long as the gate is true. The gate function is checked only
+	 * when a pass over the source stream was completed.
+	 * Note that using this operator on an empty iterable may result
+	 * in a direct infinite loop in hasNext() or next() calls depending on the gate function.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param gate the gate function to stop the repeat
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> doWhile(final Iterable<? extends T> source, final Func0<Boolean> gate) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					Iterator<? extends T> it = source.iterator();
+					@Override
+					public boolean hasNext() {
+						while (gate.invoke()) {
+							if (it.hasNext()) {
+								return true;
+							} else {
+								it = source.iterator();
+							}
+								
+						}
+						return false;
+					}
+					@Override
+					public T next() {
+						if (hasNext()) {
+							return it.next();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Returns an iterable which invokes the given <code>next</code>
+	 * action for each element and the <code>finish</code> action when
+	 * the source completes.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param next the action to invoke on each element
+	 * @param finish the action to invoke after the last element
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> invoke(final Iterable<? extends T> source, Action1<? super T> next, Action0 finish) {
+		return invoke(source, next, Actions.noAction1(), finish);
+	}
+	/**
+	 * Returns an iterable which invokes the given <code>next</code>
+	 * action for each element and the <code>finish</code> action when
+	 * the source completes and <code>error</code> when an exception is thrown.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param next the action to invoke on each element
+	 * @param error the error action to invoke for an error
+	 * @param finish the action to invoke after the last element
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> invoke(final Iterable<? extends T> source, 
+			final Action1<? super T> next, final Action1<? super Throwable> error, final Action0 finish) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					/** The iterator. */
+					final Iterator<? extends T> it = source.iterator();
+					/** The peek ahead container. */
+					final SingleContainer<Option<? extends T>> peek = new SingleContainer<Option<? extends T>>();
+					/** Finish or error once. */
+					boolean once = true;
+					@Override
+					public boolean hasNext() {
+						if (peek.isEmpty()) {
+							try {
+								if (it.hasNext()) {
+									peek.add(Option.some(it.next()));
+								} else {
+									if (once) {
+										once = false;
+										finish.invoke();
+									}
+								}
+							} catch (Throwable t) {
+								peek.add(Option.<T>error(t));
+							}
+						}
+						return !peek.isEmpty();
+					}
+
+					@Override
+					public T next() {
+						if (it.hasNext()) {
+							Option<? extends T> o = peek.take();
+							if (Option.isError(o) && once) {
+								once = false;
+								error.invoke(Option.getError(o));
+							}
+							return o.value();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Returns an iterable which invokes the given <code>next</code>
+	 * action for each element and  <code>error</code> when an exception is thrown.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param next the action to invoke on each element
+	 * @param error the error action to invoke for an error
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> invoke(final Iterable<? extends T> source, 
+			final Action1<? super T> next, final Action1<? super Throwable> error) {
+		return invoke(source, next, error, Actions.noAction0());
+	}
+	/**
+	 * Returns an iterable which contains true if all
+	 * elements of the source iterable satisfy the predicate.
+	 * The operator might return a false before fully iterating the source.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param predicate the predicate
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<Boolean> all(final Iterable<? extends T> source, 
+			final Func1<Boolean, T> predicate) {
+		return new Iterable<Boolean>() {
+			@Override
+			public Iterator<Boolean> iterator() {
+				return new Iterator<Boolean>() {
+					/** The source iterator. */
+					final Iterator<? extends T> it = source.iterator();
+					/** The peek ahead container. */
+					final SingleContainer<Option<Boolean>> peek = new SingleContainer<Option<Boolean>>();
+					/** Completed. */
+					boolean done;
+					@Override
+					public boolean hasNext() {
+						if (peek.isEmpty() && !done) {
+							try {
+								if (it.hasNext()) {
+									while (it.hasNext()) {
+										T value = it.next();
+										if (!predicate.invoke(value)) {
+											peek.add(Option.some(false));
+											return true;
+										}
+									}
+									peek.add(Option.some(true));
+								}
+								done = true;
+							} catch (Throwable t) {
+								peek.add(Option.<Boolean>error(t));
+								done = true;
+							}
+						}
+						return !peek.isEmpty();
+					}
+
+					@Override
+					public Boolean next() {
+						if (hasNext()) {
+							return peek.take().value();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					} 
+				};
+			}
+		};
+	}
+	/**
+	 * Returns an iterable which buffers the source elements 
+	 * into <code>bufferSize</code> lists.
+	 * FIXME what to do on empty source or last chunk?
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param bufferSize the buffer size.
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<List<T>> buffer(final Iterable<? extends T> source, 
+			final int bufferSize) {
+		if (bufferSize <= 0) {
+			throw new IllegalArgumentException("bufferSize <= 0");
+		}
+		return new Iterable<List<T>>() {
+			@Override
+			public Iterator<List<T>> iterator() {
+				return new Iterator<List<T>>() {
+					/** The source iterator. */
+					final Iterator<? extends T> it = source.iterator();
+					/** The current buffer. */
+					final SingleContainer<Option<List<T>>> peek = new SingleContainer<Option<List<T>>>();
+					/** Did the source finish? */
+					boolean done;
+					@Override
+					public boolean hasNext() {
+						if (peek.isEmpty() && !done) {
+							if (it.hasNext()) {
+								try {
+									List<T> buffer = new ArrayList<T>();
+									while (it.hasNext() && buffer.size() < bufferSize) {
+										buffer.add(it.next());
+									}
+									if (buffer.size() > 0) {
+										peek.add(Option.some(buffer));
+									}
+								} catch (Throwable t) {
+									done = true;
+									peek.add(Option.<List<T>>error(t));
+								}
+							} else {
+								done = true;
+							}
+						}
+						return !peek.isEmpty();
+					}
+
+					@Override
+					public List<T> next() {
+						if (hasNext()) {
+							return peek.take().value();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
 				};
 			}
 		};
