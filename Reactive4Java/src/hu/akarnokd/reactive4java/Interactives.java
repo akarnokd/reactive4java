@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -1915,7 +1916,7 @@ public final class Interactives {
 					@Override
 					public boolean hasNext() {
 						if (!done) {
-							done = false;
+							done = true;
 							if (result.isEmpty()) {
 								try {
 									U intermediate = null;
@@ -2137,5 +2138,236 @@ public final class Interactives {
 		return aggregate(source,
 			Functions.sumBigDecimal(), Functions.<BigDecimal, Integer>identityFirst()
 		);
+	}
+	/**
+	 * Concatenates the source strings one after another and uses the given separator.
+	 * @param source the source
+	 * @param separator the separator to use
+	 * @return the new iterable
+	 */
+	public static Iterable<String> join(final Iterable<?> source, final String separator) {
+		return aggregate(source,
+			new Func2<StringBuilder, StringBuilder, Object>() {
+				@Override
+				public StringBuilder invoke(StringBuilder param1, Object param2) {
+					if (param1 == null) {
+						param1 = new StringBuilder();
+					} else {
+						param1.append(separator);
+					}
+					param1.append(param2);
+					return param1;
+				}
+			},
+			new Func2<String, StringBuilder, Integer>() {
+				@Override
+				public String invoke(StringBuilder param1, Integer param2) {
+					return param1.toString();
+				}
+			}
+		);
+	}
+	/**
+	 * Returns the minimum value of the given iterable source.
+	 * @param <T> the element type, which must be self comparable
+	 * @param source the source elements 
+	 * @return the new iterable
+	 */
+	public static <T extends Comparable<? super T>> Iterable<T> min(final Iterable<? extends T> source) {
+		return aggregate(source, Functions.<T>min(), Functions.<T, Integer>identityFirst());
+	}
+	/**
+	 * Returns the maximum value of the given iterable source.
+	 * @param <T> the element type, which must be self comparable
+	 * @param source the source elements 
+	 * @return the new iterable
+	 */
+	public static <T extends Comparable<? super T>> Iterable<T> max(final Iterable<? extends T> source) {
+		return aggregate(source, Functions.<T>max(), Functions.<T, Integer>identityFirst());
+	}
+	/**
+	 * Returns the minimum value of the given iterable source in respect to the supplied comparator.
+	 * @param <T> the element type, which must be self comparable
+	 * @param source the source elements 
+	 * @param comparator the comparator to use
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> min(final Iterable<? extends T> source, final Comparator<? super T> comparator) {
+		return aggregate(source, Functions.<T>min(comparator), Functions.<T, Integer>identityFirst());
+	}
+	/**
+	 * Returns the maximum value of the given iterable source in respect to the supplied comparator.
+	 * @param <T> the element type, which must be self comparable
+	 * @param source the source elements 
+	 * @param comparator the comparator to use
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> max(final Iterable<? extends T> source, final Comparator<? super T> comparator) {
+		return aggregate(source, Functions.<T>max(comparator), Functions.<T, Integer>identityFirst());
+	}
+	/**
+	 * Returns an iterator which will produce a single List of the minimum values encountered
+	 * in the source stream based on the supplied key selector and comparator.
+	 * @param <T> the source element type
+	 * @param <U> the key type
+	 * @param source the source of Ts
+	 * @param keySelector the selector for keys
+	 * @param keyComparator the key comparator
+	 * @param max should the computation return the minimums or the maximums
+	 * @return the new iterable
+	 */
+	static <T, U> Iterable<List<T>> minMax(final Iterable<? extends T> source, 
+			final Func1<? extends U, ? super T> keySelector, final Comparator<? super U> keyComparator, final boolean max) {
+		return new Iterable<List<T>>() {
+			@Override
+			public Iterator<List<T>> iterator() {
+				return new Iterator<List<T>>() {
+					/** The source iterator. */
+					final Iterator<? extends T> it = source.iterator();
+					/** The single result container. */
+					final SingleContainer<Option<? extends List<T>>> result = new SingleContainer<Option<? extends List<T>>>(); 
+					/** We have finished the aggregation. */
+					boolean done;
+					@Override
+					public boolean hasNext() {
+						if (!done) {
+							done = true;
+							if (result.isEmpty()) {
+								try {
+									List<T> intermediate = null;
+									U lastKey = null;
+									while (it.hasNext()) {
+										T value = it.next();
+										U key = keySelector.invoke(value);
+										if (lastKey == null || (max ^ keyComparator.compare(lastKey, key) > 0)) {
+											intermediate = new ArrayList<T>();
+											lastKey = key;
+										}
+										intermediate.add(value);
+									}
+									if (intermediate != null) {
+										result.add(Option.some(intermediate));
+									}
+								} catch (Throwable t) {
+									result.add(Option.<List<T>>error(t));
+								}
+							}
+						}
+						return !result.isEmpty();
+					}
+
+					@Override
+					public List<T> next() {
+						if (hasNext()) {
+							return result.take().value();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+					
+				};
+			}
+		};
+	}
+	/**
+	 * Returns an iterator which will produce a single List of the minimum values encountered
+	 * in the source stream based on the supplied key selector and comparator.
+	 * @param <T> the source element type
+	 * @param <U> the key type
+	 * @param source the source of Ts
+	 * @param keySelector the selector for keys
+	 * @param keyComparator the key comparator
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<List<T>> maxBy(final Iterable<? extends T> source, 
+			final Func1<? extends U, ? super T> keySelector, final Comparator<? super U> keyComparator) {
+		return minMax(source, keySelector, keyComparator, true);
+	}
+	/**
+	 * Returns an iterator which will produce a single List of the minimum values encountered
+	 * in the source stream based on the supplied key selector and comparator.
+	 * @param <T> the source element type
+	 * @param <U> the key type
+	 * @param source the source of Ts
+	 * @param keySelector the selector for keys
+	 * @param keyComparator the key comparator
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<List<T>> minBy(final Iterable<? extends T> source, 
+			final Func1<? extends U, ? super T> keySelector, final Comparator<? super U> keyComparator) {
+		return minMax(source, keySelector, keyComparator, false);
+	}
+	/**
+	 * Returns an iterator which will produce a single List of the maximum values encountered
+	 * in the source stream based on the supplied key selector.
+	 * @param <T> the source element type
+	 * @param <U> the key type, which must be self-comparable
+	 * @param source the source of Ts
+	 * @param keySelector the selector for keys
+	 * @return the new iterable
+	 */
+	public static <T, U extends Comparable<? super U>> Iterable<List<T>> maxBy(final Iterable<? extends T> source, 
+			final Func1<? extends U, ? super T> keySelector) {
+		return minMax(source, keySelector, Functions.<U>comparator(), true);
+	}
+	/**
+	 * Returns an iterator which will produce a single List of the minimum values encountered
+	 * in the source stream based on the supplied key selector.
+	 * @param <T> the source element type
+	 * @param <U> the key type, which must be self-comparable
+	 * @param source the source of Ts
+	 * @param keySelector the selector for keys
+	 * @return the new iterable
+	 */
+	public static <T, U extends Comparable<? super U>> Iterable<List<T>> minBy(final Iterable<? extends T> source, 
+			final Func1<? extends U, ? super T> keySelector) {
+		return minMax(source, keySelector, Functions.<U>comparator(), false);
+	}
+	/**
+	 * Returns an iterator which will produce a single List of the maximum values encountered
+	 * in the source stream based on the supplied key selector.
+	 * @param <T> the source element type, which must be self comparable
+	 * @param source the source of Ts
+	 * @return the new iterable
+	 */
+	public static <T extends Comparable<? super T>> Iterable<List<T>> maxBy(final Iterable<? extends T> source) {
+		return minMax(source, Functions.<T>identity(), Functions.<T>comparator(), true);
+	}
+	/**
+	 * Returns an iterator which will produce a single List of the minimum values encountered
+	 * in the source stream based on the supplied key selector.
+	 * @param <T> the source element type, which must be self comparable
+	 * @param source the source of Ts
+	 * @return the new iterable
+	 */
+	public static <T extends Comparable<? super T>> Iterable<List<T>> minBy(final Iterable<? extends T> source) {
+		return minMax(source, Functions.<T>identity(), Functions.<T>comparator(), false);
+	}
+	/**
+	 * Returns an iterator which will produce a single List of the minimum values encountered
+	 * in the source stream based on the supplied comparator.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param comparator the key comparator
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<List<T>> minBy(final Iterable<? extends T> source, final Comparator<? super T> comparator) {
+		return minMax(source, Functions.<T>identity(), comparator, false);
+	}
+	/**
+	 * Returns an iterator which will produce a single List of the maximum values encountered
+	 * in the source stream based on the supplied comparator.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param comparator the key comparator
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<List<T>> maxBy(final Iterable<? extends T> source, 
+			final Comparator<? super T> comparator) {
+		return minMax(source, Functions.<T>identity(), comparator, true);
 	}
 }

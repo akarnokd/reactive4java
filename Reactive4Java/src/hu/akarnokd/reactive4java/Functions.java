@@ -652,4 +652,138 @@ public final class Functions {
 	public static <T, U> Func2<T, U, T> identitySecond() {
 		return (Func2<T, U, T>)IDENTITY_SECOND;
 	}
+	/**
+	 * Returns a function which returns the greater of its parameters.
+	 * If only one of the parameters is null, the other parameter is returned.
+	 * If both parameters are null, null is returned.
+	 * @param <T> the parameter types, which must be self-comparable
+	 * @return the function
+	 */
+	public static <T extends Comparable<? super T>> Func2<T, T, T> max() {
+		return new Func2<T, T, T>() {
+			@Override
+			public T invoke(T param1, T param2) {
+				if (param1 == null || param2 == null) {
+					if (param2 == null) {
+						return param1;
+					}
+					return param2;
+				}
+				return param1.compareTo(param2) < 0 ? param2 : param1;
+			};
+		};
+	}
+	/**
+	 * Returns a function which returns the smaller of its parameters.
+	 * If only one of the parameters is null, the other parameter is returned.
+	 * If both parameters are null, null is returned.
+	 * @param <T> the parameter types, which must be self-comparable
+	 * @return the function
+	 */
+	public static <T extends Comparable<? super T>> Func2<T, T, T> min() {
+		return new Func2<T, T, T>() {
+			@Override
+			public T invoke(T param1, T param2) {
+				if (param1 == null || param2 == null) {
+					if (param2 == null) {
+						return param1;
+					}
+					return param2;
+				}
+				return param1.compareTo(param2) > 0 ? param2 : param1;
+			};
+		};
+	}
+	/**
+	 * Returns a function which returns the greater of its parameters in respect to the supplied <code>Comparator</code>.
+	 * If only one of the parameters is null, the other parameter is returned.
+	 * If both parameters are null, null is returned.
+	 * @param <T> the parameter types, which must be self-comparable
+	 * @param comparator the value comparator
+	 * @return the function
+	 */
+	public static <T> Func2<T, T, T> max(final Comparator<? super T> comparator) {
+		return new Func2<T, T, T>() {
+			@Override
+			public T invoke(T param1, T param2) {
+				if (param1 == null || param2 == null) {
+					if (param2 == null) {
+						return param1;
+					}
+					return param2;
+				}
+				return comparator.compare(param1, param2) < 0 ? param2 : param1;
+			};
+		};
+	}
+	/**
+	 * Returns a function which returns the smaller of its parameters in respect to the supplied <code>Comparator</code>.
+	 * If only one of the parameters is null, the other parameter is returned.
+	 * If both parameters are null, null is returned.
+	 * @param <T> the parameter types, which must be self-comparable
+	 * @param comparator the value comparator
+	 * @return the function
+	 */
+	public static <T> Func2<T, T, T> min(final Comparator<? super T> comparator) {
+		return new Func2<T, T, T>() {
+			@Override
+			public T invoke(T param1, T param2) {
+				if (param1 == null || param2 == null) {
+					if (param2 == null) {
+						return param1;
+					}
+					return param2;
+				}
+				return comparator.compare(param1, param2) > 0 ? param2 : param1;
+			};
+		};
+	}
+	/**
+	 * Returns a convenience comparator which basically compares objects which implement the <code>Comparable</code>
+	 * interface. The comparator is null safe in the manner, that nulls are always less than any non-nulls.
+	 * To have a comparator which places nulls last, use the <code>comparator0()</code> method.
+	 * @param <T> the element types to compare
+	 * @return the comparator
+	 */
+	public static <T extends Comparable<? super T>> Comparator<T> comparator() {
+		return new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				if (o1 != null && o2 == null) {
+					return 1;
+				} else
+				if (o1 == null && o2 != null) {
+					return -1;
+				} else
+				if (o1 == o2) {
+					return 0;
+				}
+				return o1.compareTo(o2);
+			};
+		};
+	}
+	/**
+	 * Returns a convenience comparator which basically compares objects which implement the <code>Comparable</code>
+	 * interface. The comparator is null safe in the manner, that nulls are always greater than any non-nulls.
+	 * To have a comparator which places nulls first, use the <code>comparator()</code> method.
+	 * @param <T> the element types to compare
+	 * @return the comparator
+	 */
+	public static <T extends Comparable<? super T>> Comparator<T> comparator0() {
+		return new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				if (o1 != null && o2 == null) {
+					return -1;
+				} else
+				if (o1 == null && o2 != null) {
+					return 1;
+				} else
+				if (o1 == o2) {
+					return 0;
+				}
+				return o1.compareTo(o2);
+			};
+		};
+	}
 }
