@@ -18,6 +18,10 @@ package hu.akarnokd.reactive4java.base;
 
 /**
  * The function interface which takes one parameter and returns something.
+ * When <code>Func1</code> is used in a method parameter declaration, you
+ * may consider using wildcards: 
+ * <p><code>&lt;T, U> U someMethod(Func1&lt;? extends U, ? super T> f);</code></p>
+ * 
  * @author akarnokd
  * @param <Return> the return type
  * @param <Param1> the first parameter

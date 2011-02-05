@@ -18,6 +18,9 @@ package hu.akarnokd.reactive4java.base;
 
 /**
  * A parameterless function interface.
+ * When <code>Func1</code> is used in a method parameter declaration, you
+ * may consider using wildcards: 
+ * <p><code>&lt;T> T someMethod(Func0&lt;? extends T> f);</code></p>
  * @author akarnokd
  * @param <Return> the return type
  */
