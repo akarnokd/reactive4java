@@ -26,6 +26,7 @@ import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
+import hu.akarnokd.reactive4java.util.CircularBuffer;
 import hu.akarnokd.reactive4java.util.DefaultScheduler;
 import hu.akarnokd.reactive4java.util.SingleLaneExecutor;
 
@@ -308,6 +309,52 @@ public final class Reactive {
 		};
 	}
 	/**
+	 * Computes an aggregated value of the source Ts by applying a sum function and applying the divide function when the source
+	 * finishes, sending the result to the output.
+	 * @param <T> the type of the values
+	 * @param <U> the type of the intermediate sum value
+	 * @param <V> the type of the final average value
+	 * @param source the source of BigDecimals to aggregate.
+	 * @param sum the function which sums the input Ts. The first received T will be acompanied by a null U.
+	 * @param divide the function which perform the final division based on the number of elements
+	 * @return the observable for the average value
+	 */
+	public static <T, U, V> Observable<V> aggregate(
+			final Observable<? extends T> source, 
+			final Func2<? extends U, ? super U, ? super T> sum, 
+			final Func2<? extends V, ? super U, ? super Integer> divide) {
+		return new Observable<V>() {
+			@Override
+			public Closeable register(final Observer<? super V> observer) {
+				return source.register(new Observer<T>() {
+					/** The number of values. */
+					int count;
+					/** The sum of the values thus far. */
+					U temp;
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (count > 0) {
+							observer.next(divide.invoke(temp, count));
+						}
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						temp = sum.invoke(temp, value); 
+						count++;
+					}
+					
+				});
+			}
+		};
+	}
+	/**
 	 * Apply an accumulator function over the observable source and submit the accumulated value to the returned observable.
 	 * @param <T> the input element type
 	 * @param <U> the ouput element type
@@ -316,7 +363,8 @@ public final class Reactive {
 	 * @param accumulator the accumulator function where the first parameter is the current accumulated value and the second is the now received value.
 	 * @return the observable for the result of the accumulation
 	 */
-	public static <T, U> Observable<U> aggregate(final Observable<? extends T> source, final U seed, final Func2<? extends U, ? super U, ? super T> accumulator) {
+	public static <T, U> Observable<U> aggregate(final Observable<? extends T> source, 
+			final U seed, final Func2<? extends U, ? super U, ? super T> accumulator) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
@@ -509,6 +557,36 @@ public final class Reactive {
 		};
 	}
 	/**
+	 * Wraps the given observer into an action object which then dispatches
+	 * various incoming Option values to next(), finish() and error().
+	 * @param <T> the element type
+	 * @param observer the observer to wrap
+	 * @return the wrapper action
+	 */
+	public static <T> Action1<Option<T>> asAction(final Observer<? super T> observer) {
+		return new Action1<Option<T>>() {
+			@Override
+			public void invoke(Option<T> value) {
+				dispatch(observer, value);
+			}
+		};
+	}
+	/**
+	 * Convert the Observable instance into a functional-observable object.
+	 * @param <T> the type of the elements
+	 * @param source the source observable
+	 * @return the action to action to option of T
+	 */
+	public static <T> Action1<Action1<Option<T>>> asFObservable(
+			final Observable<? extends T> source) {
+		return new Action1<Action1<Option<T>>>() {
+			@Override
+			public void invoke(final Action1<Option<T>> o) {
+				source.register(asObserver(o));
+			}
+		};
+	}
+	/**
 	 * Convert the given observable instance into a classical iterable instance.
 	 * @param <T> the element type to iterate
 	 * @param observable the original observable
@@ -622,6 +700,22 @@ public final class Reactive {
 		};
 	}
 	/**
+	 * Convert the functional observable into a normal observable object.
+	 * @param <T> the type of the elements to observe.
+	 * @param source the source of the functional-observable elements
+	 * @return the observable object
+	 */
+	public static <T> Observable<T> asObservable(
+			final Action1<Action1<Option<T>>> source) {
+		return Reactive.create(new Func1<Action0, Observer<? super T>>() {
+			@Override
+			public Action0 invoke(final Observer<? super T> o) {
+				source.invoke(asAction(o));
+				return Actions.noAction0();
+			}
+		});
+	}
+	/**
 	 * Wrap the iterable object into an observable and use the
 	 * default pool when generating the iterator sequence.
 	 * @param <T> the type of the values
@@ -664,101 +758,32 @@ public final class Reactive {
 				return s;
 			}
 		};
-	}
+	}	
 	/**
-	 * Creates an observer which calls the given functions on its similarly named methods.
-	 * @param <T> the value type to receive
-	 * @param next the action to invoke on next()
-	 * @param error the action to invoke on error()
-	 * @param finish the action to invoke on finish()
+	 * Transform the given action to an observer.
+	 * The wrapper observer converts its next() messages to Option.some(),
+	 * the finish() to Option.none() and error() to Option.error().
+	 * @param <T> the element type to observe
+	 * @param action the action to wrap
 	 * @return the observer
 	 */
-	public static <T> Observer<T> toObserver(final Action1<? super T> next, 
-			final Action1<? super Throwable> error, final Action0 finish) {
+	public static <T> Observer<T> asObserver(final Action1<? super Option<T>> action) {
 		return new Observer<T>() {
 			@Override
 			public void error(Throwable ex) {
-				error.invoke(ex);
+				action.invoke(Option.<T>error(ex));
 			}
 
 			@Override
 			public void finish() {
-				finish.invoke();
+				action.invoke(Option.<T>none());
 			}
 
 			@Override
 			public void next(T value) {
-				next.invoke(value);
+				action.invoke(Option.some(value));
 			}
 			
-		};
-	}
-	/**
-	 * Wraps the given action as an observable which reacts only to <code>next()</code> events.
-	 * @param <T> the type of the values
-	 * @param action the action to wrap
-	 * @return the observer wrapping the action
-	 */
-	public static <T> Observer<T> toObserver(final Action1<? super T> action) {
-		return new Observer<T>() {
-			@Override
-			public void error(Throwable ex) {
-				// ignored
-			}
-			@Override
-			public void finish() {
-				// ignored
-			}
-			@Override
-			public void next(T value) {
-				action.invoke(value);
-			};
-		};
-	}
-	/**
-	 * Computes an aggregated value of the source Ts by applying a sum function and applying the divide function when the source
-	 * finishes, sending the result to the output.
-	 * @param <T> the type of the values
-	 * @param <U> the type of the intermediate sum value
-	 * @param <V> the type of the final average value
-	 * @param source the source of BigDecimals to aggregate.
-	 * @param sum the function which sums the input Ts. The first received T will be acompanied by a null U.
-	 * @param divide the function which perform the final division based on the number of elements
-	 * @return the observable for the average value
-	 */
-	public static <T, U, V> Observable<V> aggregate(
-			final Observable<? extends T> source, 
-			final Func2<? extends U, ? super U, ? super T> sum, 
-			final Func2<? extends V, ? super U, ? super Integer> divide) {
-		return new Observable<V>() {
-			@Override
-			public Closeable register(final Observer<? super V> observer) {
-				return source.register(new Observer<T>() {
-					/** The number of values. */
-					int count;
-					/** The sum of the values thus far. */
-					U temp;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (count > 0) {
-							observer.next(divide.invoke(temp, count));
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						temp = sum.invoke(temp, value); 
-						count++;
-					}
-					
-				});
-			}
 		};
 	}
 	/**
@@ -777,7 +802,7 @@ public final class Reactive {
 				}
 			}
 		);
-	}	
+	}
 	/**
 	 * Computes and signals the average value of the BigInteger source.
 	 * The source may not send nulls.
@@ -1071,38 +1096,38 @@ public final class Reactive {
 			}
 		};
 	}
-	/**
-	 * Wraps two or more closeables into one closeable.
-	 * <code>IOException</code>s thrown from the closeables are suppressed.
-	 * @param c0 the first closeable
-	 * @param c1 the second closeable
-	 * @param closeables the rest of the closeables
-	 * @return the composite closeable
-	 */
-	static Closeable close(final Closeable c0, final Closeable c1, final Closeable... closeables) {
-		return new Closeable() {
-			@Override
-			public void close() throws IOException {
+/**
+ * Wraps two or more closeables into one closeable.
+ * <code>IOException</code>s thrown from the closeables are suppressed.
+ * @param c0 the first closeable
+ * @param c1 the second closeable
+ * @param closeables the rest of the closeables
+ * @return the composite closeable
+ */
+static Closeable close(final Closeable c0, final Closeable c1, final Closeable... closeables) {
+	return new Closeable() {
+		@Override
+		public void close() throws IOException {
+			try {
+				c0.close();
+			} catch (IOException ex) {
+				
+			}
+			try {
+				c1.close();
+			} catch (IOException ex) {
+				
+			}
+			for (Closeable c : closeables) {
 				try {
-					c0.close();
+					c.close();
 				} catch (IOException ex) {
 					
-				}
-				try {
-					c1.close();
-				} catch (IOException ex) {
-					
-				}
-				for (Closeable c : closeables) {
-					try {
-						c.close();
-					} catch (IOException ex) {
-						
-					}
 				}
 			}
-		};
-	}
+		}
+	};
+}
 	/**
 		 * Creates a composite closeable from the array of closeables.
 		 * <code>IOException</code>s thrown from the closeables are suppressed.
@@ -1123,51 +1148,65 @@ public final class Reactive {
 				}
 			};
 		}
-/**
- * Concatenates the source observables in a way that when the first finish(), the
- * second gets registered and continued, and so on.
- * FIXME not sure how it should handle closability
- * @param <T> the type of the values to observe
- * @param sources the source list of subsequent observables
- * @return the concatenated observable
- */
-public static <T> Observable<T> concat(final Iterable<? extends Observable<? extends T>> sources) {
-	return new Observable<T>() {
-		@Override
-		public Closeable register(final Observer<? super T> observer) {
-			final Iterator<? extends Observable<? extends T>> it = sources.iterator();
-			if (it.hasNext()) {
-				DefaultObserver<T> obs = new DefaultObserver<T>() {
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-						close();
-					}
-
-					@Override
-					public void finish() {
-						if (it.hasNext()) {
-							unregister();
-							register(it.next());
-						} else {
-							observer.finish();
+	/**
+	 * Invoke the <code>close()</code> method on the closeable instance
+	 * and throw away any <code>IOException</code> it might raise.
+	 * @param c the closeable instance, <code>null</code>s are simply ignored
+	 */
+	static void close0(Closeable c) {
+		if (c != null) {
+			try {
+				c.close();
+			} catch (IOException ex) {
+				
+			}
+		}
+	}
+	/**
+	 * Concatenates the source observables in a way that when the first finish(), the
+	 * second gets registered and continued, and so on.
+	 * FIXME not sure how it should handle closability
+	 * @param <T> the type of the values to observe
+	 * @param sources the source list of subsequent observables
+	 * @return the concatenated observable
+	 */
+	public static <T> Observable<T> concat(final Iterable<? extends Observable<? extends T>> sources) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final Iterator<? extends Observable<? extends T>> it = sources.iterator();
+				if (it.hasNext()) {
+					DefaultObserver<T> obs = new DefaultObserver<T>() {
+						@Override
+						public void error(Throwable ex) {
+							observer.error(ex);
 							close();
 						}
-					}
-
-					@Override
-					public void next(T value) {
-						observer.next(value);
-					}
-					
-				};
-				obs.register(it.next());
-				return obs;
+	
+						@Override
+						public void finish() {
+							if (it.hasNext()) {
+								unregister();
+								register(it.next());
+							} else {
+								observer.finish();
+								close();
+							}
+						}
+	
+						@Override
+						public void next(T value) {
+							observer.next(value);
+						}
+						
+					};
+					obs.register(it.next());
+					return obs;
+				}
+				return Reactive.<T>empty().register(observer);
 			}
-			return Reactive.<T>empty().register(observer);
-		}
-	};
-}
+		};
+	}
 	/**
 	 * Concatenate two observables in a way when the first finish() the second is registered
 	 * and continued with.
@@ -1452,6 +1491,75 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 				return obs;
 			}
 		};
+	}
+	/**
+	 * Returns an observable which converts all option messages
+	 * back to regular next(), error() and finish() messages.
+	 * The returned observable adheres to the <code>next* (error|finish)?</code> pattern,
+	 * which ensures that no further options are relayed after an error or finish.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @return the new observable
+	 * @see #materialize(Observable)
+	 */
+	public static <T> Observable<T> dematerialize(final Observable<? extends Option<T>> source) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<Option<T>>() {
+					/** Keeps track of the observer's state. */
+					final AtomicBoolean done = new AtomicBoolean();
+					@Override
+					public void error(Throwable ex) {
+						if (!done.get()) {
+							done.set(true);
+							observer.error(ex);
+						}
+					}
+
+					@Override
+					public void finish() {
+						if (!done.get()) {
+							done.set(true);
+							observer.finish();
+						}
+					}
+
+					@Override
+					public void next(Option<T> value) {
+						if (!done.get()) {
+							if (Option.isNone(value)) {
+								done.set(true);
+								observer.finish();
+							} else
+							if (Option.isSome(value)) {
+								observer.next(value.value());
+							} else {
+								done.set(true);
+								observer.error(Option.getError(value));
+							}
+						}
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Dispatches the option to the various Observer methods.
+	 * @param <T> the value type
+	 * @param observer the observer
+	 * @param value the value to dispatch
+	 */
+	public static <T> void dispatch(Observer<? super T> observer, Option<T> value) {
+		if (value == Option.none()) {
+			observer.finish();
+		} else
+		if (Option.isError(value)) {
+			observer.error(((Option.Error<?>)value).error());
+		} else {
+			observer.next(value.value());
+		}
 	}
 	/**
 	 * Returns an observable which fires next() events only when the subsequent values differ
@@ -1932,25 +2040,6 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 		return DEFAULT_SCHEDULER.get();
 	}
 	/**
-	 * Replace the current default scheduler with the specified  new scheduler.
-	 * This method is threadsafe
-	 * @param newScheduler the new scheduler
-	 * @return the current scheduler
-	 */
-	public static Scheduler replaceDefaultScheduler(Scheduler newScheduler) {
-		if (newScheduler == null) {
-			throw new IllegalArgumentException("newScheduler is null");
-		}
-		return DEFAULT_SCHEDULER.getAndSet(newScheduler);
-	}
-	/**
-	 * Restore the default scheduler back to the <code>DefaultScheduler</code>
-	 * used when this class was initialized.
-	 */
-	public static void restoreDefaultScheduler() {
-		DEFAULT_SCHEDULER.set(new DefaultScheduler());
-	}
-	/**
 	 * Group the specified source accoring to the keys provided by the extractor function.
 	 * The resulting observable gets notified once a new group is encountered.
 	 * Each previously encountered group by itself receives updates along the way.
@@ -2415,6 +2504,40 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 		};
 	}
 	/**
+	 * Returns an observable which converts all messages to an <code>Option</code> value.
+	 * The returned observable does not itself signal error or finish.
+	 * Its dual is the <code>dematerialize</code> method.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @return the new observable
+	 * @see #dematerialize(Observable)
+	 */
+	public static <T> Observable<Option<T>> materialize(
+			final Observable<? extends T> source) {
+		return new Observable<Option<T>>() {
+			@Override
+			public Closeable register(final Observer<? super Option<T>> observer) {
+				return source.register(new Observer<T>() {
+					@Override
+					public void error(Throwable ex) {
+						observer.next(Option.<T>error(ex));
+					}
+
+					@Override
+					public void finish() {
+						observer.next(Option.<T>none());
+					}
+
+					@Override
+					public void next(T value) {
+						observer.next(Option.some(value));
+					}
+					
+				});
+			}
+		};
+	}
+	/**
 	 * Returns the maximum value encountered in the source observable onse it finish().
 	 * @param <T> the element type which must be comparable to itself
 	 * @param source the source of integers
@@ -2430,6 +2553,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param source the source of integers
 	 * @param comparator the comparator to decide the relation of values
 	 * @return the the maximum value
+	 * @see Functions#asComparator(Func2)
 	 */
 	public static <T> Observable<T> max(
 			final Observable<T> source, 
@@ -2467,70 +2591,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 			final Func1<? extends Key, ? super T> keyExtractor, 
 			final Comparator<? super Key> keyComparator) {
 		return minMax(source, keyExtractor, keyComparator, true);
-	}
-	/**
-	 * Returns an observable which provides with the list of <code>T</code>s which had their keys as maximums.
-	 * The returned observer may finish() if the source sends finish() without any next().
-	 * The generated list is modifiable.
-	 * @param <T> the type of elements
-	 * @param <Key> the key type
-	 * @param source the source of <code>T</code>s
-	 * @param keyExtractor the key extractor to produce <code>Key</code>s from <code>T</code>s.
-	 * @param keyComparator the comparator for the keys
-	 * @param max compute the maximums?
-	 * @return the observable for the maximum keyed Ts
-	 */
-	public static <T, Key> Observable<List<T>> minMax(
-			final Observable<? extends T> source, 
-			final Func1<? extends Key, ? super T> keyExtractor, 
-			final Comparator<? super Key> keyComparator,
-			final boolean max
-	) {
-		return new Observable<List<T>>() {
-			@Override
-			public Closeable register(final Observer<? super List<T>> observer) {
-				return source.register(new Observer<T>() {
-					/** The current collection for the minimum of Ts. */
-					List<T> collect;
-					/** The current minimum value. */
-					Key maxKey;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (collect != null) {
-							observer.next(collect);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						Key key = keyExtractor.invoke(value);
-						if (collect == null) {
-							maxKey = key;
-							collect = new ArrayList<T>();
-							collect.add(value);
-						} else {
-							int order = keyComparator.compare(maxKey, key);
-							if (order == 0) {
-								collect.add(value);
-							} else
-							if (max ^ (order > 0)) {
-								maxKey = key;
-								collect = new ArrayList<T>();
-								collect.add(value);
-							}
-						}
-					}
-					
-				});
-			}
-		};
-	}
+	};
 	/**
 	 * Combines the notifications of all sources. The resulting stream of Ts might come from any of the sources.
 	 * @param <T> the type of the values
@@ -2588,7 +2649,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param second the second observable
 	 * @return the merged observable
 	 */
-	public static <T> Observable<T> merge(Observable<? extends T> first, Observable<? extends T> second) {
+	public static <T> Observable<T> merge(
+			Observable<? extends T> first, 
+			Observable<? extends T> second) {
 		List<Observable<? extends T>> list = new ArrayList<Observable<? extends T>>();
 		list.add(first);
 		list.add(second);
@@ -2600,80 +2663,22 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param source the source of integers
 	 * @return the the minimum value
 	 */
-	public static <T extends Comparable<? super T>> Observable<T> min(final Observable<T> source) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				return source.register(new Observer<T>() {
-					/** Is this the first original value? */
-					boolean first = true;
-					/** Keeps track of the maximum value. */
-					T minValue;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (!first) {
-							observer.next(minValue);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						if (first || minValue.compareTo(value) > 0) {
-							first = false;
-							minValue = value;
-						}
-					}
-					
-				});
-			}
-		};
-	};
+	public static <T extends Comparable<? super T>> Observable<T> min(
+			final Observable<? extends T> source) {
+		return aggregate(source, Functions.<T>min(), Functions.<T, Integer>identityFirst());
+	}
 	/**
 	 * Returns the minimum value encountered in the source observable onse it finish().
 	 * @param <T> the element type
 	 * @param source the source of integers
 	 * @param comparator the comparator to decide the relation of values
 	 * @return the the minimum value
+	 * @see Functions#asComparator(Func2)
 	 */
-	public static <T> Observable<T> min(final Observable<T> source, final Comparator<T> comparator) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				return source.register(new Observer<T>() {
-					/** Is this the first original value? */
-					boolean first = true;
-					/** Keeps track of the maximum value. */
-					T minValue;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (!first) {
-							observer.next(minValue);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						if (first || comparator.compare(minValue, value) > 0) {
-							first = false;
-							minValue = value;
-						}
-					}
-					
-				});
-			}
-		};
+	public static <T> Observable<T> min(
+			final Observable<? extends T> source, 
+			final Comparator<? super T> comparator) {
+		return aggregate(source, Functions.<T>min(comparator), Functions.<T, Integer>identityFirst());
 	}
 	/**
 	 * Returns an observable which provides with the list of <code>T</code>s which had their keys as minimums.
@@ -2685,52 +2690,11 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param keyExtractor the key extractor to produce <code>Key</code>s from <code>T</code>s.
 	 * @return the observable for the minimum keyed Ts
 	 */
-	public static <T, Key extends Comparable<? super Key>> Observable<List<T>> minBy(final Observable<T> source, final Func1<Key, T> keyExtractor) {
-		return new Observable<List<T>>() {
-			@Override
-			public Closeable register(final Observer<? super List<T>> observer) {
-				return source.register(new Observer<T>() {
-					/** The current collection for the minimum of Ts. */
-					List<T> collect;
-					/** The current minimum value. */
-					Key minKey;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (collect != null) {
-							observer.next(collect);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						Key key = keyExtractor.invoke(value);
-						if (collect == null) {
-							minKey = key;
-							collect = new ArrayList<T>();
-							collect.add(value);
-						} else {
-							int order = minKey.compareTo(key);
-							if (order == 0) {
-								collect.add(value);
-							} else
-							if (order > 0) {
-								minKey = key;
-								collect = new ArrayList<T>();
-								collect.add(value);
-							}
-						}
-					}
-					
-				});
-			}
-		};
-	}
+	public static <T, Key extends Comparable<? super Key>> Observable<List<T>> minBy(
+			final Observable<? extends T> source, 
+			final Func1<? extends Key, ? super T> keyExtractor) {
+		return minMax(source, keyExtractor, Functions.<Key>comparator(), false);
+	};
 	/**
 	 * Returns an observable which provides with the list of <code>T</code>s which had their keys as minimums.
 	 * The returned observer may finish() if the source sends finish() without any next().
@@ -2741,9 +2705,33 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param keyExtractor the key extractor to produce <code>Key</code>s from <code>T</code>s.
 	 * @param keyComparator the comparator for the keys
 	 * @return the observable for the minimum keyed Ts
+	 * @see Functions#asComparator(Func2)
 	 */
-	public static <T, Key> Observable<List<T>> minBy(final Observable<T> source, final Func1<Key, T> keyExtractor, 
+	public static <T, Key> Observable<List<T>> minBy(
+			final Observable<T> source, 
+			final Func1<Key, T> keyExtractor, 
 			final Comparator<Key> keyComparator) {
+		return minMax(source, keyExtractor, keyComparator, false);
+	}
+	/**
+	 * Returns an observable which provides with the list of <code>T</code>s which had their keys as maximums.
+	 * The returned observer may finish() if the source sends finish() without any next().
+	 * The generated list is modifiable.
+	 * @param <T> the type of elements
+	 * @param <Key> the key type
+	 * @param source the source of <code>T</code>s
+	 * @param keyExtractor the key extractor to produce <code>Key</code>s from <code>T</code>s.
+	 * @param keyComparator the comparator for the keys
+	 * @param max compute the maximums?
+	 * @return the observable for the maximum keyed Ts
+	 * @see Functions#asComparator(Func2)
+	 */
+	public static <T, Key> Observable<List<T>> minMax(
+			final Observable<? extends T> source, 
+			final Func1<? extends Key, ? super T> keyExtractor, 
+			final Comparator<? super Key> keyComparator,
+			final boolean max
+	) {
 		return new Observable<List<T>>() {
 			@Override
 			public Closeable register(final Observer<? super List<T>> observer) {
@@ -2751,7 +2739,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 					/** The current collection for the minimum of Ts. */
 					List<T> collect;
 					/** The current minimum value. */
-					Key minKey;
+					Key maxKey;
 					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
@@ -2769,16 +2757,16 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 					public void next(T value) {
 						Key key = keyExtractor.invoke(value);
 						if (collect == null) {
-							minKey = key;
+							maxKey = key;
 							collect = new ArrayList<T>();
 							collect.add(value);
 						} else {
-							int order = keyComparator.compare(minKey, key);
+							int order = keyComparator.compare(maxKey, key);
 							if (order == 0) {
 								collect.add(value);
 							} else
-							if (order > 0) {
-								minKey = key;
+							if (max ^ (order > 0)) {
+								maxKey = key;
 								collect = new ArrayList<T>();
 								collect.add(value);
 							}
@@ -2810,7 +2798,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param pool the target observable
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> observeOn(final Observable<T> source, 
+	public static <T> Observable<T> observeOn(final Observable<? extends T> source, 
 			final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
@@ -2866,7 +2854,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 				return obs;
 			}
 		};
-	};
+	}
 	/**
 	 * Creates an observer with debugging purposes. 
 	 * It prints the submitted values to STDOUT separated by commas and line-broken by 80 characters, the exceptions to STDERR
@@ -3185,7 +3173,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param condition the condition that must be false to relay Ts
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> relayUntil(final Observable<T> source, final Func0<Boolean> condition) {
+	public static <T> Observable<T> relayUntil(final Observable<? extends T> source, final Func0<Boolean> condition) {
 		return relayWhile(source, Functions.negate(condition));
 	}
 	/**
@@ -3195,7 +3183,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param condition the condition that must hold to relay Ts
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> relayWhile(final Observable<T> source, final Func0<Boolean> condition) {
+	public static <T> Observable<T> relayWhile(final Observable<? extends T> source, final Func0<Boolean> condition) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -3244,7 +3232,8 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param source the source which has its elements in a timeinterval way.
 	 * @return the raw observables of Ts
 	 */
-	public static <T> Observable<T> removeTimeInterval(Observable<TimeInterval<T>> source) {
+	public static <T> Observable<T> removeTimeInterval(
+			Observable<TimeInterval<T>> source) {
 		return select(source, Reactive.<T>unwrapTimeInterval());
 	}
 	/**
@@ -3253,8 +3242,10 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param source the source which has its elements in a timestamped way.
 	 * @return the raw observables of Ts
 	 */
-	public static <T> Observable<T> removeTimestamped(Observable<Timestamped<T>> source) {
-		return select(source, Reactive.<T>unwrapTimestamped());
+	public static <T> Observable<T> removeTimestamped(
+			Observable<Timestamped<T>> source) {
+		Func1<T, Timestamped<T>> f = Reactive.unwrapTimestamped();
+		return select(source, f);
 	}
 	/**
 	 * Creates an observable which repeatedly calls the given function which generates the Ts indefinitely.
@@ -3263,33 +3254,8 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param func the function which generates elements
 	 * @return the observable
 	 */
-	public static <T> Observable<T> repeat(final Func0<T> func) {
+	public static <T> Observable<T> repeat(final Func0<? extends T> func) {
 		return repeat(func, DEFAULT_SCHEDULER.get());
-	}
-	/**
-	 * Creates an observable which repeatedly calls the given function which generates the Ts indefinitely.
-	 * The generator runs on the pool. Note that observers must unregister to stop the infinite loop.
-	 * @param <T> the type of elements to produce
-	 * @param func the function which generates elements
-	 * @param pool the pool where the generator loop runs
-	 * @return the observable
-	 */
-	public static <T> Observable<T> repeat(final Func0<T> func, final Scheduler pool) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				DefaultRunnable dr = new DefaultRunnable() {
-					@Override
-					public void run() {
-						while (!cancelled()) {
-							observer.next(func.invoke());
-						}
-					}
-				};
-				dr.schedule(pool);
-				return dr;
-			}
-		};
 	}
 	/**
 	 * Creates an observable which repeatedly calls the given function <code>count</code> times to generate Ts
@@ -3299,7 +3265,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param count the numer of times to repeat the value
 	 * @return the observable
 	 */
-	public static <T> Observable<T> repeat(final Func0<T> func, final int count) {
+	public static <T> Observable<T> repeat(final Func0<? extends T> func, final int count) {
 		return repeat(func, count, DEFAULT_SCHEDULER.get());
 	}
 	/**
@@ -3311,7 +3277,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param pool the pool where the loop should be executed
 	 * @return the observable
 	 */
-	public static <T> Observable<T> repeat(final Func0<T> func, final int count, final Scheduler pool) {
+	public static <T> Observable<T> repeat(final Func0<? extends T> func, final int count, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -3333,6 +3299,31 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 		};
 	}
 	/**
+	 * Creates an observable which repeatedly calls the given function which generates the Ts indefinitely.
+	 * The generator runs on the pool. Note that observers must unregister to stop the infinite loop.
+	 * @param <T> the type of elements to produce
+	 * @param func the function which generates elements
+	 * @param pool the pool where the generator loop runs
+	 * @return the observable
+	 */
+	public static <T> Observable<T> repeat(final Func0<? extends T> func, final Scheduler pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				DefaultRunnable dr = new DefaultRunnable() {
+					@Override
+					public void run() {
+						while (!cancelled()) {
+							observer.next(func.invoke());
+						}
+					}
+				};
+				dr.schedule(pool);
+				return dr;
+			}
+		};
+	}
+	/**
 	 * Repeat the source observable count times. Basically it creates
 	 * a list of observables, all the source instance and applies
 	 * the concat() operator on it.
@@ -3341,9 +3332,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param count the number of times to repeat
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> repeat(Observable<T> source, int count) {
+	public static <T> Observable<T> repeat(Observable<? extends T> source, int count) {
 		if (count > 0) {
-			List<Observable<T>> srcs = new ArrayList<Observable<T>>(count);
+			List<Observable<? extends T>> srcs = new ArrayList<Observable<? extends T>>(count);
 			for (int i = 0; i < count; i++) {
 				srcs.add(source);
 			}
@@ -3361,18 +3352,6 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 */
 	public static <T> Observable<T> repeat(final T value) {
 		return repeat(value, DEFAULT_SCHEDULER.get());
-	}
-	/**
-	 * Creates an observable which repeates the given value indefinitely
-	 * and runs on the given pool. Note that the observers must
-	 * deregister to stop the infinite background loop
-	 * @param <T> the element type
-	 * @param value the value to repeat
-	 * @param pool the pool where the loop should be executed
-	 * @return the observable
-	 */
-	public static <T> Observable<T> repeat(final T value, final Scheduler pool) {
-		return repeat(Functions.constant0(value), pool);
 	}
 	/**
 	 * Creates an observable which repeates the given value <code>count</code> times
@@ -3398,6 +3377,37 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 		return repeat(Functions.constant0(value), count, pool);
 	}
 	/**
+	 * Creates an observable which repeates the given value indefinitely
+	 * and runs on the given pool. Note that the observers must
+	 * deregister to stop the infinite background loop
+	 * @param <T> the element type
+	 * @param value the value to repeat
+	 * @param pool the pool where the loop should be executed
+	 * @return the observable
+	 */
+	public static <T> Observable<T> repeat(final T value, final Scheduler pool) {
+		return repeat(Functions.constant0(value), pool);
+	}
+	/**
+	 * Replace the current default scheduler with the specified  new scheduler.
+	 * This method is threadsafe
+	 * @param newScheduler the new scheduler
+	 * @return the current scheduler
+	 */
+	public static Scheduler replaceDefaultScheduler(Scheduler newScheduler) {
+		if (newScheduler == null) {
+			throw new IllegalArgumentException("newScheduler is null");
+		}
+		return DEFAULT_SCHEDULER.getAndSet(newScheduler);
+	}
+	/**
+	 * Restore the default scheduler back to the <code>DefaultScheduler</code>
+	 * used when this class was initialized.
+	 */
+	public static void restoreDefaultScheduler() {
+		DEFAULT_SCHEDULER.set(new DefaultScheduler());
+	}
+	/**
 	 * Returns an observable which listens to elements from a source until it signals an error()
 	 * or finish() and continues with the next observable. The registration happens only when the
 	 * previous observables finished in any way.
@@ -3406,11 +3416,11 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param sources the list of observables
 	 * @return the observable
 	 */
-	public static <T> Observable<T> resumeAlways(final Iterable<Observable<T>> sources) {
+	public static <T> Observable<T> resumeAlways(final Iterable<? extends Observable<? extends T>> sources) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final Iterator<Observable<T>> it = sources.iterator();
+				final Iterator<? extends Observable<? extends T>> it = sources.iterator();
 				if (it.hasNext()) {
 					DefaultObserver<T> obs = new DefaultObserver<T>() {
 						@Override
@@ -3456,11 +3466,11 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param sources the available source observables.
 	 * @return the failover observable
 	 */
-	public static <T> Observable<T> resumeOnError(final Iterable<Observable<T>> sources) {
+	public static <T> Observable<T> resumeOnError(final Iterable<? extends Observable<? extends T>> sources) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final Iterator<Observable<T>> it = sources.iterator();
+				final Iterator<? extends Observable<? extends T>> it = sources.iterator();
 				if (it.hasNext()) {
 					DefaultObserver<T> obs = new DefaultObserver<T>() {
 						@Override
@@ -3498,7 +3508,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param source the source observable
 	 * @return the repeating observable
 	 */
-	public static <T> Observable<T> retry(final Observable<T> source) {
+	public static <T> Observable<T> retry(final Observable<? extends T> source) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -3534,7 +3544,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param count the retry count
 	 * @return the repeating observable
 	 */
-	public static <T> Observable<T> retry(final Observable<T> source, final int count) {
+	public static <T> Observable<T> retry(final Observable<? extends T> source, final int count) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -3567,6 +3577,92 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 				return obs;
 			}
 		};
+	}
+	/**
+	 * Blocks until the observable calls finish() or error(). Values are submitted to the given action.
+	 * @param <T> the type of the elements
+	 * @param source the source observable
+	 * @param action the action to invoke for each value
+	 * @throws InterruptedException if the current thread is interrupted while waiting on
+	 * the observable.
+	 */
+	public static <T> void run(final Observable<? extends T> source, 
+			final Action1<? super T> action) throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		Closeable c = source.register(new Observer<T>() {
+			/** Are we finished? */
+			boolean done;
+			@Override
+			public void error(Throwable ex) {
+				if (!done) {
+					done = false;
+					latch.countDown();
+				}
+			}
+
+			@Override
+			public void finish() {
+				if (!done) {
+					done = false;
+					latch.countDown();
+				}
+			}
+
+			@Override
+			public void next(T value) {
+				action.invoke(value);
+			}
+			
+		});
+		try {
+			latch.await();
+		} finally {
+			close0(c);
+		}
+	}
+	/**
+	 * Blocks until the observable calls finish() or error(). Events are submitted to the given observer.
+	 * @param <T> the type of the elements
+	 * @param source the source observable
+	 * @param observer the observer to invoke for each event
+	 * @throws InterruptedException if the current thread is interrupted while waiting on
+	 * the observable.
+	 */
+	public static <T> void run(final Observable<? extends T> source, 
+			final Observer<? super T> observer) throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		Closeable c = source.register(new Observer<T>() {
+			/** Are we finished? */
+			boolean done;
+			@Override
+			public void error(Throwable ex) {
+				if (!done) {
+					done = false;
+					observer.error(ex);
+					latch.countDown();
+				}
+			}
+
+			@Override
+			public void finish() {
+				if (!done) {
+					done = false;
+					observer.finish();
+					latch.countDown();
+				}
+			}
+
+			@Override
+			public void next(T value) {
+				observer.next(value);
+			}
+			
+		});
+		try {
+			latch.await();
+		} finally {
+			close0(c);
+		}
 	}
 	/**
 	 * Blocks until the observable calls finish() or error(). Values are ignored.
@@ -3651,90 +3747,6 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 		}
 	}
 	/**
-	 * Blocks until the observable calls finish() or error(). Values are submitted to the given action.
-	 * @param <T> the type of the elements
-	 * @param source the source observable
-	 * @param action the action to invoke for each value
-	 * @throws InterruptedException if the current thread is interrupted while waiting on
-	 * the observable.
-	 */
-	public static <T> void run(final Observable<T> source, final Action1<? super T> action) throws InterruptedException {
-		final CountDownLatch latch = new CountDownLatch(1);
-		Closeable c = source.register(new Observer<T>() {
-			/** Are we finished? */
-			boolean done;
-			@Override
-			public void error(Throwable ex) {
-				if (!done) {
-					done = false;
-					latch.countDown();
-				}
-			}
-
-			@Override
-			public void finish() {
-				if (!done) {
-					done = false;
-					latch.countDown();
-				}
-			}
-
-			@Override
-			public void next(T value) {
-				action.invoke(value);
-			}
-			
-		});
-		try {
-			latch.await();
-		} finally {
-			close0(c);
-		}
-	}
-	/**
-	 * Blocks until the observable calls finish() or error(). Events are submitted to the given observer.
-	 * @param <T> the type of the elements
-	 * @param source the source observable
-	 * @param observer the observer to invoke for each event
-	 * @throws InterruptedException if the current thread is interrupted while waiting on
-	 * the observable.
-	 */
-	public static <T> void run(final Observable<T> source, final Observer<? super T> observer) throws InterruptedException {
-		final CountDownLatch latch = new CountDownLatch(1);
-		Closeable c = source.register(new Observer<T>() {
-			/** Are we finished? */
-			boolean done;
-			@Override
-			public void error(Throwable ex) {
-				if (!done) {
-					done = false;
-					observer.error(ex);
-					latch.countDown();
-				}
-			}
-
-			@Override
-			public void finish() {
-				if (!done) {
-					done = false;
-					observer.finish();
-					latch.countDown();
-				}
-			}
-
-			@Override
-			public void next(T value) {
-				observer.next(value);
-			}
-			
-		});
-		try {
-			latch.await();
-		} finally {
-			close0(c);
-		}
-	}
-	/**
 	 * Periodically sample the given source observable, which means tracking the last value of
 	 * the observable and periodically submitting it to the output observable.
 	 * FIXME the error() and finish() are instantly propagated
@@ -3744,7 +3756,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param unit the time unit
 	 * @return the sampled observable
 	 */
-	public static <T> Observable<T> sample(final Observable<T> source, final long time, final TimeUnit unit) {
+	public static <T> Observable<T> sample(final Observable<? extends T> source, final long time, final TimeUnit unit) {
 		return sample(source, time, unit, DEFAULT_SCHEDULER.get());
 	}
 	/**
@@ -3758,7 +3770,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param pool the scheduler pool where the periodic submission should happen.
 	 * @return the sampled observable
 	 */
-	public static <T> Observable<T> sample(final Observable<T> source, final long time, final TimeUnit unit, 
+	public static <T> Observable<T> sample(final Observable<? extends T> source, final long time, final TimeUnit unit, 
 			final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
@@ -3808,7 +3820,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param mapper the mapper from Ts to Us
 	 * @return the observable on Us
 	 */
-	public static <T, U> Observable<U> select(final Observable<? extends T> source, final Func1<? extends U, ? super T> mapper) {
+	public static <T, U> Observable<U> select(
+			final Observable<? extends T> source, 
+			final Func1<? extends U, ? super T> mapper) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
@@ -3841,7 +3855,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param selector the selector taking an index and the current T
 	 * @return the transformed observable
 	 */
-	public static <T, U> Observable<U> select(final Observable<? extends T> source, final Func2<? extends U, ? super Integer, ? super T> selector) {
+	public static <T, U> Observable<U> select(
+			final Observable<? extends T> source, 
+			final Func2<? extends U, ? super Integer, ? super T> selector) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
@@ -3878,8 +3894,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param selector the selector to return an Iterable of Us 
 	 * @return the 
 	 */
-	public static <T, U> Observable<U> selectMany(final Observable<T> source, 
-			final Func1<Observable<U>, T> selector) {
+	public static <T, U> Observable<U> selectMany(
+			final Observable<? extends T> source, 
+			final Func1<? extends Observable<? extends U>, ? super T> selector) {
 		return selectMany(source, selector, new Func2<U, T, U>() {
 			@Override
 			public U invoke(T param1, U param2) {
@@ -3893,18 +3910,20 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * pair of T and V giving an U.
 	 * FIXME concurrency related questions
 	 * @param <T> the source element type
-	 * @param <U> the output element type
-	 * @param <V> the intermediate element type
+	 * @param <U> the intermediate element type
+	 * @param <V> the output element type
 	 * @param source the source of Ts
 	 * @param collectionSelector the selector which returns an observable of intermediate Vs
 	 * @param resultSelector the selector which gives an U for a T and V
 	 * @return the observable of Us
 	 */
-	public static <T, U, V> Observable<U> selectMany(final Observable<T> source, 
-			final Func1<Observable<V>, T> collectionSelector, final Func2<U, T, V> resultSelector) {
-		return new Observable<U>() {
+	public static <T, U, V> Observable<V> selectMany(
+			final Observable<? extends T> source, 
+			final Func1<? extends Observable<? extends U>, ? super T> collectionSelector, 
+			final Func2<? extends V, ? super T, ? super U> resultSelector) {
+		return new Observable<V>() {
 			@Override
-			public Closeable register(final Observer<? super U> observer) {
+			public Closeable register(final Observer<? super V> observer) {
 				final AtomicInteger wip = new AtomicInteger(1);
 				final AtomicBoolean failed = new AtomicBoolean();
 				return source.register(new Observer<T>() {
@@ -3928,7 +3947,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 
 					@Override
 					public void next(final T value) {
-						DefaultObserver<V> obs = new DefaultObserver<V>() {
+						DefaultObserver<U> obs = new DefaultObserver<U>() {
 
 							@Override
 							public void error(Throwable ex) {
@@ -3950,7 +3969,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 							}
 
 							@Override
-							public void next(V x) {
+							public void next(U x) {
 								if (!failed.get()) {
 									observer.next(resultSelector.invoke(value, x));
 								}
@@ -3979,8 +3998,10 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param provider the source of Us
 	 * @return the observable for Us
 	 */
-	public static <T, U> Observable<U> selectMany(Observable<T> source, Observable<U> provider) {
-		return selectMany(source, Functions.<Observable<U>, T>constant(provider));
+	public static <T, U> Observable<U> selectMany(
+			Observable<? extends T> source, 
+			Observable<? extends U> provider) {
+		return selectMany(source, Functions.<Observable<? extends U>, T>constant(provider));
 	}
 	/**
 	 * Transform the given source of Ts into Us in a way that the selector might return zero to multiple elements of Us for a single T.
@@ -3991,8 +4012,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param selector the selector to return an Iterable of Us 
 	 * @return the 
 	 */
-	public static <T, U> Observable<U> selectManyIterable(final Observable<T> source, 
-			final Func1<Iterable<U>, T> selector) {
+	public static <T, U> Observable<U> selectManyIterable(
+			final Observable<? extends T> source, 
+			final Func1<? extends Iterable<? extends U>, ? super T> selector) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
@@ -4027,7 +4049,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param observer the observer to wrap
 	 * @return the new wrapped observer
 	 */
-	public static <T> Observer<T> sequential(Observer<T> observer) {
+	public static <T> Observer<T> sequential(Observer<? super T> observer) {
 		return sequential(observer, Functions.EMPTY_RUNNABLE, Functions.EMPTY_CLOSEABLE, new ReentrantLock(true));
 	}
 	/**
@@ -4042,7 +4064,11 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param lock the lock to use for exclusion.
 	 * @return the new observable
 	 */
-	public static <T> RunnableClosableObserver<T> sequential(final Observer<T> observer, final Runnable run, final Closeable close, final Lock lock) {
+	public static <T> RunnableClosableObserver<T> sequential(
+			final Observer<? super T> observer, 
+			final Runnable run, 
+			final Closeable close, 
+			final Lock lock) {
 		if (observer == null) {
 			throw new IllegalArgumentException("observer is null");
 		}
@@ -4067,19 +4093,6 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 					alive.set(false);
 					lock.unlock();
 				}
-				
-//				lock.lock();
-//				try {
-//					if (alive.get())  {
-//						try {
-//							close.close(); 
-//						} finally {
-//							alive.set(false);
-//						}
-//					}
-//				} finally {
-//					lock.unlock();
-//				}
 			}
 
 			@Override
@@ -4139,7 +4152,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param source the source of Ts
 	 * @return the single element
 	 */
-	public static <T> T single(Observable<T> source) {
+	public static <T> T single(Observable<? extends T> source) {
 		Iterator<T> it = asIterable(source).iterator();
 		if (it.hasNext()) {
 			T one = it.next();
@@ -4190,7 +4203,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param count the number of messages to skip
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> skip(final Observable<T> source, final int count) {
+	public static <T> Observable<T> skip(final Observable<? extends T> source, final int count) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -4225,13 +4238,14 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param count the number of elements to skip at the end
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> skipLast(final Observable<T> source, final int count) {
+	public static <T> Observable<T> skipLast(
+			final Observable<? extends T> source, final int count) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					/** The temporar buffer to delay the values. */
-					final LinkedList<T> buffer = new LinkedList<T>();
+					final CircularBuffer<T> buffer = new CircularBuffer<T>(count);
 					/** The current size of the buffer. */
 					int size;
 					@Override
@@ -4246,10 +4260,10 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 
 					@Override
 					public void next(T value) {
-						buffer.addLast(value);
+						buffer.add(value);
 						size++;
 						if (size > count) {
-							observer.next(buffer.removeFirst());
+							observer.next(buffer.take());
 							size--;
 						}
 					}
@@ -4268,7 +4282,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param signaller the source of Us
 	 * @return the new observable
 	 */
-	public static <T, U> Observable<T> skipUntil(final Observable<T> source, final Observable<U> signaller) {
+	public static <T, U> Observable<T> skipUntil(
+			final Observable<? extends T> source, 
+			final Observable<? extends U> signaller) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -4334,7 +4350,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param condition the condition that must turn false in order to start relaying
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> skipWhile(final Observable<T> source, final Func1<Boolean, T> condition) {
+	public static <T> Observable<T> skipWhile(
+			final Observable<? extends T> source, 
+			final Func1<Boolean, ? super T> condition) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -4411,7 +4429,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param func the function
 	 * @return the observable
 	 */
-	public static <T> Observable<T> start(final Func0<T> func) {
+	public static <T> Observable<T> start(final Func0<? extends T> func) {
 		return start(func, DEFAULT_SCHEDULER.get());
 	}
 	/**
@@ -4423,7 +4441,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param pool the pool where the action should run
 	 * @return the observable
 	 */
-	public static <T> Observable<T> start(final Func0<T> func, final Scheduler pool) {
+	public static <T> Observable<T> start(final Func0<? extends T> func, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -4452,7 +4470,8 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param values the values to start with
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> startWith(Observable<T> source, Iterable<T> values) {
+	public static <T> Observable<T> startWith(
+			Observable<? extends T> source, Iterable<? extends T> values) {
 		return startWith(source, values, DEFAULT_SCHEDULER.get());
 	}
 	/**
@@ -4464,7 +4483,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param pool the pool where the iterable values should be emitted
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> startWith(Observable<T> source, Iterable<T> values, Scheduler pool) {
+	public static <T> Observable<T> startWith(
+			Observable<? extends T> source, 
+			Iterable<? extends T> values, Scheduler pool) {
 		return concat(asObservable(values, pool), source);
 	}
 	/**
@@ -4510,62 +4531,13 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 		};
 	}
 	/**
-	 * Computes the sum of the source Ts by using a <code>sum</code> function.
-	 * If the source is empty, the result will be empty.
-	 * The sum will be signalled when all elements of source have been received.
-	 * @param <T> the type of the source elements
-	 * @param <U> the type of the sum value
-	 * @param source the source of Ts
-	 * @param sum the function which receives the current sum as its 
-	 * first parameter and the current T in its second.
-	 * For the first T, the sum is invoked with a null as its U parameter.
-	 * @return the observable
-	 */
-	public static <T, U> Observable<U> sum(final Observable<T> source, final Func2<U, U, T> sum) {
-		return new Observable<U>() {
-			@Override
-			public Closeable register(final Observer<? super U> observer) {
-				return source.register(new Observer<T>() {
-					/** The sum of the values thus far. */
-					U temp;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (temp != null) {
-							observer.next(temp);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						temp = sum.invoke(temp, value);
-					}
-					
-				});
-			}
-		};
-	}
-	/**
 	 * Computes and signals the sum of the values of the BigDecimal source.
 	 * The source may not send nulls.
 	 * @param source the source of BigDecimals to aggregate.
 	 * @return the observable for the sum value
 	 */
 	public static Observable<BigDecimal> sumBigDecimal(final Observable<BigDecimal> source) {
-		return sum(source, new Func2<BigDecimal, BigDecimal, BigDecimal>() {
-			@Override
-			public BigDecimal invoke(BigDecimal param1, BigDecimal param2) {
-				if (param1 == null) {
-					return param2;
-				}
-				return param1.add(param2);
-			}
-		});
+		return aggregate(source, Functions.sumBigDecimal(), Functions.<BigDecimal, Integer>identityFirst());
 	}
 	/**
 	 * Computes and signals the sum of the values of the BigInteger source.
@@ -4574,15 +4546,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @return the observable for the sum value
 	 */
 	public static Observable<BigInteger> sumBigInteger(final Observable<BigInteger> source) {
-		return sum(source, new Func2<BigInteger, BigInteger, BigInteger>() {
-			@Override
-			public BigInteger invoke(BigInteger param1, BigInteger param2) {
-				if (param1 == null) {
-					return param2;
-				}
-				return param1.add(param2);
-			}
-		});
+		return aggregate(source, Functions.sumBigInteger(), Functions.<BigInteger, Integer>identityFirst());
 	}
 	/**
 	 * Computes and signals the sum of the values of the Double source.
@@ -4591,15 +4555,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @return the observable for the sum value
 	 */
 	public static Observable<Double> sumDouble(final Observable<Double> source) {
-		return sum(source, new Func2<Double, Double, Double>() {
-			@Override
-			public Double invoke(Double param1, Double param2) {
-				if (param1 == null) {
-					return param2;
-				}
-				return param1 + param2;
-			}
-		});
+		return aggregate(source, Functions.sumDouble(), Functions.<Double, Integer>identityFirst());
 	}
 	/**
 	 * Computes and signals the sum of the values of the Float source.
@@ -4608,15 +4564,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @return the observable for the sum value
 	 */
 	public static Observable<Float> sumFloat(final Observable<Float> source) {
-		return sum(source, new Func2<Float, Float, Float>() {
-			@Override
-			public Float invoke(Float param1, Float param2) {
-				if (param1 == null) {
-					return param2;
-				}
-				return param1 + param2;
-			}
-		});
+		return aggregate(source, Functions.sumFloat(), Functions.<Float, Integer>identityFirst());
 	}
 	/**
 	 * Computes and signals the sum of the values of the Integer source.
@@ -4625,15 +4573,25 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @return the observable for the sum value
 	 */
 	public static Observable<Integer> sumInt(final Observable<Integer> source) {
-		return sum(source, new Func2<Integer, Integer, Integer>() {
-			@Override
-			public Integer invoke(Integer param1, Integer param2) {
-				if (param1 == null) {
-					return param2;
+		return aggregate(source, Functions.sumInteger(), Functions.<Integer, Integer>identityFirst());
+	}
+	/**
+	 * Computes and signals the sum of the values of the Integer source by using
+	 * a double intermediate representation.
+	 * The source may not send nulls. An empty source produces an empty sum
+	 * @param source the source of integers to aggregate.
+	 * @return the observable for the sum value
+	 */
+	public static Observable<Double> sumIntAsDouble(final Observable<Integer> source) {
+		return aggregate(source, 
+			new Func2<Double, Double, Integer>() {
+				@Override
+				public Double invoke(Double param1, Integer param2) {
+					return param1 + param2;
 				}
-				return param1 + param2;
-			}
-		});
+			},
+			Functions.<Double, Integer>identityFirst()
+		);
 	}
 	/**
 	 * Computes and signals the sum of the values of the Long source.
@@ -4642,15 +4600,25 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @return the observable for the sum value
 	 */
 	public static Observable<Long> sumLong(final Observable<Long> source) {
-		return sum(source, new Func2<Long, Long, Long>() {
-			@Override
-			public Long invoke(Long param1, Long param2) {
-				if (param1 == null) {
-					return param2;
-				}
-				return param1 + param2;
-			}
-		});
+		return aggregate(source, Functions.sumLong(), Functions.<Long, Integer>identityFirst());
+	}
+	/**
+	 * Computes and signals the sum of the values of the Long sourceby using
+	 * a double intermediate representation.
+	 * The source may not send nulls.
+	 * @param source the source of longs to aggregate.
+	 * @return the observable for the sum value
+	 */
+	public static Observable<Double> sumLongAsDouble(final Observable<Long> source) {
+		return aggregate(source, 
+				new Func2<Double, Double, Long>() {
+					@Override
+					public Double invoke(Double param1, Long param2) {
+						return param1 + param2;
+					}
+				},
+				Functions.<Double, Integer>identityFirst()
+			);
 	}
 	/**
 	 * Wraps the observers registering at the output into an observer
@@ -4660,7 +4628,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param source the source of Ts
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> synchronize(final Observable<T> source) {
+	public static <T> Observable<T> synchronize(final Observable<? extends T> source) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -4694,7 +4662,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param on the syncrhonization object
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> synchronize(final Observable<T> source, final Object on) {
+	public static <T> Observable<T> synchronize(
+			final Observable<? extends T> source, 
+			final Object on) {
 		if (on == null) {
 			throw new IllegalArgumentException("on is null");
 		}
@@ -4736,7 +4706,8 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param count the number of elements to relay
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> take(final Observable<T> source, final int count) {
+	public static <T> Observable<T> take(
+			final Observable<? extends T> source, final int count) {
 		return relayUntil(source, new Func0<Boolean>() {
 			int i = count;
 			@Override
@@ -4756,7 +4727,8 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param signaller the source of Us
 	 * @return the new observable
 	 */
-	public static <T, U> Observable<T> takeUntil(final Observable<? extends T> source, 
+	public static <T, U> Observable<T> takeUntil(
+			final Observable<? extends T> source, 
 			final Observable<U> signaller) {
 		return new Observable<T>() {
 			@Override
@@ -4767,19 +4739,6 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 					final Lock lock = new ReentrantLock(true);
 					boolean alive = true;
 					final Closeable u = signaller.register(new Observer<U>() {
-
-						@Override
-						public void next(U value) {
-							lock.lock();
-							try {
-								if (alive) {
-									observer.finish();
-									alive = false;
-								}
-							} finally {
-								lock.unlock();
-							}
-						}
 
 						@Override
 						public void error(Throwable ex) {
@@ -4798,19 +4757,26 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 						public void finish() {
 							// no operation
 						}
+
+						@Override
+						public void next(U value) {
+							lock.lock();
+							try {
+								if (alive) {
+									observer.finish();
+									alive = false;
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
 					});
 					/** The registration handle to the source. */
 					final Closeable me = source.register(this);
 					@Override
-					public void next(T value) {
-						lock.lock();
-						try {
-							if (alive) {
-								observer.next(value);
-							}
-						} finally {
-							lock.unlock();
-						}
+					public void close() throws IOException {
+						close0(u);
+						close0(me);
 					}
 
 					@Override
@@ -4841,27 +4807,19 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 						}
 					}
 					@Override
-					public void close() throws IOException {
-						close0(u);
-						close0(me);
+					public void next(T value) {
+						lock.lock();
+						try {
+							if (alive) {
+								observer.next(value);
+							}
+						} finally {
+							lock.unlock();
+						}
 					}
 				};
 			}
 		};
-	}
-	/**
-	 * Invoke the <code>close()</code> method on the closeable instance
-	 * and throw away any <code>IOException</code> it might raise.
-	 * @param c the closeable instance, <code>null</code>s are simply ignored
-	 */
-	static void close0(Closeable c) {
-		if (c != null) {
-			try {
-				c.close();
-			} catch (IOException ex) {
-				
-			}
-		}
 	}
 	/**
 	 * Creates an observable which takes values from source until
@@ -4924,7 +4882,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param unit the delay time unit
 	 * @return the observable
 	 */
-	public static <T> Observable<T> throttle(final Observable<T> source, 
+	public static <T> Observable<T> throttle(final Observable<? extends T> source, 
 			final long delay, final TimeUnit unit) {
 		return throttle(source, delay, unit, DEFAULT_SCHEDULER.get());
 	}
@@ -4940,7 +4898,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param pool the pool where the delay-watcher should operate
 	 * @return the observable
 	 */
-	public static <T> Observable<T> throttle(final Observable<T> source, 
+	public static <T> Observable<T> throttle(final Observable<? extends T> source, 
 			final long delay, final TimeUnit unit, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
@@ -5041,11 +4999,14 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 					long current = start;
 					@Override
 					public void run() {
-						if (current < end) {
+						if (current < end && !cancelled()) {
 							observer.next(current++);
 						} else {
-							observer.finish();
-							close(); // no more scheduling needed
+							if (!cancelled()) {
+								observer.finish();
+							} else {
+								close(); // no more scheduling needed
+							}
 						}
 					}
 				};
@@ -5077,7 +5038,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param unit the time unit
 	 * @return the observer.
 	 */
-	public static <T> Observable<T> timeout(final Observable<T> source, 
+	public static <T> Observable<T> timeout(final Observable<? extends T> source, 
 			final long time, final TimeUnit unit) {
 		return timeout(source, time, unit, DEFAULT_SCHEDULER.get());
 	}
@@ -5095,9 +5056,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param other the other observable to continue with in case a timeout occurs
 	 * @return the observer.
 	 */
-	public static <T> Observable<T> timeout(final Observable<T> source, 
+	public static <T> Observable<T> timeout(final Observable<? extends T> source, 
 			final long time, final TimeUnit unit,
-			final Observable<T> other) {
+			final Observable<? extends T> other) {
 		return timeout(source, time, unit, other, DEFAULT_SCHEDULER.get());
 	}
 	/**
@@ -5115,9 +5076,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param pool the scheduler pool for the timeout evaluation
 	 * @return the observer.
 	 */
-	public static <T> Observable<T> timeout(final Observable<T> source, 
+	public static <T> Observable<T> timeout(final Observable<? extends T> source, 
 			final long time, final TimeUnit unit,
-			final Observable<T> other,
+			final Observable<? extends T> other,
 			final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
@@ -5204,7 +5165,7 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param pool the scheduler pool for the timeout evaluation
 	 * @return the observer.
 	 */
-	public static <T> Observable<T> timeout(final Observable<T> source, 
+	public static <T> Observable<T> timeout(final Observable<? extends T> source, 
 			final long time, final TimeUnit unit, final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
@@ -5277,8 +5238,59 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 		};
 	}
 	/**
+	 * Wraps the given action as an observable which reacts only to <code>next()</code> events.
+	 * @param <T> the type of the values
+	 * @param action the action to wrap
+	 * @return the observer wrapping the action
+	 */
+	public static <T> Observer<T> toObserver(final Action1<? super T> action) {
+		return new Observer<T>() {
+			@Override
+			public void error(Throwable ex) {
+				// ignored
+			}
+			@Override
+			public void finish() {
+				// ignored
+			}
+			@Override
+			public void next(T value) {
+				action.invoke(value);
+			};
+		};
+	}
+	/**
+	 * Creates an observer which calls the given functions on its similarly named methods.
+	 * @param <T> the value type to receive
+	 * @param next the action to invoke on next()
+	 * @param error the action to invoke on error()
+	 * @param finish the action to invoke on finish()
+	 * @return the observer
+	 */
+	public static <T> Observer<T> toObserver(final Action1<? super T> next, 
+			final Action1<? super Throwable> error, final Action0 finish) {
+		return new Observer<T>() {
+			@Override
+			public void error(Throwable ex) {
+				error.invoke(ex);
+			}
+
+			@Override
+			public void finish() {
+				finish.invoke();
+			}
+
+			@Override
+			public void next(T value) {
+				next.invoke(value);
+			}
+			
+		};
+	}
+	/**
 	 * Filters objects from source which are assignment compatible with T.
 	 * Note that due java erasure complex generic types can't be filtered this way in runtime (e.g., List&lt;String>.class is just List.class).
+	 * FIXME is this what cast stands for?
 	 * @param <T> the type of the expected values
 	 * @param source the source of unknown elements
 	 * @param token the token to test agains the elements
@@ -5311,6 +5323,32 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 		};
 	}
 	/**
+	 * A convenience function which unwraps the T from a TimeInterval of T.
+	 * @param <T> the value type
+	 * @return the unwrapper function
+	 */
+	public static <T> Func1<T, TimeInterval<T>> unwrapTimeInterval() {
+		return new Func1<T, TimeInterval<T>>() {
+			@Override
+			public T invoke(TimeInterval<T> param1) {
+				return param1.value();
+			}
+		};
+	}
+	/**
+	 * A convenience function which unwraps the T from a Timestamped of T.
+	 * @param <T> the value type
+	 * @return the unwrapper function
+	 */
+	public static <T> Func1<T, Timestamped<T>> unwrapTimestamped() {
+		return new Func1<T, Timestamped<T>>() {
+			@Override
+			public T invoke(Timestamped<T> param1) {
+				return param1.value();
+			}
+		};
+	}
+	/**
 	 * Receives a resource from the resource selector and
 	 * uses the resource until it terminates, then closes the resource.
 	 * FIXME not sure how this method should work
@@ -5320,8 +5358,9 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param resourceUsage a function that returns an observable of T for the given resource.
 	 * @return the observable of Ts which terminates once the usage terminates
 	 */
-	public static <T, U extends Closeable> Observable<T> using(final Func0<U> resourceSelector, 
-			final Func1<Observable<T>, U> resourceUsage) {
+	public static <T, U extends Closeable> Observable<T> using(
+			final Func0<? extends U> resourceSelector, 
+			final Func1<? extends Observable<? extends T>, ? super U> resourceUsage) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -5363,8 +5402,8 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param clause the filter clause, the first parameter receives the current index, the second receives the current element
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> where(final Observable<T> source, 
-			final Func2<Boolean, Integer, T> clause) {
+	public static <T> Observable<T> where(final Observable<? extends T> source, 
+			final Func2<Boolean, Integer, ? super T> clause) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -5396,31 +5435,187 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	/**
 	 * Splits the source stream into separate observables once
 	 * the windowClosing fires an event.
-	 * FIXME not sure how to implement
 	 * @param <T> the element type to observe
 	 * @param <U> the closing event type, irrelevant
 	 * @param source the source of Ts
 	 * @param windowClosing the source of the window splitting events
 	 * @return the observable on sequences of observables of Ts
 	 */
-	static <T, U> Observable<Observable<T>> window(final Observable<T> source, 
-			final Func0<Observable<U>> windowClosing) {
+	public static <T, U> Observable<Observable<T>> window(
+			final Observable<? extends T> source, 
+			final Func0<? extends Observable<U>> windowClosing) {
 		return window(source, windowClosing, DEFAULT_SCHEDULER.get());
 	}
 	/**
-	 * Splits the source stream into separate observables once
-	 * the windowClosing fires an event.
+	 * Splits the source stream into separate observables
+	 * by starting at windowOpening events and closing at windowClosing events.
 	 * FIXME not sure how to implement
 	 * @param <T> the element type to observe
-	 * @param <U> the closing event type, irrelevant
+	 * @param <U> the opening event type, irrelevant
+	 * @param <V> the closing event type, irrelevant
 	 * @param source the source of Ts
+	 * @param windowOpening te source of the window opening events
 	 * @param windowClosing the source of the window splitting events
 	 * @param pool the pool where ???
 	 * @return the observable on sequences of observables of Ts
 	 */
-	static <T, U> Observable<Observable<T>> window(final Observable<T> source, 
-			final Func0<Observable<U>> windowClosing, final Scheduler pool) {
+	public static <T, U, V> Observable<Observable<T>> window(
+			final Observable<? extends T> source, 
+			final Func0<? extends Observable<U>> windowOpening, 
+			final Func0<? extends Observable<V>> windowClosing, 
+			final Scheduler pool) {
 		throw new UnsupportedOperationException();
+	}
+	/**
+	 * Splits the source stream into separate observables on
+	 * each windowClosing event.
+	 * FIXME not sure how to implement
+	 * @param <T> the element type to observe
+	 * @param <U> the closing event type, irrelevant
+	 * @param source the source of Ts
+	 * @param windowClosing the source of the window splitting events
+	 * @param pool the pool where the first group is signalled from directly after
+	 * the registration
+	 * @return the observable on sequences of observables of Ts
+	 */
+	public static <T, U> Observable<Observable<T>> window(
+			final Observable<? extends T> source, 
+			final Func0<? extends Observable<U>> windowClosing, 
+			final Scheduler pool) {
+		return new Observable<Observable<T>>() {
+			@Override
+			public Closeable register(final Observer<? super Observable<T>> observer) {
+				// The current observable
+				DefaultRunnableObserver<T> obs = new DefaultRunnableObserver<T>() {
+					final AtomicReference<DefaultObservable<T>> current = new AtomicReference<DefaultObservable<T>>(new DefaultObservable<T>());
+					
+					final AtomicBoolean done = new AtomicBoolean();
+					
+					final Lock lock = new ReentrantLock(true);
+					
+					final Observer<U> wo = new Observer<U>() {
+						@Override
+						public void error(Throwable ex) {
+							lock.lock();
+							try {
+								if (!done.get()) {
+									observer.error(ex);
+									done.set(true);
+									close();
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
+
+						@Override
+						public void finish() {
+							lock.lock();
+							try {
+								if (!done.get()) {
+									observer.finish();
+									done.set(true);
+									close();
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
+
+						@Override
+						public void next(U value) {
+							lock.lock();
+							try {
+								if (!done.get()) {
+									DefaultObservable<T> o = new DefaultObservable<T>();
+									current.getAndSet(o).finish();
+									observer.next(o);
+								}
+							} finally {
+								lock.unlock();
+							}
+						}
+						
+					};
+					/** The close handler for the inner observer of closing events. */
+					Closeable woc = windowClosing.invoke().register(wo);
+					
+					@Override
+					public void close() {
+						close0(woc);
+						super.close();
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						lock.lock();
+						try {
+							if (!done.get()) {
+								observer.error(ex);
+								done.set(true);
+								close();
+							}
+						} finally {
+							lock.unlock();
+						}
+					}
+
+					@Override
+					public void finish() {
+						lock.lock();
+						try {
+							if (!done.get()) {
+								observer.finish();
+								done.set(true);
+								close();
+							}
+						} finally {
+							lock.unlock();
+						}
+					}
+					@Override
+					public void next(T value) {
+						lock.lock();
+						try {
+							if (!done.get()) {
+								current.get().next(value);
+							}
+						} finally {
+							lock.unlock();
+						}
+					}
+					@Override
+					public void run() {
+						lock.lock();
+						try {
+							if (!done.get()) {
+								observer.next(current.get());
+							}
+						} finally {
+							lock.unlock();
+						}
+						
+					}
+				};
+				obs.register(source);
+				obs.schedule(pool);
+				return obs;
+			}
+		};
+	}
+	/**
+	 * Wrap the given type into a timestamped container of T.
+	 * @param <T> the type of the contained element
+	 * @return the function performing the wrapping
+	 */
+	public static <T> Func1<Timestamped<T>, T> wrapTimestamped() {
+		return new Func1<Timestamped<T>, T>() {
+			@Override
+			public Timestamped<T> invoke(T param1) {
+				return Timestamped.of(param1);
+			};
+		};
+
 	}
 	/**
 	 * Creates an observable which waits for events from left
@@ -5437,13 +5632,15 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param selector the selector taking the left Us and right Vs.
 	 * @return the resulting observable 
 	 */
-	public static <T, U, V> Observable<T> zip(final Observable<U> left, 
-			final Iterable<V> right, final Func2<T, U, V> selector) {
-		return new Observable<T>() {
+	public static <T, U, V> Observable<V> zip(
+			final Observable<? extends T> left, 
+			final Iterable<? extends U> right, 
+			final Func2<? extends V, ? super T, ? super U> selector) {
+		return new Observable<V>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				final Iterator<V> it = right.iterator();
-				DefaultObserver<U> obs = new DefaultObserver<U>() {
+			public Closeable register(final Observer<? super V> observer) {
+				final Iterator<? extends U> it = right.iterator();
+				DefaultObserver<T> obs = new DefaultObserver<T>() {
 					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
@@ -5455,10 +5652,10 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 					}
 
 					@Override
-					public void next(U u) {
+					public void next(T t) {
 						if (it.hasNext()) {
-							V v = it.next();
-							observer.next(selector.invoke(u, v));
+							U u = it.next();
+							observer.next(selector.invoke(t, u));
 						} else {
 							observer.finish();
 						}
@@ -5486,8 +5683,10 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 	 * @param selector the selector taking the left Us and right Vs.
 	 * @return the resulting observable 
 	 */
-	public static <T, U, V> Observable<T> zip(final Observable<U> left, 
-			final Observable<V> right, final Func2<T, U, V> selector) {
+	public static <T, U, V> Observable<T> zip(
+			final Observable<? extends U> left, 
+			final Observable<? extends V> right, 
+			final Func2<T, U, V> selector) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -5596,221 +5795,8 @@ public static <T> Observable<T> concat(final Iterable<? extends Observable<? ext
 			}
 		};
 	}
-	/**
-	 * Convert the functional observable into a normal observable object.
-	 * @param <T> the type of the elements to observe.
-	 * @param source the source of the functional-observable elements
-	 * @return the observable object
-	 */
-	public static <T> Observable<T> asObservable(final Action1<Action1<Option<T>>> source) {
-		return Reactive.create(new Func1<Action0, Observer<? super T>>() {
-			@Override
-			public Action0 invoke(final Observer<? super T> o) {
-				source.invoke(asAction(o));
-				return Actions.noAction0();
-			}
-		});
-	}
-	/**
-	 * Convert the Observable instance into a functional-observable object.
-	 * @param <T> the type of the elements
-	 * @param source the source observable
-	 * @return the action to action to option of T
-	 */
-	public static <T> Action1<Action1<Option<T>>> asFObservable(final Observable<T> source) {
-		return new Action1<Action1<Option<T>>>() {
-			@Override
-			public void invoke(final Action1<Option<T>> o) {
-				source.register(asObserver(o));
-			}
-		};
-	}
-	/**
-	 * Transform the given action to an observer.
-	 * The wrapper observer converts its next() messages to Option.some(),
-	 * the finish() to Option.none() and error() to Option.error().
-	 * @param <T> the element type to observe
-	 * @param action the action to wrap
-	 * @return the observer
-	 */
-	public static <T> Observer<T> asObserver(final Action1<Option<T>> action) {
-		return new Observer<T>() {
-			@Override
-			public void next(T value) {
-				action.invoke(Option.some(value));
-			}
-
-			@Override
-			public void error(Throwable ex) {
-				action.invoke(Option.<T>error(ex));
-			}
-
-			@Override
-			public void finish() {
-				action.invoke(Option.<T>none());
-			}
-			
-		};
-	}
-	/**
-	 * Wraps the given observer into an action object which then dispatches
-	 * various incoming Option values to next(), finish() and error().
-	 * @param <T> the element type
-	 * @param observer the observer to wrap
-	 * @return the wrapper action
-	 */
-	public static <T> Action1<Option<T>> asAction(final Observer<? super T> observer) {
-		return new Action1<Option<T>>() {
-			@Override
-			public void invoke(Option<T> value) {
-				dispatch(observer, value);
-			}
-		};
-	}
-	/**
-	 * Dispatches the option to the various Observer methods.
-	 * @param <T> the value type
-	 * @param observer the observer
-	 * @param value the value to dispatch
-	 */
-	public static <T> void dispatch(Observer<? super T> observer, Option<T> value) {
-		if (value == Option.none()) {
-			observer.finish();
-		} else
-		if (Option.isError(value)) {
-			observer.error(((Option.Error<?>)value).error());
-		} else {
-			observer.next(value.value());
-		}
-	}
 	/** Utility class. */
 	private Reactive() {
 		// utility class
-	}
-	/**
-	 * A convenience function which unwraps the T from a Timestamped of T.
-	 * @param <T> the value type
-	 * @return the unwrapper function
-	 */
-	public static <T> Func1<T, Timestamped<T>> unwrapTimestamped() {
-		return new Func1<T, Timestamped<T>>() {
-			@Override
-			public T invoke(Timestamped<T> param1) {
-				return param1.value();
-			}
-		};
-	}
-	/**
-	 * A convenience function which unwraps the T from a TimeInterval of T.
-	 * @param <T> the value type
-	 * @return the unwrapper function
-	 */
-	public static <T> Func1<T, TimeInterval<T>> unwrapTimeInterval() {
-		return new Func1<T, TimeInterval<T>>() {
-			@Override
-			public T invoke(TimeInterval<T> param1) {
-				return param1.value();
-			}
-		};
-	}
-	/**
-	 * Wrap the given type into a timestamped container of T.
-	 * @param <T> the type of the contained element
-	 * @return the function performing the wrapping
-	 */
-	public static <T> Func1<Timestamped<T>, T> wrapTimestamped() {
-		return new Func1<Timestamped<T>, T>() {
-			@Override
-			public Timestamped<T> invoke(T param1) {
-				return Timestamped.of(param1);
-			};
-		};
-
-	}
-	/**
-	 * Returns an observable which converts all messages to an <code>Option</code> value.
-	 * The returned observable does not itself signal error or finish.
-	 * Its dual is the <code>dematerialize</code> method.
-	 * @param <T> the source element type
-	 * @param source the source of Ts
-	 * @return the new observable
-	 * @see #dematerialize(Observable)
-	 */
-	public static <T> Observable<Option<T>> materialize(final Observable<? extends T> source) {
-		return new Observable<Option<T>>() {
-			@Override
-			public Closeable register(final Observer<? super Option<T>> observer) {
-				return source.register(new Observer<T>() {
-					@Override
-					public void next(T value) {
-						observer.next(Option.some(value));
-					}
-
-					@Override
-					public void error(Throwable ex) {
-						observer.next(Option.<T>error(ex));
-					}
-
-					@Override
-					public void finish() {
-						observer.next(Option.<T>none());
-					}
-					
-				});
-			}
-		};
-	}
-	/**
-	 * Returns an observable which converts all option messages
-	 * back to regular next(), error() and finish() messages.
-	 * The returned observable adheres to the <code>next* (error|finish)?</code> pattern,
-	 * which ensures that no further options are relayed after an error or finish.
-	 * @param <T> the source element type
-	 * @param source the source of Ts
-	 * @return the new observable
-	 * @see #materialize(Observable)
-	 */
-	public static <T> Observable<T> dematerialize(final Observable<? extends Option<T>> source) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				return source.register(new Observer<Option<T>>() {
-					/** Keeps track of the observer's state. */
-					final AtomicBoolean done = new AtomicBoolean();
-					@Override
-					public void next(Option<T> value) {
-						if (!done.get()) {
-							if (Option.isNone(value)) {
-								done.set(true);
-								observer.finish();
-							} else
-							if (Option.isSome(value)) {
-								observer.next(value.value());
-							} else {
-								done.set(true);
-								observer.error(Option.getError(value));
-							}
-						}
-					}
-
-					@Override
-					public void error(Throwable ex) {
-						if (!done.get()) {
-							done.set(true);
-							observer.error(ex);
-						}
-					}
-
-					@Override
-					public void finish() {
-						if (!done.get()) {
-							done.set(true);
-							observer.finish();
-						}
-					}
-					
-				});
-			}
-		};
 	}
 }

@@ -133,7 +133,7 @@ public class DefaultScheduler implements Scheduler {
 			throw new IllegalArgumentException("exec is null");
 		}
 		this.pool = exec;
-		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
+		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(Runtime.getRuntime().availableProcessors());
 		scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
 		scheduler.allowCoreThreadTimeOut(true);
 		
@@ -179,7 +179,7 @@ public class DefaultScheduler implements Scheduler {
 		if (scheduled == null) {
 			throw new IllegalArgumentException("scheduled is null");
 		}
-		ThreadPoolExecutor threadpool = new ThreadPoolExecutor(1, Integer.MAX_VALUE, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+		ThreadPoolExecutor threadpool = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Integer.MAX_VALUE, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
 		threadpool.allowCoreThreadTimeOut(true);
 		this.pool = threadpool;
 		this.scheduledPool = scheduled;
@@ -219,7 +219,8 @@ public class DefaultScheduler implements Scheduler {
 
 	@Override
 	public Closeable schedule(Runnable run, long initialDelay, long betweenDelay) {
-		return new FutureCloser(scheduledPool.scheduleAtFixedRate(run, initialDelay, betweenDelay, TimeUnit.NANOSECONDS));
+		return new FutureCloser(
+				scheduledPool.scheduleAtFixedRate(run, initialDelay, betweenDelay, TimeUnit.NANOSECONDS));
 	}
 	/**
 	 * Shutdown both pools.

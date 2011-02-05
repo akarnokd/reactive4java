@@ -21,7 +21,6 @@ import hu.akarnokd.reactive4java.base.Scheduler;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -38,22 +37,6 @@ public abstract class DefaultRunnableObserver<T> implements RunnableClosableObse
 	protected final AtomicReference<Future<?>> future = new AtomicReference<Future<?>>();
 	/** The handler returned by the registration. */
 	protected final AtomicReference<Closeable> handler = new AtomicReference<Closeable>();
-//	/** The lock that helps to ensure the next(), finish() and error() are never overlapping. */
-//	private final Lock lock = new ReentrantLock(true);
-//	/** Helper indicator that this observer may process its events: closed ones will ignore any further events. */
-//	protected final AtomicBoolean live = new AtomicBoolean(true);
-	/**
-	 * Schedules this instance on the given pool with the defined delay.
-	 * If this instance has an associated future, that instance gets cancelled
-	 * @param pool the scheduler pool
-	 * @param delay the delay
-	 * @param unit the time unit of the delay
-	 */
-	public void schedule(Scheduler pool, long delay, TimeUnit unit) {
-		FutureTask<T> f = new FutureTask<T>(this, null);
-		replace(f);
-		pool.schedule(f, unit.toNanos(delay));
-	}
 	/**
 	 * Replace the future registration with the current contents
 	 * and cancel the old one if there was any.
@@ -89,9 +72,7 @@ public abstract class DefaultRunnableObserver<T> implements RunnableClosableObse
 	 * @param unit the time unit of the initialDelay and delay parameters
 	 */
 	public void schedule(Scheduler pool, long initialDelay, long delay, TimeUnit unit) {
-		FutureTask<T> f = new FutureTask<T>(this, null);
-		replace(f);
-		pool.schedule(f, unit.toNanos(initialDelay), unit.toNanos(delay));
+		replace(pool.schedule(this, unit.toNanos(initialDelay), unit.toNanos(delay)));
 	}
 	/**
 	 * Submit this task to the given executor service without any scheduling
@@ -100,9 +81,17 @@ public abstract class DefaultRunnableObserver<T> implements RunnableClosableObse
 	 * @param pool the target executor service
 	 */
 	public void schedule(Scheduler pool) {
-		FutureTask<T> f = new FutureTask<T>(this, null);
-		replace(f);
-		pool.schedule(f);
+		replace(pool.schedule(this)); // FIXME assignment delay???
+	}
+	/**
+	 * Schedules this instance on the given pool with the defined delay.
+	 * If this instance has an associated future, that instance gets cancelled
+	 * @param pool the scheduler pool
+	 * @param delay the delay
+	 * @param unit the time unit of the delay
+	 */
+	public void schedule(Scheduler pool, long delay, TimeUnit unit) {
+		replace(pool.schedule(this, unit.toNanos(delay))); // FIXME assignment delay???
 	}
 	/**
 	 * Register with the given observable and store the closeable handle
