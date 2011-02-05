@@ -16,15 +16,135 @@
 
 package hu.akarnokd.reactive4java.reactive;
 
+import java.io.Closeable;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 /**
- * A wrapper implementation for observer which is able to unregister from the Observable.
- * Use the registerWith() and unregister() methods instead of adding this to a register() call.
+ * The default implementation of the Observer interface
+ * used by the Reactive operators.
+ * <p>This implementation ensures that its onNext, onError and onFinish methods
+ * are never interleaved and won't be executed after an error or finish message.
+ * An incoming finish or error message automatically calls close().</p>
+ * <p>The close method is idempotent and can be called multiple times.</p>
+ * <p>Extend this class when you need something more than a decorator or
+ * filter around some Observer passed to the custom register method, e.g.,
+ * observers with multiple sub-observers registered to multiple sources or
+ * observers with an accompanied scheduled task.
  * @author akarnokd, 2011.01.29.
  * @param <T> the element type to observe
  */
-public abstract class DefaultObserver<T> extends DefaultRunnableObserver<T> {
+public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
+	/** The lock that ensures sequential and exclusive runs for the observer's methods. */
+	protected final Lock lock;
+	/** The completion flag, it will be set by the close method once. */
+	@javax.annotation.concurrent.GuardedBy("lock")
+	protected boolean completed;
+	/** Constructor. Initializes the class with a fair reentrant lock. */
+	public DefaultObserver() {
+		this(new ReentrantLock(true));
+	}
+	/**
+	 * Constructor. Initializes the class with a shared lock instance.
+	 * @param lock the lock instance, nonnul
+	 */
+	public DefaultObserver(@Nonnull final Lock lock) {
+		if (lock == null) {
+			throw new IllegalArgumentException("lock is null");
+		}
+		this.lock = lock;
+	}
+	/**
+	 * The alternative next() method, which is called by the original next() method
+	 * under lock.
+	 * @param value the value
+	 */
+	protected abstract void onNext(@Nullable T value);
+	/**
+	 * The alternative error() method, which is called by the original error() method.
+	 * @param ex the exception
+	 */
+	protected abstract void onError(@Nonnull Throwable ex);
+	/** The alternative finish() method, which is called by the original finish() method. */
+	protected abstract void onFinish();
+	/** Called by close to close down any associated resources with this instance. */
+	protected void onClose() {
+		
+	}
 	@Override
-	public final void run() {
-		// no op
+	public final void next(T value) {
+		lock.lock();
+		try {
+			if (!completed) {
+				onNext(value);
+			}
+		} finally {
+			lock.unlock();
+		}
+	};
+	@Override
+	public void close() {
+		lock.lock(); 
+		try {
+			if (!completed) {
+				try {
+					onClose(); // FIXME is there a deadlock possibility?
+				} finally {
+					completed = true;
+				}
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+	@Override
+	public final void error(Throwable ex) {
+		lock.lock();
+		try {
+			if (!completed) {
+				try {
+					onError(ex);
+				} finally {
+					close();
+				}
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+	@Override
+	public final void finish() {
+		lock.lock();
+		try {
+			if (!completed) {
+				try {
+					onFinish();
+				} finally {
+					close();
+				}
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+	/**
+	 * Returns the internal lock which might be
+	 * shared among multiple instances.
+	 * @return the lock
+	 */
+	public Lock getLock() {
+		return lock;
+	}
+	/** @return the completion status. */
+	public boolean isCompleted() {
+		lock.lock();
+		try {
+			return completed;
+		} finally {
+			lock.unlock();
+		}
 	}
 }

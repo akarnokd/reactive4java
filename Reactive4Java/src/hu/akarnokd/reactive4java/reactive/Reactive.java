@@ -473,19 +473,19 @@ public final class Reactive {
 							return weWon;
 						}
 						@Override
-						public void error(Throwable ex) {
+						public void onError(Throwable ex) {
 							if (didWeWon()) {
 								observer.error(ex);
 							}
 						}
 						@Override
-						public void finish() {
+						public void onFinish() {
 							if (didWeWon()) {
 								observer.finish();
 							}
 						}
 						@Override
-						public void next(T value) {
+						public void onNext(T value) {
 							if (didWeWon()) {
 								observer.next(value);
 							} else {
@@ -496,12 +496,15 @@ public final class Reactive {
 					observers.add(obs);
 				}
 				i = 0;
+				List<Closeable> closers = new ArrayList<Closeable>(observables.size() * 2 + 1);
 				for (final Observable<? extends T> os : observables) {
 					DefaultObserver<T> dob = observers.get(i);
-					dob.register(os);
+					closers.add(dob);
+					closers.add(os.register(dob));
+					
 					i++;
 				}
-				return close(observers);
+				return close(closers);
 			}
 		};
 	}
@@ -529,20 +532,20 @@ public final class Reactive {
 			public Closeable register(final Observer<? super Boolean> observer) {
 				DefaultObserver<T> obs = new DefaultObserver<T>() {
 					@Override
-					public void error(Throwable ex) {
+					public void onError(Throwable ex) {
 						observer.error(ex);
 						close();
 					}
 
 					@Override
-					public void finish() {
+					public void onFinish() {
 						observer.next(false);
 						observer.finish();
 						close();
 					}
 
 					@Override
-					public void next(T value) {
+					public void onNext(T value) {
 						if (predicate.invoke(value)) {
 							observer.next(true);
 							observer.finish();
@@ -551,8 +554,7 @@ public final class Reactive {
 					}
 					
 				};
-				obs.register(source);
-				return obs;
+				return close(obs, source.register(obs));
 			}
 		};
 	}
@@ -738,10 +740,9 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				
 				DefaultRunnable s = new DefaultRunnable() {
 					@Override
-					public void run() {
+					public void onRun() {
 						for (T t : iterable) {
 							if (cancelled()) {
 								break;
@@ -754,8 +755,7 @@ public final class Reactive {
 						}
 					}
 				};
-				s.schedule(pool);
-				return s;
+				return pool.schedule(s);
 			}
 		};
 	}	

@@ -22,13 +22,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nonnull;
 
 /**
  * The default implementation of the Scheduler
@@ -36,23 +35,11 @@ import java.util.concurrent.TimeUnit;
  * @author akarnokd, 2011.02.02.
  */
 public class DefaultScheduler implements Scheduler {
-	/** The common observable pool where the Observer methods get invoked by default. */
-	final ExecutorService pool;
 	/** The defalt scheduler pool for delayed observable actions. */
-	final ScheduledExecutorService scheduledPool;
+	final ScheduledExecutorService pool;
 	/**
-	 * Creates two separate pools for the immediate and scheduled executions.
-	 * <ul>
-	 * <li>ThreadPoolExecutor, having
-	 * <ul>
-	 * <li><code>Runtime.getRuntime().availableProcessors()</code> core thread</li>
-	 * <li>1 second idle timeout</li>
-	 * <li>core threads may timeout</li>
-	 * <li>unbounded worker queue</li>
-	 * <li>no rejection handler</li>
-	 * </ul>
-	 * </li>
-	 * <li>ScheduledThreadPoolExecutor
+	 * Creates a scheduler with a ScheduledThreadPoolExecutor. The
+	 * pool will have the following attributes:
 	 * <ul>
 	 * <li><code>Runtime.getRuntime().availableProcessors()</code> core thread</li>
 	 * <li>1 second idle timeout</li>
@@ -60,14 +47,9 @@ public class DefaultScheduler implements Scheduler {
 	 * <li>unbounded worker queue</li>
 	 * <li>no rejection handler</li>
 	 * <li>if running on Java 7 or above: remove on cancel policy set to true</li>
-	 * </ul></li>
 	 * </ul>
 	 */
 	public DefaultScheduler() {
-		ThreadPoolExecutor threadpool = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Integer.MAX_VALUE, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
-		threadpool.allowCoreThreadTimeOut(true);
-		
-		
 		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(Runtime.getRuntime().availableProcessors());
 		scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
 		scheduler.allowCoreThreadTimeOut(true);
@@ -90,99 +72,17 @@ public class DefaultScheduler implements Scheduler {
 		} catch (IllegalAccessException e) {
 		} catch (IllegalArgumentException e) {
 		}
-		pool = threadpool;
-		scheduledPool = scheduler;
+		pool = scheduler;
 	}
 	/**
-	 * Creates a default scheduler with the defined normal and scheduled pools.
-	 * Note that since ScheduledExecutorService implements ExecutorService, you
-	 * may pass in the same ScheduledExecutorService instance to fulfill both purposes.
-	 * @param exec the executor service
-	 * @param scheduled the scheduled executor service
+     * Creates a scheduler instance with the given backing pool.
+     * @param scheduled the backing scheduled executor service
 	 */
-	public DefaultScheduler(ExecutorService exec, ScheduledExecutorService scheduled) {
-		if (exec == null) {
-			throw new IllegalArgumentException("exec is null");
-		}
+	public DefaultScheduler(@Nonnull ScheduledExecutorService scheduled) {
 		if (scheduled == null) {
 			throw new IllegalArgumentException("scheduled is null");
 		}
-		this.pool = exec;
-		this.scheduledPool = scheduled;
-	}
-	/**
-	 * Creates a default scheduler with the defined normal service and a
-	 * default scheduled executor service.
-	 * <ul>
-	 * <li>ScheduledThreadPoolExecutor
-	 * <ul>
-	 * <li>1 core thread</li>
-	 * <li>1 second idle timeout</li>
-	 * <li>core threads may timeout</li>
-	 * <li>unbounded worker queue</li>
-	 * <li>no rejection handler</li>
-	 * <li>if running on Java 7 or above: remove on cancel policy set to true</li>
-	 * </ul></li>
-	 * </ul>
-	 * Note that since ScheduledExecutorService implements ExecutorService, you
-	 * may pass in the a ScheduledExecutorService instance to fulfill both purposes.
-	 * @param exec the executor service
-	 */
-	public DefaultScheduler(ExecutorService exec) {
-		if (exec == null) {
-			throw new IllegalArgumentException("exec is null");
-		}
-		this.pool = exec;
-		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(Runtime.getRuntime().availableProcessors());
-		scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
-		scheduler.allowCoreThreadTimeOut(true);
-		
-		/* 
-		 * the setRemoveOnCancelPolicy() was introduced in Java 7 to
-		 * allow the option to remove tasks from work queue if its initial delay hasn't
-		 * elapsed -> therfore, if no other tasks are present, the scheduler might go idle earlier
-		 * instead of waiting for the initial delay to pass to discover there is nothing to do.
-		 * Because the library is currenlty aimed at Java 6, we use a reflection to set this policy
-		 * on a Java 7 runtime. 
-		 */
-		try {
-			Method m = scheduler.getClass().getMethod("setRemoveOnCancelPolicy", Boolean.TYPE);
-			m.invoke(scheduler, true);
-		} catch (InvocationTargetException ex) {
-			
-		} catch (NoSuchMethodException e) {
-		} catch (SecurityException e) {
-		} catch (IllegalAccessException e) {
-		} catch (IllegalArgumentException e) {
-		}
-		scheduledPool = scheduler;
-	}
-	/**
-	 * Creates a default scheduler with the defined scheduled pools and the 
-	 * default executor service.
-	 * <ul>
-	 * <li>ThreadPoolExecutor, having
-	 * <ul>
-	 * <li>1 core thread</li>
-	 * <li>1 second idle timeout</li>
-	 * <li>core threads may timeout</li>
-	 * <li>unbounded worker queue</li>
-	 * <li>no rejection handler</li>
-	 * </ul>
-	 * </li>
-	 * </ul>
-	 * Note that since ScheduledExecutorService implements ExecutorService, you
-	 * may pass in the same ScheduledExecutorService instance to fulfill both purpose.
-	 * @param scheduled the scheduled executor service
-	 */
-	public DefaultScheduler(ScheduledExecutorService scheduled) {
-		if (scheduled == null) {
-			throw new IllegalArgumentException("scheduled is null");
-		}
-		ThreadPoolExecutor threadpool = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Integer.MAX_VALUE, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
-		threadpool.allowCoreThreadTimeOut(true);
-		this.pool = threadpool;
-		this.scheduledPool = scheduled;
+		this.pool = scheduled;
 	}
 	/**
 	 * Helper class which invokes <code>Future.cancel(true)</code> on
@@ -214,20 +114,19 @@ public class DefaultScheduler implements Scheduler {
 
 	@Override
 	public Closeable schedule(Runnable run, long delay) {
-		return new FutureCloser(scheduledPool.schedule(run, delay, TimeUnit.NANOSECONDS));
+		return new FutureCloser(pool.schedule(run, delay, TimeUnit.NANOSECONDS));
 	}
 
 	@Override
 	public Closeable schedule(Runnable run, long initialDelay, long betweenDelay) {
 		return new FutureCloser(
-				scheduledPool.scheduleAtFixedRate(run, initialDelay, betweenDelay, TimeUnit.NANOSECONDS));
+				pool.scheduleAtFixedRate(run, initialDelay, betweenDelay, TimeUnit.NANOSECONDS));
 	}
 	/**
 	 * Shutdown both pools.
 	 */
 	public void shutdown() {
 		pool.shutdown();
-		scheduledPool.shutdown();
 	}
 	/**
 	 * Shutdown both pools now.
@@ -236,7 +135,6 @@ public class DefaultScheduler implements Scheduler {
 	public List<Runnable> shutdownNow() {
 		List<Runnable> result = new ArrayList<Runnable>();
 		result.addAll(pool.shutdownNow());
-		result.addAll(scheduledPool.shutdownNow());
 		return result;
 	}
 }
