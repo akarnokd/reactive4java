@@ -16,6 +16,7 @@
 
 package hu.akarnokd.reactive4java.test;
 
+import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.interactive.Interactive;
 
 
@@ -55,6 +56,15 @@ public final class TestInteractive1 {
 		run(Interactive.skipLast(Interactive.range(0, 10), 3));
 		
 		run(Interactive.takeLast(Interactive.range(0, 10), 3));
+		
+		run(Interactive.zip(Interactive.range(0, 10), Interactive.range(0, 5), new Func2<String, Integer, Integer>() {
+			@Override
+			public String invoke(Integer param1, Integer param2) {
+				return param1 + ":" + param2;
+			}
+		}));
+		
+		run(Interactive.max(Interactive.range(0, 10)));
 		
 		System.out.printf("%nMain finished%n");
 	}

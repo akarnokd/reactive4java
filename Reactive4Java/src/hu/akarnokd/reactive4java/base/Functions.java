@@ -555,27 +555,57 @@ public final class Functions {
 			return param1 != null ? param1.add(param2) : param2;
 		}
 	};
-	/** @return Function to sum integers in aggregators. */
+	/** 
+	 * Retuns a function that adds two Integer number and
+	 * returns a new one. 
+	 * <p>If the first parameter is null, it returns the second parameter.</p> 
+	 * @return Function to sum integers in aggregators. 
+	 */
 	public static Func2<Integer, Integer, Integer> sumInteger() {
 		return SUM_INTEGER;
 	}
-	/** @return Function to sum integers in aggregators. */
+	/** 
+	 * Retuns a function that adds two Long number and
+	 * returns a new one. 
+	 * <p>If the first parameter is null, it returns the second parameter.</p> 
+	 * @return Function to sum integers in aggregators. 
+	 */
 	public static Func2<Long, Long, Long> sumLong() {
 		return SUM_LONG;
 	}
-	/** @return Function to sum integers in aggregators. */
+	/** 
+	 * Retuns a function that adds two Float number and
+	 * returns a new one. 
+	 * <p>If the first parameter is null, it returns the second parameter.</p> 
+	 * @return Function to sum integers in aggregators. 
+	 */
 	public static Func2<Float, Float, Float> sumFloat() {
 		return SUM_FLOAT;
 	}
-	/** @return Function to sum integers in aggregators. */
+	/** 
+	 * Retuns a function that adds two Double number and
+	 * returns a new one. 
+	 * <p>If the first parameter is null, it returns the second parameter.</p> 
+	 * @return Function to sum integers in aggregators. 
+	 */
 	public static Func2<Double, Double, Double> sumDouble() {
 		return SUM_DOUBLE;
 	}
-	/** @return Function to sum integers in aggregators. */
+	/** 
+	 * Retuns a function that adds two BigInteger numbers and
+	 * returns a new one. 
+	 * <p>If the first parameter is null, it returns the second parameter.</p> 
+	 * @return Function to sum integers in aggregators. 
+	 */
 	public static Func2<BigInteger, BigInteger, BigInteger> sumBigInteger() {
 		return SUM_BIGINTEGER;
 	}
-	/** @return Function to sum integers in aggregators. */
+	/**
+	 * Retuns a function that adds two BigDecimal numbers and
+	 * returns a new one. 
+	 * <p>If the first parameter is null, it returns the second parameter.</p> 
+	 * @return Function to sum integers in aggregators. 
+	 */
 	public static Func2<BigDecimal, BigDecimal, BigDecimal> sumBigDecimal() {
 		return SUM_BIGDECIMAL;
 	}

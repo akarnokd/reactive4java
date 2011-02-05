@@ -185,6 +185,8 @@ public final class Interactive {
 	 * minimum, maximum, etc.
 	 * If the traversal of the source fails due an exception, that exception is reflected on the
 	 * {@code next()} call of the returned iterator.
+	 * The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.
 	 * @param <T> the source element type
 	 * @param <U> the itermediate aggregation type
 	 * @param <V> the resulting aggregation type
@@ -260,6 +262,8 @@ public final class Interactive {
 	}
 	/**
 	 * Determines if the given source has any elements at all.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type, irrelevant here
 	 * @param source the source of Ts
 	 * @return the new iterable with a single true or false
@@ -304,6 +308,8 @@ public final class Interactive {
 	}
 	/**
 	 * Returns an iterable which averages the source BigDecimal values.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param source the source of BigDecimal values
 	 * @return the new iterable
 	 */
@@ -325,6 +331,8 @@ public final class Interactive {
 	}
 	/**
 	 * Returns an iterable which averages the source BigInteger values.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param source the source of BigInteger values
 	 * @return the new iterable
 	 */
@@ -346,6 +354,8 @@ public final class Interactive {
 	}
 	/**
 	 * Returns an iterable which averages the source Double values.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param source the source of Double values
 	 * @return the new iterable
 	 */
@@ -367,6 +377,8 @@ public final class Interactive {
 	}
 	/**
 	 * Returns an iterable which averages the source Float values.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param source the source of Float values
 	 * @return the new iterable
 	 */
@@ -388,6 +400,8 @@ public final class Interactive {
 	}
 	/**
 	 * Returns an iterable which averages the source Integer values.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param source the source of Integer values
 	 * @return the new iterable
 	 */
@@ -409,6 +423,8 @@ public final class Interactive {
 	}
 	/**
 	 * Returns an iterable which averages the source Integer values.
+	 * The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.
 	 * @param source the source of Integer values
 	 * @return the new iterable
 	 */
@@ -441,6 +457,8 @@ public final class Interactive {
 	/**
 	 * Creates an iterable which if iterates over the sourec and encounters an exception,
 	 * the iteration is continued on the new iterable returned by the handler function.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param <T> the element type
 	 * @param source the source iterable.
 	 * @param handler the exception handler.
@@ -507,6 +525,9 @@ public final class Interactive {
 	 * Concatenate the given iterable sources one
 	 * after another in a way, that calling the second <code>iterator()</code> 
 	 * only happens when there is no more element in the first iterator.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the current source (e.g., you can remove the same elements from
+	 * multiple collections with a single traversal on the concat result).
 	 * @param <T> the element type
 	 * @param sources the list of iterables to concatenate
 	 * @return a new iterable
@@ -571,6 +592,8 @@ public final class Interactive {
 	 * Concatenate the given iterable sources one
 	 * after another in a way, that calling the second <code>iterator()</code> 
 	 * only happens when there is no more element in the first iterator.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the current source (first or next).
 	 * @param <T> the element type
 	 * @param first the first iterable
 	 * @param second the second iterable
@@ -584,6 +607,8 @@ public final class Interactive {
 	}
 	/**
 	 * Counts the elements of the iterable source by using a 32 bit <code>int</code>.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type
 	 * @param source the source iterable
 	 * @return the new iterable
@@ -638,6 +663,8 @@ public final class Interactive {
 	}
 	/**
 	 * Counts the elements of the iterable source by using a 64 bit <code>long</code>.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type
 	 * @param source the source iterable
 	 * @return the new iterable
@@ -693,6 +720,8 @@ public final class Interactive {
 	/**
 	 * Convert the source materialized elements into normal iterator behavior.
 	 * The returned iterator will throw an <code>UnsupportedOperationException</code> for its <code>remove()</code> method.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element types
 	 * @param source the source of T options
 	 * @return the new iterable
@@ -870,6 +899,8 @@ public final class Interactive {
 	/**
 	 * Returns an iterable which executes the given action after
 	 * the stream completes.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param <T> the element type
 	 * @param source the source of Ts
 	 * @param action the action to invoke
@@ -923,6 +954,8 @@ public final class Interactive {
 	 *     value = next(value);
 	 * }
 	 * </pre></code>
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type
 	 * @param seed the initial value
 	 * @param predicate the predicate to terminate the process
@@ -971,6 +1004,7 @@ public final class Interactive {
 	 * if (predicate(value)) {
 	 *     yield value;
 	 * }
+	 * value = next(value);
 	 * sleep(betweenDelay);
 	 * while (predicate(value)) {
 	 *     yield value;
@@ -978,6 +1012,8 @@ public final class Interactive {
 	 *     sleep(betweenDelay);
 	 * }
 	 * </pre></code>
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type
 	 * @param seed the initial value
 	 * @param predicate the predicate to terminate the process
@@ -1054,6 +1090,8 @@ public final class Interactive {
 	 * which can be interated over later on.
 	 * The equivalence of the keys are determined via reference
 	 * equality and <code>equals()</code> equality.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type
 	 * @param <U> the result group element type
 	 * @param <V> the result group keys
@@ -1117,6 +1155,8 @@ public final class Interactive {
 	 * Construct a new iterable which will invoke the specified action
 	 * before the source value gets relayed through it.
 	 * Can be used to inject side-effects before returning a value.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param <T> the returned element type
 	 * @param source the source iterable
 	 * @param action the action to invoke before each next() is returned.
@@ -1127,8 +1167,9 @@ public final class Interactive {
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
-				final Iterator<? extends T> it = source.iterator();
 				return new Iterator<T>() {
+					/** The source iterator. */
+					final Iterator<? extends T> it = source.iterator();
 					@Override
 					public boolean hasNext() {
 						return it.hasNext();
@@ -1149,6 +1190,8 @@ public final class Interactive {
 	}
 	/**
 	 * Concatenates the source strings one after another and uses the given separator.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param source the source
 	 * @param separator the separator to use
 	 * @return the new iterable
@@ -1197,6 +1240,8 @@ public final class Interactive {
 	 * Option.some(), Option.none() and Option.error() values, depending on
 	 * what the source's hasNext() and next() produces.
 	 * The returned iterator will throw an <code>UnsupportedOperationException</code> for its <code>remove()</code> method.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type
 	 * @param source the source of at least Ts.
 	 * @return the new iterable
@@ -1323,6 +1368,8 @@ public final class Interactive {
 	 * reiterating over this iterable will produce no results.
 	 * Note: the name is not a misspelling, see <a href='http://en.wikipedia.org/wiki/Memoization'>Memoization</a>.
 	 * FIXME not sure about the buffer sizes.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type
 	 * @param source the source of Ts
 	 * @param bufferSize the size of the buffering
@@ -1379,6 +1426,8 @@ public final class Interactive {
 	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
 	 * how many iterator attaches to it and each iterator see only the values.
 	 * Note: the name is not a misspelling, see <a href='http://en.wikipedia.org/wiki/Memoization'>Memoization</a>.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type
 	 * @param source the source of Ts
 	 * @return the new iterable
@@ -1442,6 +1491,8 @@ public final class Interactive {
 	 * Merges a bunch of iterable streams where each of the iterable will run by
 	 * a scheduler and their events are merged together in a single stream.
 	 * The returned iterator throws an <code>UnsupportedOperationException</code> in its <code>remove()</code> method.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type
 	 * @param sources the iterable of source iterables.
 	 * @param scheduler the scheduler for running each inner iterable in parallel
@@ -1531,6 +1582,8 @@ public final class Interactive {
 	}
 	/**
 	 * Merges two iterable streams.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type
 	 * @param first the first iterable
 	 * @param second the second iterable
@@ -1544,6 +1597,8 @@ public final class Interactive {
 	}
 	/**
 	 * Returns the minimum value of the given iterable source.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type, which must be self comparable
 	 * @param source the source elements 
 	 * @return the new iterable
@@ -1553,6 +1608,8 @@ public final class Interactive {
 	}
 	/**
 	 * Returns the minimum value of the given iterable source in respect to the supplied comparator.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type, which must be self comparable
 	 * @param source the source elements 
 	 * @param comparator the comparator to use
@@ -1564,6 +1621,8 @@ public final class Interactive {
 	/**
 	 * Returns an iterator which will produce a single List of the minimum values encountered
 	 * in the source stream based on the supplied key selector.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type, which must be self comparable
 	 * @param source the source of Ts
 	 * @return the new iterable
@@ -1585,6 +1644,8 @@ public final class Interactive {
 	/**
 	 * Returns an iterator which will produce a single List of the minimum values encountered
 	 * in the source stream based on the supplied key selector.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type
 	 * @param <U> the key type, which must be self-comparable
 	 * @param source the source of Ts
@@ -1598,6 +1659,8 @@ public final class Interactive {
 	/**
 	 * Returns an iterator which will produce a single List of the minimum values encountered
 	 * in the source stream based on the supplied key selector and comparator.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type
 	 * @param <U> the key type
 	 * @param source the source of Ts
@@ -1612,6 +1675,8 @@ public final class Interactive {
 	/**
 	 * Returns an iterator which will produce a single List of the minimum values encountered
 	 * in the source stream based on the supplied key selector and comparator.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type
 	 * @param <U> the key type
 	 * @param source the source of Ts
@@ -1643,7 +1708,7 @@ public final class Interactive {
 									while (it.hasNext()) {
 										T value = it.next();
 										U key = keySelector.invoke(value);
-										if (lastKey == null || (max ^ keyComparator.compare(lastKey, key) > 0)) {
+										if (lastKey == null || (max ^ (keyComparator.compare(lastKey, key) > 0))) {
 											intermediate = new ArrayList<T>();
 											lastKey = key;
 										}
@@ -1762,6 +1827,9 @@ public final class Interactive {
 	/**
 	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
 	 * how many iterator attaches to it and each iterator see only the same cached values.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for <code>remove()</code> method of its first element, then it might throw for any
+	 * subsequent element, depending on the source iterable.</p>
 	 * @param <T> the source element type
 	 * @param <U> the return types
 	 * @param source the source of Ts
@@ -1776,6 +1844,8 @@ public final class Interactive {
 	/**
 	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
 	 * how many iterator attaches to it and each iterator see only the values.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type
 	 * @param <U> the return types
 	 * @param source the source of Ts
@@ -1788,6 +1858,8 @@ public final class Interactive {
 	}
 	/**
 	 * Creates an integer iterator which returns numbers from the start position in the count size.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param start the starting value.
 	 * @param count the number of elements to return, negative count means counting down from the start.
 	 * @return the iterator.
@@ -1819,6 +1891,8 @@ public final class Interactive {
 	}
 	/**
 	 * Creates an long iterator which returns numbers from the start position in the count size.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param start the starting value.
 	 * @param count the number of elements to return, negative count means counting down from the start.
 	 * @return the iterator.
@@ -1863,6 +1937,8 @@ public final class Interactive {
 	/**
 	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
 	 * how many iterator attaches to it and each iterator may only see one source element.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type
 	 * @param <U> the return types
 	 * @param source the source of Ts
@@ -1876,6 +1952,8 @@ public final class Interactive {
 	/**
 	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
 	 * how many iterator attaches to it and each iterator see only the some cached values.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type
 	 * @param <U> the return types
 	 * @param source the source of Ts
@@ -1890,6 +1968,8 @@ public final class Interactive {
 	}
 	/**
 	 * Creates an iterable which resumes with the next iterable from the sources when one throws an exception or completes normally.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param <T> the source element type
 	 * @param sources the list of sources to try one after another
 	 * @return the new iterable
@@ -1966,6 +2046,8 @@ public final class Interactive {
 	}
 	/**
 	 * Creates an iterable which resumes with the next iterable from the sources when one throws an exception.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param <T> the source element type
 	 * @param sources the list of sources to try one after another
 	 * @return the new iterable
@@ -2050,6 +2132,8 @@ public final class Interactive {
 	 *    }
 	 * }
 	 * </pre></code>
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param <T> the source type
 	 * @param source the source of Ts
 	 * @param count the number of retry attempts
@@ -2144,6 +2228,8 @@ public final class Interactive {
 	 * Generates an iterable which acts like a running sum when iterating over the source iterable, e.g.,
 	 * For each element in T, it computes a value by using the current aggregation value and returns it.
 	 * The first call to the aggregator function will receive a zero for its first argument.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param <T> the source element type
 	 * @param <U> the destination element type
 	 * @param source the source of Ts
@@ -2201,6 +2287,8 @@ public final class Interactive {
 	 * Creates an iterable which is a transforms the source
 	 * elements by using the selector function.
 	 * The function receives the current index and the current element.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param <T> the source element type
 	 * @param <U> the output element type
 	 * @param source the source iterable
@@ -2237,6 +2325,8 @@ public final class Interactive {
 	/**
 	 * Creates an iterable which returns a stream of Us for each source Ts.
 	 * The iterable stream of Us is returned by the supplied selector function.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the current source (which might not accept it).
 	 * @param <T> the source element type
 	 * @param <U> the output element type
 	 * @param source the source
@@ -2299,8 +2389,8 @@ public final class Interactive {
 	}
 	/**
 	 * Creates an iterable which returns only a single element.
-	 * The returned iterable throws <code>UnsupportedOperationException</code>
-	 * for its <code>remove()</code> method.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type
 	 * @param value the value to return
 	 * @return the new iterable
@@ -2339,6 +2429,9 @@ public final class Interactive {
 	 * Returns an iterable which prefixes the source iterable values
 	 * by a constant.
 	 * It is equivalent to <code>concat(singleton(value), source)</code>.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method for the first element, and might
+	 * throw for subsequent elements, depending on the source iterable.</p>
 	 * @param <T> the lement type
 	 * @param source the source iterable
 	 * @param value the value to prefix
@@ -2349,6 +2442,8 @@ public final class Interactive {
 	}
 	/**
 	 * Sum the source of Integer values and return it as a single element.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param source the source
 	 * @return the new iterable
 	 */
@@ -2359,6 +2454,8 @@ public final class Interactive {
 	}
 	/**
 	 * Sum the source of Integer values and return it as a single element.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param source the source
 	 * @return the new iterable
 	 */
@@ -2369,6 +2466,8 @@ public final class Interactive {
 	}
 	/**
 	 * Sum the source of Double values and returns it as a single element.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param source the source
 	 * @return the new iterable
 	 */
@@ -2460,6 +2559,8 @@ public final class Interactive {
 	 * telling how many elements were processed thus far.
 	 * Use this construct if you want to use some memorizing predicat function (e.g., filter by subsequent distinct, filter by first occurrences only)
 	 * which need to be invoked per iterator() basis.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param <T> the element type
 	 * @param source the source iterable
 	 * @param predicateFactory the predicate factory which should return a new predicate function for each iterator.
@@ -2552,6 +2653,8 @@ public final class Interactive {
 	/**
 	 * Returns an iterable which skips the last <code>num</code> elements from the
 	 * source iterable.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type
 	 * @param source the source iterable
 	 * @param num the number of elements to skip at the end
@@ -2598,6 +2701,8 @@ public final class Interactive {
 	/**
 	 * Returns an iterable which takes only the last <code>num</code> elements from the
 	 * source iterable.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type
 	 * @param source the source iterable
 	 * @param num the number of elements to skip at the end
@@ -2644,6 +2749,8 @@ public final class Interactive {
 	/**
 	 * Returns an iterable which is associated with a closeable handler.
 	 * Once the source iterable is completed, it invokes the <code>Closeable.close()</code> on the handler.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param <T> the source element type
 	 * @param <U> the closeable type
 	 * @param resource the function which returns a resource token
@@ -2749,6 +2856,8 @@ public final class Interactive {
 	 * when a pass over the source stream was completed.
 	 * Note that using this operator on an empty iterable may result
 	 * in a direct infinite loop in hasNext() or next() calls depending on the gate function.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param <T> the source element type
 	 * @param source the source of Ts
 	 * @param gate the gate function to stop the repeat
@@ -2805,6 +2914,8 @@ public final class Interactive {
 	 * Returns an iterable which invokes the given <code>next</code>
 	 * action for each element and the <code>finish</code> action when
 	 * the source completes and <code>error</code> when an exception is thrown.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
 	 * @param <T> the source element type
 	 * @param source the source of Ts
 	 * @param next the action to invoke on each element
@@ -2881,6 +2992,8 @@ public final class Interactive {
 	 * Returns an iterable which contains true if all
 	 * elements of the source iterable satisfy the predicate.
 	 * The operator might return a false before fully iterating the source.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type
 	 * @param source the source of Ts
 	 * @param predicate the predicate
@@ -2941,6 +3054,8 @@ public final class Interactive {
 	 * Returns an iterable which buffers the source elements 
 	 * into <code>bufferSize</code> lists.
 	 * FIXME what to do on empty source or last chunk?
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the source element type
 	 * @param source the source of Ts
 	 * @param bufferSize the buffer size.
@@ -3034,6 +3149,8 @@ public final class Interactive {
 	}
 	/**
 	 * Convert the given enumerator to the Iterator semantics.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type
 	 * @param en the source enumerator
 	 * @return the new iterator
@@ -3100,6 +3217,221 @@ public final class Interactive {
 				return toEnumerator(e.iterator());
 			}
 		};
+	}
+	/**
+	 * Returns an iterable, which will query the selector for a key, then
+	 * queries the map for an Iterable. The returned iterator will
+	 * then traverse that Iterable. If the map does not contain an 
+	 * element, az empty iterable is used.
+	 * @param <T> the key type
+	 * @param <U> the output type
+	 * @param selector the key selector
+	 * @param options the available options in
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> switchCase(final Func0<T> selector, final Map<T, Iterable<U>> options) {
+		return new Iterable<U>() {
+			@Override
+			public Iterator<U> iterator() {
+				Iterable<U> it = options.get(selector.invoke());
+				return it != null ? it.iterator() : Interactive.<U>empty().iterator();
+			}
+		};
+	
+	}
+	/**
+	 * Returns an iterable which runs the source iterable and
+	 * returns elements from the iterable returned by the function call.
+	 * The difference from SelectMany is that the {@code Iterable&lt;U>}s are
+	 * created before their concatenation starts.
+	 * @param <T> the source element type
+	 * @param <U> the output element type 
+	 * @param source the source
+	 * @param selector the result selector
+	 * @return the new iterable
+	 */
+	public static <T, U> Iterable<U> forEach(final Iterable<? extends T> source, final Func1<? extends Iterable<? extends U>, ? super T> selector) {
+		List<Iterable<? extends U>> list = new LinkedList<Iterable<? extends U>>();
+		for (Iterable<? extends U> us : select(source, selector)) {
+			list.add(us);
+		}
+		return concat(list);
+	}
+	/**
+	 * Returns a single true if the target iterable is empty.
+	 * @param source source iterable with any type
+	 * @return the new iterable
+	 */
+	public static Iterable<Boolean> isEmpty(final Iterable<?> source) {
+		return select(any(source), new Func1<Boolean, Boolean>() {
+			@Override
+			public Boolean invoke(Boolean param1) {
+				return !param1;
+			}
+		});
+	}
+	/**
+	 * Pairs each element from both iterable sources and
+	 * combines them into a new value by using the <code>combiner</code>
+	 * function.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <T> the left source type
+	 * @param <U> the right source type
+	 * @param <V> the result type
+	 * @param left the left source
+	 * @param right the right source
+	 * @param combiner the combiner function
+	 * @return the new iterable
+	 */
+	public static <T, U, V> Iterable<V> zip(final Iterable<? extends T> left, final Iterable<? extends U> right, 
+			final Func2<? extends V, ? super T, ? super U> combiner) {
+		return new Iterable<V>() {
+			@Override
+			public Iterator<V> iterator() {
+				return new Iterator<V>() {
+					/** The left iterator. */
+					final Iterator<? extends T> ts = left.iterator();
+					/** The right iterator. */
+					final Iterator<? extends U> us = right.iterator();
+					/** The peek-ahead container. */
+					final SingleContainer<Option<? extends V>> peek = new SingleContainer<Option<? extends V>>();
+					@Override
+					public boolean hasNext() {
+						if (peek.isEmpty()) {
+							try {
+								if (ts.hasNext() && us.hasNext()) {
+									peek.add(Option.some(combiner.invoke(ts.next(), us.next())));
+								}
+							} catch (Throwable t) {
+								peek.add(Option.<V>error(t));
+							}
+						}
+						return !peek.isEmpty();
+					}
+					@Override
+					public V next() {
+						if (hasNext()) {
+							return peek.take().value();
+						}
+						throw new NoSuchElementException();
+					}
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Returns the iterable which returns the first <code>num</code> element.
+	 * from the source iterable.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param num the number of items to take
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> take(final Iterable<? extends T> source, final int num) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					/** The counter. */
+					int count;
+					/** The source iterator. */
+					final Iterator<? extends T> it = source.iterator();
+					@Override
+					public boolean hasNext() {
+						return count < num && it.hasNext();
+					}
+
+					@Override
+					public T next() {
+						if (hasNext()) {
+							return it.next();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Defers the source iterable creation to registration time and
+	 * calls the given <code>func</code> for the actual source.
+	 * @param <T> the element type
+	 * @param func the function that returns an iterable.
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> defer(final Func0<? extends Iterable<T>> func) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return func.invoke().iterator();
+			}
+		};
+	}
+	/**
+	 * Casts the source iterable into a different typ by using a type token.
+	 * If the source contains a wrong element, the <code>next()</code>
+	 * will throw a <code>ClassCastException</code>.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
+	 * @param <T> the result element type
+	 * @param source the arbitrary source
+	 * @param token the type token
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<T> cast(final Iterable<?> source, final Class<T> token) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					/** The source iterator. */
+					final Iterator<?> it = source.iterator();
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					@Override
+					public T next() {
+						return token.cast(it.next());
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+					
+				};
+			}
+		};
+	}
+	/**
+	 * Returns an iterable which checks for the existence of the supplied
+	 * value by comparing the elements of the source iterable using reference
+	 * and <code>equals()</code>. The iterable then returns a single true or false.
+	 * @param <T> the source element type
+	 * @param source the source
+	 * @param value the value to check
+	 * @return the new iterable
+	 */
+	public static <T> Iterable<Boolean> contains(final Iterable<? extends T> source, final T value) {
+		return any(source, new Func1<Boolean, T>() {
+			@Override
+			public Boolean invoke(T param1) {
+				return param1 == value || (param1 != null && param1.equals(value));
+			};
+		});
 	}
 	/** Utility class. */
 	private Interactive() {
