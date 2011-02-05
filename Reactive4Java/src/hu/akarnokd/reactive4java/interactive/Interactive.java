@@ -25,6 +25,7 @@ import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.interactive.Interactive.LinkedBuffer.N;
+import hu.akarnokd.reactive4java.util.CircularBuffer;
 import hu.akarnokd.reactive4java.util.DefaultScheduler;
 
 import java.io.Closeable;
@@ -53,91 +54,23 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author akarnokd, 2011.02.02.
  */
 public final class Interactive {
-
-	/**
-	 * A simple circular buffer with absolute indices.
-	 * @author akarnokd, 2011.02.04.
-	 * @param <T> the contained element type
-	 */
-	static class CircularBuffer<T> {
-		/** The buffer. */
-		final Object[] buffer;
-		/** The head pointer. */
-		int head;
-		/** The tail pointer. */
-		int tail;
-		/**
-		 * Construct a new circular buffer.
-		 * @param size the buffer size
-		 */
-		public CircularBuffer(int size) {
-			buffer = new Object[size];
-		}
-		/**
-		 * Add a new value to the buffer.
-		 * If the buffer would overflow, it automatically removes the current head element.
-		 * @param value the value
-		 */
-		public void add(T value) {
-			buffer[(tail++) % buffer.length] = value;
-			if (size() > buffer.length) {
-				head++;
-			}
-		}
-		/**
-		 * Retrieve a buffer element based on an absolute index.
-		 * @param index the absolute index
-		 * @return the value
-		 */
-		@SuppressWarnings("unchecked")
-		public T get(int index) {
-			if (index < head) {
-				throw new IllegalArgumentException("read before head");
-			}
-			if (index >= tail) {
-				throw new IllegalArgumentException("read after tail");
-			}
-			return (T)buffer[index % buffer.length];
-		}
-		/**
-		 * @return Takes the head of the buffer.
-		 */
-		@SuppressWarnings("unchecked")
-		public T take() {
-			if (tail == head) {
-				throw new NoSuchElementException();
-			}
-			int idx = head++ % buffer.length;
-			T value = (T)buffer[idx];
-			buffer[idx] = null;
-			return value; 
-		}
-		/** @return is the buffer empty? */
-		public boolean isEmpty() {
-			return head == tail;
-		}
-		/** @return the current size of the buffer. */
-		public int size() {
-			return tail - head;
-		}
-	}
 	/**
 	 * A linked buffer, which can be only filled and queried.
 	 * @author akarnokd, 2011.02.03.
 	 * @param <T> the element type
 	 */
-	static class LinkedBuffer<T> {
+	public static class LinkedBuffer<T> {
 		/** The node. */
-		static class N<T> {
+		public static class N<T> {
 			/** The element value. */
 			T value;
 			/** The next node. */
-			N<T> next;
+			LinkedBuffer.N<T> next;
 		}
 		/** The head pointer. */
-		final N<T> head = new N<T>();
+		final LinkedBuffer.N<T> head = new LinkedBuffer.N<T>();
 		/** The tail pointer. */
-		N<T> tail = head;
+		LinkedBuffer.N<T> tail = head;
 		/** The size. */
 		int size;
 		/**
@@ -145,13 +78,14 @@ public final class Interactive {
 		 * @param value the new value
 		 */
 		public void add(T value) {
-			N<T> n = new N<T>();
+			LinkedBuffer.N<T> n = new LinkedBuffer.N<T>();
 			n.value = value;
 			tail.next = n;
 			tail = n;
 			size++;
 		}
 	}
+
 	/** The common empty iterator. */
 	private static final Iterator<Object> EMPTY_ITERATOR = new Iterator<Object>() {
 		@Override
@@ -1391,13 +1325,13 @@ public final class Interactive {
 
 					@Override
 					public boolean hasNext() {
-						return buffer.tail > Math.max(myHead, buffer.head) || it.hasNext();
+						return buffer.tail() > Math.max(myHead, buffer.head()) || it.hasNext();
 					}
 
 					@Override
 					public T next() {
 						if (hasNext()) {
-							if (buffer.tail == myHead) {
+							if (buffer.tail() == myHead) {
 								T value = it.next();
 								if (bufferSize > 0) {
 									buffer.add(value);
@@ -1405,7 +1339,7 @@ public final class Interactive {
 								myHead++;
 								return value;
 							} else {
-								myHead = Math.max(myHead, buffer.head);
+								myHead = Math.max(myHead, buffer.head());
 								T value = buffer.get(myHead);
 								myHead++;
 								return value;
