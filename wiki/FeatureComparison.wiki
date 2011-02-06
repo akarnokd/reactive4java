@@ -2,6 +2,8 @@
 
 = Introduction =
 
+This page contains some comparisons and cross reference with other library's features (currently, only with Rx).
+
 || *Operator* || *Rx* || *Remark* ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#accumulate(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func2)'>accumulate</a> || || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#addTimeInterval(hu.akarnokd.reactive4java.reactive.Observable)'>addTimeInterval</a> || || ||
@@ -20,12 +22,11 @@
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#concat(java.lang.Iterable)'>concat</a> || Concat || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#contains(hu.akarnokd.reactive4java.reactive.Observable, T)'>contains</a> || Contains || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#count(hu.akarnokd.reactive4java.reactive.Observable)'>count</a> || Count || ||
-|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#countLong(hu.akarnokd.reactive4java.reactive.Observable)'>countLong</a> || - || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#countLong(hu.akarnokd.reactive4java.reactive.Observable)'>countLong</a> || !LongCount || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#defer(hu.akarnokd.reactive4java.base.Func0)'>defer</a> || Defer || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#delay(hu.akarnokd.reactive4java.reactive.Observable, long, java.util.concurrent.TimeUnit)'>delay</a> || Delay || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#dematerialize(hu.akarnokd.reactive4java.reactive.Observable)'>dematerialize</a> || Dematerialize || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#distinct(hu.akarnokd.reactive4java.reactive.Observable)'>distinct</a> || !DistinctUntilChanged || ||
-|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#invoke(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Action1)'>invoke</a> || Do || ||
 || - || !DoWhile || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#drain(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1)'>drain</a> || Drain || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#empty()'>empty</a> || Empty || ||
@@ -33,18 +34,22 @@
 || <a href=''>first</a> || First || ||
 || - || !FirstOrDefault || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#forEach(java.lang.Iterable, hu.akarnokd.reactive4java.base.Func1)'>forEach</a> || For || ||
-|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#forkJoin(java.lang.Iterable)'>forkJoin</a> || ForkJoin || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#forkJoin(java.lang.Iterable)'>forkJoin</a> || !ForkJoin || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#generate(T, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func1)'>generate</a> || Generate || ||
-|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#generateTimed(T, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func1)'>generateTimed</a> || GenerateWithTime || ||
-|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#groupBy(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1)'>groupBy</a> || GroupBy || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#generateTimed(T, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func1)'>generateTimed</a> || !GenerateWithTime || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#groupBy(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1)'>groupBy</a> || !GroupBy || ||
+|| - || !GroupJoin || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#ifThen(hu.akarnokd.reactive4java.base.Func0, hu.akarnokd.reactive4java.reactive.Observable)'>ifThen</a> || If || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#invoke(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Action1)'>invoke</a> || Do || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#tick(long, long, long, java.util.concurrent.TimeUnit)'>tick</a> || Interval || ||
+|| <a href=''>invokeAsync</a> || ? || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#isEmpty(hu.akarnokd.reactive4java.reactive.Observable)'>isEmpty</a> || !IsEmpty || ||
+|| - || Iterate || ||
+|| - || Join || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#last(hu.akarnokd.reactive4java.reactive.Observable)'>last</a> || Last || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#latest(hu.akarnokd.reactive4java.reactive.Observable)'>latest</a> || Latest || ||
+|| - || Let || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#materialize(hu.akarnokd.reactive4java.reactive.Observable)'>materialize</a> || Materialize || ||
 || <a href=''></a> || || ||
 || <a href=''></a> || || ||
 || <a href=''></a> || || ||
