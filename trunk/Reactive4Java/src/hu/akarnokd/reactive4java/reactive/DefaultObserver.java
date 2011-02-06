@@ -39,22 +39,30 @@ import javax.annotation.Nullable;
  */
 public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 	/** The lock that ensures sequential and exclusive runs for the observer's methods. */
+	@Nonnull
 	protected final Lock lock;
 	/** The completion flag, it will be set by the close method once. */
 	@javax.annotation.concurrent.GuardedBy("lock")
-	protected boolean completed;
-	/** Constructor. Initializes the class with a fair reentrant lock. */
-	public DefaultObserver() {
-		this(new ReentrantLock(true));
+	private boolean completed;
+	/** Should the observer close() itself on error or finish()? */
+	protected final boolean closeOnTermination;
+	/** 
+	 * Constructor. Initializes the class with a fair reentrant lock.
+	 * @param complete should set the completion status on an error or finish? 
+	 */
+	public DefaultObserver(boolean complete) {
+		this(new ReentrantLock(true), complete);
 	}
 	/**
 	 * Constructor. Initializes the class with a shared lock instance.
 	 * @param lock the lock instance, nonnul
+	 * @param complete should set the completion status on an error or finish? 
 	 */
-	public DefaultObserver(@Nonnull final Lock lock) {
+	public DefaultObserver(@Nonnull final Lock lock, boolean complete) {
 		if (lock == null) {
 			throw new IllegalArgumentException("lock is null");
 		}
+		this.closeOnTermination = complete;
 		this.lock = lock;
 	}
 	/**
@@ -86,7 +94,7 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 		}
 	};
 	@Override
-	public void close() {
+	public final void close() {
 		lock.lock(); 
 		try {
 			if (!completed) {
@@ -108,7 +116,9 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 				try {
 					onError(ex);
 				} finally {
-					close();
+					if (closeOnTermination) {
+						close();
+					}
 				}
 			}
 		} finally {
@@ -123,7 +133,9 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 				try {
 					onFinish();
 				} finally {
-					close();
+					if (closeOnTermination) {
+						close();
+					}
 				}
 			}
 		} finally {
