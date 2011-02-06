@@ -1,16 +1,28 @@
-#summary Feature comparison with Rx
+#summary Feature comparison with other libraries.
 
 = Introduction =
 
-A comparison table with Rx.
-
-= Details =
-
-Note: IObservable< T> = IO, Observable< T> = O, Func = F, value type = T,
-utility class in Rx is Observable, in here is Observables.
-
-|| *Method in Rx* || *Method here* || *Since* || *Remark* ||
-|| Aggregate(F) || aggregate(O, F) || 0.1 || || 
-|| !ObserveOn(IScheduler) || observeOn(O, !ExecutorService) || 0.1 || If the pool uses more than one worker thread, the Observer methods might be invoked concurrently, and finish() might get called before next(). Not sure about the Rx semantics and what semantics is correct. ||
-
-to be filled in...
+|| *Operator* || *Rx* || *Remark* ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#accumulate(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func2)'>accumulate</a> + 3 || || ||
+|| aggregate + 3 || Aggregate + 2 || ||
+|| addTimeInterval || ||
+|| addTimestamped || ||
+|| all || All || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
+|| || ||
