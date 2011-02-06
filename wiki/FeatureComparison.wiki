@@ -4,25 +4,27 @@
 
 || *Operator* || *Rx* || *Remark* ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#accumulate(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func2)'>accumulate</a> + 3 || || ||
-|| aggregate + 3 || Aggregate + 2 || ||
-|| addTimeInterval || ||
-|| addTimestamped || ||
-|| all || All || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
-|| || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#addTimeInterval(hu.akarnokd.reactive4java.reactive.Observable)'>addTimeInterval</a> || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#addTimestamped(hu.akarnokd.reactive4java.reactive.Observable)'>addTimestamped</a> || || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#aggregate(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func2)'>aggregate</a> + 3 || Aggregate + 2 || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#aggregate(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func2)'>all</a> || All || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#amb(java.lang.Iterable)'>amb</a> || Amb || ||
+|| - || And || Not implemented yet ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#any(hu.akarnokd.reactive4java.reactive.Observable)'>any</a> + 2 || Any || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#averageBigDecimal(hu.akarnokd.reactive4java.reactive.Observable)'>averageXYZ</a> + 6 || Average + 10 || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
