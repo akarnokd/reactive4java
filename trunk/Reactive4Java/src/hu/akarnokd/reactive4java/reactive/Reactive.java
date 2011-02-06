@@ -503,11 +503,11 @@ public final class Reactive {
 				for (final Observable<? extends T> os : observables) {
 					DefaultObserver<T> dob = observers.get(i);
 					closers.add(dob);
-					closers.add(os.register(dob));
+					closers.add(os.register(dob)); // FIXME deregister?!
 					
 					i++;
 				}
-				return close(closers);
+				return closeAll(closers);
 			}
 		};
 	}
@@ -1149,7 +1149,7 @@ public final class Reactive {
 	 * @param closeables the closeables array
 	 * @return the composite closeable
 	 */
-	static Closeable close(final Iterable<? extends Closeable> closeables) {
+	static Closeable closeAll(final Iterable<? extends Closeable> closeables) {
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
@@ -1908,7 +1908,7 @@ public final class Reactive {
 					i++;
 				}
 				runIfComplete(observer, lastValues, wip);
-				return close(closeables);
+				return closeAll(closeables);
 			}
 			/**
 			 * Runs the completion sequence once the WIP drops to zero.
@@ -2636,7 +2636,7 @@ public final class Reactive {
 				final List<DefaultObserver<T>> observers = new ArrayList<DefaultObserver<T>>();
 				final Lock lock = new ReentrantLock();
 				int i = 0;
-				for (Observable<? extends T> os : sourcesList) {
+				for (i = 0; i < sourcesList.size(); i++) {
 					final int j = i++;
 					DefaultObserver<T> obs = new DefaultObserver<T>(lock, true) {
 						@Override
@@ -2670,7 +2670,7 @@ public final class Reactive {
 				if (wip.decrementAndGet() == 0) {
 					observer.finish();
 				}
-				return close(disposables);
+				return closeAll(disposables);
 			}
 		};
 	}
@@ -3726,8 +3726,6 @@ public final class Reactive {
 	public static void run(final Observable<?> source) throws InterruptedException {
 		final CountDownLatch latch = new CountDownLatch(1);
 		Closeable c = source.register(new DefaultObserver<Object>(true) {
-			/** Are we finished? */
-			boolean done;
 			@Override
 			public void onError(Throwable ex) {
 				latch.countDown();
@@ -3763,8 +3761,6 @@ public final class Reactive {
 	static boolean run(final Observable<?> source, long time, TimeUnit unit) throws InterruptedException {
 		final CountDownLatch latch = new CountDownLatch(1);
 		Closeable c = source.register(new DefaultObserver<Object>(true) {
-			/** Are we finished? */
-			boolean done;
 			@Override
 			public void onError(Throwable ex) {
 				latch.countDown();
@@ -4803,14 +4799,12 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultRunnable s = new DefaultRunnable() {
+				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
 						observer.error(ex);
 					}
-				};
-				s.schedule(pool);
-				return s;
+				});
 			}
 		};
 	}
@@ -4842,23 +4836,22 @@ public final class Reactive {
 		return new Observable<Long>() {
 			@Override
 			public Closeable register(final Observer<? super Long> observer) {
-				DefaultRunnable s = new DefaultRunnable() {
+				return pool.schedule(new DefaultRunnable() {
+					/** The current value. */
 					long current = start;
 					@Override
-					public void run() {
+					protected void onRun() {
 						if (current < end && !cancelled()) {
 							observer.next(current++);
 						} else {
 							if (!cancelled()) {
 								observer.finish();
 							} else {
-								close(); // no more scheduling needed
+								cancel();
 							}
 						}
 					}
-				};
-				s.schedule(pool, delay, delay, unit);
-				return s;
+				}, unit.toNanos(delay), unit.toNanos(delay));
 			}
 		};
 	}
@@ -4930,71 +4923,56 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultRunnableObserver<T> so = new DefaultRunnableObserver<T>() {
-					/** The lock to prevent overlapping of run and observer messages. */
-					final Lock lock = new ReentrantLock();
-					/** Flag to indicate if a timeout happened. */
-					boolean timedout;
-					@Override
-					public void error(Throwable ex) {
-						if (lock.tryLock()) {
-							try {
-								if (!timedout) {
-									observer.error(ex);
-									close();
+				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
+					/** The current source. */
+					@GuardedBy("lock")
+					Closeable src;
+					/** The current timer.*/
+					@GuardedBy("lock")
+					Closeable timer;
+					{
+						lock.lock();
+						try {
+							timer = pool.schedule(new DefaultRunnable(lock) {
+								@Override
+								public void onRun() {
+									if (!cancelled()) {
+										close0(src);
+										src = other.register(observer);
+										timer = null;
+									}
 								}
-							} finally {
-								lock.unlock();
-							}
+							}, unit.toNanos(time));
+							src = source.register(this);
+						} finally {
+							lock.unlock();
 						}
+					}
+					@Override
+					protected void onNext(T value) {
+						if (timer != null) {
+							close0(timer);
+							timer = null;
+						}
+						observer.next(value);
 					}
 
 					@Override
-					public void finish() {
-						if (lock.tryLock()) {
-							try {
-								if (!timedout) {
-									observer.finish();
-									close();
-								}
-							} finally {
-								lock.unlock();
-							}
-						}
+					protected void onError(Throwable ex) {
+						observer.error(ex);
 					}
 
 					@Override
-					public void next(T value) {
-						if (lock.tryLock()) {
-							try {
-								if (!timedout) {
-									observer.next(value);
-								}
-							} finally {
-								lock.unlock();
-							}
-						}
+					protected void onFinish() {
+						observer.finish();
 					}
-
 					@Override
-					public void run() {
-						if (lock.tryLock()) {
-							try {
-								timedout = true;
-								close();
-								// register and continue with the other observable but without timeouts
-								replace(other.register(observer));
-							} finally {
-								lock.unlock();
-							}
-						} else {
-							schedule(pool, time, unit);
-						}
+					protected void onClose() {
+						close0(timer);
+						close0(src);
 					}
 				};
-				so.register(source);
-				so.schedule(pool, time, unit);
-				return so;
+				return obs;
 			}
 		};
 	}
@@ -5014,75 +4992,8 @@ public final class Reactive {
 	 */
 	public static <T> Observable<T> timeout(final Observable<? extends T> source, 
 			final long time, final TimeUnit unit, final Scheduler pool) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				DefaultRunnableObserver<T> so = new DefaultRunnableObserver<T>() {
-					/** The lock to prevent overlapping of run and observer messages. */
-					final Lock lock = new ReentrantLock();
-					/** Flag to indicate if a timeout happened. */
-					boolean timedout;
-					@Override
-					public void error(Throwable ex) {
-						if (lock.tryLock()) {
-							try {
-								if (!timedout) {
-									observer.error(ex);
-									close();
-								}
-							} finally {
-								lock.unlock();
-							}
-						}
-					}
-
-					@Override
-					public void finish() {
-						if (lock.tryLock()) {
-							try {
-								if (!timedout) {
-									observer.finish();
-									close();
-								}
-							} finally {
-								lock.unlock();
-							}
-						}
-					}
-
-					@Override
-					public void next(T value) {
-						if (lock.tryLock()) {
-							try {
-								if (!timedout) {
-									observer.next(value);
-								}
-							} finally {
-								lock.unlock();
-							}
-						}
-					}
-
-					@Override
-					public void run() {
-						if (lock.tryLock()) {
-							try {
-								timedout = true;
-								observer.error(new TimeoutException());
-								close();
-							} finally {
-								lock.unlock();
-							}
-						} else {
-							schedule(pool, time, unit);
-						}
-					}
-				};
-				so.register(source);
-				so.schedule(pool, time, unit);
-				return so;
-			}
-		};
+		Observable<T> other = Reactive.throwException(new TimeoutException());
+		return timeout(source, time, unit, other, pool);
 	}
 	/**
 	 * Wraps the given action as an observable which reacts only to <code>next()</code> events.
@@ -5333,120 +5244,86 @@ public final class Reactive {
 			@Override
 			public Closeable register(final Observer<? super Observable<T>> observer) {
 				// The current observable
-				DefaultRunnableObserver<T> obs = new DefaultRunnableObserver<T>() {
-					final AtomicReference<DefaultObservable<T>> current = new AtomicReference<DefaultObservable<T>>(new DefaultObservable<T>());
-					
-					final AtomicBoolean done = new AtomicBoolean();
-					
-					final Lock lock = new ReentrantLock(true);
-					
-					final Observer<U> wo = new Observer<U>() {
+				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
+					/** The current observable window. */
+					@GuardedBy("lock")
+					DefaultObservable<T> current;
+					/** The window watcher. */
+					final DefaultObserver<U> wo = new DefaultObserver<U>(lock, true) {
 						@Override
-						public void error(Throwable ex) {
-							lock.lock();
-							try {
-								if (!done.get()) {
-									observer.error(ex);
-									done.set(true);
-									close();
-								}
-							} finally {
-								lock.unlock();
-							}
+						public void onError(Throwable ex) {
+							innerError(ex);
 						}
 
 						@Override
-						public void finish() {
-							lock.lock();
-							try {
-								if (!done.get()) {
-									observer.finish();
-									done.set(true);
-									close();
-								}
-							} finally {
-								lock.unlock();
-							}
+						public void onFinish() {
+							innerFinish();
 						}
 
 						@Override
-						public void next(U value) {
-							lock.lock();
-							try {
-								if (!done.get()) {
-									DefaultObservable<T> o = new DefaultObservable<T>();
-									current.getAndSet(o).finish();
-									observer.next(o);
-								}
-							} finally {
-								lock.unlock();
+						public void onNext(U value) {
+							DefaultObservable<T> o = new DefaultObservable<T>();
+							Observer<T> os = current;
+							current = o;
+							if (os != null) {
+								os.finish();
 							}
+							observer.next(o);
 						}
 						
 					};
 					/** The close handler for the inner observer of closing events. */
 					Closeable woc = windowClosing.invoke().register(wo);
-					
+					/**
+					 * The scheduled action which will open the first window as soon as possible.
+					 */
+					Closeable openWindow = pool.schedule(new DefaultRunnable(lock) {
+						@Override
+						protected void onRun() {
+							if (current == null) {
+								DefaultObservable<T> o = new DefaultObservable<T>();
+								current = o;
+								observer.next(o);
+							}
+						}
+					});
+					/**
+					 * The inner exception callback.
+					 * @param ex the exception
+					 */
+					void innerError(Throwable ex) {
+						error(ex);
+					}
+					/** The inner finish callback. */
+					void innerFinish() {
+						finish();
+					}
 					@Override
-					public void close() {
+					public void onClose() {
 						close0(woc);
-						super.close();
+						close0(openWindow);
 					}
 
 					@Override
-					public void error(Throwable ex) {
-						lock.lock();
-						try {
-							if (!done.get()) {
-								observer.error(ex);
-								done.set(true);
-								close();
-							}
-						} finally {
-							lock.unlock();
-						}
+					public void onError(Throwable ex) {
+						observer.error(ex);
 					}
 
 					@Override
-					public void finish() {
-						lock.lock();
-						try {
-							if (!done.get()) {
-								observer.finish();
-								done.set(true);
-								close();
-							}
-						} finally {
-							lock.unlock();
-						}
+					public void onFinish() {
+						observer.finish();
 					}
 					@Override
-					public void next(T value) {
-						lock.lock();
-						try {
-							if (!done.get()) {
-								current.get().next(value);
-							}
-						} finally {
-							lock.unlock();
+					public void onNext(T value) {
+						if (current == null) {
+							DefaultObservable<T> o = new DefaultObservable<T>();
+							current = o;
+							observer.next(o);
 						}
-					}
-					@Override
-					public void run() {
-						lock.lock();
-						try {
-							if (!done.get()) {
-								observer.next(current.get());
-							}
-						} finally {
-							lock.unlock();
-						}
-						
+						current.next(value);
 					}
 				};
-				obs.register(source);
-				obs.schedule(pool);
-				return obs;
+				return close(obs, source.register(obs));
 			}
 		};
 	}
@@ -5486,30 +5363,45 @@ public final class Reactive {
 		return new Observable<V>() {
 			@Override
 			public Closeable register(final Observer<? super V> observer) {
-				final Iterator<? extends U> it = right.iterator();
-				DefaultObserver<T> obs = new DefaultObserver<T>() {
+				
+				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
+					/** The second source. */
+					final Iterator<? extends U> it = right.iterator();
+					/** The registration handler. */
+					final Closeable c;
+					{
+						lock.lock();
+						try {
+							c = left.register(this);
+						} finally {
+							lock.unlock();
+						}
+					}
 					@Override
-					public void error(Throwable ex) {
+					public void onError(Throwable ex) {
 						observer.error(ex);
 					}
 
 					@Override
-					public void finish() {
+					public void onFinish() {
 						observer.finish();
 					}
 
 					@Override
-					public void next(T t) {
+					public void onNext(T t) {
 						if (it.hasNext()) {
 							U u = it.next();
 							observer.next(selector.invoke(t, u));
 						} else {
 							observer.finish();
+							close();
 						}
 					}
-					
+					@Override
+					protected void onClose() {
+						close0(c);
+					}
 				};
-				obs.register(left);
 				return obs;
 			}
 		};
@@ -5543,35 +5435,35 @@ public final class Reactive {
 				final AtomicInteger wip = new AtomicInteger(2);
 				final Lock lockBoth = new ReentrantLock(true);
 				
-				final DefaultObserver<U> oU = new DefaultObserver<U>() {
-					@Override
-					public void error(Throwable ex) {
-						lockBoth.lock();
-						try {
+				lockBoth.lock();
+				try {
+					final DefaultObserver<U> oU = new DefaultObserver<U>(lockBoth, false) {
+						/** The source handler. */
+						final Closeable c;
+						{
+							lock.lock();
+							try {
+								c = left.register(this);
+							} finally {
+								lock.unlock();
+							}
+						}
+						@Override
+						public void onError(Throwable ex) {
 							observer.error(ex);
 							close0(closeBoth.get());
-						} finally {
-							lockBoth.unlock();
 						}
-					}
-
-					@Override
-					public void finish() {
-						lockBoth.lock();
-						try {
+	
+						@Override
+						public void onFinish() {
 							if (wip.decrementAndGet() == 0) {
 								observer.finish();
-								try { closeBoth.get().close(); } catch (IOException ex) { }
+								close0(closeBoth.get());
 							}
-						} finally {
-							lockBoth.unlock();
 						}
-					}
-					
-					@Override
-					public void next(U u) {
-						lockBoth.lock();
-						try {
+						
+						@Override
+						public void onNext(U u) {
 							V v = queueV.poll();
 							if (v != null) {
 								observer.next(selector.invoke(u, v));
@@ -5582,42 +5474,39 @@ public final class Reactive {
 									this.finish();
 								}
 							}
-						} finally {
-							lockBoth.unlock();
 						}
-					}
-					
-				};
-				final DefaultObserver<V> oV = new DefaultObserver<V>() {
-
-					@Override
-					public void error(Throwable ex) {
-						lockBoth.lock();
-						try {
+						@Override
+						protected void onClose() {
+							close0(c);
+						}
+					};
+					final DefaultObserver<V> oV = new DefaultObserver<V>(lockBoth, false) {
+						/** The source handler. */
+						final Closeable c;
+						{
+							lock.lock();
+							try {
+								c = right.register(this);
+							} finally {
+								lock.unlock();
+							}
+						}
+						@Override
+						public void onError(Throwable ex) {
 							observer.error(ex);
 							close0(closeBoth.get());
-						} finally {
-							lockBoth.unlock();
 						}
-					}
-
-					@Override
-					public void finish() {
-						lockBoth.lock();
-						try {
+	
+						@Override
+						public void onFinish() {
 							if (wip.decrementAndGet() == 0) {
 								observer.finish();
 								close0(closeBoth.get());
 							}
-						} finally {
-							lockBoth.unlock();
 						}
-					}
-
-					@Override
-					public void next(V v) {
-						lockBoth.lock();
-						try {
+	
+						@Override
+						public void onNext(V v) {
 							U u = queueU.poll();
 							if (u != null) {
 								observer.next(selector.invoke(u, v));
@@ -5628,17 +5517,18 @@ public final class Reactive {
 									this.finish();
 								}
 							}
-						} finally {
-							lockBoth.unlock();
 						}
-					}
-					
-				};
-				Closeable c = close(oU, oV);
-				closeBoth.set(c);
-				oU.register(left);
-				oV.register(right);
-				return c;
+						@Override
+						protected void onClose() {
+							close0(c);
+						}
+					};
+					Closeable c = close(oU, oV);
+					closeBoth.set(c);
+				} finally {
+					lockBoth.unlock();
+				}
+				return closeBoth.get();
 			}
 		};
 	}
