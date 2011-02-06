@@ -845,6 +845,37 @@ public final class Functions {
 	public static Func2<Long, Long, Long> sumLong() {
 		return SUM_LONG;
 	}
+	/**
+	 * Creates a new comparator which reverses the order produced by the given
+	 * normal comparator.
+	 * @param <T> the element type
+	 * @param normal the normal comparator
+	 * @return the new comparator
+	 */
+	@Nonnull
+	public static <T> Comparator<T> comparatorReverse(
+			@Nonnull final Comparator<? super T> normal) {
+		return new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				return normal.compare(o2, o1);
+			};
+		};
+	}
+	/**
+	 * Creates a new comparator which reverses the order of the comparison.
+	 * @param <T> the element type, which must be self comparable
+	 * @return the new comparator
+	 */
+	@Nonnull
+	public static <T extends Comparable<? super T>> Comparator<T> comparatorReverse() {
+		return new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				return o2.compareTo(o1);
+			};
+		};
+	}
 	/** Utility class. */
 	private Functions() {
 		// TODO Auto-generated constructor stub

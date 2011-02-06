@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -3623,6 +3624,121 @@ public final class Interactive {
 				};
 			}
 		};
+	}
+	/**
+	 * Returns an iterable which traverses the entire
+	 * source iterable and creates an ordered list
+	 * of elements. Once the source iterator completes,
+	 * the elements are streamed to the output.
+	 * @param <T> the source element type
+	 * @param <U> the key type for the ordering
+	 * @param source the source of Ts
+	 * @param keySelector the key selector for comparison
+	 * @param keyComparator the key comparator function
+	 * @return the new iterable
+	 */
+	@Nonnull
+	public static <T, U> Iterable<T> orderBy(
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Func1<? extends U, ? super T> keySelector,
+			@Nonnull final Comparator<? super U> keyComparator
+			) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					/** The buffer. */
+					List<T> buffer;
+					/** The source iterator. */
+					Iterator<? extends T> it = source.iterator();
+					/** The buffer iterator. */
+					Iterator<T> bufIterator;
+					@Override
+					public boolean hasNext() {
+						if (buffer == null) {
+							buffer = new ArrayList<T>();
+							while (it.hasNext()) {
+								buffer.add(it.next());
+							}
+							Collections.sort(buffer, new Comparator<T>() {
+								@Override
+								public int compare(T o1, T o2) {
+									U key1 = keySelector.invoke(o1);
+									U key2 = keySelector.invoke(o2);
+									return keyComparator.compare(key1, key2);
+								};
+							});
+							bufIterator = buffer.iterator();
+						}
+						return bufIterator.hasNext();
+					}
+
+					@Override
+					public T next() {
+						if (hasNext()) {
+							return bufIterator.next();
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+					
+				};
+			}
+		};
+	}
+	/**
+	 * Returns an iterable which traverses the entire
+	 * source iterable and creates an ordered list
+	 * of elements. Once the source iterator completes,
+	 * the elements are streamed to the output.
+	 * @param <T> the source element type
+	 * @param <U> the key type for the ordering, must be self comparable
+	 * @param source the source of Ts
+	 * @param keySelector the key selector for comparison
+	 * @return the new iterable
+	 */
+	@Nonnull
+	public static <T, U extends Comparable<? super U>> Iterable<T> orderBy(
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Func1<? extends U, ? super T> keySelector
+			) {
+		return orderBy(source, keySelector, Functions.<U>comparator());
+	}
+	/**
+	 * Returns an iterable which traverses the entire
+	 * source iterable and creates an ordered list
+	 * of elements. Once the source iterator completes,
+	 * the elements are streamed to the output.
+	 * @param <T> the source element type, must be self comparable
+	 * @param source the source of Ts
+	 * @param comparator the value comparator
+	 * @return the new iterable
+	 */
+	@Nonnull
+	public static <T> Iterable<T> orderBy(
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Comparator<? super T> comparator
+			) {
+		return orderBy(source, Functions.<T>identity(), comparator);
+	}
+	/**
+	 * Returns an iterable which traverses the entire
+	 * source iterable and creates an ordered list
+	 * of elements. Once the source iterator completes,
+	 * the elements are streamed to the output.
+	 * @param <T> the source element type, must be self comparable
+	 * @param source the source of Ts
+	 * @return the new iterable
+	 */
+	@Nonnull
+	public static <T extends Comparable<? super T>> Iterable<T> orderBy(
+			@Nonnull final Iterable<? extends T> source
+			) {
+		return orderBy(source, Functions.<T>identity(), Functions.<T>comparator());
 	}
 	/** Utility class. */
 	private Interactive() {

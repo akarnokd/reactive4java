@@ -18,6 +18,7 @@ package hu.akarnokd.reactive4java.test;
 
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
+import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
@@ -55,7 +56,13 @@ public final class TestB {
 	public static void main(String[] args)
 	throws Exception {
 	
-		
+		Reactive.run(Reactive.selectMany(Reactive.range(0, 10), new Func1<Observable<Integer>, Integer>() {
+			@Override
+			public Observable<Integer> invoke(Integer param1) {
+				return Reactive.range(0, param1);
+			}
+			
+		}), Reactive.println());
 		
 		
 		run(Reactive.tick(0, 10, 1, TimeUnit.SECONDS));

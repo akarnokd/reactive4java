@@ -16,7 +16,9 @@
 
 package hu.akarnokd.reactive4java.test;
 
+import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
+import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.interactive.Interactive;
 
 
@@ -65,6 +67,19 @@ public final class TestInteractive1 {
 		}));
 		
 		run(Interactive.max(Interactive.range(0, 10)));
+		
+	    Interactive.run(
+	    		Interactive.orderBy(
+		            Interactive.selectMany(
+		                Interactive.range(0, 10), 
+		                new Func1<Iterable<Integer>, Integer>() {
+		                    public Iterable<Integer> invoke(Integer param1) {
+		                       return Interactive.range(0, param1);
+		                }
+		            }
+		        ),
+	            Functions.<Integer>comparatorReverse()
+	        ), Interactive.println());
 		
 		System.out.printf("%nMain finished%n");
 	}
