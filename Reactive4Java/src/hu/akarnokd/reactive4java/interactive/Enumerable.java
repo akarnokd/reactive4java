@@ -15,6 +15,8 @@
  */
 package hu.akarnokd.reactive4java.interactive;
 
+import javax.annotation.Nonnull;
+
 /**
  * The base interface for an Enumerable-Enumerator
  * pair of iteration method where the
@@ -28,5 +30,6 @@ package hu.akarnokd.reactive4java.interactive;
  */
 public interface Enumerable<T> {
 	/** @return the enumerator. */
+	@Nonnull 
 	Enumerator<T> enumerator();
 }

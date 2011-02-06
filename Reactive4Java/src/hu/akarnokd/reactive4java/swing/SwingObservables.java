@@ -48,6 +48,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nonnull;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
@@ -83,7 +84,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return the new observable
 		 */
-		public static ObservableActionListener register(Object component) {
+		@Nonnull 
+		public static ObservableActionListener register(@Nonnull Object component) {
 			return new ObservableActionListener().registerWith(component);
 		}
 		/**
@@ -91,7 +93,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableActionListener registerWith(Object component) {
+		@Nonnull 
+		public ObservableActionListener registerWith(@Nonnull Object component) {
 			return invoke(component, "add", ActionListener.class, this);
 		}
 		/**
@@ -99,7 +102,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableActionListener unregisterFrom(Object component) {
+		@Nonnull 
+		public ObservableActionListener unregisterFrom(@Nonnull Object component) {
 			return invoke(component, "remove", ActionListener.class, this);
 		}
 	}
@@ -118,7 +122,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return the new observable
 		 */
-		public static ObservableChangeListener register(Object component) {
+		@Nonnull 
+		public static ObservableChangeListener register(@Nonnull Object component) {
 			return new ObservableChangeListener().registerWith(component);
 		}
 		/**
@@ -126,7 +131,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableChangeListener registerWith(Object component) {
+		@Nonnull 
+		public ObservableChangeListener registerWith(@Nonnull Object component) {
 			return invoke(component, "add", ChangeListener.class, this);
 		}
 		/**
@@ -134,7 +140,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableChangeListener unregisterFrom(Object component) {
+		@Nonnull 
+		public ObservableChangeListener unregisterFrom(@Nonnull Object component) {
 			return invoke(component, "remove", ChangeListener.class, this);
 		}
 	}
@@ -165,7 +172,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return the new observable
 		 */
-		public static ObservableDocumentListener register(Object component) {
+		@Nonnull 
+		public static ObservableDocumentListener register(@Nonnull Object component) {
 			return new ObservableDocumentListener().registerWith(component);
 		}
 		/**
@@ -173,7 +181,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableDocumentListener registerWith(Object component) {
+		@Nonnull 
+		public ObservableDocumentListener registerWith(@Nonnull Object component) {
 			return invoke(component, "add", DocumentListener.class, this);
 		}
 		/**
@@ -181,7 +190,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableDocumentListener unregisterFrom(Object component) {
+		@Nonnull 
+		public ObservableDocumentListener unregisterFrom(@Nonnull Object component) {
 			return invoke(component, "remove", DocumentListener.class, this);
 		}
 	}
@@ -211,7 +221,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return the new observable
 		 */
-		public static ObservableListDataListener register(Object component) {
+		@Nonnull 
+		public static ObservableListDataListener register(@Nonnull Object component) {
 			return new ObservableListDataListener().registerWith(component);
 		}
 		/**
@@ -219,7 +230,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableListDataListener registerWith(Object component) {
+		@Nonnull 
+		public ObservableListDataListener registerWith(@Nonnull Object component) {
 			return invoke(component, "add", ListDataListener.class, this);
 		}
 		/**
@@ -227,7 +239,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableListDataListener unregisterFrom(Object component) {
+		@Nonnull 
+		public ObservableListDataListener unregisterFrom(@Nonnull Object component) {
 			return invoke(component, "remove", ListDataListener.class, this);
 		}
 	}
@@ -248,7 +261,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return the new observable
 		 */
-		public static ObservableListSelectionListener register(Object component) {
+		@Nonnull 
+		public static ObservableListSelectionListener register(@Nonnull Object component) {
 			return new ObservableListSelectionListener().registerWith(component);
 		}
 		/**
@@ -256,7 +270,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableListSelectionListener registerWith(Object component) {
+		@Nonnull 
+		public ObservableListSelectionListener registerWith(@Nonnull Object component) {
 			return invoke(component, "add", ListSelectionListener.class, this);
 		}
 		/**
@@ -264,7 +279,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableListSelectionListener unregisterFrom(Object component) {
+		@Nonnull 
+		public ObservableListSelectionListener unregisterFrom(@Nonnull Object component) {
 			return invoke(component, "remove", ListSelectionListener.class, this);
 		}
 	}
@@ -283,7 +299,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return the new observable
 		 */
-		public static ObservableAdjustmentListener register(Object component) {
+		@Nonnull 
+		public static ObservableAdjustmentListener register(@Nonnull Object component) {
 			return new ObservableAdjustmentListener().registerWith(component);
 		}
 		/**
@@ -291,7 +308,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableAdjustmentListener registerWith(Object component) {
+		@Nonnull 
+		public ObservableAdjustmentListener registerWith(@Nonnull Object component) {
 			if (component instanceof Adjustable) {
 				((Adjustable)component).addAdjustmentListener(this);
 				return this;
@@ -303,7 +321,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableAdjustmentListener unregisterFrom(Object component) {
+		@Nonnull 
+		public ObservableAdjustmentListener unregisterFrom(@Nonnull Object component) {
 			if (component instanceof Adjustable) {
 				((Adjustable)component).removeAdjustmentListener(this);
 				return this;
@@ -340,7 +359,8 @@ public final class SwingObservables {
 		 * @param component the target component.
 		 * @return the observable action listener
 		 */
-		public static ObservableKeyListener register(Object component) {
+		@Nonnull 
+		public static ObservableKeyListener register(@Nonnull Object component) {
 			return new ObservableKeyListener().registerWith(component);
 		}
 		/**
@@ -348,7 +368,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableKeyListener registerWith(Object component) {
+		@Nonnull 
+		public ObservableKeyListener registerWith(@Nonnull Object component) {
 			return invoke(component, "add", KeyListener.class, this);
 		}
 		/**
@@ -356,7 +377,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableKeyListener unregisterFrom(Object component) {
+		@Nonnull 
+		public ObservableKeyListener unregisterFrom(@Nonnull Object component) {
 			return invoke(component, "remove", KeyListener.class, this);
 		}
 	}
@@ -371,7 +393,11 @@ public final class SwingObservables {
 	 * @param value the value to invoke with
 	 * @return the value
 	 */
-	static <T, U extends T> U invoke(Object o, String methodPrefix, Class<T> paramType, U value) {
+	static <T, U extends T> U invoke(
+			@Nonnull Object o, 
+			@Nonnull String methodPrefix, 
+			@Nonnull Class<T> paramType, 
+			@Nonnull U value) {
 		if (o == null) {
 			throw new IllegalArgumentException("o is null");
 		}
@@ -463,7 +489,8 @@ public final class SwingObservables {
 		 * @param component the target component.
 		 * @return the new observable
 		 */
-		public static ObservableMouseListener register(Component component) {
+		@Nonnull 
+		public static ObservableMouseListener register(@Nonnull Component component) {
 			return new ObservableMouseListener().registerWith(component);
 		}
 		/**
@@ -472,7 +499,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableMouseListener registerWith(Component component) {
+		@Nonnull 
+		public ObservableMouseListener registerWith(@Nonnull Component component) {
 			return registerWith(component, true, true, true);
 		}
 		/**
@@ -484,7 +512,12 @@ public final class SwingObservables {
 		 * @param wheel register for wheel events?
 		 * @return this
 		 */
-		public ObservableMouseListener registerWith(Component component, boolean normal, boolean motion, boolean wheel) {
+		@Nonnull 
+		public ObservableMouseListener registerWith(
+				@Nonnull Component component, 
+				boolean normal, 
+				boolean motion, 
+				boolean wheel) {
 			if (component == null) {
 				throw new IllegalArgumentException("component is null");
 			}
@@ -504,7 +537,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableMouseListener unregisterFrom(Component component) {
+		@Nonnull 
+		public ObservableMouseListener unregisterFrom(@Nonnull Component component) {
 			if (component == null) {
 				throw new IllegalArgumentException("component is null");
 			}
@@ -602,7 +636,8 @@ public final class SwingObservables {
 		 * @param component the target component.
 		 * @return the new observable
 		 */
-		public static ObservableWindowListener register(Window component) {
+		@Nonnull 
+		public static ObservableWindowListener register(@Nonnull Window component) {
 			return new ObservableWindowListener().registerWith(component);
 		}
 		/**
@@ -611,7 +646,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableWindowListener registerWith(Window component) {
+		@Nonnull 
+		public ObservableWindowListener registerWith(@Nonnull Window component) {
 			return registerWith(component, true, true, true);
 		}
 		/**
@@ -623,7 +659,12 @@ public final class SwingObservables {
 		 * @param state register for state events?
 		 * @return this
 		 */
-		public ObservableWindowListener registerWith(Window component, boolean normal, boolean focus, boolean state) {
+		@Nonnull 
+		public ObservableWindowListener registerWith(
+				@Nonnull Window component, 
+				boolean normal, 
+				boolean focus, 
+				boolean state) {
 			if (component == null) {
 				throw new IllegalArgumentException("component is null");
 			}
@@ -643,7 +684,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableWindowListener unregisterFrom(Window component) {
+		@Nonnull 
+		public ObservableWindowListener unregisterFrom(@Nonnull Window component) {
 			if (component == null) {
 				throw new IllegalArgumentException("component is null");
 			}
@@ -669,7 +711,8 @@ public final class SwingObservables {
 		 * @param component the target component.
 		 * @return the new observable
 		 */
-		public static ObservableItemListener register(Object component) {
+		@Nonnull 
+		public static ObservableItemListener register(@Nonnull Object component) {
 			return new ObservableItemListener().registerWith(component);
 		}
 		/**
@@ -677,7 +720,8 @@ public final class SwingObservables {
 		 * @param component the target component.
 		 * @return the new observable
 		 */
-		public ObservableItemListener registerWith(Object component) {
+		@Nonnull 
+		public ObservableItemListener registerWith(@Nonnull Object component) {
 			return invoke(component, "add", ItemListener.class, this);
 		}
 		/**
@@ -685,7 +729,8 @@ public final class SwingObservables {
 		 * @param component the target component
 		 * @return this
 		 */
-		public ObservableItemListener unregisterFrom(Object component) {
+		@Nonnull 
+		public ObservableItemListener unregisterFrom(@Nonnull Object component) {
 			return invoke(component, "remove", ItemListener.class, this);
 		}
 	}
@@ -699,7 +744,10 @@ public final class SwingObservables {
 	 * @param bindTo the target observer, use the DefaultObservable
 	 * @return the proxy instance
 	 */
-	public static <T> T create(Class<T> listener, final Observer<? super Dynamic> bindTo) {
+	@Nonnull 
+	public static <T> T create(
+			@Nonnull Class<T> listener, 
+			@Nonnull final Observer<? super Dynamic> bindTo) {
 		final InvocationHandler handler = new InvocationHandler() {
 			@Override
 			public Object invoke(Object proxy, Method method, Object[] args)
@@ -717,12 +765,14 @@ public final class SwingObservables {
 	 * @param observable the original observable
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> observeOnEdt(Observable<T> observable) {
+	@Nonnull 
+	public static <T> Observable<T> observeOnEdt(@Nonnull Observable<T> observable) {
 		return Reactive.observeOn(observable, DEFAULT_EDT_SCHEDULER.get());
 	}
 	/**
 	 * @return the current default pool used by the Observables methods
 	 */
+	@Nonnull 
 	public static Scheduler getDefaultEdtScheduler() {
 		return DEFAULT_EDT_SCHEDULER.get();
 	}
@@ -732,7 +782,9 @@ public final class SwingObservables {
 	 * @param newScheduler the new scheduler
 	 * @return the current scheduler
 	 */
-	public static Scheduler replaceDefaultEdtScheduler(Scheduler newScheduler) {
+	@Nonnull 
+	public static Scheduler replaceDefaultEdtScheduler(
+			@Nonnull Scheduler newScheduler) {
 		if (newScheduler == null) {
 			throw new IllegalArgumentException("newScheduler is null");
 		}
@@ -751,6 +803,7 @@ public final class SwingObservables {
 	 * @param observable the original observable
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> subscribeOnEdt(Observable<T> observable) {
 		return Reactive.subscribeOn(observable, DEFAULT_EDT_SCHEDULER.get());
 	}

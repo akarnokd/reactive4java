@@ -20,21 +20,25 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 /**
  * Defines a composite class holding a dynamic method invocation arguments, i.e., [method, arguments...].
  * @author akarnokd, 2011.02.01.
  */
 public final class Dynamic {
 	/** The original method name. */
+	@Nonnull 
 	public final String method;
 	/** The original method arguments. */
+	@Nonnull 
 	public final List<Object> arguments;
 	/**
 	 * Construct a new dynamic object with the given parameters.
 	 * @param method the method name
 	 * @param arguments the argument list
 	 */
-	public Dynamic(String method, Object... arguments) {
+	public Dynamic(@Nonnull String method, @Nonnull Object... arguments) {
 		if (method == null) {
 			throw new IllegalArgumentException("method is null");
 		}

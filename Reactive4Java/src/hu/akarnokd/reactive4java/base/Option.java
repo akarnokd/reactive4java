@@ -16,6 +16,8 @@
 
 package hu.akarnokd.reactive4java.base;
 
+import javax.annotation.Nonnull;
+
 /**
  * A class representing a value, an exception or nothing.
  * These classes are used by <code>materialize</code> and <code>dematerialize</code>
@@ -114,6 +116,7 @@ public abstract class Option<T> {
 	 * @return the None of T
 	 */
 	@SuppressWarnings("unchecked")
+	@Nonnull 
 	public static <T> None<T> none() {
 		return (None<T>)NONE;
 	}
@@ -123,6 +126,7 @@ public abstract class Option<T> {
 	 * @param value the initial value
 	 * @return the some object
 	 */
+	@Nonnull 
 	public static <T> Some<T> some(T value) {
 		return new Some<T>(value);
 	}
@@ -132,7 +136,8 @@ public abstract class Option<T> {
 	 * @param t the throwable
 	 * @return the error instance
 	 */
-	public static <T> Error<T> error(Throwable t) {
+	@Nonnull 
+	public static <T> Error<T> error(@Nonnull Throwable t) {
 		return new Error<T>(t);
 	}
 	/**

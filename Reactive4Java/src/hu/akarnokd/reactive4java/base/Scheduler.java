@@ -17,6 +17,8 @@ package hu.akarnokd.reactive4java.base;
 
 import java.io.Closeable;
 
+import javax.annotation.Nonnull;
+
 /**
  * An abstract interface for defining
  * minimum scheduling capabilities.
@@ -28,7 +30,8 @@ public interface Scheduler {
 	 * @param run the runnable task
 	 * @return the cancel handler 
 	 */
-	Closeable schedule(Runnable run);
+	@Nonnull 
+	Closeable schedule(@Nonnull Runnable run);
 	/**
 	 * Schedule a single execution of the runnable task
 	 * with the given delay of nanoseconds.
@@ -39,7 +42,8 @@ public interface Scheduler {
 	 * schedule in this resolution
 	 * @return the cancel handler
 	 */
-	Closeable schedule(Runnable run, long delay);
+	@Nonnull 
+	Closeable schedule(@Nonnull Runnable run, long delay);
 	/**
 	 * Schedule a repeaded execution of the given task with
 	 * the given initialDelay (in nanoseconds) and betweenDelay
@@ -53,5 +57,6 @@ public interface Scheduler {
 	 * @param betweenDelay the delay between task runs after the 
 	 * @return the cancel handler
 	 */
-	Closeable schedule(Runnable run, long initialDelay, long betweenDelay);
+	@Nonnull 
+	Closeable schedule(@Nonnull Runnable run, long initialDelay, long betweenDelay);
 }

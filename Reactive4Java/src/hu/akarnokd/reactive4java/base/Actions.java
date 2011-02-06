@@ -16,6 +16,8 @@
 
 package hu.akarnokd.reactive4java.base;
 
+import javax.annotation.Nonnull;
+
 /**
  * Helper class for Action interfaces.
  * @author akarnokd
@@ -23,10 +25,6 @@ package hu.akarnokd.reactive4java.base;
  */
 public final class Actions {
 
-	/** Utility class. */
-	private Actions() {
-		
-	}
 	/** A helper action with one parameter which does nothing. */
 	private static final Action1<Void> NO_ACTION_1 = new Action1<Void>() {
 		@Override
@@ -42,24 +40,13 @@ public final class Actions {
 		}
 	};
 	/**
-	 * Returns an action which does nothing with its parameter.
-	 * @param <T> the type of the parameter (irrelevant)
-	 * @return the action
-	 */
-	@SuppressWarnings("unchecked")
-	public static <T> Action1<T> noAction1() {
-		return (Action1<T>)NO_ACTION_1;
-	}
-	/** @return returns an empty action which does nothing. */
-	public static Action0 noAction0() {
-		return NO_ACTION_0;
-	}
-	/**
 	 * Wrap the supplied runnable into an action.
 	 * @param run the original runnable
 	 * @return the Action0 wrapping the runnable
 	 */
-	public static Action0 asAction0(final Runnable run) {
+	@Nonnull 
+	public static Action0 asAction0(
+			@Nonnull final Runnable run) {
 		return new Action0() {
 			@Override
 			public void invoke() {
@@ -73,7 +60,9 @@ public final class Actions {
 	 * @param run the original runnable
 	 * @return the Action0 wrapping the runnable
 	 */
-	public static <T> Action1<T> asAction1(final Runnable run) {
+	@Nonnull 
+	public static <T> Action1<T> asAction1(
+			@Nonnull final Runnable run) {
 		return new Action1<T>() {
 			@Override
 			public void invoke(T param) {
@@ -86,12 +75,33 @@ public final class Actions {
 	 * @param action the target action
 	 * @return the wrapper runnable
 	 */
-	public static Runnable asRunnable(final Action0 action) {
+	@Nonnull 
+	public static Runnable asRunnable(
+			@Nonnull final Action0 action) {
 		return new Runnable() {
 			@Override
 			public void run() {
 				action.invoke();
 			}
 		};
+	}
+	/** @return returns an empty action which does nothing. */
+	@Nonnull 
+	public static Action0 noAction0() {
+		return NO_ACTION_0;
+	}
+	/**
+	 * Returns an action which does nothing with its parameter.
+	 * @param <T> the type of the parameter (irrelevant)
+	 * @return the action
+	 */
+	@SuppressWarnings("unchecked")
+	@Nonnull 
+	public static <T> Action1<T> noAction1() {
+		return (Action1<T>)NO_ACTION_1;
+	}
+	/** Utility class. */
+	private Actions() {
+		
 	}
 }

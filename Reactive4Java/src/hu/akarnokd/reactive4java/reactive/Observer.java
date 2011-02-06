@@ -16,6 +16,8 @@
 
 package hu.akarnokd.reactive4java.reactive;
 
+import javax.annotation.Nonnull;
+
 /**
  * The observer who receives the notifications of T.
  * @author akarnokd
@@ -31,7 +33,7 @@ public interface Observer<T> {
 	 * An exception is received.
 	 * @param ex the exception 
 	 */
-	void error(Throwable ex);
+	void error(@Nonnull Throwable ex);
 	/** No more values to expect. */
 	void finish();
 }

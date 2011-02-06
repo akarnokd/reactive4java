@@ -17,6 +17,8 @@ package hu.akarnokd.reactive4java.reactive;
 
 import java.util.Date;
 
+import javax.annotation.Nonnull;
+
 /**
  * An immutable record holding a value and timestamp pairs.
  * @author akarnokd, 2011.01.29.
@@ -51,6 +53,7 @@ public final class Timestamped<T> {
 	 * @param timestamp the timestamp
 	 * @return the timestamped object
 	 */
+	@Nonnull 
 	public static <T> Timestamped<T> of(T value, long timestamp) {
 		return new Timestamped<T>(value, timestamp);
 	}
@@ -62,7 +65,10 @@ public final class Timestamped<T> {
 	 * @param timestamp the timestamp
 	 * @return the timestamped object
 	 */
-	public static <T> Timestamped<T> of(Timestamped<T> value, long timestamp) {
+	@Nonnull 
+	public static <T> Timestamped<T> of(
+			@Nonnull Timestamped<T> value, 
+			long timestamp) {
 		return new Timestamped<T>(value.value(), timestamp);
 	}
 	/**
@@ -72,6 +78,7 @@ public final class Timestamped<T> {
 	 * @param value the value
 	 * @return the timestamped object
 	 */
+	@Nonnull 
 	public static <T> Timestamped<T> of(T value) {
 		return of(value, System.currentTimeMillis());
 	}
@@ -82,7 +89,8 @@ public final class Timestamped<T> {
 	 * @param value the value
 	 * @return the timestamped object
 	 */
-	public static <T> Timestamped<T> of(Timestamped<T> value) {
+	public static <T> Timestamped<T> of(
+			@Nonnull Timestamped<T> value) {
 		return of(value, System.currentTimeMillis());
 	}
 	@Override
