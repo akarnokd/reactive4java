@@ -5,7 +5,7 @@
 This page contains some comparisons and cross reference with other library's features (currently, only with Rx).
 
 || *Operator* || *Rx* || *Remark* ||
-|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#accumulate(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func2)'>accumulate</a> || || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#accumulate(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func2)'>accumulate</a> || Scan || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#addTimeInterval(hu.akarnokd.reactive4java.reactive.Observable)'>addTimeInterval</a> || || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#addTimestamped(hu.akarnokd.reactive4java.reactive.Observable)'>addTimestamped</a> || || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#aggregate(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func2)'>aggregate</a> || Aggregate || ||
@@ -50,22 +50,25 @@ This page contains some comparisons and cross reference with other library's fea
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#latest(hu.akarnokd.reactive4java.reactive.Observable)'>latest</a> || Latest || ||
 || - || Let || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#materialize(hu.akarnokd.reactive4java.reactive.Observable)'>materialize</a> || Materialize || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#max(hu.akarnokd.reactive4java.reactive.Observable)'>max</a> || Max || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#maxBy(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1)'>maxBy</a> || !MaxBy || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#merge(java.lang.Iterable)'>merge</a> || Merge || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#min(hu.akarnokd.reactive4java.reactive.Observable)'>min</a> || Min || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#minBy(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1, java.util.Comparator)'>minBy</a> || !MinBy || ||
+|| - || !MostRecent || ||
+|| - || Multicast || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#never()'>never</a> || Never || ||
+|| - || Next || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#observeOn(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Scheduler)'>observeOn</a> || !ObserveOn || ||
+|| - || !OfType || ||
+|| - || Publish || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#range(java.math.BigDecimal, int, java.math.BigDecimal)'>range</a> || Range || ||
+|| - || !RefCount || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#relayUntil(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func0)'>relayUntil</a> || !TakeUntil || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#relayWhile(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func0)'>relayWhile</a> || ? || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#removeTimeInterval(hu.akarnokd.reactive4java.reactive.Observable)'>removeTimeInterval</a> || RemoveTimeInterval || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#removeTimestamped(hu.akarnokd.reactive4java.reactive.Observable)'>removeTimestamped</a> || RemoveTimestamped || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#repeat(hu.akarnokd.reactive4java.base.Func0)'>repeat</a> || Repeat || ||
 || <a href=''></a> || || ||
 || <a href=''></a> || || ||
 || <a href=''></a> || || ||
