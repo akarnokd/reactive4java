@@ -25,6 +25,16 @@
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#delay(hu.akarnokd.reactive4java.reactive.Observable, long, java.util.concurrent.TimeUnit)'>delay</a> || Delay || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#dematerialize(hu.akarnokd.reactive4java.reactive.Observable)'>dematerialize</a> || Dematerialize || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#distinct(hu.akarnokd.reactive4java.reactive.Observable)'>distinct</a> || !DistinctUntilChanged || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#invoke(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Action1)'>invoke</a> || Do || ||
+|| - || !DoWhile || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#drain(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1)'>drain</a> || Drain || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#empty()'>empty</a> || Empty || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#finish(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Action0)'>finish</a> || Finally || ||
+|| <a href=''>first</a> || First || ||
+|| - || !FirstOrDefault || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#forEach(java.lang.Iterable, hu.akarnokd.reactive4java.base.Func1)'>forEach</a> || For || ||
+|| <a href=''></a> || || ||
+|| <a href=''></a> || || ||
 || <a href=''></a> || || ||
 || <a href=''></a> || || ||
 || <a href=''></a> || || ||
