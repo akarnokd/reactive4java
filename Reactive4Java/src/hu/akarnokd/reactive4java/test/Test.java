@@ -31,7 +31,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Test program for the MinLinq stuff.
+ * Test Reactive operators, 1.
  * @author akarnokd
  */
 public final class Test {

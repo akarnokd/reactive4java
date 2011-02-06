@@ -15,7 +15,7 @@
  */
 
 /**
- * This package contains the <b>Interactives</b> main utility class for the
+ * This package contains the <b>Interactive</b> main utility class for the
  * interactive programming side of the library, accompanied by some helper classes.
  */
 package hu.akarnokd.reactive4java.interactive;

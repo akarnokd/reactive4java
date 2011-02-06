@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * Test program .
+ * Test Reactive operators, 9.
  * @author akarnokd
  */
 public final class Test9 {

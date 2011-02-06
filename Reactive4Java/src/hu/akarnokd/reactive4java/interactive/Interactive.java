@@ -50,8 +50,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The interactive (i.e., <code>Iterable</code> based) counterparts
- * of the <code>Observables</code> operators.
+ * of the <code>Reactive</code> operators.
+ * <p>The implementations of the operators are partially derived
+ * from the Reactive operators.</p>
  * @author akarnokd, 2011.02.02.
+ * @see hu.akarnokd.reactive4java.reactive.Reactive
  */
 public final class Interactive {
 	/**

@@ -17,7 +17,9 @@
 package hu.akarnokd.reactive4java.base;
 
 /**
- * A class representing a value or nothing.
+ * A class representing a value, an exception or nothing.
+ * These classes are used by <code>materialize</code> and <code>dematerialize</code>
+ * operators.
  * @author akarnokd
  * @param <T> the type of the contained object
  */

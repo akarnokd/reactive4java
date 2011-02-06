@@ -15,7 +15,7 @@
  */
 
 /**
- * This package contains the <b>Observables</b> main utility class for the
+ * This package contains the <b>Reactive</b> main utility class for the
  * reactive programming side of the library, accompanied by some helper classes.
  */
 package hu.akarnokd.reactive4java.reactive;

@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Test program for the MinLinq stuff.
+ * Test Reactive operators, 2.
  * @author akarnokd
  */
 public final class Test2 {

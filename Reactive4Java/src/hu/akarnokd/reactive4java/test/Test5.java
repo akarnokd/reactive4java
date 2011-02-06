@@ -22,7 +22,7 @@ import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 /**
- * Test program for the MinLinq stuff.
+ * Test Reactive operators, 5.
  * @author akarnokd
  */
 public final class Test5 {

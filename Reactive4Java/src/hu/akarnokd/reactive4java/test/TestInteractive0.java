@@ -56,7 +56,7 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * Test program for the MinLinq stuff.
+ * Test various Interactive operators, 0.
  * @author akarnokd
  */
 public final class TestInteractive0 {
