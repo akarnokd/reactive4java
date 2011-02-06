@@ -30,7 +30,11 @@ import javax.swing.Timer;
  * The default Event Dispatch Thread scheduler implementation.
  * Which ensures that all tasks submittet to it
  * will run on the EDT.
+ * <p>Use with the <code>Reactive.subscribeOn</code> and <code>Reactive.observeOn</code>
+ * operators to ensure your code interacts with Swing objects on the EDT.</p> 
  * @author akarnokd, 2011.02.02.
+ * @see hu.akarnokd.reactive4java.reactive.Reactive#observeOn(hu.akarnokd.reactive4java.reactive.Observable, Scheduler)
+ * @see hu.akarnokd.reactive4java.reactive.Reactive#subscribeOn(hu.akarnokd.reactive4java.reactive.Observable, Scheduler)
  */
 public class DefaultEdtScheduler implements Scheduler {
 	/**

@@ -21,7 +21,7 @@ import hu.akarnokd.reactive4java.interactive.Interactive;
 
 
 /**
- * Test program for the MinLinq stuff.
+ * Test various Interactive operators, 1.
  * @author akarnokd
  */
 public final class TestInteractive1 {

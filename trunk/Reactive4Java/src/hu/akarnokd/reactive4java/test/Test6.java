@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * Test program for the MinLinq stuff.
+ * Test Reactive operators, 6.
  * @author akarnokd
  */
 public final class Test6 {

@@ -23,7 +23,7 @@ import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Test program for the MinLinq stuff.
+ * Test Reactive operators, 4.
  * @author akarnokd
  */
 public final class Test4 {

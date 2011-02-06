@@ -61,16 +61,18 @@ import javax.annotation.concurrent.GuardedBy;
 
 
 /**
- * Utility class to manage observable interfaces.
+ * Utility class with operators and helper methods for reactive programming with <code>Observable</code>s and <code>Observer</code>s.
  * Guidances were taken from 
  * <ul>
- * <li>http://theburningmonk.com/tags/rx/</li>
- * <li>http://blogs.bartdesmet.net/blogs/bart/archive/2010/01/01/the-essence-of-linq-minlinq.aspx</li>
- * <li>http://rxwiki.wikidot.com/101samples#toc3</li>
+ * <li><a href='http://theburningmonk.com/tags/rx/'>http://theburningmonk.com/tags/rx/</a></li>
+ * <li><a href='http://blogs.bartdesmet.net/blogs/bart/archive/2010/01/01/the-essence-of-linq-minlinq.aspx'>http://blogs.bartdesmet.net/blogs/bart/archive/2010/01/01/the-essence-of-linq-minlinq.aspx</a></li>
+ * <li><a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html'>http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html</a></li>
+ * <li><a href='http://rxwiki.wikidot.com/101samples#toc3'>http://rxwiki.wikidot.com/101samples#toc3</a></li>
+ * <li><a href='http://channel9.msdn.com/Tags/rx'>http://channel9.msdn.com/Tags/rx</a></li>
  * </ul>
  * 
  * @author akarnokd, 2011.01.26
- *
+ * @see hu.akarnokd.reactive4java.interactive.Interactive
  */
 public final class Reactive {
 

@@ -31,7 +31,7 @@ import javax.annotation.Nonnull;
 
 /**
  * The default implementation of the Scheduler
- * interface used by the Observables methods.
+ * interface used by the <code>Reactive</code> operators.
  * @author akarnokd, 2011.02.02.
  */
 public class DefaultScheduler implements Scheduler {

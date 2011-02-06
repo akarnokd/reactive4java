@@ -20,6 +20,7 @@ import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 /**
+ * Test the ObserveOn operator.
  * @author akarnokd, 2011.01.29.
  */
 public final class TestObserveOn {

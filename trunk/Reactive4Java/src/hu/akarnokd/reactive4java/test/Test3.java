@@ -26,7 +26,7 @@ import hu.akarnokd.reactive4java.reactive.Timestamped;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Test program for the MinLinq stuff.
+ * Test Reactive operators, 3.
  * @author akarnokd
  */
 public final class Test3 {
