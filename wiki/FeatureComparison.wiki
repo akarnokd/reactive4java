@@ -6,7 +6,7 @@ This page contains some comparisons and cross reference with other library's fea
 
 || *Operator* || *Rx* || *Remark* ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#accumulate(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func2)'>accumulate</a> || Scan || ||
-|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#addTimeInterval(hu.akarnokd.reactive4java.reactive.Observable)'>addTimeInterval</a> || TimeInterval || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#addTimeInterval(hu.akarnokd.reactive4java.reactive.Observable)'>addTimeInterval</a> || !TimeInterval || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#addTimestamped(hu.akarnokd.reactive4java.reactive.Observable)'>addTimestamped</a> || Timestamp || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#aggregate(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func2)'>aggregate</a> || Aggregate || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#aggregate(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func2)'>all</a> || All || ||
@@ -100,6 +100,3 @@ This page contains some comparisons and cross reference with other library's fea
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#where(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1)'>where</a> || Where || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#window(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func0)'>window</a> || Window || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#zip(hu.akarnokd.reactive4java.reactive.Observable, java.lang.Iterable, hu.akarnokd.reactive4java.base.Func2)'>zip</a> || Zip || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
-|| <a href=''></a> || || ||
