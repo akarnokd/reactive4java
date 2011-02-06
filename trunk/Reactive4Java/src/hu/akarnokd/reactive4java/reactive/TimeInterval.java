@@ -15,6 +15,8 @@
  */
 package hu.akarnokd.reactive4java.reactive;
 
+import javax.annotation.Nonnull;
+
 
 /**
  * An immutable record holding a value and a
@@ -51,6 +53,7 @@ public final class TimeInterval<T> {
 	 * @param interval the time interval
 	 * @return the timestamped object
 	 */
+	@Nonnull 
 	public static <T> TimeInterval<T> of(T value, long interval) {
 		return new TimeInterval<T>(value, interval);
 	}
@@ -62,6 +65,7 @@ public final class TimeInterval<T> {
 	 * @param interval the time interval
 	 * @return the timestamped object
 	 */
+	@Nonnull 
 	public static <T> TimeInterval<T> of(TimeInterval<T> value, long interval) {
 		return new TimeInterval<T>(value.value(), interval);
 	}

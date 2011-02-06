@@ -18,6 +18,8 @@ package hu.akarnokd.reactive4java.reactive;
 
 import java.io.Closeable;
 
+import javax.annotation.Nonnull;
+
 
 /**
  * Defines a provider for a push based value streaming. Based on Rx.
@@ -30,5 +32,6 @@ public interface Observable<T> {
 	 * @param observer the observer of Ts or any supertype of it
 	 * @return the way of deregister the observer from this provider
 	 */
-	Closeable register(Observer<? super T> observer);
+	@Nonnull 
+	Closeable register(@Nonnull Observer<? super T> observer);
 }
