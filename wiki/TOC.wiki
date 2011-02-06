@@ -1,4 +1,5 @@
 #summary Table of contents
+#labels Featured
 
   * [GettingStarted Getting started]
   * [UserGuide User Guide]
