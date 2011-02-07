@@ -20,11 +20,10 @@ import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Scheduler;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -66,7 +65,7 @@ public final class SingleLaneExecutor<T> implements Closeable {
 		}
 	};
 	/** The future of the currently running processor. */
-	final AtomicReference<Future<?>> future = new AtomicReference<Future<?>>();
+	final AtomicReference<Closeable> future = new AtomicReference<Closeable>();
 	/**
 	 * Constructor. 
 	 * @param pool the executor service to use as the pool.
@@ -89,9 +88,7 @@ public final class SingleLaneExecutor<T> implements Closeable {
 	public void add(T item) {
 		queue.add(item);
 		if (wip.incrementAndGet() == 1) {
-			FutureTask<Void> f =  new FutureTask<Void>(processor, null);
-			future.set(f);
-			pool.schedule(f);
+			future.set(pool.schedule(processor));
 		}
 	}
 	/**
@@ -106,9 +103,9 @@ public final class SingleLaneExecutor<T> implements Closeable {
 	}
 	@Override
 	public void close() {
-		Future<?> f = future.getAndSet(null);
-		if (f != null && !f.isDone()) {
-			f.cancel(true);
+		Closeable f = future.getAndSet(null);
+		if (f != null) {
+			try { f.close(); } catch (IOException ex) { }
 		}
 		// drain remaining elements as of now
 		List<T> left = new LinkedList<T>();
