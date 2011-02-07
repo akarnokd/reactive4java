@@ -1830,7 +1830,7 @@ public final class Reactive {
 					});
 					@Override
 					public void onClose() {
-						exec.close();
+//						exec.close(); FIXME should not cancel the pool?!
 					}
 
 					@Override
@@ -3034,7 +3034,7 @@ public final class Reactive {
 
 					@Override
 					public void onClose() {
-						run.close();
+//						run.close(); FIXME we should not cancel the pool?!
 						super.close();
 					}
 

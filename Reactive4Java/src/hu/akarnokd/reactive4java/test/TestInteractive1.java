@@ -73,6 +73,7 @@ public final class TestInteractive1 {
 		            Interactive.selectMany(
 		                Interactive.range(0, 10), 
 		                new Func1<Iterable<Integer>, Integer>() {
+		                	@Override
 		                    public Iterable<Integer> invoke(Integer param1) {
 		                       return Interactive.range(0, param1);
 		                }
