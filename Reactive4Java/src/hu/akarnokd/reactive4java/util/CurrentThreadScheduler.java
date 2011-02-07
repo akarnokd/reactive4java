@@ -21,7 +21,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.PriorityQueue;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
@@ -75,7 +74,7 @@ public class CurrentThreadScheduler implements Scheduler {
 		if (tasks.size() == 1) {
 			try {
 				while (true) {
-					DelayedRunnable dr = tasks.poll();
+					DelayedRunnable dr = tasks.peek();
 					if (dr == null) {
 						break;
 					}
@@ -88,9 +87,10 @@ public class CurrentThreadScheduler implements Scheduler {
 							dr.delay = ((RepeatedRunnable) dr).betweenDelay;
 							tasks.add(dr);
 						}
-					} catch (CancellationException ex) {
-						
+					} catch (Throwable ex) {
+						// any exception interpreted as cancel running
 					}
+					tasks.poll();
 				}
 			} catch (InterruptedException ex) {
 				
