@@ -38,6 +38,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -6008,6 +6009,7 @@ public final class Reactive {
 			}
 		};
 	}
+	
 	/**
 	 * Returns an observer which relays Ts from the source observables in a way, when
 	 * a new inner observable comes in, the previous one is deregistered and the new one is
@@ -6074,6 +6076,192 @@ public final class Reactive {
 					}
 				};
 				return sources.register(outer);
+			}
+		};
+	}
+	/**
+	 * Returns an observable which correlates two streams of values based on
+	 * their time when they overlapped and groups the results.
+	 * FIXME not sure how to implement it
+	 * @param <Left> the element type of the left stream
+	 * @param <Right> the element type of the right stream
+	 * @param <LeftDuration> the overlapping duration indicator for the left stream (e.g., the event when it leaves)
+	 * @param <RightDuration> the overlapping duration indicator for the right stream (e.g., the event when it leaves)
+	 * @param <Result> the type of the grouping based on the coincidence.
+	 * @param left the left source of elements
+	 * @param right the right source of elements
+	 * @param leftDurationSelector the duration selector for a left element
+	 * @param rightDurationSelector the duration selector for a right element
+	 * @param resultSelector the selector which will produce the output value
+	 * @return the new observable
+	 * @see #join(Observable, Observable, Func1, Func1, Func2)
+	 */
+	public <Left, Right, LeftDuration, RightDuration, Result> Observable<Result> groupJoin(
+			final Observable<? extends Left> left, 
+			final Observable<? extends Right> right,
+			final Func1<? extends Observable<LeftDuration>, ? super Left> leftDurationSelector,
+			final Func1<? extends Observable<RightDuration>, ? super Right> rightDurationSelector,
+			final Func2<? extends Result, ? super Left, ? super Observable<? extends Right>> resultSelector
+	) {
+		throw new UnsupportedOperationException();
+	}
+	/**
+	 * Returns an observable which correlates two streams of values based on
+	 * their time when they overlapped.
+	 * <p>The difference between this operator and the groupJoin operator
+	 * is that in this case, the result selector takes the concrete left and
+	 * right elements, whereas the groupJoin associates an observable of rights
+	 * for each left.</p>
+	 * FIXME not sure how to implement it
+	 * @param <Left> the element type of the left stream
+	 * @param <Right> the element type of the right stream
+	 * @param <LeftDuration> the overlapping duration indicator for the left stream (e.g., the event when it leaves)
+	 * @param <RightDuration> the overlapping duration indicator for the right stream (e.g., the event when it leaves)
+	 * @param <Result> the type of the grouping based on the coincidence.
+	 * @param left the left source of elements
+	 * @param right the right source of elements
+	 * @param leftDurationSelector the duration selector for a left element
+	 * @param rightDurationSelector the duration selector for a right element
+	 * @param resultSelector the selector which will produce the output value
+	 * @return the new observable
+	 * @see #groupJoin(Observable, Observable, Func1, Func1, Func2)
+	 */
+	public <Left, Right, LeftDuration, RightDuration, Result> Observable<Result> join(
+			final Observable<? extends Left> left, 
+			final Observable<? extends Right> right,
+			final Func1<? extends Observable<LeftDuration>, ? super Left> leftDurationSelector,
+			final Func1<? extends Observable<RightDuration>, ? super Right> rightDurationSelector,
+			final Func2<? extends Result, ? super Left, ? super Right> resultSelector
+	) {
+		return new Observable<Result>() {
+			@Override
+			public Closeable register(final Observer<? super Result> observer) {
+				final Lock lock = new ReentrantLock(true);
+				final HashSet<Left> leftActive = new HashSet<Left>();
+				final HashSet<Right> rightActive = new HashSet<Right>();
+				DefaultObserver<Left> o1 = new DefaultObserver<Left>(lock, true) {
+					/** The source. */
+					Closeable c;
+					{
+						lock.lock();
+						try {
+							c = left.register(this);
+						} finally {
+							lock.unlock();
+						}
+					}
+					@Override
+					protected void onNext(final Left value) {
+						// TODO Auto-generated method stub
+						leftActive.add(value);
+						
+						Observable<LeftDuration> completion = leftDurationSelector.invoke(value);
+						// FIXME close?!
+						completion.register(new DefaultObserver<LeftDuration>(lock, true) {
+
+							@Override
+							protected void onNext(LeftDuration value) {
+								// TODO Auto-generated method stub
+								
+							}
+
+							@Override
+							protected void onError(Throwable ex) {
+								// TODO Auto-generated method stub
+								
+							}
+
+							@Override
+							protected void onFinish() {
+								// TODO Auto-generated method stub
+								leftActive.remove(value);
+							}
+							
+						});
+						for (Right r : rightActive) {
+							observer.next(resultSelector.invoke(value, r));
+						}
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						// TODO Auto-generated method stub
+						
+					}
+
+					@Override
+					protected void onFinish() {
+						// TODO Auto-generated method stub
+						
+					}
+					@Override
+					protected void onClose() {
+						close0(c);
+					}
+				};
+				DefaultObserver<Right> o2 = new DefaultObserver<Right>(lock, true) {
+					/** The source. */
+					Closeable c;
+					{
+						lock.lock();
+						try {
+							c = right.register(this);
+						} finally {
+							lock.unlock();
+						}
+					}
+					@Override
+					protected void onNext(final Right value) {
+						// TODO Auto-generated method stub
+						rightActive.add(value);
+						
+						Observable<RightDuration> completion = rightDurationSelector.invoke(value);
+						// FIXME close?!
+						completion.register(new DefaultObserver<RightDuration>(lock, true) {
+
+							@Override
+							protected void onNext(RightDuration value) {
+								// TODO Auto-generated method stub
+								
+							}
+
+							@Override
+							protected void onError(Throwable ex) {
+								// TODO Auto-generated method stub
+								
+							}
+
+							@Override
+							protected void onFinish() {
+								// TODO Auto-generated method stub
+								rightActive.remove(value);
+							}
+							
+						});
+						for (Left left : leftActive) {
+							observer.next(resultSelector.invoke(left, value));
+						}
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						// TODO Auto-generated method stub
+						
+					}
+
+					@Override
+					protected void onFinish() {
+						// TODO Auto-generated method stub
+						
+					}
+					@Override
+					protected void onClose() {
+						close0(c);
+					}
+					
+				};
+				Closeable c = close(o1, o2);
+				return c;
 			}
 		};
 	}
