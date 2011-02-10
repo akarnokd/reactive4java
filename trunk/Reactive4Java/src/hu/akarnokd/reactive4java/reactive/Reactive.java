@@ -6008,6 +6008,75 @@ public final class Reactive {
 			}
 		};
 	}
+	/**
+	 * Returns an observer which relays Ts from the source observables in a way, when
+	 * a new inner observable comes in, the previous one is deregistered and the new one is
+	 * continued with. Basically, it is an unbounded ys.takeUntil(xs).takeUntil(zs)...
+	 * @param <T> the element type
+	 * @param sources the source of multiple observables of Ts.
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> switchToNext(final Observable<? extends Observable<? extends T>> sources) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				DefaultObserver<Observable<? extends T>> outer 
+				= new DefaultObserver<Observable<? extends T>>(false) {
+					/** The inner observer. */
+					@GuardedBy("lock")
+					Closeable inner;
+					
+					DefaultObserver<T> innerObserver = new DefaultObserver<T>(lock, true) {
+						@Override
+						protected void onNext(T value) {
+							observer.next(value);
+						}
+
+						@Override
+						protected void onError(Throwable ex) {
+							innerError(ex);
+						}
+
+						@Override
+						protected void onFinish() {
+							innerFinish();
+						}
+						
+					};
+					/** Called from the inner observer when an error condition occurs. */
+					void innerError(Throwable ex) {
+						error(ex);
+					}
+					/** Called from the inner observer when it finished. */
+					void innerFinish() {
+						observer.finish();
+						close();
+					}
+					@Override
+					protected void onNext(Observable<? extends T> value) {
+						close0(inner);
+						inner = value.register(innerObserver);
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+						close();
+					}
+
+					@Override
+					protected void onFinish() {
+						// nothing to do
+					}
+					@Override
+					protected void onClose() {
+						close0(inner);
+					}
+				};
+				return sources.register(outer);
+			}
+		};
+	}
 	/** Utility class. */
 	private Reactive() {
 		// utility class
