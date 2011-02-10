@@ -1,4 +1,5 @@
 #summary Feature comparison with other libraries.
+#labels Featured
 
 = Introduction =
 
@@ -85,7 +86,7 @@ This page contains some comparisons and cross reference with other library's fea
 || - || Subscribe || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#subscribeOn(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Scheduler)'>subscribeOn</a> || !SubscribeOn || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#sumBigDecimal(hu.akarnokd.reactive4java.reactive.Observable)'>sum</a> || Sum || ||
-|| - || Switch || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#switchToNext(hu.akarnokd.reactive4java.reactive.Observable)'>switchToNext</a> || Switch || Since 0.82 ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#take(hu.akarnokd.reactive4java.reactive.Observable, int)'>take</a> || Take || ||
 || - || !TakeLast || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#takeUntil(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.reactive.Observable)'>takeUntil</a> || !TakeUntil || ||
