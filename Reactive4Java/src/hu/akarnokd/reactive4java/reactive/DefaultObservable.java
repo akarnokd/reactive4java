@@ -27,12 +27,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * An observable + observer implementation which keeps track of the registered observers and
  * common methods which dispach events to all registered observers.
- * The implementation is thread safe: all default methods may be invoked from any thread.
- * Could be used as a default implementation to convert between Observable and other event-listener type pattern.
- * deregistering them all.
- * The observer keeps track of the registered observer count and when
- * it reaches zero again, the last deregister will invoke the <code>close()</code> method.
- * Override <code>close()</code> method if you need some resource cleanup. Note that this may happen on any thread.
+ * <p>The implementation is thread safe: all default methods may be invoked from any thread.
+ * Could be used as a default implementation to convert between Observable and other event-listener type pattern.</p>
+ * <p>The observer keeps track of the registered observer count and when
+ * it reaches zero again, the last deregister will invoke the <code>close()</code> method.</p>
+ * <p>Override <code>close()</code> method if you need some resource cleanup. Note that this may happen on any thread.</p>
+ * <p>The constructor lets you customize whether automatically deregister every observer after an error or finish message
+ * is relayed.</p>
  * @author akarnokd, 2011.01.29.
  * @param <T> the element type of the observable.
  */

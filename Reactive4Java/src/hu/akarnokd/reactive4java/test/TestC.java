@@ -19,6 +19,7 @@ package hu.akarnokd.reactive4java.test;
 import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observer;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.concurrent.TimeUnit;
@@ -68,6 +69,31 @@ public final class TestC {
 			),
 			Reactive.println()
 		);
+		
+		Reactive.window(
+			Reactive.tick(0, 10, 1, TimeUnit.SECONDS),
+			Reactive.tick(0, 10, 3, TimeUnit.SECONDS),
+			Functions.<Observable<Long>, Long>constant(Reactive.tick(0, 1, 2, TimeUnit.SECONDS))
+		).register(new Observer<Observable<Long>>() {
+
+			@Override
+			public void next(Observable<Long> value) {
+				value.register(Reactive.println());
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void finish() {
+				// TODO Auto-generated method stub
+				
+			}
+			
+		});
 		
 		System.out.printf("%nMain finished%n");
 	}

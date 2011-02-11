@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -5685,16 +5686,99 @@ public final class Reactive {
 	 * @param source the source of Ts
 	 * @param windowOpening te source of the window opening events
 	 * @param windowClosing the source of the window splitting events
-	 * @param pool the pool where ???
 	 * @return the observable on sequences of observables of Ts
 	 */
 	@Nonnull 
 	public static <T, U, V> Observable<Observable<T>> window(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func0<? extends Observable<U>> windowOpening, 
-			@Nonnull final Func0<? extends Observable<V>> windowClosing, 
-			@Nonnull final Scheduler pool) {
-		throw new UnsupportedOperationException();
+			@Nonnull final Observable<? extends U> windowOpening, 
+			@Nonnull final Func1<? extends Observable<V>, ? super U> windowClosing) {
+		return new Observable<Observable<T>>() {
+			@Override
+			public Closeable register(final Observer<? super Observable<T>> observer) {
+				final Lock lock = new ReentrantLock(true);
+				final Map<U, DefaultObservable<T>> openWindows = new IdentityHashMap<U, DefaultObservable<T>>();
+				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
+				// relay Ts to open windows
+				DefaultObserverEx<T> o1 = new DefaultObserverEx<T>(lock, true) {
+					@Override
+					protected void onNext(T value) {
+						for (DefaultObservable<T> ot : openWindows.values()) {
+							ot.next(value);
+						}
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						for (DefaultObservable<T> ot : openWindows.values()) {
+							ot.error(ex);
+						}
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						for (DefaultObservable<T> ot : openWindows.values()) {
+							ot.finish();
+						}
+						observer.finish();
+					}
+					@Override
+					protected void onClose() {
+						super.onClose();
+						close0(closeBoth.get());
+					}
+				};
+				DefaultObserverEx<U> o2 = new DefaultObserverEx<U>(lock, true) {
+
+					@Override
+					protected void onNext(final U value) {
+						final DefaultObservable<T> newWindow = new DefaultObservable<T>();
+						openWindows.put(value, newWindow);
+						add(value, windowClosing.invoke(value).register(new Observer<V>() {
+							@Override
+							public void next(V value) {
+								// No op?!
+							}
+
+							@Override
+							public void error(Throwable ex) {
+								openWindows.remove(value);
+								newWindow.error(ex);
+							}
+
+							@Override
+							public void finish() {
+								openWindows.remove(value);
+								newWindow.finish();
+							}
+							
+						}));
+						observer.next(newWindow);
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						observer.finish();
+					}
+					@Override
+					protected void onClose() {
+						super.onClose();
+						close0(closeBoth.get());
+					}
+				};
+				
+				closeBoth.set(close(o1, o2));
+				o1.add(new Object(), source);
+				o2.add(new Object(), windowOpening);
+				return closeBoth.get();
+			}
+		};
 	}
 	/**
 	 * Splits the source stream into separate observables on
@@ -6102,7 +6186,136 @@ public final class Reactive {
 			final Func1<? extends Observable<RightDuration>, ? super Right> rightDurationSelector,
 			final Func2<? extends Result, ? super Left, ? super Observable<? extends Right>> resultSelector
 	) {
-		throw new UnsupportedOperationException();
+		return new Observable<Result>() {
+			@Override
+			public Closeable register(final Observer<? super Result> observer) {
+				final Lock lock = new ReentrantLock(true);
+				final HashSet<Left> leftActive = new HashSet<Left>();
+				final HashSet<Right> rightActive = new HashSet<Right>();
+				final Map<Right, DefaultObservable<Right>> rightGroups = new IdentityHashMap<Right, DefaultObservable<Right>>();
+
+				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
+				
+				DefaultObserverEx<Left> o1 = new DefaultObserverEx<Left>(lock, true) {
+					@Override
+					protected void onNext(final Left value) {
+						leftActive.add(value);
+						
+						Observable<LeftDuration> completion = leftDurationSelector.invoke(value);
+						final Object token = new Object();
+						add(token, completion.register(new DefaultObserver<LeftDuration>(lock, true) {
+
+							@Override
+							protected void onNext(LeftDuration value) {
+								// NO OP?
+							}
+
+							@Override
+							protected void onError(Throwable ex) {
+								innerError(ex);
+							}
+
+							@Override
+							protected void onFinish() {
+								leftActive.remove(value);
+							}
+							@Override
+							protected void onClose() {
+								remove(token);
+							}
+						}));
+						for (Right r : rightActive) {
+							observer.next(resultSelector.invoke(value, rightGroups.get(r)));
+						}
+					}
+					/** Relay the inner error to the outer. */
+					void innerError(Throwable ex) {
+						error(ex);
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						observer.finish();
+					}
+					@Override
+					protected void onClose() {
+						super.onClose();
+						close0(closeBoth.get());
+					}
+				};
+				DefaultObserverEx<Right> o2 = new DefaultObserverEx<Right>(lock, true) {
+					@Override
+					protected void onNext(final Right value) {
+						rightActive.add(value);
+						
+						Observable<RightDuration> completion = rightDurationSelector.invoke(value);
+						final Object token = new Object();
+						add(token, completion.register(new DefaultObserver<RightDuration>(lock, true) {
+
+							@Override
+							protected void onNext(RightDuration value) {
+								// NO OP?!
+							}
+
+							@Override
+							protected void onError(Throwable ex) {
+								innerError(ex);
+							}
+
+							@Override
+							protected void onFinish() {
+								rightActive.remove(value);
+							}
+							@Override
+							protected void onClose() {
+								remove(token);
+								DefaultObservable<Right> rg = rightGroups.remove(value);
+								if (rg != null) {
+									rg.finish();
+								}
+							}
+						}));
+						DefaultObservable<Right> r = rightGroups.get(value);
+						if (r == null) {
+							r = new DefaultObservable<Right>();
+							rightGroups.put(value, r);
+						}
+						for (Left left : leftActive) {
+							observer.next(resultSelector.invoke(left, r));
+						}
+						r.next(value);
+					}
+					/** Relay the inner error to the outer. */
+					void innerError(Throwable ex) {
+						error(ex);
+					}
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						observer.finish();
+					}
+					@Override
+					protected void onClose() {
+						super.onClose();
+						close0(closeBoth.get());
+					}
+				};
+				Closeable c = close(o1, o2);
+				closeBoth.set(c);
+				o1.add(new Object(), left);
+				o2.add(new Object(), right);
+				return c;
+			}
+		};
 	}
 	/**
 	 * Returns an observable which correlates two streams of values based on
@@ -6140,7 +6353,6 @@ public final class Reactive {
 				final HashSet<Right> rightActive = new HashSet<Right>();
 
 				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
-				final AtomicInteger wip = new AtomicInteger(3);
 				
 				DefaultObserverEx<Left> o1 = new DefaultObserverEx<Left>(lock, true) {
 					@Override
@@ -6149,7 +6361,6 @@ public final class Reactive {
 						
 						Observable<LeftDuration> completion = leftDurationSelector.invoke(value);
 						final Object token = new Object();
-						wip.incrementAndGet();
 						add(token, completion.register(new DefaultObserver<LeftDuration>(lock, true) {
 
 							@Override
@@ -6202,7 +6413,6 @@ public final class Reactive {
 						
 						Observable<RightDuration> completion = rightDurationSelector.invoke(value);
 						final Object token = new Object();
-						wip.incrementAndGet();
 						add(token, completion.register(new DefaultObserver<RightDuration>(lock, true) {
 
 							@Override
@@ -6251,9 +6461,6 @@ public final class Reactive {
 				closeBoth.set(c);
 				o1.add(new Object(), left);
 				o2.add(new Object(), right);
-				if (wip.decrementAndGet() == 0) {
-					observer.finish();
-				}
 				return c;
 			}
 		};
