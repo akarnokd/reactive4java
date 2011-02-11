@@ -22,6 +22,7 @@ import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Observer;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 
@@ -70,30 +71,33 @@ public final class TestC {
 			Reactive.println()
 		);
 		
+		final CountDownLatch cdl = new CountDownLatch(1);
+		
 		Reactive.window(
 			Reactive.tick(0, 10, 1, TimeUnit.SECONDS),
 			Reactive.tick(0, 10, 3, TimeUnit.SECONDS),
 			Functions.<Observable<Long>, Long>constant(Reactive.tick(0, 1, 2, TimeUnit.SECONDS))
 		).register(new Observer<Observable<Long>>() {
-
+			int lane;
 			@Override
 			public void next(Observable<Long> value) {
-				value.register(Reactive.println());
+				value.register(Reactive.println((lane++) + ":"));
 			}
 
 			@Override
 			public void error(Throwable ex) {
-				// TODO Auto-generated method stub
-				
+				ex.printStackTrace();
+				cdl.countDown();
 			}
 
 			@Override
 			public void finish() {
-				// TODO Auto-generated method stub
-				
+				cdl.countDown();
 			}
 			
 		});
+
+		cdl.await();
 		
 		System.out.printf("%nMain finished%n");
 	}
