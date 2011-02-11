@@ -78,7 +78,10 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 	protected abstract void onError(@Nonnull Throwable ex);
 	/** The alternative finish() method, which is called by the original finish() method. */
 	protected abstract void onFinish();
-	/** Called by close to close down any associated resources with this instance. */
+	/** 
+	 * Called by close to close down any associated resources with this instance.
+	 * <p>The <code>close()</code> method ensures that the lock is held this code executes.</p> 
+	 */
 	protected void onClose() {
 		
 	}
@@ -98,11 +101,8 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 		lock.lock(); 
 		try {
 			if (!completed) {
-				try {
-					onClose(); // FIXME is there a deadlock possibility?
-				} finally {
-					completed = true;
-				}
+				completed = true;
+				onClose(); // FIXME is there a deadlock possibility?
 			}
 		} finally {
 			lock.unlock();
