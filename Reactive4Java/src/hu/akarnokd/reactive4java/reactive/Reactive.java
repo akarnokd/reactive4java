@@ -5208,9 +5208,8 @@ public final class Reactive {
 						} else {
 							if (!cancelled()) {
 								observer.finish();
-							} else {
-								cancel();
 							}
+							cancel();
 						}
 					}
 				}, unit.toNanos(delay), unit.toNanos(delay));
@@ -6096,7 +6095,7 @@ public final class Reactive {
 	 * @return the new observable
 	 * @see #join(Observable, Observable, Func1, Func1, Func2)
 	 */
-	public <Left, Right, LeftDuration, RightDuration, Result> Observable<Result> groupJoin(
+	public static <Left, Right, LeftDuration, RightDuration, Result> Observable<Result> groupJoin(
 			final Observable<? extends Left> left, 
 			final Observable<? extends Right> right,
 			final Func1<? extends Observable<LeftDuration>, ? super Left> leftDurationSelector,
@@ -6126,7 +6125,7 @@ public final class Reactive {
 	 * @return the new observable
 	 * @see #groupJoin(Observable, Observable, Func1, Func1, Func2)
 	 */
-	public <Left, Right, LeftDuration, RightDuration, Result> Observable<Result> join(
+	public static <Left, Right, LeftDuration, RightDuration, Result> Observable<Result> join(
 			final Observable<? extends Left> left, 
 			final Observable<? extends Right> right,
 			final Func1<? extends Observable<LeftDuration>, ? super Left> leftDurationSelector,
@@ -6139,128 +6138,122 @@ public final class Reactive {
 				final Lock lock = new ReentrantLock(true);
 				final HashSet<Left> leftActive = new HashSet<Left>();
 				final HashSet<Right> rightActive = new HashSet<Right>();
-				DefaultObserver<Left> o1 = new DefaultObserver<Left>(lock, true) {
-					/** The source. */
-					Closeable c;
-					{
-						lock.lock();
-						try {
-							c = left.register(this);
-						} finally {
-							lock.unlock();
-						}
-					}
+
+				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
+				final AtomicInteger wip = new AtomicInteger(3);
+				
+				DefaultObserverEx<Left> o1 = new DefaultObserverEx<Left>(lock, true) {
 					@Override
 					protected void onNext(final Left value) {
-						// TODO Auto-generated method stub
 						leftActive.add(value);
 						
 						Observable<LeftDuration> completion = leftDurationSelector.invoke(value);
-						// FIXME close?!
-						completion.register(new DefaultObserver<LeftDuration>(lock, true) {
+						final Object token = new Object();
+						wip.incrementAndGet();
+						add(token, completion.register(new DefaultObserver<LeftDuration>(lock, true) {
 
 							@Override
 							protected void onNext(LeftDuration value) {
-								// TODO Auto-generated method stub
-								
+								// NO OP?
 							}
 
 							@Override
 							protected void onError(Throwable ex) {
-								// TODO Auto-generated method stub
-								
+								innerError(ex);
 							}
 
 							@Override
 							protected void onFinish() {
-								// TODO Auto-generated method stub
 								leftActive.remove(value);
 							}
-							
-						});
+							@Override
+							protected void onClose() {
+								remove(token);
+							}
+						}));
 						for (Right r : rightActive) {
 							observer.next(resultSelector.invoke(value, r));
 						}
 					}
+					/** Relay the inner error to the outer. */
+					void innerError(Throwable ex) {
+						error(ex);
+					}
 
 					@Override
 					protected void onError(Throwable ex) {
-						// TODO Auto-generated method stub
-						
+						observer.error(ex);
 					}
 
 					@Override
 					protected void onFinish() {
-						// TODO Auto-generated method stub
-						
+						observer.finish();
 					}
 					@Override
 					protected void onClose() {
-						close0(c);
+						super.onClose();
+						close0(closeBoth.get());
 					}
 				};
-				DefaultObserver<Right> o2 = new DefaultObserver<Right>(lock, true) {
-					/** The source. */
-					Closeable c;
-					{
-						lock.lock();
-						try {
-							c = right.register(this);
-						} finally {
-							lock.unlock();
-						}
-					}
+				DefaultObserverEx<Right> o2 = new DefaultObserverEx<Right>(lock, true) {
 					@Override
 					protected void onNext(final Right value) {
-						// TODO Auto-generated method stub
 						rightActive.add(value);
 						
 						Observable<RightDuration> completion = rightDurationSelector.invoke(value);
-						// FIXME close?!
-						completion.register(new DefaultObserver<RightDuration>(lock, true) {
+						final Object token = new Object();
+						wip.incrementAndGet();
+						add(token, completion.register(new DefaultObserver<RightDuration>(lock, true) {
 
 							@Override
 							protected void onNext(RightDuration value) {
-								// TODO Auto-generated method stub
-								
+								// NO OP?!
 							}
 
 							@Override
 							protected void onError(Throwable ex) {
-								// TODO Auto-generated method stub
-								
+								innerError(ex);
 							}
 
 							@Override
 							protected void onFinish() {
-								// TODO Auto-generated method stub
 								rightActive.remove(value);
 							}
-							
-						});
+							@Override
+							protected void onClose() {
+								remove(token);
+							}
+						}));
 						for (Left left : leftActive) {
 							observer.next(resultSelector.invoke(left, value));
 						}
 					}
-
+					/** Relay the inner error to the outer. */
+					void innerError(Throwable ex) {
+						error(ex);
+					}
 					@Override
 					protected void onError(Throwable ex) {
-						// TODO Auto-generated method stub
-						
+						observer.error(ex);
 					}
 
 					@Override
 					protected void onFinish() {
-						// TODO Auto-generated method stub
-						
+						observer.finish();
 					}
 					@Override
 					protected void onClose() {
-						close0(c);
+						super.onClose();
+						close0(closeBoth.get());
 					}
-					
 				};
 				Closeable c = close(o1, o2);
+				closeBoth.set(c);
+				o1.add(new Object(), left);
+				o2.add(new Object(), right);
+				if (wip.decrementAndGet() == 0) {
+					observer.finish();
+				}
 				return c;
 			}
 		};
