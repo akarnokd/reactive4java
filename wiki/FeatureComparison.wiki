@@ -5,7 +5,7 @@
 
 This page contains some comparisons and cross reference with other library's features (currently, only with Rx).
 
-|| *Operator* || *Rx* || *Remark* ||
+|| *Reactive* || *Rx* || *Remark* || *Interactive* ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#addTimeInterval(hu.akarnokd.reactive4java.reactive.Observable)'>addTimeInterval</a> || !TimeInterval || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#addTimestamped(hu.akarnokd.reactive4java.reactive.Observable)'>addTimestamped</a> || Timestamp || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#aggregate(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func2)'>aggregate</a> || Aggregate || ||
@@ -58,6 +58,7 @@ This page contains some comparisons and cross reference with other library's fea
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#never()'>never</a> || Never || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#next(hu.akarnokd.reactive4java.reactive.Observable)'>next</a> || Next || Since 0.84 ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#observeOn(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Scheduler)'>observeOn</a> || !ObserveOn || ||
+|| <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#orderBy(hu.akarnokd.reactive4java.reactive.Observable)'>orderBy</a> || - || Since 0.84 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/interactive/Interactive.html#orderBy(java.lang.Iterable)'>orderBy</a> ||
 || - || Publish || ||
 || <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#range(java.math.BigDecimal, int, java.math.BigDecimal)'>range</a> || Range || ||
 || - || !RefCount || ||
