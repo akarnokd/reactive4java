@@ -87,6 +87,12 @@ The interactive framework is mostly a lazy computation. No elements are created 
 
 Compare this with the classical method of having multiple for-each loops and temporary buffers for the intermediate results.
 
+== The remove() method ==
+
+Most {{{Iterable}}}s returned from the operators do not support the removal operation: they will throw the unchecked {{{UnsupportedOperationException}}} as per the contract of {{{Iterable}}} requires.
+
+Other operators may simply relay the {{{remove()}}} call to its source: for example, using a {{{where()}}} operator will let you filter and remove the elements returned.
+
 = Reactive programming =
 
 In contrast to interactive programming, the reactive way is to 'listen' to events coming from outside and do some computation based on them. Depending on the function, this may result in new messages.
