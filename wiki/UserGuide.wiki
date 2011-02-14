@@ -113,3 +113,37 @@ We distinguish two base kind of observable sequences:
     * example: a for-each loop generating values once someone registers, everyone will get the same sequence of values
   * *cold observables*: events fly around no matter if there is someone listening
     * example: mouse movement events
+
+Hot observables usually maintain an implicit registration with their clients whereas cold observables have some list-of-observers.
+
+== Composition ==
+
+That's simple: same type to the same type, i.e., the output of an operator may be used as an input for the next operator.
+
+== Registration ==
+
+The {{{Observable}}} interface defines the single {{{register()}}} method which takes an {{{Observer}}}. Due the contravariance nature of observers, you might listen to a source of {{{String}}}s as source of {{{Object}}}s.
+
+Some special cases might apply when you register to an observable:
+
+  * as soon as the registration is done somewhere along the operator-chain, the observer might receive most or all messages before even the original {{{register()}}} method completes.
+  * the registration itself might have some threading constraints, e.g., when you need to register a listener on the Event Dispatch Thread (EDT). You may use the {{{subscribeOn()}}} operator for these cases. (The deregisration is routed to the same thread too.)
+
+== Deregistration/Cancellation ==
+
+The registration returns a {{{Closeable}}} instance, which interface is the de-facto standard resource cleanup interface for Java I/O and will be nicely usable by the new try-with-resources operator of Java 7.
+
+This handler's {{{close()}}} method can be called to cancel a registration and/or stop the flood of messages. Unfortunately, the {{{Closeable.close(()}}} defines a checked {{{IOException}}} which you will surely need to suppress.
+
+In theory, the {{{close()}}} method will never throw any exception and can be considered idempotent, e.g., calling it multiple times will not result in multiple deregistration or cancellation as the second and subsequent calls are ensured by the framework to be no-ops.
+
+The framework also ensures that the call to the close method is thread safe and it makes 'best effort' to stop the stream of data along the chain. This means that after the close() invocation, some messages might still slip through.
+
+== The error and finish messages ==
+
+The !Reactive4Java framework has constraints over how the messages are propagated.
+
+  * zero or more {{{next()}}} messages,
+  * followed by either a {{{finish()}}}, an {{{error()}}} message or nothing at all
+
+In addition, the framework serializes each message to the observer and ensures the sequence above is not violated (by suppressing late messages).
