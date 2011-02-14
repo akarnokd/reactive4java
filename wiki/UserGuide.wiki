@@ -1,0 +1,43 @@
+#summary User guide for Reactive and Interactive programming.
+#labels Featured
+
+<wiki:toc max_depth="3" />
+
+= Introduction =
+
+Without extension methods, function types and yield return, its going to be ugly and cumbersome. But it is worth the effort.
+
+
+= Details =
+
+== Fundamentals ==
+
+Interactive programming is basically a deferred or lazy computation over {{{Iterable<T>}}} classes. In Java, by using a for-each loop, you may simply iterate over the collections which implement the {{{Iterable<T>}}} interface: {{{List}}}s, {{{Set}}}s, etc.
+
+Frameworks, such as Google Guava, offer some utility method which lets you do some direct or lazy computation, however, their design was not intended for composability. !Reactive4Java offers composable operators for such kind of lazy computation.
+
+Reactive programming, in turn is an inherently asynchronous, and computes only when a message arrives at an observer. Java offers some classes based on the Observer-pattern, but those classes are not uniform and do not compose well. Therefore, a new base interface pair called {{{Observable<T>}}} and {{{Observer<T>}}} has been defined by !Reactive4Java.
+
+They are the [http://en.wikipedia.org/wiki/Dual_(category_theory) dual] of the {{{Iterable<T>}}} and {{{Iterator<T>}}} interface pairs.
+
+An {{{Iterable}}} has an {{{iterator()}}} method which returns an {{{Iterator}}} instance. 
+
+In opposition, the {{{Observable}}} has a {{{register()}}} method which takes an {{{Observer}}} for registration and returns a {{{Closeable}}} to terminate the registration. This approach is easier than a register/unregister method pair, because you don't need to remember the observer or the observable to unregister (e.g., for example in swing, you have to pass in the same ActionListener instance to both addActionListener and removeActionListener of a component: you have to keep references to both around).
+
+== Lambda expressions, the Java way ==
+
+Unfortunately, Java will not support the lambda expressions probably until version 8. Until then, we are stuck with anonymous inner classes which require you to write a lot of type parameters.
+
+Most !Reactive4Java operators can be customized by such 'lambda' function.
+
+You need to derive your own implementation from {{{Func0<R>}}}, {{{Func1<R, T>}}} and {{{Func2<R, T, U>}}} respectively. They are single method interfaces which have an {{{invoke()}}} method:
+
+{{{
+Func1<Integer, Integer> incrementer = new Func1<Integer, Integer>() {
+    public Integer invoke(Integer param) {
+        return param + 1;
+    }
+}
+}}}
+
+In their definition, the return type parameter is the first listed. This is somewhat different from the C# way of defining the function parameter first and the return type last. *This may change in future depending on how the Java 8 function type will use its type parameters*.
