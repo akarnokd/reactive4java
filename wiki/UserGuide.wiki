@@ -1,4 +1,4 @@
-#summary User guide for Reactive and Interactive programming.
+#summary User guide for Reactive and Interactive programming with Reactive4Java.
 #labels Featured
 
 <wiki:toc max_depth="3" />
@@ -21,6 +21,14 @@ They are the [http://en.wikipedia.org/wiki/Dual_(category_theory) dual] of the {
 An {{{Iterable}}} has an {{{iterator()}}} method which returns an {{{Iterator}}} instance. 
 
 In opposition, the {{{Observable}}} has a {{{register()}}} method which takes an {{{Observer}}} for registration and returns a {{{Closeable}}} to terminate the registration. This approach is easier than a register/unregister method pair, because you don't need to remember the observer or the observable to unregister (e.g., for example in swing, you have to pass in the same ActionListener instance to both addActionListener and removeActionListener of a component: you have to keep references to both around).
+
+The {{{Iterator}}} and {{{Observer}}} are the fundamental working horses of the interactive/reactive programming paradigm. The following table links the well known iterator methods with its equivalents in the observer interface:
+
+|| *Iterator* || *Observer* || *Meaning* ||
+|| {{{boolean hasNext()}}} || {{{void finish()}}} || the case when hasNext would return false, indicating there are no more elements ||
+|| {{{T next()}}} || {{{void next(T value)}}} || when an element is available; e.g., when hasNext() returns true and you may call next() ||
+|| {{{void remove()}}} || - || not applicable ||
+|| {{{hasNext()}}} and {{{T next()}}} throws || {{{error(Throwable ex)}}} || indicates an error condition within the stream. Iterator throws only unchecked exceptions. ||
 
 == Lambda expressions, the Java way ==
 
@@ -55,4 +63,53 @@ Unfortunately, Java does not support extension methods (method definition, which
 
 The closest feature is the {{{import static Interactive.max}}} way to import static methods of the utility classes.
 
- 
+== Without yield return and async return ==
+
+The compiler of C# 3.5 and 4.0 supports a construct when you can write a simple method with {{{yield return}}} and {{{yield break}}} and the compiler turns them into a proper state-machine of an IEnumerable. Java's compiler does not support this kind of automatism, therefore, the programmer/library developer needs to manually construct {{{Iterable}}}s and track the state between calls. The same is true for asynchronous continuations.
+
+== Without LINQ ==
+
+One feature of C# LINQ is, in concert with the compiler again, to create an expression tree of the lambda expressions used around and submit them along with the evaluation: the 'driver' turns them into proper and possibly optimized SQL statements. Java has no such support and is not known whether one will be created in the future. The !Reactive4Java therefore has no support for the {{{IQueryable}}} and {{{IQbservable}}} like constructs.
+
+= Interactive programming =
+
+The interactive programming is supported through the utility class methods of [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/interactive/Interactive.html Interactive]. Programming in this mentality is close to most Java programmers.
+
+Composing operators means passing around references of {{{Iterable<T>}}}s and the most outer Iterable can be traversed by using the for-each construct:
+
+{{{
+for (int i : Interactive.distinctSet(Interactive.concat(Interactive.range(0, 10), Interactive.range(5, 10)))) {
+    System.out.println(i);
+}
+}}}
+
+The interactive framework is mostly a lazy computation. No elements are created or evaluated until the distinctSet object's iterator() is called by the for-each.
+
+Compare this with the classical method of having multiple for-each loops and temporary buffers for the intermediate results.
+
+= Reactive programming =
+
+In contrast to interactive programming, the reactive way is to 'listen' to events coming from outside and do some computation based on them. Depending on the function, this may result in new messages.
+
+The closest equivalent is a blocking {{{take()}}} call on a {{{Queue}}} object. However, this concept holds threading resources until some message comes in.
+
+Reactive programming, in turn, tries to avoid holding resources when no action is required: consider it as a thread pool when new {{{Runnable}}}s are created once a message needs to be processed.
+
+Reactive programming has several concepts associated:
+
+  * the original source of messages,
+  * the composition of the operators,
+  * the registration,
+  * the deregistration and/or cancellation,
+  * the error and finish message propagation.
+
+== Hot and cold observables ==
+
+One of the hardest things to comprehend about reactive programming at first is the source of messages or values that fly around.
+
+We distinguish two base kind of observable sequences:
+
+  * *hot observables*: compute only when someone is registered
+    * example: a for-each loop generating values once someone registers, everyone will get the same sequence of values
+  * *cold observables*: events fly around no matter if there is someone listening
+    * example: mouse movement events
