@@ -188,3 +188,24 @@ The {{{Scheduler}}} interface defines four methods:
 Note that the {{{scheduleWithFixedDelay}}} may be simply emulated by using the {{{schedule(Runnable, long)}}} from within the runnable action itself (for now at least).
 
 Remark: to cancel a repeated task execution from within the Runnable, you should throw any unchecked exception: the machinery in the thread pool will stop the execution for you. This is the only safe way, although not so elegant.
+
+= Code equals Data =
+
+Both reactive and interactive side support the operators to convert code to data, so to speak.
+
+Basically, what they do is that they convert the {{{next}}}, {{{error}}} and {{{finish}}} messages into a wrapper type of {{{Option<T>}}}:
+
+  * {{{Option.some(T)}}} denoting an element
+  * {{{Option.<T>none()}}} denoting the end of messages
+  * {{{Option.<T>error(Throwable)}}} denoting an error condition.
+
+You may use the {{{Option.isSome()}}}, {{{Option.isNone()}}} and {{{Option.isError()}}} methods to determine the concrete type of an arbitrary {{{Option}}} instance. You might want to extract the error information by using the {{{Option.getError()}}} method. 
+
+Invoking the {{{value()}}} on an {{{Error}}} instance will throw the contained exception:
+
+  * as a wrapped {{{RuntimeException}}} if the exception is checked, or
+  * as the exception itself if the exception is unchecked.
+
+By using the {{{materialize}}} and {{{dematerialize}}} operators, you may convert to and from regular method invocations and wrapped data types.
+
+They might come in handy when implementing new operators or transitions between the two worlds.
