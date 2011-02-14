@@ -95,7 +95,7 @@ Other operators may simply relay the {{{remove()}}} call to its source: for exam
 
 = Reactive programming =
 
-In contrast to interactive programming, the reactive way is to 'listen' to events coming from outside and do some computation based on them. Depending on the function, this may result in new messages.
+In contrast to interactive programming, the reactive way, supported by the [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html Reactive] utility class, is to 'listen' to events coming from outside and do some computation based on them. Depending on the function, this may result in new messages.
 
 The closest equivalent is a blocking {{{take()}}} call on a {{{Queue}}} object. However, this concept holds threading resources until some message comes in.
 
