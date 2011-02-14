@@ -8,9 +8,7 @@
 Without extension methods, function types and yield return, its going to be ugly and cumbersome. But it is worth the effort.
 
 
-= Details =
-
-== Fundamentals ==
+= Fundamentals =
 
 Interactive programming is basically a deferred or lazy computation over {{{Iterable<T>}}} classes. In Java, by using a for-each loop, you may simply iterate over the collections which implement the {{{Iterable<T>}}} interface: {{{List}}}s, {{{Set}}}s, etc.
 
@@ -40,4 +38,21 @@ Func1<Integer, Integer> incrementer = new Func1<Integer, Integer>() {
 }
 }}}
 
-In their definition, the return type parameter is the first listed. This is somewhat different from the C# way of defining the function parameter first and the return type last. *This may change in future depending on how the Java 8 function type will use its type parameters*.
+In their definition, the return type parameter is the first listed. This is somewhat different from the C# way of defining the function parameter first and the return type last. *This may change in future, depending on how the Java 8 function type will use its type parameters*.
+
+You might find yourself needing the same functions over and over again, therefore, the [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Functions.html Functions] utility class contains many helper methods to construct or convert some typical Java functions.
+
+  * {{{identity()}}} which returns its argument
+  * {{{lessThan()}}}, {{{greaterOrEqual()}}}, etc. to do simple comparisons (e.g., in a for-each like construct)
+  * {{{incrementInt()}}} for {{{i++}}} like operations
+  * etc.
+
+The second class of helper interfaces are the {{{Action0}}} and {{{Action1<T>}}} respectively. The [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Actions.html Actions] utility class offers some helper methods to create them or convert typical Action-like Java classes.
+
+== Without extension methods ==
+
+Unfortunately, Java does not support extension methods (method definition, which act if they were part of the target class/interface all the times).
+
+The closest feature is the {{{import static Interactive.max}}} way to import static methods of the utility classes.
+
+ 
