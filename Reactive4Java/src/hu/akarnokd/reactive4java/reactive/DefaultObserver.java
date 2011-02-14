@@ -43,7 +43,7 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 	protected final Lock lock;
 	/** The completion flag, it will be set by the close method once. */
 	@javax.annotation.concurrent.GuardedBy("lock")
-	private boolean completed;
+	protected boolean completed;
 	/** Should the observer close() itself on error or finish()? */
 	protected final boolean closeOnTermination;
 	/** 

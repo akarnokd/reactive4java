@@ -61,7 +61,9 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	public void add(Object token, Closeable handler) {
 		lock.lock();
 		try {
-			subObservers.put(token, handler);
+			if (!completed) {
+				subObservers.put(token, handler);
+			}
 		} finally {
 			lock.unlock();
 		}
@@ -74,7 +76,9 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	public void add(Object token, Observable<? extends T> source) {
 		lock.lock();
 		try {
-			subObservers.put(token, source.register(this));
+			if (!completed) {
+				subObservers.put(token, source.register(this));
+			}
 		} finally {
 			lock.unlock();
 		}
