@@ -147,3 +147,38 @@ The !Reactive4Java framework has constraints over how the messages are propagate
   * followed by either a {{{finish()}}}, an {{{error()}}} message or nothing at all
 
 In addition, the framework serializes each message to the observer and ensures the sequence above is not violated (by suppressing late messages).
+
+= Connecting iterables with observables =
+
+The reactive and interactive wolds can be bridged by using the following utility methods of the {{{Reactive}}} class:
+
+  * {{{asIterable}}}: convert the asynchronous listening to blocking iterable access: you may simply for-each over it.
+  * {{{asObservable}}}: convert a classical list or set into an observable sequence: multiple threads and computation may work asynchronously over it.
+
+(Remark: these methods are placed in Reactive to avoid package cycles with the Interactive package.)
+
+== Scheduling ==
+
+Many operators (such as the asIterable, asObservable and timers) introduce the need for concurrency: the events should originate from another thread.
+
+The !Reactive4Java gives a notion of a {{{Scheduler}}} interface: do work asynchronously and have the option to wait for its completion or cancel it.
+
+Many operators feature overloaded versions which take a {{{Scheduler}}} as their last argument.
+
+Basically, a simplification of the {{{ExecutorService}}} and {{{ScheduledExecutorService}}} thread pool implementations of Java 5+, but flexible enough to have a definition to run tasks on the EDT as well.
+
+  * The {{{DefaultScheduler}}} uses a {{{ScheduledThreadPoolExecutor}}} as basis.
+  * The {{{DefaltEdtScheduler}}} uses the {{{SwingUtilities.invokeLater()}}} and Swing {{{Timer}}} support.
+
+By default, the framework is initialized with a thread pool sized as the available number of CPUs, an unlimited work queue and a 1 second timeout for core threads to let your application quit.
+
+The {{{Scheduler}}} interface defines four methods:
+
+|| *Method* || *Description* ||
+|| {{{schedule(Runnable)}}} || Submit the task and execute it as soon as possible. E.g., {{{ExecutorService.submit()}}}. ||
+|| {{{schedule(Runnable, long)}}} || Schedule the given task to run after the given delay of nanoseconds. E.g., {{{ScheduledExecutorService.schedule()}}}||
+|| {{{schedule(Runnable, long, long}}} || Schedule the given task to run after an initial delay and have fixed delay between invocation (both nanoseconds). E.g.,{{{ScheduledExecutorService.scheduleAtFixedRate()}}} ||
+
+Note that the {{{scheduleWithFixedDelay}}} may be simply emulated by using the {{{schedule(Runnable, long)}}} from within the runnable action itself (for now at least).
+
+Remark: to cancel a repeated task execution from within the Runnable, you should throw any unchecked exception: the machinery in the thread pool will stop the execution for you. This is the only safe way, although not so elegant.
