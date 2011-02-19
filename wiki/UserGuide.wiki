@@ -57,6 +57,29 @@ You might find yourself needing the same functions over and over again, therefor
 
 The second class of helper interfaces are the {{{Action0}}} and {{{Action1<T>}}} respectively. The [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Actions.html Actions] utility class offers some helper methods to create them or convert typical Action-like Java classes.
 
+Since 0.85, a new utility class was added to the library: the [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Lambdas.html Lambdas] class.
+
+It is, basically, a nice wrapper and converter for the Java script support library. By default Java offers a JavaScript engine (codename Rhino) that you can pass in a script as string and it can evaluate it, although slower than a regular Java expression.
+
+The {{{Lambdas}}} utility class offers many overloaded versions to allow nice customizations of your script. You may specify any engine or you might specify additional external resources for your script (e.g., capture other constants or things).
+
+To specify a parameterless function:
+{{{Lambdas.js0("=> print('hello world'); return "";)}}}
+
+To specify a single parameter function with external bindings:
+{{{Lambdas.js1("o => o + c", "c", 10)}}}
+
+*Note* that due the nature of Java's type inference, you might be forced to specify the type parameters manually for the {{{js}}} methods:
+
+{{{
+Reactive.where(
+    Reactive.range(0, 10), 
+    Lambdas.<Boolean, Integer>js1("o => o % 2 == 0")
+)
+}}}
+
+*Note* also that scripting is not type checked and syntax errors come out only when the code is executed. Type errors from wrong result type might surface late too.
+
 == Without extension methods ==
 
 Unfortunately, Java does not support extension methods (method definition, which act if they were part of the target class/interface all the times).
