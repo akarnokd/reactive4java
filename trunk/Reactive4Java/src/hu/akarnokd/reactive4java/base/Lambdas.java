@@ -77,8 +77,8 @@ public final class Lambdas {
 		};
 	}
 	/**
-	 * Creates a parameterless function which executes the given script as
-	 * javascript. In addition, you may specify extra bindings in the varargs
+	 * Creates a parameterless action which executes the given script with the
+	 * given script engine. In addition, you may specify extra bindings in the varargs
 	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression; return result;</code>
@@ -99,7 +99,7 @@ public final class Lambdas {
 		return action0(expression, engine, bindings);
 	}
 	/**
-	 * Creates a single parameter function which invokes the script engine with a given
+	 * Creates a single parameter action which invokes the script engine with a given
 	 * expression.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression;</code>
@@ -134,8 +134,8 @@ public final class Lambdas {
 		};
 	}
 	/**
-	 * Creates a single parameter function which executes the given script as
-	 * javascript. In addition, you may specify extra bindings in the varargs
+	 * Creates a single parameter action which executes the given script on
+	 * the script engine. In addition, you may specify extra bindings in the varargs
 	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression; return result;</code>
@@ -154,6 +154,66 @@ public final class Lambdas {
 			bindings.put((String)nameThenObject[i], nameThenObject[i + 1]);
 		}
 		return action1(expression, engine, bindings);
+	}
+	/**
+	 * Creates a parameterless action which executes the given script as JavaScript.
+	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
+	 * <code>paramName => expression1; expression; return result;</code>
+	 * @param expression the lambda expression
+	 * @param bindings the extra parameter bingings
+	 * @return the function
+	 */
+	@Nonnull 
+	public static Action0 as0(
+			@Nonnull String expression, 
+			@Nonnull Map<String, Object> bindings) {
+		return action0(expression, getEngine("js"), bindings);
+	}
+	/**
+	 * Creates a parameterless action which executes the given script as
+	 * javascript. In addition, you may specify extra bindings in the varargs
+	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
+	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
+	 * <code>paramName => expression1; expression; return result;</code>
+	 * @param expression the lambda expression
+	 * @param nameThenObject the String, Object, String, Object, ... sequence of name and value pairs.
+	 * @return the function
+	 */
+	@Nonnull 
+	public static Action0 as0(
+			@Nonnull String expression, 
+			@Nonnull Object... nameThenObject) {
+		return action0(expression, getEngine("js"), nameThenObject);
+	}
+	/**
+	 * Creates a single parameter action which executes the given script as JavaScript.
+	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
+	 * <code>paramName => expression1; expression; return result;</code>
+	 * @param <T> the parameter type of the action
+	 * @param expression the lambda expression
+	 * @param bindings the extra parameter bindings
+	 * @return the function
+	 */
+	public static <T> Action1<T> as1(
+			@Nonnull String expression, 
+			@Nonnull Map<String, Object> bindings) {
+		return action1(expression, getEngine("js"), bindings);
+	}
+	/**
+	 * Creates a single parameter action which executes the given script as JavaScript.
+	 * In addition, you may specify extra bindings in the varargs
+	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
+	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
+	 * <code>paramName => expression1; expression; return result;</code>
+	 * @param <T> the parameter type of the action
+	 * @param expression the lambda expression
+	 * @param nameThenObject the String, Object, String, Object, ... sequence of name and value pairs.
+	 * @return the function
+	 */
+	public static <T> Action1<T> as1(
+			@Nonnull String expression, 
+			@Nonnull Object... nameThenObject) {
+		return action1(expression, getEngine("js"), nameThenObject);
 	}
 	/**
 	 * Retrieve a script engine for the given name.
