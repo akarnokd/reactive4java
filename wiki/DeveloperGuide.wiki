@@ -1,0 +1,23 @@
+#summary Guide for developers
+
+<wiki:toc max_depth="3" />
+
+= Introduction =
+
+This page gives a guide/tutorial about how to write your an interactive and/or reactive operator, which cannot be expressed by using the !Reactive4Java library's operators via composition.
+
+As a general rule for implementing an operator:
+
+  * follow the types,
+  * know what the operator should do: create a marble diagram first,
+  * think about exception cases carefully,
+  * think about concurrency carefully,
+  * think about cancellation carefully.
+
+You should read the [UserGuide user guide] first to understand the library's fundamentals.
+
+= Reactive =
+
+
+
+= Interactive =
