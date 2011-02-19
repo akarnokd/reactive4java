@@ -64,7 +64,8 @@ public final class Test5 {
 			}
 		}), Reactive.print());
 		
-		Reactive.run(Reactive.select(Reactive.range(1, 5), new Func2<Double, Integer, Integer>() {
+		Reactive.run(Reactive.select(Reactive.range(1, 5), 
+				new Func2<Integer, Integer, Double>() {
 				@Override
 				public Double invoke(Integer param1, Integer param2) {
 					return param1 * 0.5;
@@ -72,7 +73,7 @@ public final class Test5 {
 		}), Reactive.print());
 		
 		Reactive.run(Reactive.selectMany(Reactive.range(1, 5), 
-				new Func1<Observable<Integer>, Integer>() {
+				new Func1<Integer, Observable<Integer>>() {
 			@Override
 			public Observable<Integer> invoke(Integer param1) {
 				return Reactive.range(0, param1);
@@ -85,7 +86,7 @@ public final class Test5 {
 		
 		Reactive.run(Reactive.selectMany(
 		Reactive.range(1, 10), 
-		new Func1<Observable<Integer>, Integer>() {
+		new Func1<Integer, Observable<Integer>>() {
 			@Override
 			public Observable<Integer> invoke(Integer param1) {
 				return Reactive.range(0, param1);

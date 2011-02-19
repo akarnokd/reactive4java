@@ -167,7 +167,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<T> aggregate(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func2<? extends T, ? super T, ? super T> accumulator) {
+			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -215,8 +215,8 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U, V> Observable<V> aggregate(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func2<? extends U, ? super U, ? super T> sum, 
-			@Nonnull final Func2<? extends V, ? super U, ? super Integer> divide) {
+			@Nonnull final Func2<? super U, ? super T, ? extends U> sum, 
+			@Nonnull final Func2<? super U, ? super Integer, ? extends V> divide) {
 		return new Observable<V>() {
 			@Override
 			public Closeable register(final Observer<? super V> observer) {
@@ -261,7 +261,7 @@ public final class Reactive {
 	public static <T, U> Observable<U> aggregate(
 			@Nonnull final Observable<? extends T> source, 
 			final U seed, 
-			@Nonnull final Func2<? extends U, ? super U, ? super T> accumulator) {
+			@Nonnull final Func2<? super U, ? super T, ? extends U> accumulator) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
@@ -297,7 +297,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<Boolean> all(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<Boolean, ? super T> predicate) {
+			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return new Observable<Boolean>() {
 			@Override
 			public Closeable register(final Observer<? super Boolean> observer) {
@@ -432,7 +432,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<Boolean> any(
 			@Nonnull final Observable<T> source, 
-			@Nonnull final Func1<Boolean, ? super T> predicate) {
+			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return new Observable<Boolean>() {
 			@Override
 			public Closeable register(final Observer<? super Boolean> observer) {
@@ -623,7 +623,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<T> asObservable(
 			@Nonnull final Action1<Action1<Option<T>>> source) {
-		return Reactive.create(new Func1<Action0, Observer<? super T>>() {
+		return Reactive.create(new Func1<Observer<? super T>, Action0>() {
 			@Override
 			public Action0 invoke(final Observer<? super T> o) {
 				source.invoke(asAction(o));
@@ -717,7 +717,7 @@ public final class Reactive {
 			@Nonnull final Observable<BigDecimal> source) {
 		return aggregate(source, 
 			Functions.sumBigDecimal(),
-			new Func2<BigDecimal, BigDecimal, Integer>() {
+			new Func2<BigDecimal, Integer, BigDecimal>() {
 				@Override
 				public BigDecimal invoke(BigDecimal param1, Integer param2) {
 					return param1.divide(BigDecimal.valueOf(param2.longValue()), RoundingMode.HALF_UP);
@@ -736,7 +736,7 @@ public final class Reactive {
 			@Nonnull final Observable<BigInteger> source) {
 		return aggregate(source, 
 			Functions.sumBigInteger(),
-			new Func2<BigDecimal, BigInteger, Integer>() {
+			new Func2<BigInteger, Integer, BigDecimal>() {
 				@Override
 				public BigDecimal invoke(BigInteger param1, Integer param2) {
 					return new BigDecimal(param1).divide(BigDecimal.valueOf(param2.longValue()), RoundingMode.HALF_UP);
@@ -755,7 +755,7 @@ public final class Reactive {
 			@Nonnull final Observable<Double> source) {
 		return aggregate(source, 
 			Functions.sumDouble(),
-			new Func2<Double, Double, Integer>() {
+			new Func2<Double, Integer, Double>() {
 				@Override
 				public Double invoke(Double param1, Integer param2) {
 					return param1 / param2;
@@ -774,7 +774,7 @@ public final class Reactive {
 			@Nonnull final Observable<Float> source) {
 		return aggregate(source, 
 			Functions.sumFloat(),
-			new Func2<Float, Float, Integer>() {
+			new Func2<Float, Integer, Float>() {
 				@Override
 				public Float invoke(Float param1, Integer param2) {
 					return param1 / param2;
@@ -793,7 +793,7 @@ public final class Reactive {
 	public static Observable<Double> averageInt(
 			@Nonnull final Observable<Integer> source) {
 		return aggregate(source, 
-			new Func2<Double, Double, Integer>() {
+			new Func2<Double, Integer, Double>() {
 				@Override
 				public Double invoke(Double param1, Integer param2) {
 					if (param1 != null) {
@@ -802,7 +802,7 @@ public final class Reactive {
 					return param2.doubleValue();
 				}
 			},
-			new Func2<Double, Double, Integer>() {
+			new Func2<Double, Integer, Double>() {
 				@Override
 				public Double invoke(Double param1, Integer param2) {
 					return param1 / param2;
@@ -821,7 +821,7 @@ public final class Reactive {
 	public static Observable<Double> averageLong(
 			@Nonnull final Observable<Long> source) {
 		return aggregate(source, 
-			new Func2<Double, Double, Long>() {
+			new Func2<Double, Long, Double>() {
 				@Override
 				public Double invoke(Double param1, Long param2) {
 					if (param1 != null) {
@@ -830,7 +830,7 @@ public final class Reactive {
 					return param2.doubleValue();
 				}
 			},
-			new Func2<Double, Double, Integer>() {
+			new Func2<Double, Integer, Double>() {
 				@Override
 				public Double invoke(Double param1, Integer param2) {
 					return param1 / param2;
@@ -1144,7 +1144,7 @@ public final class Reactive {
 	public static <T, U, V> Observable<V> combineLatest(
 			final Observable<? extends T> left, 
 			final Observable<? extends U> right,
-			final Func2<? extends V, ? super T, ? super U> selector
+			final Func2<? super T, ? super U, ? extends V> selector
 	) {
 		return new Observable<V>() {
 			@Override
@@ -1297,7 +1297,7 @@ public final class Reactive {
 	public static <T> Observable<Boolean> contains(
 			@Nonnull final Observable<? extends T> source, 
 			final T value) {
-		return any(source, new Func1<Boolean, T>() {
+		return any(source, new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param1) {
 				return param1 == value || (param1 != null && param1.equals(value));
@@ -1385,7 +1385,7 @@ public final class Reactive {
 	 */
 	@Nonnull 
 	public static <T> Observable<T> create(
-			@Nonnull final Func1<? extends Action0, Observer<? super T>> subscribe) {
+			@Nonnull final Func1<Observer<? super T>, ? extends Action0> subscribe) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(Observer<? super T> observer) {
@@ -1408,7 +1408,7 @@ public final class Reactive {
 	 */
 	@Nonnull 
 	public static <T> Observable<T> createWithCloseable(
-			@Nonnull final Func1<? extends Closeable, Observer<? super T>> subscribe) {
+			@Nonnull final Func1<Observer<? super T>, ? extends Closeable> subscribe) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(Observer<? super T> observer) {
@@ -1674,7 +1674,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U> Observable<T> distinct(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<U, T> keyExtractor) {
+			@Nonnull final Func1<T, U> keyExtractor) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -1721,7 +1721,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<Void> drain(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<? extends Observable<Void>, ? super T> pump) {
+			@Nonnull final Func1<? super T, ? extends Observable<Void>> pump) {
 		return drain(source, pump, DEFAULT_SCHEDULER.get());
 	}
 	/**
@@ -1736,7 +1736,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<Void> drain(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<? extends Observable<Void>, ? super T> pump, 
+			@Nonnull final Func1<? super T, ? extends Observable<Void>> pump, 
 			@Nonnull final Scheduler pool) {
 		return new Observable<Void>() {
 			@Override
@@ -1897,7 +1897,7 @@ public final class Reactive {
 	 */
 	public static <T, U> Observable<U> forEach(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends Observable<? extends U>, ? super T> selector) {
+			@Nonnull final Func1<? super T, ? extends Observable<? extends U>> selector) {
 		List<Observable<? extends U>> list = new ArrayList<Observable<? extends U>>();
 		for (T t : source) {
 			list.add(selector.invoke(t));
@@ -1993,9 +1993,9 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U> Observable<U> generate(
 			final T initial, 
-			@Nonnull final Func1<Boolean, ? super T> condition, 
-			@Nonnull final Func1<? extends T, ? super T> next, 
-			@Nonnull final Func1<? extends U, ? super T> selector) {
+			@Nonnull final Func1<? super T, Boolean> condition, 
+			@Nonnull final Func1<? super T, ? extends T> next, 
+			@Nonnull final Func1<? super T, ? extends U> selector) {
 		return generate(initial, condition, next, selector, DEFAULT_SCHEDULER.get());
 	}
 	/**
@@ -2013,9 +2013,9 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U> Observable<U> generate(
 			final T initial, 
-			@Nonnull final Func1<Boolean, ? super T> condition, 
-			@Nonnull final Func1<? extends T, ? super T> next, 
-			@Nonnull final Func1<? extends U, ? super T> selector, 
+			@Nonnull final Func1<? super T, Boolean> condition, 
+			@Nonnull final Func1<? super T, ? extends T> next, 
+			@Nonnull final Func1<? super T, ? extends U> selector, 
 			@Nonnull final Scheduler pool) {
 		return new Observable<U>() {
 			@Override
@@ -2052,10 +2052,10 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U> Observable<Timestamped<U>> generateTimed(
 			final T initial, 
-			@Nonnull final Func1<Boolean, ? super T> condition, 
-			@Nonnull final Func1<? extends T, ? super T> next, 
-			@Nonnull final Func1<? extends U, ? super T> selector, 
-			@Nonnull final Func1<Long, ? super T> delay) {
+			@Nonnull final Func1<? super T, Boolean> condition, 
+			@Nonnull final Func1<? super T, ? extends T> next, 
+			@Nonnull final Func1<? super T, ? extends U> selector, 
+			@Nonnull final Func1<? super T, Long> delay) {
 		return generateTimed(initial, condition, next, selector, delay, DEFAULT_SCHEDULER.get());
 	}
 	/**
@@ -2074,10 +2074,10 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U> Observable<Timestamped<U>> generateTimed(
 			final T initial, 
-			@Nonnull final Func1<Boolean, ? super T> condition, 
-			@Nonnull final Func1<? extends T, ? super T> next, 
-			@Nonnull final Func1<? extends U, ? super T> selector, 
-			@Nonnull final Func1<Long, ? super T> delay, 
+			@Nonnull final Func1<? super T, Boolean> condition, 
+			@Nonnull final Func1<? super T, ? extends T> next, 
+			@Nonnull final Func1<? super T, ? extends U> selector, 
+			@Nonnull final Func1<? super T, Long> delay, 
 			@Nonnull final Scheduler pool) {
 		return new Observable<Timestamped<U>>() {
 			@Override
@@ -2133,7 +2133,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, Key> Observable<GroupedObservable<Key, T>> groupBy(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<? extends Key, ? super T> keyExtractor) {
+			@Nonnull final Func1<? super T, ? extends Key> keyExtractor) {
 		return groupBy(source, keyExtractor, Functions.<T>identity());
 	}
 	/**
@@ -2153,8 +2153,8 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U, Key> Observable<GroupedObservable<Key, U>> groupBy(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<? extends Key, ? super T> keyExtractor, 
-			@Nonnull final Func1<? extends U, ? super T> valueExtractor) {
+			@Nonnull final Func1<? super T, ? extends Key> keyExtractor, 
+			@Nonnull final Func1<? super T, ? extends U> valueExtractor) {
 		return new Observable<GroupedObservable<Key, U>>() {
 			@Override
 			public Closeable register(
@@ -2213,9 +2213,9 @@ public final class Reactive {
 	public static <Left, Right, LeftDuration, RightDuration, Result> Observable<Result> groupJoin(
 			final Observable<? extends Left> left, 
 			final Observable<? extends Right> right,
-			final Func1<? extends Observable<LeftDuration>, ? super Left> leftDurationSelector,
-			final Func1<? extends Observable<RightDuration>, ? super Right> rightDurationSelector,
-			final Func2<? extends Result, ? super Left, ? super Observable<? extends Right>> resultSelector
+			final Func1<? super Left, ? extends Observable<LeftDuration>> leftDurationSelector,
+			final Func1<? super Right, ? extends Observable<RightDuration>> rightDurationSelector,
+			final Func2<? super Left, ? super Observable<? extends Right>, ? extends Result> resultSelector
 	) {
 		return new Observable<Result>() {
 			@Override
@@ -2702,9 +2702,9 @@ public final class Reactive {
 	public static <Left, Right, LeftDuration, RightDuration, Result> Observable<Result> join(
 			final Observable<? extends Left> left, 
 			final Observable<? extends Right> right,
-			final Func1<? extends Observable<LeftDuration>, ? super Left> leftDurationSelector,
-			final Func1<? extends Observable<RightDuration>, ? super Right> rightDurationSelector,
-			final Func2<? extends Result, ? super Left, ? super Right> resultSelector
+			final Func1<? super Left, ? extends Observable<LeftDuration>> leftDurationSelector,
+			final Func1<? super Right, ? extends Observable<RightDuration>> rightDurationSelector,
+			final Func2<? super Left, ? super Right, ? extends Result> resultSelector
 	) {
 		return new Observable<Result>() {
 			@Override
@@ -2963,7 +2963,9 @@ public final class Reactive {
 	 * @param selector the selector function
 	 * @return a new observable
 	 */
-	public static <T, U> Observable<U> let(final T value, final Func1<? extends Observable<U>, ? super T> selector) {
+	public static <T, U> Observable<U> let(
+			final T value, 
+			final Func1<? super T, ? extends Observable<U>> selector) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(Observer<? super U> observer) {
@@ -3044,7 +3046,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, Key extends Comparable<? super Key>> Observable<List<T>> maxBy(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<? extends Key, ? super T> keyExtractor) {
+			@Nonnull final Func1<? super T, ? extends Key> keyExtractor) {
 		return minMax(source, keyExtractor, Functions.<Key>comparator(), true);
 	}
 	/**
@@ -3061,7 +3063,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, Key> Observable<List<T>> maxBy(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<? extends Key, ? super T> keyExtractor, 
+			@Nonnull final Func1<? super T, ? extends Key> keyExtractor, 
 			@Nonnull final Comparator<? super Key> keyComparator) {
 		return minMax(source, keyExtractor, keyComparator, true);
 	};
@@ -3178,7 +3180,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, Key extends Comparable<? super Key>> Observable<List<T>> minBy(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<? extends Key, ? super T> keyExtractor) {
+			@Nonnull final Func1<? super T, ? extends Key> keyExtractor) {
 		return minMax(source, keyExtractor, Functions.<Key>comparator(), false);
 	};
 	/**
@@ -3196,7 +3198,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, Key> Observable<List<T>> minBy(
 			@Nonnull final Observable<T> source, 
-			@Nonnull final Func1<Key, T> keyExtractor, 
+			@Nonnull final Func1<T, Key> keyExtractor, 
 			@Nonnull final Comparator<Key> keyComparator) {
 		return minMax(source, keyExtractor, keyComparator, false);
 	}
@@ -3216,7 +3218,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, Key> Observable<List<T>> minMax(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<? extends Key, ? super T> keyExtractor, 
+			@Nonnull final Func1<? super T, ? extends Key> keyExtractor, 
 			@Nonnull final Comparator<? super Key> keyComparator,
 			@Nonnull final boolean max
 	) {
@@ -3500,7 +3502,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T, U extends Comparable<? super U>> Observable<T> orderBy(
 			@Nonnull final Observable<? extends T> source,
-			@Nonnull final Func1<? extends U, ? super T> keySelector
+			@Nonnull final Func1<? super T, ? extends U> keySelector
 			) {
 		return orderBy(source, keySelector, Functions.<U>comparator());
 	}
@@ -3523,7 +3525,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T, U> Observable<T> orderBy(
 			@Nonnull final Observable<? extends T> source,
-			@Nonnull final Func1<? extends U, ? super T> keySelector,
+			@Nonnull final Func1<? super T, ? extends U> keySelector,
 			@Nonnull final Comparator<? super U> keyComparator
 			) {
 		return new Observable<T>() {
@@ -3981,7 +3983,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<T> removeTimestamped(
 			@Nonnull Observable<Timestamped<T>> source) {
-		Func1<T, Timestamped<T>> f = Reactive.unwrapTimestamped();
+		Func1<Timestamped<T>, T> f = Reactive.unwrapTimestamped();
 		return select(source, f);
 	}
 	/**
@@ -4633,7 +4635,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<T> scan(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func2<? extends T, ? super T, ? super T> accumulator) {
+			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -4681,7 +4683,7 @@ public final class Reactive {
 	public static <T> Observable<T> scan(
 			@Nonnull final Observable<? extends T> source, 
 			final T seed, 
-			@Nonnull final Func2<? extends T, ? super T, ? super T> accumulator) {
+			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -4721,7 +4723,7 @@ public final class Reactive {
 	public static <T> Observable<T> scan0(
 			@Nonnull final Observable<? extends T> source, 
 			final T seed, 
-			@Nonnull final Func2<? extends T, ? super T, ? super T> accumulator) {
+			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -4764,7 +4766,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U> Observable<U> select(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<? extends U, ? super T> mapper) {
+			@Nonnull final Func1<? super T, ? extends U> mapper) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
@@ -4799,7 +4801,7 @@ public final class Reactive {
 	 */
 	public static <T, U> Observable<U> select(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func2<? extends U, ? super Integer, ? super T> selector) {
+			@Nonnull final Func2<? super Integer, ? super T, ? extends U> selector) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
@@ -4839,8 +4841,8 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U> Observable<U> selectMany(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<? extends Observable<? extends U>, ? super T> selector) {
-		return selectMany(source, selector, new Func2<U, T, U>() {
+			@Nonnull final Func1<? super T, ? extends Observable<? extends U>> selector) {
+		return selectMany(source, selector, new Func2<T, U, U>() {
 			@Override
 			public U invoke(T param1, U param2) {
 				return param2;
@@ -4863,8 +4865,8 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U, V> Observable<V> selectMany(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<? extends Observable<? extends U>, ? super T> collectionSelector, 
-			@Nonnull final Func2<? extends V, ? super T, ? super U> resultSelector) {
+			@Nonnull final Func1<? super T, ? extends Observable<? extends U>> collectionSelector, 
+			@Nonnull final Func2<? super T, ? super U, ? extends V> resultSelector) {
 		return new Observable<V>() {
 			@Override
 			public Closeable register(final Observer<? super V> observer) {
@@ -4950,7 +4952,8 @@ public final class Reactive {
 	public static <T, U> Observable<U> selectMany(
 			@Nonnull Observable<? extends T> source, 
 			@Nonnull Observable<? extends U> provider) {
-		return selectMany(source, Functions.<Observable<? extends U>, T>constant(provider));
+		return selectMany(source, 
+				Functions.<T, Observable<? extends U>>constant(provider));
 	}
 	/**
 	 * Transform the given source of Ts into Us in a way that the selector might return zero to multiple elements of Us for a single T.
@@ -4964,7 +4967,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U> Observable<U> selectManyIterable(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<? extends Iterable<? extends U>, ? super T> selector) {
+			@Nonnull final Func1<? super T, ? extends Iterable<? extends U>> selector) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
@@ -5224,7 +5227,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<T> skipWhile(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<Boolean, ? super T> condition) {
+			@Nonnull final Func1<? super T, Boolean> condition) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -5480,7 +5483,7 @@ public final class Reactive {
 	public static Observable<Double> sumIntAsDouble(
 			@Nonnull final Observable<Integer> source) {
 		return aggregate(source, 
-			new Func2<Double, Double, Integer>() {
+			new Func2<Double, Integer, Double>() {
 				@Override
 				public Double invoke(Double param1, Integer param2) {
 					return param1 + param2;
@@ -5511,7 +5514,7 @@ public final class Reactive {
 	public static Observable<Double> sumLongAsDouble(
 			@Nonnull final Observable<Long> source) {
 		return aggregate(source, 
-				new Func2<Double, Double, Long>() {
+				new Func2<Double, Long, Double>() {
 					@Override
 					public Double invoke(Double param1, Long param2) {
 						return param1 + param2;
@@ -5729,7 +5732,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<T> takeWhile(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<Boolean, ? super T> predicate) {
+			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -6198,8 +6201,8 @@ public final class Reactive {
 	 * @return the unwrapper function
 	 */
 	@Nonnull 
-	public static <T> Func1<T, TimeInterval<T>> unwrapTimeInterval() {
-		return new Func1<T, TimeInterval<T>>() {
+	public static <T> Func1<TimeInterval<T>, T> unwrapTimeInterval() {
+		return new Func1<TimeInterval<T>, T>() {
 			@Override
 			public T invoke(TimeInterval<T> param1) {
 				return param1.value();
@@ -6212,8 +6215,8 @@ public final class Reactive {
 	 * @return the unwrapper function
 	 */
 	@Nonnull 
-	public static <T> Func1<T, Timestamped<T>> unwrapTimestamped() {
-		return new Func1<T, Timestamped<T>>() {
+	public static <T> Func1<Timestamped<T>, T> unwrapTimestamped() {
+		return new Func1<Timestamped<T>, T>() {
 			@Override
 			public T invoke(Timestamped<T> param1) {
 				return param1.value();
@@ -6233,7 +6236,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U extends Closeable> Observable<T> using(
 			@Nonnull final Func0<? extends U> resourceSelector, 
-			@Nonnull final Func1<? extends Observable<? extends T>, ? super U> resourceUsage) {
+			@Nonnull final Func1<? super U, ? extends Observable<? extends T>> resourceUsage) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -6280,7 +6283,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<T> where(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func0<Func2<Boolean, Integer, ? super T>> clauseFactory) {
+			@Nonnull final Func0<Func2<Integer, ? super T, Boolean>> clauseFactory) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -6288,7 +6291,7 @@ public final class Reactive {
 					/** The current element index. */
 					int index;
 					/** The clause factory to use. */
-					final Func2<Boolean, Integer, ? super T> clause = clauseFactory.invoke();
+					final Func2<Integer, ? super T, Boolean> clause = clauseFactory.invoke();
 					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
@@ -6321,7 +6324,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<T> where(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func1<Boolean, ? super T> clause) {
+			@Nonnull final Func1<? super T, Boolean> clause) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -6358,7 +6361,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<T> where(
 			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final Func2<Boolean, Integer, ? super T> clause) {
+			@Nonnull final Func2<Integer, ? super T, Boolean> clause) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
@@ -6522,7 +6525,7 @@ public final class Reactive {
 	public static <T, U, V> Observable<Observable<T>> window(
 			@Nonnull final Observable<? extends T> source, 
 			@Nonnull final Observable<? extends U> windowOpening, 
-			@Nonnull final Func1<? extends Observable<V>, ? super U> windowClosing) {
+			@Nonnull final Func1<? super U, ? extends Observable<V>> windowClosing) {
 		return new Observable<Observable<T>>() {
 			@Override
 			public Closeable register(final Observer<? super Observable<T>> observer) {
@@ -6616,8 +6619,8 @@ public final class Reactive {
 	 * @return the function performing the wrapping
 	 */
 	@Nonnull 
-	public static <T> Func1<Timestamped<T>, T> wrapTimestamped() {
-		return new Func1<Timestamped<T>, T>() {
+	public static <T> Func1<T, Timestamped<T>> wrapTimestamped() {
+		return new Func1<T, Timestamped<T>>() {
 			@Override
 			public Timestamped<T> invoke(T param1) {
 				return Timestamped.of(param1);
@@ -6644,7 +6647,7 @@ public final class Reactive {
 	public static <T, U, V> Observable<V> zip(
 			@Nonnull final Observable<? extends T> left, 
 			@Nonnull final Iterable<? extends U> right, 
-			@Nonnull final Func2<? extends V, ? super T, ? super U> selector) {
+			@Nonnull final Func2<? super T, ? super U, ? extends V> selector) {
 		return new Observable<V>() {
 			@Override
 			public Closeable register(final Observer<? super V> observer) {
@@ -6711,7 +6714,7 @@ public final class Reactive {
 	public static <T, U, V> Observable<T> zip(
 			@Nonnull final Observable<? extends U> left, 
 			@Nonnull final Observable<? extends V> right, 
-			@Nonnull final Func2<T, U, V> selector) {
+			@Nonnull final Func2<U, V, T> selector) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {

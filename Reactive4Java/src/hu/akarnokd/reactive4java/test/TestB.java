@@ -56,7 +56,9 @@ public final class TestB {
 	public static void main(String[] args)
 	throws Exception {
 	
-		Reactive.run(Reactive.selectMany(Reactive.range(0, 10), new Func1<Observable<Integer>, Integer>() {
+		Reactive.run(Reactive.selectMany(
+				Reactive.range(0, 10), 
+				new Func1<Integer, Observable<Integer>>() {
 			@Override
 			public Observable<Integer> invoke(Integer param1) {
 				return Reactive.range(0, param1);

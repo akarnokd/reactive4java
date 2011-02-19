@@ -69,7 +69,7 @@ public final class TestA {
 			Reactive.zip(
 				Reactive.tick(0, 5, 1, TimeUnit.SECONDS), 
 				Interactive.range(0, 3),
-				new Func2<Long, Long, Integer>() {
+				new Func2<Long, Integer, Long>() {
 					@Override
 					public Long invoke(Long param1, Integer param2) {
 						return param1 * 10 + param2;

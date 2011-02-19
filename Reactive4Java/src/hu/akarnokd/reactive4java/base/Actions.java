@@ -40,6 +40,23 @@ public final class Actions {
 		}
 	};
 	/**
+	 * Wrap the supplied no-parameter function into an action.
+	 * The function's return value is ignored.
+	 * @param <T> the return type of the function, irrelevant
+	 * @param run the original runnable
+	 * @return the Action0 wrapping the runnable
+	 */
+	@Nonnull 
+	public static <T> Action0 asAction0(
+			@Nonnull final Func0<T> run) {
+		return new Action0() {
+			@Override
+			public void invoke() {
+				run.invoke();
+			}
+		};
+	}
+	/**
 	 * Wrap the supplied runnable into an action.
 	 * @param run the original runnable
 	 * @return the Action0 wrapping the runnable
@@ -51,6 +68,24 @@ public final class Actions {
 			@Override
 			public void invoke() {
 				run.run();
+			}
+		};
+	}
+	/**
+	 * Wrap the supplied one-parameter function into an action.
+	 * The function's return value is ignored.
+	 * @param <T> the parameter type
+	 * @param <U> the return type, irrelevant
+	 * @param run the original runnable
+	 * @return the Action0 wrapping the runnable
+	 */
+	@Nonnull 
+	public static <T, U> Action1<T> asAction1(
+			@Nonnull final Func1<T, U> run) {
+		return new Action1<T>() {
+			@Override
+			public void invoke(T param) {
+				run.invoke(param);
 			}
 		};
 	}

@@ -141,8 +141,8 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U, V> Iterable<V> aggregate(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func2<? extends U, ? super U, ? super T> sum, 
-			@Nonnull final Func2<? extends V, ? super U, ? super Integer> divide) {
+			@Nonnull final Func2<? super U, ? super T, ? extends U> sum, 
+			@Nonnull final Func2<? super U, ? super Integer, ? extends V> divide) {
 		return new Iterable<V>() {
 			@Override
 			public Iterator<V> iterator() {
@@ -207,7 +207,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T> Iterable<Boolean> all(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<Boolean, ? super T> predicate) {
+			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return new Iterable<Boolean>() {
 			@Override
 			public Iterator<Boolean> iterator() {
@@ -267,7 +267,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T> Iterable<Boolean> any(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<Boolean, ? super T> predicate) {
+			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return any(where(source, predicate));
 	}
 	/**
@@ -335,7 +335,7 @@ public final class Interactive {
 					return param1 != null ? param1.add(param2) : param2;
 				}
 			},
-			new Func2<BigDecimal, BigDecimal, Integer>() {
+			new Func2<BigDecimal, Integer, BigDecimal>() {
 				@Override
 				public BigDecimal invoke(BigDecimal param1, Integer param2) {
 					return param1.divide(new BigDecimal(param2), BigDecimal.ROUND_HALF_UP);
@@ -360,7 +360,7 @@ public final class Interactive {
 					return param1 != null ? param1.add(param2) : param2;
 				}
 			},
-			new Func2<BigDecimal, BigInteger, Integer>() {
+			new Func2<BigInteger, Integer, BigDecimal>() {
 				@Override
 				public BigDecimal invoke(BigInteger param1, Integer param2) {
 					return new BigDecimal(param1).divide(new BigDecimal(param2), BigDecimal.ROUND_HALF_UP);
@@ -385,7 +385,7 @@ public final class Interactive {
 					return param1 != null ? param1 + param2 : param2.doubleValue();
 				}
 			},
-			new Func2<Double, Double, Integer>() {
+			new Func2<Double, Integer, Double>() {
 				@Override
 				public Double invoke(Double param1, Integer param2) {
 					return param1 / param2;
@@ -410,7 +410,7 @@ public final class Interactive {
 					return param1 != null ? param1 + param2 : param2.floatValue();
 				}
 			},
-			new Func2<Float, Float, Integer>() {
+			new Func2<Float, Integer, Float>() {
 				@Override
 				public Float invoke(Float param1, Integer param2) {
 					return param1 / param2;
@@ -429,13 +429,13 @@ public final class Interactive {
 	public static Iterable<Double> averageInt(
 			@Nonnull Iterable<Integer> source) {
 		return aggregate(source,
-			new Func2<Double, Double, Integer>() {
+			new Func2<Double, Integer, Double>() {
 				@Override
 				public Double invoke(Double param1, Integer param2) {
 					return param1 != null ? param1 + param2 : param2.doubleValue();
 				}
 			},
-			new Func2<Double, Double, Integer>() {
+			new Func2<Double, Integer, Double>() {
 				@Override
 				public Double invoke(Double param1, Integer param2) {
 					return param1 / param2;
@@ -454,13 +454,13 @@ public final class Interactive {
 	public static Iterable<Double> averageLong(
 			@Nonnull Iterable<Long> source) {
 		return aggregate(source,
-			new Func2<Double, Double, Long>() {
+			new Func2<Double, Long, Double>() {
 				@Override
 				public Double invoke(Double param1, Long param2) {
 					return param1 != null ? param1 + param2 : param2.doubleValue();
 				}
 			},
-			new Func2<Double, Double, Integer>() {
+			new Func2<Double, Integer, Double>() {
 				@Override
 				public Double invoke(Double param1, Integer param2) {
 					return param1 / param2;
@@ -600,7 +600,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T> Iterable<T> catchException(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends Iterable<? extends T>, ? super Throwable> handler) {
+			@Nonnull final Func1<? super Throwable, ? extends Iterable<? extends T>> handler) {
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
@@ -758,7 +758,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T> Iterable<Boolean> contains(
 			@Nonnull final Iterable<? extends T> source, final T value) {
-		return any(source, new Func1<Boolean, T>() {
+		return any(source, new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param1) {
 				return param1 == value || (param1 != null && param1.equals(value));
@@ -957,10 +957,10 @@ public final class Interactive {
 	public static <T> Iterable<T> distinct(
 			@Nonnull final Iterable<? extends T> source) {
 		return where(source,
-		new Func0<Func2<Boolean, Integer, T>>() {
+		new Func0<Func2<Integer, T, Boolean>>() {
 			@Override
-			public Func2<Boolean, Integer, T> invoke() {
-				return new Func2<Boolean, Integer, T>() {
+			public Func2<Integer, T, Boolean> invoke() {
+				return new Func2<Integer, T, Boolean>() {
 					/** Is this the first element? */
 					boolean first = true;
 					/** The last seen element. */
@@ -995,12 +995,12 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<T> distinct(
 			@Nonnull final Iterable<? extends T> source,
-			@Nonnull final Func1<U, T> keyExtractor) {
+			@Nonnull final Func1<T, U> keyExtractor) {
 		return where(source,
-		new Func0<Func2<Boolean, Integer, T>>() {
+		new Func0<Func2<Integer, T, Boolean>>() {
 			@Override
-			public Func2<Boolean, Integer, T> invoke() {
-				return new Func2<Boolean, Integer, T>() {
+			public Func2<Integer, T, Boolean> invoke() {
+				return new Func2<Integer, T, Boolean>() {
 					/** Is this the first element? */
 					boolean first = true;
 					/** The last seen element. */
@@ -1053,13 +1053,13 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U, V> Iterable<V> distinctSet(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends U, ? super T> keySelector, 
-			@Nonnull final Func1<? extends V, ? super T> valueSelector) {
+			@Nonnull final Func1<? super T, ? extends U> keySelector, 
+			@Nonnull final Func1<? super T, ? extends V> valueSelector) {
 		return select(where(source,
-		new Func0<Func2<Boolean, Integer, T>>() {
+		new Func0<Func2<Integer, T, Boolean>>() {
 			@Override
-			public Func2<Boolean, Integer, T> invoke() {
-				return new Func2<Boolean, Integer, T>() {
+			public Func2<Integer, T, Boolean> invoke() {
+				return new Func2<Integer, T, Boolean>() {
 					final Set<U> memory = new HashSet<U>();
 					@Override
 					public Boolean invoke(Integer index, T param1) {
@@ -1068,7 +1068,7 @@ public final class Interactive {
 				};
 			};
 		})
-		, new Func1<V, T>() {
+		, new Func1<T, V>() {
 			@Override
 			public V invoke(T param1) {
 				return valueSelector.invoke(param1);
@@ -1204,7 +1204,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<U> forEach(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends Iterable<? extends U>, ? super T> selector) {
+			@Nonnull final Func1<? super T, ? extends Iterable<? extends U>> selector) {
 		List<Iterable<? extends U>> list = new LinkedList<Iterable<? extends U>>();
 		for (Iterable<? extends U> us : select(source, selector)) {
 			list.add(us);
@@ -1232,8 +1232,8 @@ public final class Interactive {
 	@Nonnull 
 	public static <T> Iterable<T> generate(
 			final T seed, 
-			@Nonnull final Func1<Boolean, ? super T> predicate, 
-			@Nonnull final Func1<? extends T, ? super T> next) {
+			@Nonnull final Func1<? super T, Boolean> predicate, 
+			@Nonnull final Func1<? super T, ? extends T> next) {
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
@@ -1297,8 +1297,8 @@ public final class Interactive {
 	@Nonnull 
 	public static <T> Iterable<T> generate(
 			final T seed, 
-			@Nonnull final Func1<Boolean, ? super T> predicate, 
-			@Nonnull final Func1<? extends T, ? super T> next,
+			@Nonnull final Func1<? super T, Boolean> predicate, 
+			@Nonnull final Func1<? super T, ? extends T> next,
 			final long initialDelay, 
 			final long betweenDelay, 
 			@Nonnull final TimeUnit unit) {
@@ -1380,8 +1380,8 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U, V> Iterable<GroupedIterable<V, U>> groupBy(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends V, ? super T> keySelector, 
-			@Nonnull final Func1<? extends U, ? super T> valueSelector) {
+			@Nonnull final Func1<? super T, ? extends V> keySelector, 
+			@Nonnull final Func1<? super T, ? extends U> valueSelector) {
 		return distinctSet(new Iterable<GroupedIterable<V, U>>() {
 			@Override
 			public Iterator<GroupedIterable<V, U>> iterator() {
@@ -1423,7 +1423,7 @@ public final class Interactive {
 					
 				};
 			}
-		}, new Func1<V, GroupedIterable<V, U>>() {
+		}, new Func1<GroupedIterable<V, U>, V>() {
 			@Override
 			public V invoke(GroupedIterable<V, U> param1) {
 				return param1.key();
@@ -1600,7 +1600,7 @@ public final class Interactive {
 			@Nonnull final Iterable<?> source, 
 			final String separator) {
 		return aggregate(source,
-			new Func2<StringBuilder, StringBuilder, Object>() {
+			new Func2<StringBuilder, Object, StringBuilder>() {
 				@Override
 				public StringBuilder invoke(StringBuilder param1, Object param2) {
 					if (param1 == null) {
@@ -1612,7 +1612,7 @@ public final class Interactive {
 					return param1;
 				}
 			},
-			new Func2<String, StringBuilder, Integer>() {
+			new Func2<StringBuilder, Integer, String>() {
 				@Override
 				public String invoke(StringBuilder param1, Integer param2) {
 					return param1.toString();
@@ -1708,7 +1708,8 @@ public final class Interactive {
 	@Nonnull 
 	public static <T extends Comparable<? super T>> Iterable<T> max(
 			@Nonnull final Iterable<? extends T> source) {
-		return aggregate(source, Functions.<T>max(), Functions.<T, Integer>identityFirst());
+		return aggregate(source, Functions.<T>max(), 
+				Functions.<T, Integer>identityFirst());
 	}
 	/**
 	 * Returns the maximum value of the given iterable source in respect to the supplied comparator.
@@ -1761,7 +1762,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U extends Comparable<? super U>> Iterable<List<T>> maxBy(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends U, ? super T> keySelector) {
+			@Nonnull final Func1<? super T, ? extends U> keySelector) {
 		return minMax(source, keySelector, Functions.<U>comparator(), true);
 	}
 	/**
@@ -1777,7 +1778,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<List<T>> maxBy(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends U, ? super T> keySelector, 
+			@Nonnull final Func1<? super T, ? extends U> keySelector, 
 			@Nonnull final Comparator<? super U> keyComparator) {
 		return minMax(source, keySelector, keyComparator, true);
 	}
@@ -2096,7 +2097,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U extends Comparable<? super U>> Iterable<List<T>> minBy(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends U, ? super T> keySelector) {
+			@Nonnull final Func1<? super T, ? extends U> keySelector) {
 		return minMax(source, keySelector, Functions.<U>comparator(), false);
 	}
 	/**
@@ -2114,7 +2115,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<List<T>> minBy(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends U, ? super T> keySelector, 
+			@Nonnull final Func1<? super T, ? extends U> keySelector, 
 			@Nonnull final Comparator<? super U> keyComparator) {
 		return minMax(source, keySelector, keyComparator, false);
 	}
@@ -2134,7 +2135,7 @@ public final class Interactive {
 	@Nonnull 
 	static <T, U> Iterable<List<T>> minMax(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends U, ? super T> keySelector, 
+			@Nonnull final Func1<? super T, ? extends U> keySelector, 
 			@Nonnull final Comparator<? super U> keyComparator, 
 			final boolean max) {
 		return new Iterable<List<T>>() {
@@ -2238,7 +2239,7 @@ public final class Interactive {
 	@Nonnull
 	public static <T, U extends Comparable<? super U>> Iterable<T> orderBy(
 			@Nonnull final Iterable<? extends T> source,
-			@Nonnull final Func1<? extends U, ? super T> keySelector
+			@Nonnull final Func1<? super T, ? extends U> keySelector
 			) {
 		return orderBy(source, keySelector, Functions.<U>comparator());
 	}
@@ -2257,7 +2258,7 @@ public final class Interactive {
 	@Nonnull
 	public static <T, U> Iterable<T> orderBy(
 			@Nonnull final Iterable<? extends T> source,
-			@Nonnull final Func1<? extends U, ? super T> keySelector,
+			@Nonnull final Func1<? super T, ? extends U> keySelector,
 			@Nonnull final Comparator<? super U> keyComparator
 			) {
 		return new Iterable<T>() {
@@ -2405,7 +2406,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<U> prune(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends Iterable<U>, ? super Iterable<? extends T>> func) {
+			@Nonnull final Func1<? super Iterable<? extends T>, ? extends Iterable<U>> func) {
 		return func.invoke(share(source));
 	}
 	/**
@@ -2424,7 +2425,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<U> publish(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends Iterable<? extends U>, ? super Iterable<? super T>> func, 
+			@Nonnull final Func1<? super Iterable<? super T>, ? extends Iterable<? extends U>> func, 
 			final U initial) {
 		return startWith(func.invoke(memoizeAll(source)), initial);
 	}
@@ -2442,7 +2443,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<U> publish(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends Iterable<U>, ? super Iterable<T>> func) {
+			@Nonnull final Func1<? super Iterable<T>, ? extends Iterable<U>> func) {
 		return func.invoke(memoizeAll(source));
 	}
 	/**
@@ -2524,10 +2525,10 @@ public final class Interactive {
 	public static <T> Iterable<T> relayWhile(
 			@Nonnull final Iterable<? extends T> source, 
 			@Nonnull final Func0<Boolean> gate) {
-		return where(source, new Func0<Func2<Boolean, Integer, T>>() {
+		return where(source, new Func0<Func2<Integer, T, Boolean>>() {
 			@Override
-			public Func2<Boolean, Integer, T> invoke() {
-				return new Func2<Boolean, Integer, T>() {
+			public Func2<Integer, T, Boolean> invoke() {
+				return new Func2<Integer, T, Boolean>() {
 					/** The activity checker which turns to false once the gate returns false. */
 					boolean active = true;
 					@Override
@@ -2567,7 +2568,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<U> replay(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends Iterable<U>, ? super Iterable<T>> func) {
+			@Nonnull final Func1<? super Iterable<T>, ? extends Iterable<U>> func) {
 		return func.invoke(memoize(source, 0));
 	}
 	/**
@@ -2585,7 +2586,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<U> replay(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends Iterable<U>, ? super Iterable<T>> func, 
+			@Nonnull final Func1<? super Iterable<T>, ? extends Iterable<U>> func, 
 			final int bufferSize) {
 		return func.invoke(memoize(source, bufferSize));
 	}
@@ -2863,7 +2864,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<U> scan(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func2<? extends U, ? super U, ? super T> aggregator) {
+			@Nonnull final Func2<? super U, ? super T, ? extends U> aggregator) {
 		return scan(source, null, aggregator);
 	}
 	/**
@@ -2883,7 +2884,7 @@ public final class Interactive {
 	public static <T, U> Iterable<U> scan(
 			@Nonnull final Iterable<? extends T> source, 
 			final U seed, 
-			@Nonnull final Func2<? extends U, ? super U, ? super T> aggregator) {
+			@Nonnull final Func2<? super U, ? super T, ? extends U> aggregator) {
 		return new Iterable<U>() {
 			@Override
 			public Iterator<U> iterator() {
@@ -2924,8 +2925,8 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<U> select(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends U, ? super T> selector) {
-		return select(source, new Func2<U, Integer, T>() {
+			@Nonnull final Func1<? super T, ? extends U> selector) {
+		return select(source, new Func2<Integer, T, U>() {
 			@Override
 			public U invoke(Integer param1, T param2) {
 				return selector.invoke(param2);
@@ -2947,7 +2948,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<U> select(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func2<? extends U, Integer, ? super T> selector) {
+			@Nonnull final Func2<Integer, ? super T, ? extends U> selector) {
 		return new Iterable<U>() {
 			@Override
 			public Iterator<U> iterator() {
@@ -2988,7 +2989,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U> Iterable<U> selectMany(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? extends Iterable<? extends U>, ? super T> selector) {
+			@Nonnull final Func1<? super T, ? extends Iterable<? extends U>> selector) {
 		/*
 		 * for (T t : source) {
 		 *     for (U u : selector(t)) {
@@ -3538,7 +3539,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T, U extends Closeable> Iterable<T> using(
 			@Nonnull final Func0<U> resource,
-			@Nonnull final Func1<Iterable<? extends T>, ? super U> usage) {
+			@Nonnull final Func1<? super U, Iterable<? extends T>> usage) {
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
@@ -3593,7 +3594,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T> Iterable<T> where(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func0<? extends Func2<Boolean, Integer, ? super T>> predicateFactory) {
+			@Nonnull final Func0<? extends Func2<Integer, ? super T, Boolean>> predicateFactory) {
 		/*
 		 * int i = 0;
 		 * for (T t : source) {
@@ -3607,7 +3608,7 @@ public final class Interactive {
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
-				final Func2<Boolean, Integer, ? super T> predicate = predicateFactory.invoke();
+				final Func2<Integer, ? super T, Boolean> predicate = predicateFactory.invoke();
 				final Iterator<? extends T> it = source.iterator();
 				return new Iterator<T>() {
 					/** The current element count. */
@@ -3660,8 +3661,8 @@ public final class Interactive {
 	@Nonnull 
 	public static <T> Iterable<T> where(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<Boolean, ? super T> predicate) {
-		return where(source, Functions.constant0(new Func2<Boolean, Integer, T>() {
+			@Nonnull final Func1<? super T, Boolean> predicate) {
+		return where(source, Functions.constant0(new Func2<Integer, T, Boolean>() {
 			@Override
 			public Boolean invoke(Integer param1, T param2) {
 				return predicate.invoke(param2);
@@ -3680,7 +3681,7 @@ public final class Interactive {
 	@Nonnull 
 	public static <T> Iterable<T> where(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func2<Boolean, Integer, ? super T> predicate) {
+			@Nonnull final Func2<Integer, ? super T, Boolean> predicate) {
 		return where(source, Functions.constant0(predicate));
 	}
 	/**
@@ -3701,7 +3702,7 @@ public final class Interactive {
 	public static <T, U, V> Iterable<V> zip(
 			@Nonnull final Iterable<? extends T> left, 
 			@Nonnull final Iterable<? extends U> right, 
-			@Nonnull final Func2<? extends V, ? super T, ? super U> combiner) {
+			@Nonnull final Func2<? super T, ? super U, ? extends V> combiner) {
 		return new Iterable<V>() {
 			@Override
 			public Iterator<V> iterator() {

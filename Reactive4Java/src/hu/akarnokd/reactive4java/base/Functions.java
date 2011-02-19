@@ -34,28 +34,28 @@ import javax.annotation.Nonnull;
  */
 public final class Functions {
 	/** Constant function returning always false. */
-	private static final Func1<Boolean, Void> FALSE1 = new Func1<Boolean, Void>() {
+	private static final Predicate1<Void> FALSE1 = new Predicate1<Void>() {
 		@Override
 		public Boolean invoke(Void param1) {
 			return false;
 		}
 	};
 	/** Constant function returning always true. */
-	private static final Func1<Boolean, Void> TRUE1 = new Func1<Boolean, Void>() {
+	private static final Predicate1<Void> TRUE1 = new Predicate1<Void>() {
 		@Override
 		public Boolean invoke(Void param1) {
 			return true;
 		}
 	};
 	/** Constant parameterless function which returns always false. */
-	public static final Func0<Boolean> FALSE = new Func0<Boolean>() {
+	public static final Predicate0 FALSE = new Predicate0() {
 		@Override
 		public Boolean invoke() {
 			return false;
 		}
 	};
 	/** Constant parameterless function which returns always true. */
-	public static final Func0<Boolean> TRUE = new Func0<Boolean>() {
+	public static final Predicate0 TRUE = new Predicate0() {
 		@Override
 		public Boolean invoke() {
 			return true;
@@ -145,8 +145,8 @@ public final class Functions {
 	 */
 	@SuppressWarnings("unchecked")
 	@Nonnull 
-	public static <T> Func1<Boolean, T> alwaysFalse() {
-		return (Func1<Boolean, T>)FALSE1;
+	public static <T> Predicate1<T> alwaysFalse() {
+		return (Predicate1<T>)FALSE1;
 	}
 	/**
 	 * Returns a function which always returns true regardless of its parameters.
@@ -155,8 +155,8 @@ public final class Functions {
 	 */
 	@Nonnull 
 	@SuppressWarnings("unchecked")
-	public static <T> Func1<Boolean, T> alwaysTrue() {
-		return (Func1<Boolean, T>)TRUE1;
+	public static <T> Predicate1<T> alwaysTrue() {
+		return (Predicate1<T>)TRUE1;
 	}
 	/**
 	 * Wraps the given Func0 object into a callable instance.
@@ -182,11 +182,46 @@ public final class Functions {
 	 */
 	@Nonnull 
 	public static <T> Comparator<T> asComparator(
-			@Nonnull final Func2<Integer, ? super T, ? super T> func) {
+			@Nonnull final Func2<? super T, ? super T, Integer> func) {
 		return new Comparator<T>() {
 			@Override
 			public int compare(T o1, T o2) {
 				return func.invoke(o1, o2);
+			};
+		};
+	}
+	/**
+	 * Wraps the given action into a function which calls the
+	 * action and then returns the <code>result</code> value.
+	 * @param <T> the result type
+	 * @param action the action to invoke
+	 * @param result the result to present after the action invocation
+	 * @return the function
+	 */
+	public static <T> Func0<T> asFunc1(final Action0 action, final T result) {
+		return new Func0<T>() {
+			@Override
+			public T invoke() {
+				action.invoke();
+				return result;
+			};
+		};
+	}
+	/**
+	 * Wraps the given action into a function which calls the
+	 * action and then returns the <code>result</code> value.
+	 * @param <T> the parameter type
+	 * @param <U> the result type
+	 * @param action the action to invoke
+	 * @param result the result to present after the action invocation
+	 * @return the function
+	 */
+	public static <T, U> Func1<T, U> asFunc1(final Action1<T> action, final U result) {
+		return new Func1<T, U>() {
+			@Override
+			public U invoke(T param1) {
+				action.invoke(param1);
+				return result;
 			};
 		};
 	}
@@ -217,9 +252,9 @@ public final class Functions {
 	 * @return the wrapped comparator
 	 */
 	@Nonnull 
-	public static <T> Func2<Integer, T, T> asFunction(
+	public static <T> Func2<T, T, Integer> asFunction(
 			@Nonnull final Comparator<? super T> comparator) {
-		return new Func2<Integer, T, T>() {
+		return new Func2<T, T, Integer>() {
 			@Override
 			public Integer invoke(T param1, T param2) {
 				return comparator.compare(param1, param2);
@@ -338,17 +373,48 @@ public final class Functions {
 		};
 	}
 	/**
+	 * Creates a new comparator which reverses the order of the comparison.
+	 * @param <T> the element type, which must be self comparable
+	 * @return the new comparator
+	 */
+	@Nonnull
+	public static <T extends Comparable<? super T>> Comparator<T> comparatorReverse() {
+		return new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				return o2.compareTo(o1);
+			};
+		};
+	}
+	/**
+	 * Creates a new comparator which reverses the order produced by the given
+	 * normal comparator.
+	 * @param <T> the element type
+	 * @param normal the normal comparator
+	 * @return the new comparator
+	 */
+	@Nonnull
+	public static <T> Comparator<T> comparatorReverse(
+			@Nonnull final Comparator<? super T> normal) {
+		return new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				return normal.compare(o2, o1);
+			};
+		};
+	}
+	/**
 	 * Creates a function which returns always the same value.
-	 * @param <T> the value type to return
-	 * @param <U> the parameter type, irrelevant
+	 * @param <Param1> the parameter type, irrelevant
+	 * @param <Result> the value type to return
 	 * @param value the value to return
 	 * @return the function
 	 */
 	@Nonnull 
-	public static <T, U> Func1<T, U> constant(final T value) {
-		return new Func1<T, U>() {
+	public static <Param1, Result> Func1<Param1, Result> constant(final Result value) {
+		return new Func1<Param1, Result>() {
 			@Override
-			public T invoke(U param1) {
+			public Result invoke(Param1 param1) {
 				return value;
 			};
 		};
@@ -412,8 +478,8 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static <T> Func1<Boolean, T> equal(final T value) {
-		return new Func1<Boolean, T>() {
+	public static <T> Func1<T, Boolean> equal(final T value) {
+		return new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param) {
 				return value == param || (value != null && value.equals(param));
@@ -427,9 +493,9 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static <T extends Comparable<? super T>> Func1<Boolean, T> greaterOrEqual(
+	public static <T extends Comparable<? super T>> Func1<T, Boolean> greaterOrEqual(
 			@Nonnull final T value) {
-		return new Func1<Boolean, T>() {
+		return new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param1) {
 				return param1.compareTo(value) >= 0;
@@ -445,10 +511,10 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static <T> Func1<Boolean, T> greaterOrEqual(
+	public static <T> Func1<T, Boolean> greaterOrEqual(
 			@Nonnull final T value, 
 			@Nonnull final Comparator<? super T> comparator) {
-		return new Func1<Boolean, T>() {
+		return new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param1) {
 				return comparator.compare(param1, value) >= 0;
@@ -463,9 +529,9 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static <T extends Comparable<? super T>> Func1<Boolean, T> greaterThan(
+	public static <T extends Comparable<? super T>> Func1<T, Boolean> greaterThan(
 			@Nonnull final T value) {
-		return new Func1<Boolean, T>() {
+		return new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param1) {
 				return param1.compareTo(value) > 0;
@@ -481,10 +547,10 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static <T> Func1<Boolean, T> greaterThan(
+	public static <T> Func1<T, Boolean> greaterThan(
 			@Nonnull final T value, 
 			@Nonnull final Comparator<? super T> comparator) {
-		return new Func1<Boolean, T>() {
+		return new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param1) {
 				return comparator.compare(param1, value) > 0;
@@ -509,8 +575,8 @@ public final class Functions {
 	 */
 	@SuppressWarnings("unchecked")
 	@Nonnull 
-	public static <T, U> Func2<T, T, U> identityFirst() {
-		return (Func2<T, T, U>)IDENTITY_FIRST;
+	public static <T, U> Func2<T, U, T> identityFirst() {
+		return (Func2<T, U, T>)IDENTITY_FIRST;
 	}
 	/**
 	 * Returns a helper function of two parameters which always returns its second parameter.
@@ -520,8 +586,8 @@ public final class Functions {
 	 */
 	@SuppressWarnings("unchecked")
 	@Nonnull 
-	public static <T, U> Func2<T, U, T> identitySecond() {
-		return (Func2<T, U, T>)IDENTITY_SECOND;
+	public static <T, U> Func2<T, U, U> identitySecond() {
+		return (Func2<T, U, U>)IDENTITY_SECOND;
 	}
 	/**
 	 * @return a function which returns param + 1 for <code>BigInteger</code>s.
@@ -597,9 +663,9 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static <T extends Comparable<? super T>> Func1<Boolean, T> lessOrEqual(
+	public static <T extends Comparable<? super T>> Func1<T, Boolean> lessOrEqual(
 			@Nonnull final T value) {
-		return new Func1<Boolean, T>() {
+		return new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param1) {
 				return param1.compareTo(value) <= 0;
@@ -615,10 +681,10 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static <T> Func1<Boolean, T> lessOrEqual(
+	public static <T> Func1<T, Boolean> lessOrEqual(
 			@Nonnull final T value, 
 			@Nonnull final Comparator<? super T> comparator) {
-		return new Func1<Boolean, T>() {
+		return new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param1) {
 				return comparator.compare(param1, value) <= 0;
@@ -633,9 +699,9 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static <T extends Comparable<? super T>> Func1<Boolean, T> lessThan(
+	public static <T extends Comparable<? super T>> Func1<T, Boolean> lessThan(
 			@Nonnull final T value) {
-		return new Func1<Boolean, T>() {
+		return new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param1) {
 				return param1.compareTo(value) < 0;
@@ -651,10 +717,10 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static <T> Func1<Boolean, T> lessThan(
+	public static <T> Func1<T, Boolean> lessThan(
 			@Nonnull final T value, 
 			@Nonnull final Comparator<? super T> comparator) {
-		return new Func1<Boolean, T>() {
+		return new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param1) {
 				return comparator.compare(param1, value) < 0;
@@ -776,9 +842,9 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static <T> Func1<Boolean, T> notEqual(
+	public static <T> Func1<T, Boolean> notEqual(
 			@Nonnull final T value) {
-		return new Func1<Boolean, T>() {
+		return new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param) {
 				return value != param && (value == null || !value.equals(param));
@@ -844,37 +910,6 @@ public final class Functions {
 	@Nonnull 
 	public static Func2<Long, Long, Long> sumLong() {
 		return SUM_LONG;
-	}
-	/**
-	 * Creates a new comparator which reverses the order produced by the given
-	 * normal comparator.
-	 * @param <T> the element type
-	 * @param normal the normal comparator
-	 * @return the new comparator
-	 */
-	@Nonnull
-	public static <T> Comparator<T> comparatorReverse(
-			@Nonnull final Comparator<? super T> normal) {
-		return new Comparator<T>() {
-			@Override
-			public int compare(T o1, T o2) {
-				return normal.compare(o2, o1);
-			};
-		};
-	}
-	/**
-	 * Creates a new comparator which reverses the order of the comparison.
-	 * @param <T> the element type, which must be self comparable
-	 * @return the new comparator
-	 */
-	@Nonnull
-	public static <T extends Comparable<? super T>> Comparator<T> comparatorReverse() {
-		return new Comparator<T>() {
-			@Override
-			public int compare(T o1, T o2) {
-				return o2.compareTo(o1);
-			};
-		};
 	}
 	/** Utility class. */
 	private Functions() {
