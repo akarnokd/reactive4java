@@ -60,7 +60,7 @@ The second class of helper interfaces are the {{{Action0}}} and {{{Action1<T>}}}
 === Since 0.85 ===
 Since 0.85, a new utility class was added to the library: the [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Lambdas.html Lambdas] class.
 
-It is, basically, a nice wrapper and converter for the Java script support library. By default Java offers a JavaScript engine (codename Rhino) that you can pass in a script as string and it can evaluate it, although slower than a regular Java expression.
+It is, basically, a nice wrapper and converter for the Java script support library. By default Java offers a !JavaScript engine (codename Rhino) that you can pass in a script as string and it can evaluate it, although slower than a regular Java expression. See [http://java.sun.com/developer/technicalArticles/J2SE/Desktop/scripting/ this article] and [http://download.oracle.com/javase/6/docs/api/javax/script/ScriptEngineFactory.html javadoc] for further reading on the subject.
 
 The {{{Lambdas}}} utility class offers many overloaded versions to allow nice customizations of your script. You may specify any engine or you might specify additional external resources for your script (e.g., capture other constants or things).
 
