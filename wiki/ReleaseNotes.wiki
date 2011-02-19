@@ -6,4 +6,4 @@
 = 0.85 =
 
   * Released: 2011-02-18 14:10
-  * Added support for script-to-function like constructs via the [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Lambdas.html Lambdas] utility class.
+  * Added support for script-to-function like constructs via the [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Lambdas.html Lambdas] utility class. See the [http://code.google.com/p/reactive4java/wiki/UserGuide#Since_0.85 new entry] in the user guide.
