@@ -18,6 +18,21 @@ You should read the [UserGuide user guide] first to understand the library's fun
 
 = Reactive =
 
+The set of operators can be grouped into the following categories:
+
+  * filter-like operators,
+  * concurrency-introducing operators.
+
+Filter-like operators are easy to develop, such operators can be {{{select}}} and {{{where}}}.
+
+Concurrency-introducing operators are bit trickier to implement. Either you have a schedule-dependend co-routine (e.g., a timer) or you have to work with multiple streams. Such operators are {{{selectMany}}}, {{{concat}}}, or {{{tick}}}.
+
+== Filter-like operators ==
+
+Their main property is that they are placed between the source and the destination, and may or may not let through messages. Some might change the returned value type based on a function of some sort.
+
+To understand how it can be built, let's develop the {{{where}}} operator step by step.
+
 
 
 = Interactive =
