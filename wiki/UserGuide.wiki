@@ -36,7 +36,7 @@ Unfortunately, Java will not support the lambda expressions probably until versi
 
 Most !Reactive4Java operators can be customized by such 'lambda' function.
 
-You need to derive your own implementation from {{{Func0<R>}}}, {{{Func1<R, T>}}} and {{{Func2<R, T, U>}}} respectively. They are single method interfaces which have an {{{invoke()}}} method:
+You need to derive your own implementation from {{{Func0<R>}}}, {{{Func1<T, R>}}} and {{{Func2<T, U, R>}}} respectively. They are single method interfaces which have an {{{invoke()}}} method:
 
 {{{
 Func1<Integer, Integer> incrementer = new Func1<Integer, Integer>() {
@@ -46,7 +46,7 @@ Func1<Integer, Integer> incrementer = new Func1<Integer, Integer>() {
 }
 }}}
 
-In their definition, the return type parameter is the first listed. This is somewhat different from the C# way of defining the function parameter first and the return type last. *This may change in future, depending on how the Java 8 function type will use its type parameters*.
+In their definition, the return type parameter is the last listed, conforming to C# and other Java library styles.
 
 You might find yourself needing the same functions over and over again, therefore, the [http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Functions.html Functions] utility class contains many helper methods to construct or convert some typical Java functions.
 
@@ -79,7 +79,7 @@ Lambdas.js1("o => o + c", "c", 10)
 {{{
 Reactive.where(
     Reactive.range(0, 10), 
-    Lambdas.<Boolean, Integer>js1("o => o % 2 == 0")
+    Lambdas.<Integer, Boolean>js1("o => o % 2 == 0")
 )
 }}}
 
