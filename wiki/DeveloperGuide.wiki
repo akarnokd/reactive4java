@@ -145,7 +145,36 @@ public static <T> Observable<T> where(
     };
 }}}
 
+Projections like {{{select}}} will use the function parameter to turn one type into another, for example, the select operator would be implemented like this:
+
+{{{
+public static <T, U> Observable<U> where(
+    final Observable<? extends T> source, 
+    final Func1<? super T, ? extends U> func
+)
+    return new Observable<U>() {
+        public Closeable register(final Observer<? super U> observer) {
+            return source.register(new Observer<T>() {
+                public void finish() {
+                    observer.finish();
+                }
+                public void error(Throwable t) {
+                    observer.error(t);
+                }
+                public void next(T value) {
+                    observer.next(func.invoke(value)); 
+                }
+            });
+        }
+    };
+}}}
+
+For each message {{{value}}} we call the function which returns something of type {{{U}}} and we forward it to the given {{{observer}}}.
 
 == Concurrency-introducing operators ==
 
+TODO
+
 = Interactive =
+
+TODO
