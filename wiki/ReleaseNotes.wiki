@@ -1,0 +1,8 @@
+#summary The release notes for the library versions
+#labels Featured
+
+<wiki:toc max_depth="1" />
+
+= 0.85 =
+
+  * Added support for script-to-function like constructs via the Lambdas utility class.
