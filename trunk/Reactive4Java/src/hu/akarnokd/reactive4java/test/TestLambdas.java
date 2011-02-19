@@ -64,7 +64,9 @@ public final class TestLambdas {
 	 */
 	public static void main(String[] args) throws Exception {
 		
-		run(Reactive.where(Reactive.range(0, 10), Lambdas.<Boolean, Integer>js1("o => o % 2 == 0")));
+		run(Reactive.where(
+				Reactive.range(0, 10), 
+				Lambdas.<Integer, Boolean>js1("o => o % 2 == 0")));
 		
 		System.out.printf("%nMain finished%n");
 	}

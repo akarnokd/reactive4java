@@ -70,7 +70,9 @@ public final class ActionObservable {
 	 * @param selector the selector which converts Ts to Rs.
 	 * @return the action to action that receives option of R
 	 */
-	public static <T, R> Action1<Action1<Option<R>>> bind(final Action1<Action1<Option<T>>> source, final Func1<Action1<Action1<Option<R>>>, T> selector) {
+	public static <T, R> Action1<Action1<Option<R>>> bind(
+			final Action1<Action1<Option<T>>> source, 
+			final Func1<T, Action1<Action1<Option<R>>>> selector) {
 		return new Action1<Action1<Option<R>>>() {
 			@Override
 			public void invoke(final Action1<Option<R>> o) {
@@ -103,7 +105,10 @@ public final class ActionObservable {
 	 * @param next the way of compute the next T
 	 * @return the function of founction of option of T
 	 */
-	public static <T> Action1<Action1<Option<T>>> ana(final T seed, final Func1<Boolean, T> condition, final Func1<T, T> next) {
+	public static <T> Action1<Action1<Option<T>>> ana(
+			final T seed, 
+			final Func1<T, Boolean> condition, 
+			final Func1<T, T> next) {
 		return new Action1<Action1<Option<T>>>() {
 			@Override
 			public void invoke(Action1<Option<T>> o) {
@@ -120,7 +125,7 @@ public final class ActionObservable {
 	 * @return the action to action to option
 	 */
 	public static <T> Action1<Action1<Option<T>>> emptyAna() {
-		Func1<Boolean, T> condition = Functions.alwaysFalse();
+		Func1<T, Boolean> condition = Functions.alwaysFalse();
 		return ana(null, condition, null);
 	}
 	/**
@@ -131,7 +136,7 @@ public final class ActionObservable {
 	 */
 	public static <T> Action1<Action1<Option<T>>> singleAna(T value) {
 		Func1<T, T> identity = Functions.identity();
-		return ana(value, new Func1<Boolean, T>() {
+		return ana(value, new Func1<T, Boolean>() {
 			boolean once;
 			@Override
 			public Boolean invoke(T param1) {
@@ -147,13 +152,16 @@ public final class ActionObservable {
 	 * A catamorphism which creates a single R out of the sequence of Ts by using an aggregator.
 	 * The method is a greedy operation: it must wait all source values to arrive, therefore, do not use it on infinite sources.
 	 * @param <T> the type of the sequence values
-	 * @param <R> the output type
+	 * @param <R> the intermediate and output types
 	 * @param source the source of the sequence values
 	 * @param seed the initial value of the aggregation (e.g., start from zero)
 	 * @param aggregator the aggregator function which takes a sequence value and the previous output value and produces a new output value
 	 * @return the aggregation result
 	 */
-	public static <T, R> R cata(Action1<Action1<Option<T>>> source, R seed, final Func2<R, R, T> aggregator) {
+	public static <T, R> R cata(
+			Action1<Action1<Option<T>>> source, 
+			R seed, 
+			final Func2<R, T, R> aggregator) {
 		final Ref<R> result = Ref.of(seed);
 		source.invoke(new Action1<Option<T>>() {
 			/** Indicate the aggregation end. */

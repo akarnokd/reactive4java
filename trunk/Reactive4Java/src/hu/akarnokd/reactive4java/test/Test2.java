@@ -19,8 +19,8 @@ package hu.akarnokd.reactive4java.test;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.reactive.GroupedObservable;
 import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.Observer;
+import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.Timestamped;
 
 import java.io.Closeable;
@@ -62,13 +62,15 @@ public final class Test2 {
 		
 		c.close();
 		
-		Reactive.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
-				Functions.<Integer>identity(), Functions.<Long, Integer>constant(1000L))
-				.register(Reactive.println())
-				;
+		Reactive.generateTimed(0, 
+				Functions.lessThan(10), 
+				Functions.incrementInt(), 
+				Functions.<Integer>identity(), 
+				Functions.<Integer, Long>constant(1000L)
+		).register(Reactive.println());
 		
 		Observable<Timestamped<Integer>> tss = Reactive.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
-				Functions.<Integer>identity(), Functions.<Long, Integer>constant(1000L));
+				Functions.<Integer>identity(), Functions.<Integer, Long>constant(1000L));
 		
 		Observable<GroupedObservable<Timestamped<Integer>, Timestamped<Integer>>> groups = Reactive.groupBy(
 				

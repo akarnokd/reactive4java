@@ -95,7 +95,8 @@ public final class TestInteractive0 {
 		
 		run(concat(singleton(0), range(1, 9)));
 		
-		run(where(range(0, 10), new Func2<Boolean, Integer, Integer>() {
+		run(where(range(0, 10), 
+				new Func2<Integer, Integer, Boolean>() {
 			@Override
 			public Boolean invoke(Integer param1, Integer param2) {
 				System.out.printf("[%d]", param1);
@@ -103,7 +104,8 @@ public final class TestInteractive0 {
 			}
 		}));
 		
-		run(selectMany(range(0, 10), new Func1<Iterable<Integer>, Integer>() {
+		run(selectMany(range(0, 10), 
+		new Func1<Integer, Iterable<Integer>>() {
 			@Override
 			public Iterable<Integer> invoke(Integer param1) {
 				return range(0, param1 + 1);
@@ -118,7 +120,7 @@ public final class TestInteractive0 {
 				identity()));
 		
 		Iterable<GroupedIterable<Boolean, Integer>> ie = groupBy(range(0, 10),
-			new Func1<Boolean, Integer>() {
+			new Func1<Integer, Boolean>() {
 				@Override
 				public Boolean invoke(Integer param1) {
 					return param1 % 2 == 0;

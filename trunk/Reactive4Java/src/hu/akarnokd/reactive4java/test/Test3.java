@@ -45,10 +45,10 @@ public final class Test3 {
 	public static void main(String[] args) throws Exception {
 
 		Observable<Timestamped<Integer>> tss = Reactive.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
-				Functions.<Integer>identity(), Functions.<Long, Integer>constant(1000L));
+				Functions.<Integer>identity(), Functions.<Integer, Long>constant(1000L));
 		
 		Observable<Timestamped<Integer>> tss2 = Reactive.generateTimed(10, Functions.lessThan(20), Functions.incrementInt(), 
-				Functions.<Integer>identity(), Functions.<Long, Integer>constant(1000L));
+				Functions.<Integer>identity(), Functions.<Integer, Long>constant(1000L));
 		
 		Observable<GroupedObservable<Integer, Integer>> groups = Reactive.groupBy(
 				

@@ -59,7 +59,9 @@ public final class TestInteractive1 {
 		
 		run(Interactive.takeLast(Interactive.range(0, 10), 3));
 		
-		run(Interactive.zip(Interactive.range(0, 10), Interactive.range(0, 5), new Func2<String, Integer, Integer>() {
+		run(Interactive.zip(Interactive.range(0, 10), 
+				Interactive.range(0, 5), 
+				new Func2<Integer, Integer, String>() {
 			@Override
 			public String invoke(Integer param1, Integer param2) {
 				return param1 + ":" + param2;
@@ -72,7 +74,7 @@ public final class TestInteractive1 {
 	    		Interactive.orderBy(
 		            Interactive.selectMany(
 		                Interactive.range(0, 10), 
-		                new Func1<Iterable<Integer>, Integer>() {
+		                new Func1<Integer, Iterable<Integer>>() {
 		                	@Override
 		                    public Iterable<Integer> invoke(Integer param1) {
 		                       return Interactive.range(0, param1);

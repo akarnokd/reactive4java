@@ -59,9 +59,9 @@ public final class TestC {
 			Reactive.join(
 				Reactive.tick(0, 10, 1, TimeUnit.SECONDS),
 				Reactive.tick(0, 10, 3, TimeUnit.SECONDS),
-				Functions.<Observable<Long>, Long>constant(Reactive.tick(0, 1, 20, TimeUnit.SECONDS)),
-				Functions.<Observable<Long>, Long>constant(Reactive.tick(0, 1, 20, TimeUnit.SECONDS)),
-				new Func2<String, Long, Long>() {
+				Functions.<Long, Observable<Long>>constant(Reactive.tick(0, 1, 20, TimeUnit.SECONDS)),
+				Functions.<Long, Observable<Long>>constant(Reactive.tick(0, 1, 20, TimeUnit.SECONDS)),
+				new Func2<Long, Long, String>() {
 					@Override
 					public String invoke(Long param1, Long param2) {
 						return param1 + " and " + param2;
@@ -76,7 +76,7 @@ public final class TestC {
 		Reactive.window(
 			Reactive.tick(0, 10, 1, TimeUnit.SECONDS),
 			Reactive.tick(0, 10, 3, TimeUnit.SECONDS),
-			Functions.<Observable<Long>, Long>constant(Reactive.tick(0, 1, 2, TimeUnit.SECONDS))
+			Functions.<Long, Observable<Long>>constant(Reactive.tick(0, 1, 2, TimeUnit.SECONDS))
 		).register(new Observer<Observable<Long>>() {
 			int lane;
 			@Override

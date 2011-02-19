@@ -85,7 +85,9 @@ public final class FunctionIterable {
 	 * @param selector the selector to produce Rs out of Ts.
 	 * @return a function to function to option of R.
 	 */
-	public static <T, R> Func0<Func0<Option<R>>> bind(final Func0<Func0<Option<T>>> source, final Func1<Func0<Func0<Option<R>>>, T> selector) {
+	public static <T, R> Func0<Func0<Option<R>>> bind(
+			final Func0<Func0<Option<T>>> source, 
+			final Func1<T, Func0<Func0<Option<R>>>> selector) {
 		return new Func0<Func0<Option<R>>>() {
 			@Override
 			public Func0<Option<R>> invoke() {
@@ -132,7 +134,9 @@ public final class FunctionIterable {
 	 * @param next the way of compute the next T
 	 * @return the function of founction of option of T
 	 */
-	public static <T> Func0<Func0<Option<T>>> ana(final T seed, final Func1<Boolean, T> condition, final Func1<T, T> next) {
+	public static <T> Func0<Func0<Option<T>>> ana(
+			final T seed, final Func1<T, Boolean> condition, 
+			final Func1<T, T> next) {
 		return new Func0<Func0<Option<T>>>() {
 			@Override
 			public Func0<Option<T>> invoke() {
@@ -154,7 +158,7 @@ public final class FunctionIterable {
 	 * @return the function of function of option of T
 	 */
 	public static <T> Func0<Func0<Option<T>>> emptyAna() {
-		Func1<Boolean, T> condition = Functions.alwaysFalse(); // type inference issues
+		Func1<T, Boolean> condition = Functions.alwaysFalse(); // type inference issues
 		return ana(null, condition, null);
 	}
 	/**
@@ -165,7 +169,7 @@ public final class FunctionIterable {
 	 */
 	public static <T> Func0<Func0<Option<T>>> singleAna(T value) {
 		Func1<T, T> next = Functions.identity(); // type inference issues
-		return ana(value, new Func1<Boolean, T>() {
+		return ana(value, new Func1<T, Boolean>() {
 			/** Return true only once. */
 			boolean once;
 			@Override
@@ -182,13 +186,16 @@ public final class FunctionIterable {
 	 * A catamorphism which creates a single R out of the sequence of Ts by using an aggregator.
 	 * The method is a greedy operation: it must wait all source values to arrive, therefore, do not use it on infinite sources.
 	 * @param <T> the type of the sequence values
-	 * @param <R> the output type
+	 * @param <R> the intermediate and output types
 	 * @param source the source of the sequence values
 	 * @param seed the initial value of the aggregation (e.g., start from zero)
 	 * @param aggregator the aggregator function which takes a sequence value and the previous output value and produces a new output value
 	 * @return the aggregation result
 	 */
-	public static <T, R> R cata(Func0<Func0<Option<T>>> source, R seed, Func2<R, R, T> aggregator) {
+	public static <T, R> R cata(
+			Func0<Func0<Option<T>>> source, 
+			R seed, 
+			Func2<R, T, R> aggregator) {
 		Func0<Option<T>> e = source.invoke();
 		
 		R result = seed;
