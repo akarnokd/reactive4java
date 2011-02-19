@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java.util;
+package hu.akarnokd.reactive4java.base;
 
 import java.util.NoSuchElementException;
 
