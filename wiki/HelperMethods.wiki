@@ -23,7 +23,7 @@ The {{{hu.akarnokd.reactive4java.base.Functions}}} utility class lists static he
 
 = Lambdas =
 
-The {{{hu.akarnokd.reactive4java.base.Lambdas}}} utility class lists static helper methods that can be used to work with the {{{Func0}}},{{{Func1}}} and {{{Func2}}} classes by providing the function body implementation as script (e.g., JavaScript).
+The {{{hu.akarnokd.reactive4java.base.Lambdas}}} utility class lists static helper methods that can be used to work with the {{{Func0}}},{{{Func1}}} and {{{Func2}}} classes by providing the function body implementation as script (e.g., !JavaScript).
 
 || *Method* || *Description* ||
 
