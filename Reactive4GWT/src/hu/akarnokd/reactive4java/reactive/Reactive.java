@@ -136,7 +136,7 @@ public final class Reactive {
 
 					@Override
 					public void next(T value) {
-						long t2 = System.nanoTime();
+						long t2 = System.currentTimeMillis() * 1000000L;
 						observer.next(TimeInterval.of(value, t2 - lastTime));
 						lastTime = t2;
 					}
