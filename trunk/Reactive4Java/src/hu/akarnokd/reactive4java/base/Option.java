@@ -52,7 +52,7 @@ public abstract class Option<T> {
 	}
 	/**
 	 * A helper class representing an option holding something of T.
-	 * @author karnokd
+	 * @author akarnokd
 	 *
 	 * @param <T> the type of the contained stuff
 	 */
