@@ -27,7 +27,7 @@ import java.util.zip.ZipOutputStream;
 
 /**
  * Creates a GWT JAR fire from the src and gwt-override directories.
- * @author karnokd, 2011.02.07.
+ * @author akarnokd, 2011.02.07.
  */
 public final class BuildGWT {
 

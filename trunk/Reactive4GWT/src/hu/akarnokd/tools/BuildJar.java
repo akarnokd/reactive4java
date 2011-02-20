@@ -27,7 +27,7 @@ import java.util.zip.ZipOutputStream;
 
 /**
  * Creates a JAR fire from the src and bin directories.
- * @author karnokd, 2011.02.07.
+ * @author akarnokd, 2011.02.07.
  */
 public final class BuildJar {
 

@@ -35,6 +35,12 @@ public class Thread implements Runnable {
 	public void interrupt() {
 		interruptedFlag = true;
 	}
+	/** @return check if the thread is interrupted and clear the flag. */
+	public static boolean interrupted() {
+		boolean itf = CURRENT_THREAD.interruptedFlag;
+		CURRENT_THREAD.interruptedFlag = false;
+		return itf;
+	}
 	/** The constant thread. */
 	protected static final Thread CURRENT_THREAD = new Thread();
 	/** @return the current thread object. */
