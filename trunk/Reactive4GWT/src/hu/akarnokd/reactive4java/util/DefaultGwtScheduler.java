@@ -15,7 +15,6 @@
  */
 package hu.akarnokd.reactive4java.util;
 
-import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Scheduler;
 
 import java.io.Closeable;
@@ -40,7 +39,12 @@ public class DefaultGwtScheduler implements Scheduler {
 			}
 		};
 		timer.schedule(1);
-		return Functions.EMPTY_CLOSEABLE;
+		return new Closeable() {
+			@Override
+			public void close() throws IOException {
+				timer.cancel();
+			}
+		};
 	}
 
 	@Override
