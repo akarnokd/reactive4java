@@ -32,3 +32,4 @@
     * [ExamplesReactive Reactive]
   * [FeatureComparison Comparison with others]
   * [ReleaseNotes Release notes]
+  * [Install Install notes]
