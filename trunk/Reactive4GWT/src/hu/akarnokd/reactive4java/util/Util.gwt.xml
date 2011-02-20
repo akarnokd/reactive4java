@@ -3,4 +3,7 @@
   <super-source path="super"/>
   <inherits name="java.util.Util"/>
   <inherits name="hu.akarnokd.reactive4java.base.Base"/>
+  <inherits name='java.io.IO'/>     
+  <inherits name='java.lang.Lang'/>     
+  <inherits name="java.util.Util"/>
 </module>
