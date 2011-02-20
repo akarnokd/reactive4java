@@ -16,14 +16,12 @@
 package hu.akarnokd.reactive4java.base;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.script.Bindings;
 import javax.script.ScriptEngine;
-import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
@@ -388,31 +386,31 @@ public final class Lambdas {
 		}
 		return js2(expression, bindings);
 	}
-	/**
-	 * Test program for scripting capabilities.
-	 * @param args the arguments
-	 */
-	public static void main(String[] args) {
-		ScriptEngineManager mgr = new ScriptEngineManager();
-		List<ScriptEngineFactory> factories = 
-			mgr.getEngineFactories();
-		for (ScriptEngineFactory factory : factories) {
-			System.out.println("ScriptEngineFactory Info");
-			String engName = factory.getEngineName();
-			String engVersion = factory.getEngineVersion();
-			String langName = factory.getLanguageName();
-			String langVersion = factory.getLanguageVersion();
-			System.out.printf("\tScript Engine: %s (%s)\n", 
-					engName, engVersion);
-			List<String> engNames = factory.getNames();
-			for (String name : engNames) {
-				System.out.printf("\tEngine Alias: %s\n", name);
-			}
-			System.out.printf("\tLanguage: %s (%s)\n", 
-					langName, langVersion);
-			System.out.printf("\tThreading: %s%n", factory.getParameter("THREADING"));
-		} 
-	}
+//	/**
+//	 * Test program for scripting capabilities.
+//	 * @param args the arguments
+//	 */
+//	public static void main(String[] args) {
+//		ScriptEngineManager mgr = new ScriptEngineManager();
+//		List<ScriptEngineFactory> factories = 
+//			mgr.getEngineFactories();
+//		for (ScriptEngineFactory factory : factories) {
+//			System.out.println("ScriptEngineFactory Info");
+//			String engName = factory.getEngineName();
+//			String engVersion = factory.getEngineVersion();
+//			String langName = factory.getLanguageName();
+//			String langVersion = factory.getLanguageVersion();
+//			System.out.printf("\tScript Engine: %s (%s)\n", 
+//					engName, engVersion);
+//			List<String> engNames = factory.getNames();
+//			for (String name : engNames) {
+//				System.out.printf("\tEngine Alias: %s\n", name);
+//			}
+//			System.out.printf("\tLanguage: %s (%s)\n", 
+//					langName, langVersion);
+//			System.out.printf("\tThreading: %s%n", factory.getParameter("THREADING"));
+//		} 
+//	}
 	/**
 	 * Returns a parameterless function which invokes the given script on the 
 	 * script engine and retunrs its value.
