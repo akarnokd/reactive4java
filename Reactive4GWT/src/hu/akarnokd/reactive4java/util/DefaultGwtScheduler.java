@@ -26,7 +26,7 @@ import com.google.gwt.user.client.Timer;
  * The default implementation of the Scheduler
  * interface used by the <code>Reactive</code> operators
  * for a GWT environment.
- * @author akarnokd, 2011.02.02.
+ * @author akarnokd, 2011.02.20.
  */
 public class DefaultGwtScheduler implements Scheduler {
 
@@ -35,13 +35,18 @@ public class DefaultGwtScheduler implements Scheduler {
 		final Timer timer = new Timer() {
 			@Override
 			public void run() {
-				run.run();
+				try {
+					run.run();
+				} finally {
+					Thread.interrupted(); // clear interrupt flag
+				}
 			}
 		};
 		timer.schedule(1);
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
+				Thread.currentThread().interrupt();
 				timer.cancel();
 			}
 		};
@@ -52,13 +57,18 @@ public class DefaultGwtScheduler implements Scheduler {
 		final Timer timer = new Timer() {
 			@Override
 			public void run() {
-				run.run();
+				try {
+					run.run();
+				} finally {
+					Thread.interrupted(); // clear interrupt flag
+				}
 			}
 		};
 		timer.schedule((int)(delay / 1000000L));
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
+				Thread.currentThread().interrupt();
 				timer.cancel();
 			}
 		};
@@ -75,17 +85,27 @@ public class DefaultGwtScheduler implements Scheduler {
 					try {
 						run.run();
 					} catch (Throwable ex) {
+						Thread.currentThread().interrupt();
+					}
+					if (Thread.interrupted()) {
 						timer.cancel();
 					}
 				}
 			};
 			@Override
 			public void run() {
-				timer.run();
-				timer.scheduleRepeating((int)(betweenDelay / 1000000L));
+				try {
+					run.run();
+					if (!Thread.interrupted()) {
+						timer.scheduleRepeating((int)(betweenDelay / 1000000L));
+					}
+				} catch (Throwable ex) {
+					
+				}
 			}
 			@Override
 			public void cancel() {
+				Thread.currentThread().interrupt();
 				timer.cancel();
 				super.cancel();
 			}
