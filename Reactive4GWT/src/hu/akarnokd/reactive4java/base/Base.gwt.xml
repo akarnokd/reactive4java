@@ -1,0 +1,6 @@
+<module>
+  <source path=""/>
+  <super-source path="gwt"/>
+  <inherits name="java.util.Util"/>
+  <inherits name="javax.script.Script"/>
+</module>

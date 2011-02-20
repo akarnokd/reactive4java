@@ -1,0 +1,6 @@
+<module>
+  <source path=""/>
+  <super-source path="super"/>
+  <inherits name="java.util.Util"/>
+  <inherits name="hu.akarnokd.reactive4java.base.Base"/>
+</module>
