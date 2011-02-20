@@ -82,7 +82,7 @@ public final class BuildGWT {
 		ZipOutputStream zout = null;
 		
 		String baseProject = ".\\";
-		String targetJar = "reactive4gwt";
+		String targetJar = "reactive4java-gwt";
 		String version = "0.90";
 		
 		zout = new ZipOutputStream(new BufferedOutputStream(
