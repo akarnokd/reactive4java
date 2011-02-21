@@ -32,6 +32,7 @@ public class Reactive4GWT implements EntryPoint {
 	/**
 	 * This is the entry point method.
 	 */
+	@Override
 	public void onModuleLoad() {
 		
 		final ListBox list = new ListBox(true);
