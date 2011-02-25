@@ -167,7 +167,7 @@ Some special cases might apply when you register to an observable:
 
 The registration returns a {{{Closeable}}} instance, which interface is the de-facto standard resource cleanup interface for Java I/O and will be nicely usable by the new try-with-resources operator of Java 7.
 
-This handler's {{{close()}}} method can be called to cancel a registration and/or stop the flood of messages. Unfortunately, the {{{Closeable.close(()}}} defines a checked {{{IOException}}} which you will surely need to suppress.
+This handler's {{{close()}}} method can be called to cancel a registration and/or stop the flood of messages. Unfortunately, the {{{Closeable.close()}}} defines a checked {{{IOException}}} which you will surely need to suppress.
 
 In theory, the {{{close()}}} method will never throw any exception and can be considered idempotent, e.g., calling it multiple times will not result in multiple deregistration or cancellation as the second and subsequent calls are ensured by the framework to be no-ops.
 
@@ -206,7 +206,7 @@ Basically, a simplification of the {{{ExecutorService}}} and {{{ScheduledExecuto
 
 By default, the framework is initialized with a thread pool sized as the available number of CPUs, an unlimited work queue and a 1 second timeout for core threads to let your application quit.
 
-The {{{Scheduler}}} interface defines four methods:
+The {{{Scheduler}}} interface defines three methods:
 
 || *Method* || *Description* ||
 || {{{schedule(Runnable)}}} || Submit the task and execute it as soon as possible. E.g., {{{ExecutorService.submit()}}}. ||
