@@ -16,6 +16,7 @@
 
 package hu.akarnokd.reactive4java.test;
 
+import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Lambdas;
 import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Observable;
@@ -67,6 +68,21 @@ public final class TestLambdas {
 		run(Reactive.where(
 				Reactive.range(0, 10), 
 				Lambdas.<Integer, Boolean>js1("o => o % 2 == 0")));
+		
+		long t = 0;
+		
+		t = System.nanoTime();
+		Action0 a = Lambdas.as0("=> var sum = 0; for (var i = 0; i < 10000000; i++) { sum += i; }");
+		a.invoke();
+		System.out.printf("Script: %d ns%n", (System.nanoTime() - t));
+	
+		t = System.nanoTime();
+		long sum = 0;
+		for (long i = 0; i < 10000000L; i++) {
+			sum += i;
+		}
+		System.out.printf("Direct: %d ns%n", (System.nanoTime() - t));
+
 		
 		System.out.printf("%nMain finished%n");
 	}
