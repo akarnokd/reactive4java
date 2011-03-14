@@ -28,7 +28,7 @@ import com.google.gwt.user.client.Timer;
  * for a GWT environment.
  * @author akarnokd, 2011.02.20.
  */
-public class DefaultGwtScheduler implements Scheduler {
+public class DefaultScheduler implements Scheduler {
 
 	@Override
 	public Closeable schedule(final Runnable run) {

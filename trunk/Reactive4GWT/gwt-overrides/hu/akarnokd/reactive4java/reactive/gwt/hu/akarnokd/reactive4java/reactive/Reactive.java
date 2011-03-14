@@ -28,7 +28,7 @@ import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
 import hu.akarnokd.reactive4java.interactive.SingleContainer;
-import hu.akarnokd.reactive4java.util.DefaultGwtScheduler;
+import hu.akarnokd.reactive4java.util.DefaultScheduler;
 import hu.akarnokd.reactive4java.util.SingleLaneExecutor;
 
 import java.io.Closeable;
@@ -105,7 +105,7 @@ public final class Reactive {
 	/** The diagnostic states of the current runnable. */
 	public enum ObserverState { OBSERVER_ERROR, OBSERVER_FINISHED, OBSERVER_RUNNING }
 	/** The common observable pool where the Observer methods get invoked by default. */
-	static final AtomicReference<Scheduler> DEFAULT_SCHEDULER = new AtomicReference<Scheduler>(new DefaultGwtScheduler());
+	static final AtomicReference<Scheduler> DEFAULT_SCHEDULER = new AtomicReference<Scheduler>(new DefaultScheduler());
 	/**
 	 * Returns an observable which provides a TimeInterval of Ts which
 	 * records the elapsed time between successive elements.
@@ -4168,7 +4168,7 @@ public final class Reactive {
 	 * used when this class was initialized.
 	 */
 	public static void restoreDefaultScheduler() {
-		DEFAULT_SCHEDULER.set(new DefaultGwtScheduler());
+		DEFAULT_SCHEDULER.set(new DefaultScheduler());
 	}
 	/**
 	 * Returns an observable which listens to elements from a source until it signals an error()
