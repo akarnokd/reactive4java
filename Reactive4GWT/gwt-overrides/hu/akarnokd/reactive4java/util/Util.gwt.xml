@@ -1,6 +1,6 @@
 <module>
   <source path=""/>
-  <super-source path="super"/>
+  <super-source path="gwt"/>
   <inherits name="java.util.Util"/>
   <inherits name="hu.akarnokd.reactive4java.base.Base"/>
   <inherits name='java.io.IO'/>     
