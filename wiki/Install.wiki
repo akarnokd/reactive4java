@@ -9,7 +9,7 @@ Add the {{{reactive4java-NNN.jar}}} to your build path. You may set the library 
 
 = GWT =
 
-Add the {{{reactive4java-gwt-NNN.jar}}} to your build path. You may set the library source path to this same library in your IDE.
+Add the {{{reactive4java-NNN.jar}}} and {{{reactive4java-gwt-NNN.jar}}} to your build path. You may set the library source path to the first library in your IDE.
 
 You need to add {{{inherits}}} tags to your main {{{gwt.xml}}}:
 
