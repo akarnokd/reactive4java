@@ -84,7 +84,7 @@ public final class BuildJar {
 		
 		String baseProject = "..\\Reactive4Java\\";
 		String targetJar = "reactive4java";
-		String version = "0.90";
+		String version = "0.91";
 		
 		zout = new ZipOutputStream(new BufferedOutputStream(
 				new FileOutputStream(baseProject + targetJar + "-" + version + ".jar"), 1024 * 1024));
