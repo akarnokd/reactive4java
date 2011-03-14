@@ -81,9 +81,9 @@ public final class BuildGWT {
 	public static void main(String[] args) throws Exception {
 		ZipOutputStream zout = null;
 		
-		String baseProject = ".\\";
+		String baseProject = "..\\Reactive4Java\\";
 		String targetJar = "reactive4java-gwt";
-		String version = "0.90";
+		String version = "0.91";
 		
 		zout = new ZipOutputStream(new BufferedOutputStream(
 				new FileOutputStream(baseProject + targetJar + "-" + version + ".jar"), 1024 * 1024));
@@ -93,14 +93,14 @@ public final class BuildGWT {
 				@Override
 				public boolean accept(File dir, String name) {
 					String path = dir.getAbsolutePath().replace('\\', '/');
-					return !name.equals(".svn") && path.contains("hu/akarnokd/reactive4java");
+					return !name.equals(".svn") && path.contains("hu/akarnokd/reactive4java") && !path.contains("hu/akarnokd/reactive4java/swing");
 				}
 			});
-			processDirectory(baseProject + ".\\war\\WEB-INF\\classes\\", baseProject + ".\\war\\WEB-INF\\classes", zout, new FilenameFilter() {
+			processDirectory(baseProject + ".\\bin\\", baseProject + ".\\bin", zout, new FilenameFilter() {
 				@Override
 				public boolean accept(File dir, String name) {
 					String path = dir.getAbsolutePath().replace('\\', '/');
-					return name.endsWith(".class") && !name.equals(".svn") && path.contains("hu/akarnokd/reactive4java");
+					return name.endsWith(".class") && !name.equals(".svn") && path.contains("hu/akarnokd/reactive4java") && !path.contains("hu/akarnokd/reactive4java/swing");
 				}
 			});
 			processDirectory(baseProject + ".\\gwt-overrides\\", baseProject + ".\\gwt-overrides", zout, new FilenameFilter() {

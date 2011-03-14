@@ -20,8 +20,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -59,7 +59,7 @@ public final class JavaCommentsCollector {
 				@Override
 				public FileVisitResult visitFile(Path file,
 						BasicFileAttributes attrs) throws IOException {
-					if (file.getName().toString().toLowerCase().endsWith(".java")) {
+					if (file.getFileName().toString().toLowerCase().endsWith(".java")) {
 						visitAFile(file, p, out);
 					}
 					return FileVisitResult.CONTINUE;
@@ -84,7 +84,7 @@ public final class JavaCommentsCollector {
 		out.println();
 		out.println();
 		try {
-			BufferedReader in = new BufferedReader(new InputStreamReader(theFile.newInputStream()));
+			BufferedReader in = Files.newBufferedReader(theFile, Charset.defaultCharset());
 			try {
 				StringBuilder b = new StringBuilder();
 				String line = null;
