@@ -29,12 +29,12 @@ import java.util.zip.ZipOutputStream;
  * Creates a GWT JAR fire from the src and gwt-override directories.
  * @author akarnokd, 2011.02.07.
  */
-public final class BuildGWT {
+public final class BuildJarGWT {
 
 	/**
 	 * 
 	 */
-	private BuildGWT() {
+	private BuildJarGWT() {
 	}
 	/**
 	 * Process the contents of the given directory.
@@ -74,50 +74,6 @@ public final class BuildGWT {
 		}
 	}
 	/**
-	 * Main program, no arguments.
-	 * @param args no arguments
-	 * @throws Exception ignored
-	 */
-	public static void main(String[] args) throws Exception {
-		ZipOutputStream zout = null;
-		
-		String baseProject = "..\\Reactive4Java\\";
-		String targetJar = "reactive4java-gwt";
-		String version = "0.91";
-		
-		zout = new ZipOutputStream(new BufferedOutputStream(
-				new FileOutputStream(baseProject + targetJar + "-" + version + ".jar"), 1024 * 1024));
-		zout.setLevel(9);
-		try {
-			processDirectory(baseProject + ".\\src\\", baseProject + ".\\src", zout, new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					String path = dir.getAbsolutePath().replace('\\', '/');
-					return !name.equals(".svn") && path.contains("hu/akarnokd/reactive4java") && !path.contains("hu/akarnokd/reactive4java/swing");
-				}
-			});
-			processDirectory(baseProject + ".\\bin\\", baseProject + ".\\bin", zout, new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					String path = dir.getAbsolutePath().replace('\\', '/');
-					return name.endsWith(".class") && !name.equals(".svn") && path.contains("hu/akarnokd/reactive4java") && !path.contains("hu/akarnokd/reactive4java/swing");
-				}
-			});
-			processDirectory(baseProject + ".\\gwt-overrides\\", baseProject + ".\\gwt-overrides", zout, new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return !name.equals(".svn");
-				}
-			});
-			
-			addFile("META-INF/MANIFEST.MF", baseProject + "META-INF/MANIFEST.MF", zout);
-			addFile("LICENSE.txt", baseProject + "LICENSE.txt", zout);
-		} finally {
-			zout.close();
-		}
-
-	}
-	/**
 	 * Add file to the zip.
 	 * @param entryName the target entry name
 	 * @param file the source file name
@@ -131,5 +87,73 @@ public final class BuildGWT {
 		mf.setTime(mfm.lastModified());
 		zout.putNextEntry(mf);
 		zout.write(IOUtils.load(mfm));
+	}
+	/**
+	 * Main program, no arguments.
+	 * @param args no arguments
+	 * @throws Exception ignored
+	 */
+	public static void main(String[] args) throws Exception {
+		
+		String baseProject = "..\\Reactive4Java\\";
+		String baseProject2 = ".\\";
+		String targetJar = "reactive4java-gwt";
+		String targetJar2 = "reactive4java";
+		String version = "0.91";
+		
+		ZipOutputStream zout = new ZipOutputStream(new BufferedOutputStream(
+				new FileOutputStream(baseProject2 + targetJar + "-" + version + ".jar"), 1024 * 1024));
+		zout.setLevel(9);
+		try {
+			processDirectory(baseProject + ".\\src\\", baseProject + ".\\src", zout, new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					String path = dir.getAbsolutePath().replace('\\', '/');
+					return !name.equals(".svn") 
+					&& path.contains("hu/akarnokd/reactive4java") 
+					&& !path.contains("hu/akarnokd/reactive4java/swing")
+					&& !path.contains("hu/akarnokd/reactive4java/test")
+					&& !name.equals("Reactive.java")
+					&& !name.equals("Interactive.java")
+					&& !name.equals("DefaultScheduler.java")
+					;
+				}
+			});
+			processDirectory(baseProject2 + ".\\gwt-overrides\\", baseProject2 + ".\\gwt-overrides", zout, new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return !name.equals(".svn");
+				}
+			});
+			
+			addFile("META-INF/MANIFEST.MF", baseProject + "META-INF/MANIFEST.MF", zout);
+			addFile("LICENSE.txt", baseProject + "LICENSE.txt", zout);
+		} finally {
+			zout.close();
+		}
+		
+		zout = new ZipOutputStream(new BufferedOutputStream(
+				new FileOutputStream(baseProject2 + targetJar2 + "-" + version + ".jar"), 1024 * 1024));
+		zout.setLevel(9);
+		try {
+			processDirectory(baseProject + ".\\bin\\", baseProject + ".\\bin", zout, new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return !name.equals(".svn");
+				}
+			});
+			processDirectory(baseProject + ".\\src\\", baseProject + ".\\src", zout, new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return !name.equals(".svn");
+				}
+			});
+			
+			addFile("META-INF/MANIFEST.MF", baseProject + "META-INF/MANIFEST.MF", zout);
+			addFile("LICENSE.txt", baseProject + "LICENSE.txt", zout);
+		} finally {
+			zout.close();
+		}
+
 	}
 }
