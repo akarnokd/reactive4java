@@ -3,6 +3,11 @@
 
 <wiki:toc max_depth="1" />
 
+= 0.91 =
+
+  * Released: 2011-03-15 0:50
+  * Changed the GWT library to conform the expected override semantics. Now you should import both JAR files for a GWT project.
+
 = 0.90 (GWT version)=
 
   * Released: 2011-02-20 12:00
