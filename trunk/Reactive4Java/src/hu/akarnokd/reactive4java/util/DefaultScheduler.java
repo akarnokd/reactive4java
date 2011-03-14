@@ -18,8 +18,6 @@ package hu.akarnokd.reactive4java.util;
 import hu.akarnokd.reactive4java.base.Scheduler;
 
 import java.io.Closeable;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Future;
@@ -63,9 +61,9 @@ public class DefaultScheduler implements Scheduler {
 		 * on a Java 7 runtime. 
 		 */
 		try {
-			Method m = scheduler.getClass().getMethod("setRemoveOnCancelPolicy", Boolean.TYPE);
+			java.lang.reflect.Method m = scheduler.getClass().getMethod("setRemoveOnCancelPolicy", Boolean.TYPE);
 			m.invoke(scheduler, true);
-		} catch (InvocationTargetException ex) {
+		} catch (java.lang.reflect.InvocationTargetException ex) {
 			
 		} catch (NoSuchMethodException e) {
 		} catch (SecurityException e) {
