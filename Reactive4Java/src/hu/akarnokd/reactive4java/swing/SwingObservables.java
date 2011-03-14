@@ -20,7 +20,6 @@ import hu.akarnokd.reactive4java.reactive.DefaultObservable;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.Observer;
-import hu.akarnokd.reactive4java.util.DefaultEdtScheduler;
 
 import java.awt.Adjustable;
 import java.awt.Component;
