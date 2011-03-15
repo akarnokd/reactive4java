@@ -1,5 +1,5 @@
 #summary A tutorial about how to use the library and how to think in reactive manner.
-#labels Featured
+#labels Featured,Deprecated
 
 = Introduction =
 
