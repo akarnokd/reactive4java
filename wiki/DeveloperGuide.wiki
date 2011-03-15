@@ -143,6 +143,7 @@ public static <T> Observable<T> where(
             });
         }
     };
+}
 }}}
 
 Projections like {{{select}}} will use the function parameter to turn one type into another, for example, the select operator would be implemented like this:
@@ -167,6 +168,7 @@ public static <T, U> Observable<U> where(
             });
         }
     };
+}
 }}}
 
 For each message {{{value}}} we call the function which returns something of type {{{U}}} and we forward it to the given {{{observer}}}.
