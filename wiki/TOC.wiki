@@ -1,6 +1,8 @@
 #summary Table of contents
 #labels Featured
 
+  * [Install Install notes]
+  * [ReleaseNotes Release notes]
   * [UserGuide User Guide]
   * [DeveloperGuide Developer Guide]
   * [Marbles Marble diagrams]
@@ -30,5 +32,3 @@
     * [ExamplesInteractive Interactive]  
     * [ExamplesReactive Reactive]
   * [FeatureComparison Comparison with others]
-  * [ReleaseNotes Release notes]
-  * [Install Install notes]
