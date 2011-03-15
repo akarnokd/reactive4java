@@ -125,7 +125,7 @@ In one piece:
 public static <T> Observable<T> where(
     final Observable<? extends T> source, 
     final Func1<? super T, Boolean> predicate
-)
+) {
     return new Observable<T>() {
         public Closeable register(final Observer<? super T> observer) {
             return source.register(new Observer<T>() {
@@ -151,7 +151,7 @@ Projections like {{{select}}} will use the function parameter to turn one type i
 public static <T, U> Observable<U> where(
     final Observable<? extends T> source, 
     final Func1<? super T, ? extends U> func
-)
+) {
     return new Observable<U>() {
         public Closeable register(final Observer<? super U> observer) {
             return source.register(new Observer<T>() {
