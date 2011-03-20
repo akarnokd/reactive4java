@@ -1274,6 +1274,92 @@ public final class Reactive {
 		};
 	}
 	/**
+	 * Concatenate the the multiple sources of T one after another.
+	 * <p><b>Exception semantics:</b> if the sources or any inner observer signals an
+	 * error, the outer observable will signal that error and the sequence is terminated.</p>
+	 * @param <T> the element type
+	 * @param sources the observable sequence of the observable sequence of Ts.
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> concat(
+			final Observable<? extends Observable<T>> sources
+	) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final LinkedBlockingQueue<Observable<T>> sourceQueue = new LinkedBlockingQueue<Observable<T>>();
+				final AtomicInteger wip = new AtomicInteger(1);
+				DefaultObserverEx<Observable<T>> o = new DefaultObserverEx<Observable<T>>(true) {
+					/** The first value arrived? */
+					@GuardedBy("lock")
+					boolean first;
+					{
+						add("sources", sources);
+					}
+					/**
+					 * The inner exception to forward.
+					 * @param ex the exception
+					 */
+					void innerError(Throwable ex) {
+						error(ex);
+					}
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+					@Override
+					protected void onFinish() {
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+						}
+					}
+					@Override
+					protected void onNext(Observable<T> value) {
+						if (!first) {
+							first = true;
+							registerOn(value);
+						} else {
+							sourceQueue.add(value);
+						}
+					}
+
+					void registerOn(Observable<T> value) {
+						wip.incrementAndGet();
+						replace("source", "source", value.register(new DefaultObserver<T>(lock, true) {
+							@Override
+							public void onError(Throwable ex) {
+								innerError(ex);
+							}
+
+							@Override
+							public void onFinish() {
+								Observable<T> nextO = sourceQueue.poll();
+								if (nextO != null) {
+									registerOn(nextO);
+								} else {
+									if (wip.decrementAndGet() == 0) {
+										observer.finish();
+										remove("source");
+									} else {
+										first = true;
+									}
+								}
+							}
+
+							@Override
+							public void onNext(T value) {
+								observer.next(value);
+							}
+							
+						}));
+					}
+					
+				};
+				return o;
+			}
+		};
+	}
+	/**
 	 * Concatenate two observables in a way when the first finish() the second is registered
 	 * and continued with.
 	 * @param <T> the type of the elements
@@ -2439,6 +2525,37 @@ public final class Reactive {
 		};
 	}
 	/**
+	 * Ignores the next() messages of the source and forwards only the error() and
+	 * finish() messages.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> ignoreValues(final Observable<? extends T> source) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						// ignored
+					}
+					
+				});
+			}
+		};
+	}
+	/**
 	 * Invoke a specific action before relaying the Ts to the observable. The <code>action</code> might
 	 * have some effect on each individual Ts passing through this filter.
 	 * @param <T> the type of the values observed
@@ -2980,6 +3097,70 @@ public final class Reactive {
 		};
 	}
 	/**
+	 * Uses the selector function on the given source observable to extract a single
+	 * value and send this value to the registered observer.
+	 * It is sometimes called the comonadic bind operator and compared to the ContinueWith
+	 * semantics.
+	 * The default scheduler is used to emit the output value
+	 * FIXME not sure what it should do
+	 * @param <T> the source element type
+	 * @param <U> the result element type
+	 * @param source the source of Ts
+	 * @param selector the selector that extracts an U from the series of Ts.
+	 * @return the new observable.
+	 */
+	public static <T, U> Observable<U> manySelect(
+			final Observable<T> source, 
+			final Func1<Observable<? super T>, ? extends U> selector) {
+		return manySelect(source, selector, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Uses the selector function on the given source observable to extract a single
+	 * value and send this value to the registered observer.
+	 * It is sometimes called the comonadic bind operator and compared to the ContinueWith
+	 * semantics.
+	 * FIXME not sure what it should do
+	 * @param <T> the source element type
+	 * @param <U> the result element type
+	 * @param source the source of Ts
+	 * @param selector the selector that extracts an U from the series of Ts.
+	 * @param scheduler the scheduler where the extracted U will be emmitted from.
+	 * @return the new observable.
+	 */
+	public static <T, U> Observable<U> manySelect(
+			final Observable<T> source, 
+			final Func1<Observable<? super T>, ? extends U> selector,
+			final Scheduler scheduler) {
+		return new Observable<U>() {
+			@Override
+			public Closeable register(final Observer<? super U> observer) {
+				return source.register(new Observer<T>() {
+					void continueWith() {
+						scheduler.schedule(new Runnable() {
+							@Override
+							public void run() {
+								observer.next(selector.invoke(source));
+								observer.finish();
+							}
+						});	
+					}
+					@Override
+					public void error(Throwable ex) {
+						continueWith();
+					}
+					@Override
+					public void finish() {
+						continueWith();
+					};
+					@Override
+					public void next(T value) {
+						// ignored
+					}
+				});
+			}
+		};
+	}
+	/**
 	 * Returns an observable which converts all messages to an <code>Option</code> value.
 	 * The returned observable does not itself signal error or finish.
 	 * Its dual is the <code>dematerialize</code> method.
@@ -3013,7 +3194,7 @@ public final class Reactive {
 				});
 			}
 		};
-	}
+	};
 	/**
 	 * Returns the maximum value encountered in the source observable onse it finish().
 	 * @param <T> the element type which must be comparable to itself
@@ -3072,7 +3253,7 @@ public final class Reactive {
 			@Nonnull final Func1<? super T, ? extends Key> keyExtractor, 
 			@Nonnull final Comparator<? super Key> keyComparator) {
 		return minMax(source, keyExtractor, keyComparator, true);
-	};
+	}
 	/**
 	 * Combines the notifications of all sources. The resulting stream of Ts might come from any of the sources.
 	 * @param <T> the type of the values
@@ -3129,6 +3310,72 @@ public final class Reactive {
 					observer.finish();
 				}
 				return closeAll(disposables);
+			}
+		};
+	};
+	/**
+	 * Merge the dynamic sequence of observables of T.
+	 * <p><b>Exception semantics:</b> if the sources or any inner observer signals an
+	 * error, the outer observable will signal that error and all active source observers are terminated.</p>
+	 * @param <T> the element type
+	 * @param sources the observable sequence of observable sequence of Ts
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> merge(
+			final Observable<? extends Observable<T>> sources) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				final AtomicInteger wip = new AtomicInteger(1);
+				DefaultObserverEx<Observable<T>> obs = new DefaultObserverEx<Observable<T>>(true) {
+					{
+						add("sources", sources);
+					}
+					/**
+					 * The inner exception to forward.
+					 * @param ex the exception
+					 */
+					void innerError(Throwable ex) {
+						error(ex);
+					}
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+					@Override
+					protected void onFinish() {
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+						}
+					}
+
+					@Override
+					protected void onNext(Observable<T> value) {
+						final Object token = new Object();
+						add(token, value.register(new DefaultObserver<T>(lock, true) {
+							@Override
+							public void onError(Throwable ex) {
+								innerError(ex);
+							}
+
+							@Override
+							public void onFinish() {
+								if (wip.decrementAndGet() == 0) {
+									observer.finish();
+								}
+								remove(token);
+							}
+
+							@Override
+							public void onNext(T value) {
+								observer.next(value);
+							}
+							
+						}));
+					}
+					
+				};
+				return obs;
 			}
 		};
 	}
@@ -3188,7 +3435,7 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> source, 
 			@Nonnull final Func1<? super T, ? extends Key> keyExtractor) {
 		return minMax(source, keyExtractor, Functions.<Key>comparator(), false);
-	};
+	}
 	/**
 	 * Returns an observable which provides with the list of <code>T</code>s which had their keys as minimums.
 	 * The returned observer may finish() if the source sends finish() without any next().
@@ -3270,6 +3517,74 @@ public final class Reactive {
 					}
 					
 				});
+			}
+		};
+	}
+	/**
+	 * Samples the latest T value coming from the source observable or the initial
+	 * value when no messages arrived so far. If the producer and consumer run
+	 * on different speeds, the consumer might receive the same value multiple times.
+	 * The iterable sequence terminates if the source finishes or returns an error.
+	 * <p>The returned iterator throws <code>UnsupportedOperationException</code> for its <code>remove()</code> method.</p>
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param initialValue the initial value to return until the source actually produces something.
+	 * @return the iterable
+	 */
+	public static <T> Iterable<T> mostRecent(final Observable<? extends T> source, final T initialValue) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				final AtomicReference<Option<T>> latest = new AtomicReference<Option<T>>(Option.some(initialValue));
+				final Closeable c = source.register(new Observer<T>() {
+
+					@Override
+					public void error(Throwable ex) {
+						latest.set(Option.<T>error(ex));
+					}
+
+					@Override
+					public void finish() {
+						latest.set(Option.<T>none());
+					}
+
+					@Override
+					public void next(T value) {
+						latest.set(Option.some(value));
+					}
+					
+				});
+				return new Iterator<T>() {
+					@Override
+					protected void finalize() throws Throwable {
+						close0(c);
+						super.finalize();
+					}
+
+					@Override
+					public boolean hasNext() {
+						return !Option.isNone(latest.get());
+					}
+
+					@Override
+					public T next() {
+						if (hasNext()) {
+							Option<T> o = latest.get();
+							// if the latest value is error, emit it only once, then
+							// do if the source simply terminated
+							if (Option.isError(o)) {
+								latest.set(Option.<T>none());
+								return o.value();
+							}
+							return o.value();
+						}
+						throw new NoSuchElementException();
+					}
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
 			}
 		};
 	}
@@ -5001,6 +5316,137 @@ public final class Reactive {
 		};
 	}
 	/**
+	 * Compares two sequences and returns whether they are produce the same
+	 * elements in terms of the null-safe object equality.
+	 * <p>The equality only stands if the two sequence produces the same
+	 * amount of values and those values are pairwise equal. If one of the sequences
+	 * terminates before the other, the equality test will return false.</p>
+	 * @param <T> the common element type
+	 * @param first the first source of Ts
+	 * @param second the second source of Ts
+	 * @return the new observable
+	 */
+	public static <T> Observable<Boolean> sequenceEqual(
+			final Observable<? extends T> first,
+			final Observable<? extends T> second) {
+		return sequenceEqual(first, second, new Func2<T, T, Boolean>() {
+			@Override
+			public Boolean invoke(T param1, T param2) {
+				return param1 == param2 || (param1 != null && param1.equals(param2));
+			}
+		});
+	}
+	/**
+	 * Compares two sequences and returns whether they are produce the same
+	 * elements in terms of the comparer function.
+	 * <p>The equality only stands if the two sequence produces the same
+	 * amount of values and those values are pairwise equal. If one of the sequences
+	 * terminates before the other, the equality test will return false.</p>
+	 * @param <T> the common element type
+	 * @param first the first source of Ts
+	 * @param second the second source of Ts
+	 * @param comparer the equality comparison function
+	 * @return the new observable
+	 */
+	public static <T> Observable<Boolean> sequenceEqual(
+			final Observable<? extends T> first,
+			final Observable<? extends T> second,
+			final Func2<? super T, ? super T, Boolean> comparer) {
+		return new Observable<Boolean>() {
+			@Override
+			public Closeable register(final Observer<? super Boolean> observer) {
+				final LinkedBlockingQueue<T> queueU = new LinkedBlockingQueue<T>();
+				final LinkedBlockingQueue<T> queueV = new LinkedBlockingQueue<T>();
+				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
+				final AtomicInteger wip = new AtomicInteger(2);
+				final Lock lockBoth = new ReentrantLock(true);
+				final AtomicBoolean result = new AtomicBoolean(true);
+				
+				lockBoth.lock();
+				try {
+					final DefaultObserverEx<T> oU = new DefaultObserverEx<T>(lockBoth, false) {
+						{
+							add("first", first);
+						}
+	
+						@Override
+						public void onError(Throwable ex) {
+							observer.error(ex);
+							close0(closeBoth.get());
+						}
+						
+						@Override
+						public void onFinish() {
+							if (wip.decrementAndGet() == 0) {
+								observer.next(result.get());
+								observer.finish();
+								close0(closeBoth.get());
+							}
+						}
+						@Override
+						public void onNext(T u) {
+							T v = queueV.poll();
+							if (v != null) {
+								if (!comparer.invoke(u, v)) {
+									result.set(false);
+									this.finish();
+								}
+							} else {
+								if (wip.get() == 2) {
+									queueU.add(u);
+								} else {
+									this.finish();
+								}
+							}
+						}
+					};
+					final DefaultObserverEx<T> oV = new DefaultObserverEx<T>(lockBoth, false) {
+						{
+							add("second", second);
+						}
+	
+						@Override
+						public void onError(Throwable ex) {
+							observer.error(ex);
+							close0(closeBoth.get());
+						}
+	
+						@Override
+						public void onFinish() {
+							if (wip.decrementAndGet() == 0) {
+								observer.next(result.get());
+								observer.finish();
+								close0(closeBoth.get());
+							}
+						}
+						@Override
+						public void onNext(T v) {
+							T u = queueU.poll();
+							if (u != null) {
+								if (!comparer.invoke(u, v)) {
+									result.set(false);
+									this.finish();
+								}
+							} else {
+								if (wip.get() == 2) {
+									queueV.add(v);
+								} else {
+									result.set(false);
+									this.finish();
+								}
+							}
+						}
+					};
+					Closeable c = close(oU, oV);
+					closeBoth.set(c);
+				} finally {
+					lockBoth.unlock();
+				}
+				return closeBoth.get();
+			}
+		};
+	}
+	/**
 	 * Returns the single element of the given observable source.
 	 * If the source is empty, a NoSuchElementException is thrown.
 	 * If the source has more than one element, a TooManyElementsException is thrown.
@@ -5951,6 +6397,7 @@ public final class Reactive {
 			}
 		};
 	}
+	
 	/**
 	 * Returns an observable which produces an ordered sequence of numbers with the specified delay.
 	 * It uses the default scheduler pool.
@@ -6044,6 +6491,30 @@ public final class Reactive {
 							lock.unlock();
 						}
 					}
+					@Override
+					protected void onClose() {
+						close0(timer);
+						close0(src);
+					}
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						observer.finish();
+					}
+
+					@Override
+					protected void onNext(T value) {
+						if (timer != null) {
+							close0(timer);
+							timer = null;
+						}
+						observer.next(value);
+						registerTimer();
+					}
 					/**
 					 * Register the timer that when fired, switches to the second
 					 * observable sequence
@@ -6059,30 +6530,6 @@ public final class Reactive {
 								}
 							}
 						}, unit.toNanos(time));
-					}
-					@Override
-					protected void onClose() {
-						close0(timer);
-						close0(src);
-					}
-
-					@Override
-					protected void onError(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					protected void onFinish() {
-						observer.finish();
-					}
-					@Override
-					protected void onNext(T value) {
-						if (timer != null) {
-							close0(timer);
-							timer = null;
-						}
-						observer.next(value);
-						registerTimer();
 					}
 				};
 				return obs;
@@ -6113,6 +6560,436 @@ public final class Reactive {
 		return timeout(source, time, unit, other, pool);
 	}
 	/**
+	 * Creates an array from the observable sequence elements by using the given
+	 * array for the template to create a dynamicly typed array of Ts.
+	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
+	 * is forwarded (e.g., no partial array is created).</p>
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param a the template array, noes not change its value
+	 * @return the observable
+	 */
+	public static <T> Observable<T[]> toArray(
+			@Nonnull final Observable<? extends T> source, 
+			@Nonnull final T[] a) {
+		final Class<?> ct = a.getClass().getComponentType();
+		return new Observable<T[]>() {
+			@Override
+			public Closeable register(final Observer<? super T[]> observer) {
+				return source.register(new Observer<T>() {
+					/** The buffer for the Ts. */
+					final List<T> list = new LinkedList<T>();
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						@SuppressWarnings("unchecked") T[] arr = (T[])Array.newInstance(ct, list.size());
+						observer.next(list.toArray(arr));
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						list.add(value);
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Creates an array from the observable sequence elements.
+	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
+	 * is forwarded (e.g., no partial array is created).</p>
+	 * @param source the source of anything
+	 * @return the object array
+	 */
+	@Nonnull
+	public static Observable<Object[]> toArray(@Nonnull final Observable<?> source) {
+		return toArray(source, new Object[0]);
+	}
+	/**
+	 * Collect the elements of the source observable into a single list.
+	 * @param <T> the source element type
+	 * @param source the source observable
+	 * @return the new observable
+	 */
+	public static <T> Observable<List<T>> toList(
+		final Observable<? extends T> source
+	) {
+		return new Observable<List<T>>() {
+			@Override
+			public Closeable register(final Observer<? super List<T>> observer) {
+				return source.register(new Observer<T>() {
+					/** The list for aggregation. */
+					final List<T> list = new LinkedList<T>();
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.next(new ArrayList<T>(list));
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						list.add(value);
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Maps the given source of Ts by using the key extractor and
+	 * returns a single Map of them. The keys are compared against each other
+	 * by the <code>Object.equals()</code> semantics.
+	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
+	 * is forwarded (e.g., no partial map is created).</p>
+	 * @param <T> the element type
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @param source the source of Ts
+	 * @param keySelector the key selector
+	 * @param valueSelector the value selector
+	 * @return the new observable
+	 */
+	public static <T, K, V> Observable<Map<K, V>> toMap(
+			final Observable<? extends T> source,
+			final Func1<? super T, ? extends K> keySelector,
+			final Func1<? super T, ? extends V> valueSelector
+	) {
+		return new Observable<Map<K, V>>() {
+			@Override
+			public Closeable register(final Observer<? super Map<K, V>> observer) {
+				return source.register(new Observer<T>() {
+					/** The map. */
+					final Map<K, V> map = new HashMap<K, V>();
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+					@Override
+					public void finish() {
+						observer.next(map);
+						observer.finish();
+					}
+					@Override
+					public void next(T value) {
+						map.put(keySelector.invoke(value), valueSelector.invoke(value));
+					}
+				});
+			}
+		};
+	}
+	/**
+	 * Maps the given source of Ts by using the key and value extractor and
+	 * returns a single Map of them.
+	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
+	 * is forwarded (e.g., no partial map is created).</p>
+	 * @param <T> the element type
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @param source the source of Ts
+	 * @param keySelector the key selector
+	 * @param valueSelector the value selector
+	 * @param keyComparer the comparison function for keys
+	 * @return the new observable
+	 */
+	public static <T, K, V> Observable<Map<K, V>> toMap(
+			final Observable<? extends T> source,
+			final Func1<? super T, ? extends K> keySelector,
+			final Func1<? super T, ? extends V> valueSelector,
+			final Func2<? super K, ? super K, Boolean> keyComparer
+	) {
+		return new Observable<Map<K, V>>() {
+			@Override
+			public Closeable register(final Observer<? super Map<K, V>> observer) {
+				return source.register(new Observer<T>() {
+					/** The key class with custom equality comparer. */
+					class Key {
+						/** The key value. */
+						final K key;
+						/**
+						 * Constructor.
+						 * @param key the key
+						 */
+						Key(K key) {
+							this.key = key;
+						}
+						@Override
+						public boolean equals(Object obj) {
+							if (obj instanceof Key) {
+								return keyComparer.invoke(key, ((Key)obj).key);	
+							}
+							return false;
+						}
+						@Override
+						public int hashCode() {
+							return key != null ? key.hashCode() : 0;
+						}
+					}
+					/** The map. */
+					final Map<Key, V> map = new HashMap<Key, V>();
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						Map<K, V> result = new HashMap<K, V>();
+						for (Map.Entry<Key, V> e : map.entrySet()) {
+							result.put(e.getKey().key, e.getValue());
+						}
+						observer.next(result);
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						Key k = new Key(keySelector.invoke(value));
+						V v = valueSelector.invoke(value);
+						map.put(k, v);
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Maps the given source of Ts by using the key extractor and
+	 * returns a single Map of them. 
+	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
+	 * is forwarded (e.g., no partial map is created).</p>
+	 * @param <T> the element type
+	 * @param <K> the key type
+	 * @param source the source of Ts
+	 * @param keySelector the key selector
+	 * @param keyComparer the key comparer function
+	 * @return the new observable
+	 */
+	public static <K, T> Observable<Map<K, T>> toMap(
+			final Observable<? extends T> source,
+			final Func1<? super T, ? extends K> keySelector,
+			final Func2<? super K, ? super K, Boolean> keyComparer
+	) {
+		return toMap(source, keySelector, Functions.<T>identity(), keyComparer);
+	}
+	/**
+	 * Maps the given source of Ts by using the key extractor and
+	 * returns a single Map of them. The keys are compared against each other
+	 * by the <code>Object.equals()</code> semantics.
+	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
+	 * is forwarded (e.g., no partial map is created).</p>
+	 * @param <T> the element type
+	 * @param <K> the key type
+	 * @param source the source of Ts
+	 * @param keySelector the key selector
+	 * @return the new observable
+	 */
+	public static <K, T> Observable<Map<K, T>> toMap(
+			final Observable<T> source,
+			final Func1<? super T, ? extends K> keySelector
+	) {
+		return toMap(source, keySelector, Functions.<T>identity());
+	}
+	
+	/**
+	 * Maps the given source of Ts by using the key  extractor and
+	 * returns a single multi-map of them. The keys are compared against each other
+	 * by the <code>Object.equals()</code> semantics.
+	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
+	 * is forwarded (e.g., no partial map is created).</p>
+	 * @param <T> the element type
+	 * @param <K> the key type
+	 * @param source the source of Ts
+	 * @param keySelector the key selector
+	 * @param collectionSupplier the function which retuns a collection to hold the Vs.
+	 * @return the new observable
+	 */
+	public static <T, K> Observable<Map<K, Collection<T>>> toMultiMap(
+			final Observable<? extends T> source,
+			final Func1<? super T, ? extends K> keySelector,
+			final Func0<? extends Collection<T>> collectionSupplier
+	) {
+		return toMultiMap(
+				source, 
+				keySelector, 
+				collectionSupplier, 
+				Functions.<T>identity());
+	}
+	/**
+	 * Maps the given source of Ts by using the key extractor and
+	 * returns a single multi-map of them.
+	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
+	 * is forwarded (e.g., no partial map is created).</p>
+	 * @param <T> the element type
+	 * @param <K> the key type
+	 * @param source the source of Ts
+	 * @param keySelector the key selector
+	 * @param collectionSupplier the function which retuns a collection to hold the Vs.
+	 * @param keyComparer the comparison function for keys
+	 * @return the new observable
+	 */
+	public static <T, K> Observable<Map<K, Collection<T>>> toMultiMap(
+			final Observable<? extends T> source,
+			final Func1<? super T, ? extends K> keySelector,
+			final Func0<? extends Collection<T>> collectionSupplier,
+			final Func2<? super K, ? super K, Boolean> keyComparer
+	) {
+		return toMultiMap(
+				source, 
+				keySelector, 
+				collectionSupplier, 
+				Functions.<T>identity(),
+				keyComparer);
+	}
+	/**
+	 * Maps the given source of Ts by using the key and value extractor and
+	 * returns a single multi-map of them. The keys are compared against each other
+	 * by the <code>Object.equals()</code> semantics.
+	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
+	 * is forwarded (e.g., no partial map is created).</p>
+	 * @param <T> the element type
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @param source the source of Ts
+	 * @param keySelector the key selector
+	 * @param collectionSupplier the function which retuns a collection to hold the Vs.
+	 * @param valueSelector the value selector
+	 * @return the new observable
+	 * @see Functions#listSupplier()
+	 * @see Functions#setSupplier()
+	 */
+	public static <T, K, V> Observable<Map<K, Collection<V>>> toMultiMap(
+			final Observable<? extends T> source,
+			final Func1<? super T, ? extends K> keySelector,
+			final Func0<? extends Collection<V>> collectionSupplier,
+			final Func1<? super T, ? extends V> valueSelector
+	) {
+		return new Observable<Map<K, Collection<V>>>() {
+			@Override
+			public Closeable register(final Observer<? super Map<K, Collection<V>>> observer) {
+				return source.register(new Observer<T>() {
+					/** The map. */
+					final Map<K, Collection<V>> map = new HashMap<K, Collection<V>>();
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						observer.next(map);
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						K k = keySelector.invoke(value);
+						Collection<V> coll = map.get(k);
+						if (coll == null) {
+							coll = collectionSupplier.invoke();
+							map.put(k, coll);
+						}
+						V v = valueSelector.invoke(value);
+						coll.add(v);
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Maps the given source of Ts by using the key and value extractor and
+	 * returns a single multi-map of them.
+	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
+	 * is forwarded (e.g., no partial map is created).</p>
+	 * @param <T> the element type
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @param source the source of Ts
+	 * @param keySelector the key selector
+	 * @param collectionSupplier the function which retuns a collection to hold the Vs.
+	 * @param valueSelector the value selector
+	 * @param keyComparer the comparison function for keys
+	 * @return the new observable
+	 */
+	public static <T, K, V> Observable<Map<K, Collection<V>>> toMultiMap(
+			final Observable<? extends T> source,
+			final Func1<? super T, ? extends K> keySelector,
+			final Func0<? extends Collection<V>> collectionSupplier,
+			final Func1<? super T, ? extends V> valueSelector,
+			final Func2<? super K, ? super K, Boolean> keyComparer
+	) {
+		return new Observable<Map<K, Collection<V>>>() {
+			@Override
+			public Closeable register(final Observer<? super Map<K, Collection<V>>> observer) {
+				return source.register(new Observer<T>() {
+					/** The key class with custom equality comparer. */
+					class Key {
+						/** The key value. */
+						final K key;
+						/**
+						 * Constructor.
+						 * @param key the key
+						 */
+						Key(K key) {
+							this.key = key;
+						}
+						@Override
+						public boolean equals(Object obj) {
+							if (obj instanceof Key) {
+								return keyComparer.invoke(key, ((Key)obj).key);	
+							}
+							return false;
+						}
+						@Override
+						public int hashCode() {
+							return key != null ? key.hashCode() : 0;
+						}
+					}
+					/** The map. */
+					final Map<Key, Collection<V>> map = new HashMap<Key, Collection<V>>();
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						Map<K, Collection<V>> result = new HashMap<K, Collection<V>>();
+						for (Map.Entry<Key, Collection<V>> e : map.entrySet()) {
+							result.put(e.getKey().key, e.getValue());
+						}
+						observer.next(result);
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						Key k = new Key(keySelector.invoke(value));
+						Collection<V> coll = map.get(k);
+						if (coll == null) {
+							coll = collectionSupplier.invoke();
+							map.put(k, coll);
+						}
+						V v = valueSelector.invoke(value);
+						coll.add(v);
+					}
+					
+				});
+			}
+		};
+	}
+	/**
 	 * Wraps the given action as an observable which reacts only to <code>next()</code> events.
 	 * @param <T> the type of the values
 	 * @param action the action to wrap
@@ -6135,7 +7012,7 @@ public final class Reactive {
 				action.invoke(value);
 			};
 		};
-	}
+	}	
 	/**
 	 * Creates an observer which calls the given functions on its similarly named methods.
 	 * @param <T> the value type to receive
@@ -6205,7 +7082,6 @@ public final class Reactive {
 			}
 		};
 	}
-	
 	/**
 	 * A convenience function which unwraps the T from a TimeInterval of T.
 	 * @param <T> the value type
@@ -6521,6 +7397,372 @@ public final class Reactive {
 		};
 	}
 	/**
+	 * Project the source elements into observable windows of size <code>count</code>
+	 * and skip some initial values.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param count the count of elements
+	 * @return the new observable
+	 */
+	public static <T> Observable<Observable<T>> window(
+			final Observable<? extends T> source,
+			int count
+	) {
+		return window(source, count, 0, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Project the source elements into observable windows of size <code>count</code>
+	 * and skip some initial values.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param count the count of elements
+	 * @param skip the elements to skip
+	 * @return the new observable
+	 */
+	public static <T> Observable<Observable<T>> window(
+			final Observable<? extends T> source,
+			int count,
+			int skip
+	) {
+		return window(source, count, skip, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Project the source elements into observable windows of size <code>count</code>
+	 * and skip some initial values.
+	 * FIXME implement
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param count the count of elements
+	 * @param skip the elements to skip
+	 * @param scheduler the scheduler 
+	 * @return the new observable
+	 */
+	public static <T> Observable<Observable<T>> window(
+			final Observable<? extends T> source,
+			final int count,
+			final int skip,
+			final Scheduler scheduler
+	) {
+		return new Observable<Observable<T>>() {
+			@Override
+			public Closeable register(final Observer<? super Observable<T>> observer) {
+				final AtomicReference<DefaultObservable<T>> current = new AtomicReference<DefaultObservable<T>>();
+				final AtomicInteger counter = new AtomicInteger(0);
+				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
+					/** The elements to skip at first. */
+					int skipCount = skip;
+					{
+						registerTimer();
+						add("source", source);
+					}
+					/**
+					 * Create a new observable and reset the limit counter as well.
+					 */
+					void createNewObservable() {
+						counter.set(count);
+						DefaultObservable<T> d = current.get();
+						if (d != null) {
+							d.finish();
+						}
+						d = new DefaultObservable<T>();
+						current.set(d);
+						observer.next(d);
+					}
+					@Override
+					protected void onError(Throwable ex) {
+						remove("timer");
+						DefaultObservable<T> d = current.get();
+						d.error(ex);
+						observer.error(ex);
+					}
+					@Override
+					protected void onFinish() {
+						remove("timer");
+						DefaultObservable<T> d = current.get();
+						d.finish();
+						observer.finish();
+					}
+
+					@Override
+					protected void onNext(T value) {
+						if (skipCount > 0) {
+							skipCount--;
+							return;
+						}
+
+						if (counter.get() == 0 || current.get() == null) {
+							createNewObservable();
+						}
+						counter.decrementAndGet();
+						DefaultObservable<T> d = current.get();
+						d.next(value);
+					}
+
+					void registerTimer() {
+						replace("timer", "timer", scheduler.schedule(
+							new DefaultRunnable(lock) {
+								@Override
+								protected void onRun() {
+									createNewObservable();
+								}
+							}, 0
+						));
+					}
+					
+				};
+				return o;
+			}
+		};
+	}
+	/**
+	 * Projects each value of T into an observable which are closed by
+	 * either the <code>count</code> limit or the ellapsed timespan.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param count the maximum count of the elements in each window
+	 * @param timeSpan the maximum time for each window
+	 * @param unit the time unit
+	 * @return the new observable
+	 */
+	public static <T> Observable<Observable<T>> window(
+		final Observable<? extends T> source,
+		final int count,
+		final long timeSpan,
+		final TimeUnit unit
+	) {
+		return window(source, count, timeSpan, unit, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Projects each value of T into an observable which are closed by
+	 * either the <code>count</code> limit or the ellapsed timespan.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param count the maximum count of the elements in each window
+	 * @param timeSpan the maximum time for each window
+	 * @param unit the time unit
+	 * @param scheduler the scheduler
+	 * @return the new observable
+	 */
+	public static <T> Observable<Observable<T>> window(
+		final Observable<? extends T> source,
+		final int count,
+		final long timeSpan,
+		final TimeUnit unit,
+		final Scheduler scheduler
+	) {
+		return new Observable<Observable<T>>() {
+			@Override
+			public Closeable register(final Observer<? super Observable<T>> observer) {
+				final AtomicReference<DefaultObservable<T>> current = new AtomicReference<DefaultObservable<T>>();
+				final AtomicInteger counter = new AtomicInteger(0);
+				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
+					{
+						registerTimer();
+						add("source", source);
+					}
+					/**
+					 * Create a new observable and reset the limit counter as well.
+					 */
+					void createNewObservable() {
+						counter.set(count);
+						DefaultObservable<T> d = current.get();
+						if (d != null) {
+							d.finish();
+						}
+						d = new DefaultObservable<T>();
+						current.set(d);
+						observer.next(d);
+					}
+					@Override
+					protected void onError(Throwable ex) {
+						remove("timer");
+						DefaultObservable<T> d = current.get();
+						d.error(ex);
+						observer.error(ex);
+					}
+					@Override
+					protected void onFinish() {
+						remove("timer");
+						DefaultObservable<T> d = current.get();
+						d.finish();
+						observer.finish();
+					}
+
+					@Override
+					protected void onNext(T value) {
+						if (counter.get() == 0 || current.get() == null) {
+							createNewObservable();
+						}
+						counter.decrementAndGet();
+						DefaultObservable<T> d = current.get();
+						d.next(value);
+					}
+
+					void registerTimer() {
+						replace("timer", "timer", scheduler.schedule(
+							new DefaultRunnable(lock) {
+								@Override
+								protected void onRun() {
+									createNewObservable();
+								}
+							}, 0, unit.toNanos(timeSpan)
+						));
+					}
+					
+				};
+				return o;
+			}
+		};
+	}
+	/**
+	 * Project the source elements into observable windows of size <code>count</code>
+	 * and skip some initial values.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param count the count of elements
+	 * @param scheduler the scheduler 
+	 * @return the new observable
+	 */
+	public static <T> Observable<Observable<T>> window(
+			final Observable<? extends T> source,
+			int count,
+			Scheduler scheduler
+	) {
+		return window(source, count, 0, scheduler);
+	}
+	/**
+	 * Project each of the source Ts into observable sequences separated by
+	 * the timespan and initial timeskip values.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param timeSpan the timespan between window openings
+	 * @param timeSkip the initial delay to open the first window
+	 * @param unit the time unit
+	 * @return the observable
+	 */
+	public static <T> Observable<Observable<T>> window(
+		final Observable<? extends T> source,
+		final long timeSpan,
+		final long timeSkip,
+		final TimeUnit unit
+	) {
+		return window(source, timeSpan, timeSkip, unit, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Project each of the source Ts into observable sequences separated by
+	 * the timespan and initial timeskip values.
+	 * FIXME implement
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param timeSpan the timespan between window openings
+	 * @param timeSkip the initial delay to open the first window
+	 * @param unit the time unit
+	 * @param scheduler the scheduler
+	 * @return the observable
+	 */
+	public static <T> Observable<Observable<T>> window(
+		final Observable<? extends T> source,
+		final long timeSpan,
+		final long timeSkip,
+		final TimeUnit unit,
+		final Scheduler scheduler
+	) {
+		return new Observable<Observable<T>>() {
+			@Override
+			public Closeable register(final Observer<? super Observable<T>> observer) {
+				final AtomicReference<DefaultObservable<T>> current = new AtomicReference<DefaultObservable<T>>();
+				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
+					{
+						registerTimer();
+						add("source", source);
+					}
+					/**
+					 * Create a new observable and reset the limit counter as well.
+					 */
+					void createNewObservable() {
+						DefaultObservable<T> d = current.get();
+						if (d != null) {
+							d.finish();
+						}
+						d = new DefaultObservable<T>();
+						current.set(d);
+						observer.next(d);
+					}
+					@Override
+					protected void onError(Throwable ex) {
+						remove("timer");
+						DefaultObservable<T> d = current.get();
+						d.error(ex);
+						observer.error(ex);
+					}
+					@Override
+					protected void onFinish() {
+						remove("timer");
+						DefaultObservable<T> d = current.get();
+						d.finish();
+						observer.finish();
+					}
+
+					@Override
+					protected void onNext(T value) {
+						if (current.get() == null) {
+							createNewObservable();
+						}
+						DefaultObservable<T> d = current.get();
+						d.next(value);
+					}
+
+					void registerTimer() {
+						replace("timer", "timer", scheduler.schedule(
+							new DefaultRunnable(lock) {
+								@Override
+								protected void onRun() {
+									createNewObservable();
+								}
+							}, unit.toNanos(timeSkip), unit.toNanos(timeSpan)
+						));
+					}
+					
+				};
+				return o;
+			}
+		};
+	}
+	/**
+	 * Project each of the source Ts into observable sequences separated by
+	 * the timespan and initial timeskip values.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param timeSpan the timespan between window openings
+	 * @param unit the time unit
+	 * @return the observable
+	 */
+	public static <T> Observable<Observable<T>> window(
+		final Observable<? extends T> source,
+		final long timeSpan,
+		final TimeUnit unit
+	) {
+		return window(source, timeSpan, 0L, unit, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Project each of the source Ts into observable sequences separated by
+	 * the timespan and initial timeskip values.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param timeSpan the timespan between window openings
+	 * @param unit the time unit
+	 * @param scheduler the scheduler
+	 * @return the observable
+	 */
+	public static <T> Observable<Observable<T>> window(
+		final Observable<? extends T> source,
+		final long timeSpan,
+		final TimeUnit unit,
+		final Scheduler scheduler
+	) {
+		return window(source, timeSpan, 0L, unit, scheduler);
+	}
+	/**
 	 * Splits the source stream into separate observables
 	 * by starting at windowOpening events and closing at windowClosing events.
 	 * FIXME not sure how to implement
@@ -6831,730 +8073,6 @@ public final class Reactive {
 				return closeBoth.get();
 			}
 		};
-	}
-	
-	/**
-	 * Uses the selector function on the given source observable to extract a single
-	 * value and send this value to the registered observer.
-	 * It is sometimes called the comonadic bind operator and compared to the ContinueWith
-	 * semantics.
-	 * The default scheduler is used to emit the output value
-	 * FIXME not sure what it should do
-	 * @param <T> the source element type
-	 * @param <U> the result element type
-	 * @param source the source of Ts
-	 * @param selector the selector that extracts an U from the series of Ts.
-	 * @return the new observable.
-	 */
-	public static <T, U> Observable<U> manySelect(
-			final Observable<T> source, 
-			final Func1<Observable<? super T>, ? extends U> selector) {
-		return manySelect(source, selector, DEFAULT_SCHEDULER.get());
-	}
-	/**
-	 * Uses the selector function on the given source observable to extract a single
-	 * value and send this value to the registered observer.
-	 * It is sometimes called the comonadic bind operator and compared to the ContinueWith
-	 * semantics.
-	 * FIXME not sure what it should do
-	 * @param <T> the source element type
-	 * @param <U> the result element type
-	 * @param source the source of Ts
-	 * @param selector the selector that extracts an U from the series of Ts.
-	 * @param scheduler the scheduler where the extracted U will be emmitted from.
-	 * @return the new observable.
-	 */
-	public static <T, U> Observable<U> manySelect(
-			final Observable<T> source, 
-			final Func1<Observable<? super T>, ? extends U> selector,
-			final Scheduler scheduler) {
-		return new Observable<U>() {
-			@Override
-			public Closeable register(final Observer<? super U> observer) {
-				return source.register(new Observer<T>() {
-					@Override
-					public void error(Throwable ex) {
-						continueWith();
-					}
-					@Override
-					public void finish() {
-						continueWith();
-					}
-					@Override
-					public void next(T value) {
-						// ignored
-					};
-					void continueWith() {
-						scheduler.schedule(new Runnable() {
-							@Override
-							public void run() {
-								observer.next(selector.invoke(source));
-								observer.finish();
-							}
-						});	
-					}
-				});
-			}
-		};
-	}
-	/**
-	 * Ignores the next() messages of the source and forwards only the error() and
-	 * finish() messages.
-	 * @param <T> the source element type
-	 * @param source the source of Ts
-	 * @return the new observable
-	 */
-	public static <T> Observable<T> ignoreValues(final Observable<? extends T> source) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				return source.register(new Observer<T>() {
-					@Override
-					public void next(T value) {
-						// ignored
-					}
-
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.finish();
-					}
-					
-				});
-			}
-		};
-	}
-	/**
-	 * Samples the latest T value coming from the source observable or the initial
-	 * value when no messages arrived so far. If the producer and consumer run
-	 * on different speeds, the consumer might receive the same value multiple times.
-	 * The iterable sequence terminates if the source finishes or returns an error.
-	 * <p>The returned iterator throws <code>UnsupportedOperationException</code> for its <code>remove()</code> method.</p>
-	 * @param <T> the source element type
-	 * @param source the source of Ts
-	 * @param initialValue the initial value to return until the source actually produces something.
-	 * @return the iterable
-	 */
-	public static <T> Iterable<T> mostRecent(final Observable<? extends T> source, final T initialValue) {
-		return new Iterable<T>() {
-			@Override
-			public Iterator<T> iterator() {
-				final AtomicReference<Option<T>> latest = new AtomicReference<Option<T>>(Option.some(initialValue));
-				final Closeable c = source.register(new Observer<T>() {
-
-					@Override
-					public void next(T value) {
-						latest.set(Option.some(value));
-					}
-
-					@Override
-					public void error(Throwable ex) {
-						latest.set(Option.<T>error(ex));
-					}
-
-					@Override
-					public void finish() {
-						latest.set(Option.<T>none());
-					}
-					
-				});
-				return new Iterator<T>() {
-					@Override
-					public boolean hasNext() {
-						return !Option.isNone(latest.get());
-					}
-
-					@Override
-					public T next() {
-						if (hasNext()) {
-							Option<T> o = latest.get();
-							// if the latest value is error, emit it only once, then
-							// do if the source simply terminated
-							if (Option.isError(o)) {
-								latest.set(Option.<T>none());
-								return o.value();
-							}
-							return o.value();
-						}
-						throw new NoSuchElementException();
-					}
-
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-					@Override
-					protected void finalize() throws Throwable {
-						close0(c);
-						super.finalize();
-					}
-				};
-			}
-		};
-	}
-	/**
-	 * Compares two sequences and returns whether they are produce the same
-	 * elements in terms of the null-safe object equality.
-	 * <p>The equality only stands if the two sequence produces the same
-	 * amount of values and those values are pairwise equal. If one of the sequences
-	 * terminates before the other, the equality test will return false.</p>
-	 * @param <T> the common element type
-	 * @param first the first source of Ts
-	 * @param second the second source of Ts
-	 * @return the new observable
-	 */
-	public static <T> Observable<Boolean> sequenceEqual(
-			final Observable<? extends T> first,
-			final Observable<? extends T> second) {
-		return sequenceEqual(first, second, new Func2<T, T, Boolean>() {
-			@Override
-			public Boolean invoke(T param1, T param2) {
-				return param1 == param2 || (param1 != null && param1.equals(param2));
-			}
-		});
-	}	
-	/**
-	 * Compares two sequences and returns whether they are produce the same
-	 * elements in terms of the comparer function.
-	 * <p>The equality only stands if the two sequence produces the same
-	 * amount of values and those values are pairwise equal. If one of the sequences
-	 * terminates before the other, the equality test will return false.</p>
-	 * @param <T> the common element type
-	 * @param first the first source of Ts
-	 * @param second the second source of Ts
-	 * @param comparer the equality comparison function
-	 * @return the new observable
-	 */
-	public static <T> Observable<Boolean> sequenceEqual(
-			final Observable<? extends T> first,
-			final Observable<? extends T> second,
-			final Func2<? super T, ? super T, Boolean> comparer) {
-		return new Observable<Boolean>() {
-			@Override
-			public Closeable register(final Observer<? super Boolean> observer) {
-				final LinkedBlockingQueue<T> queueU = new LinkedBlockingQueue<T>();
-				final LinkedBlockingQueue<T> queueV = new LinkedBlockingQueue<T>();
-				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
-				final AtomicInteger wip = new AtomicInteger(2);
-				final Lock lockBoth = new ReentrantLock(true);
-				final AtomicBoolean result = new AtomicBoolean(true);
-				
-				lockBoth.lock();
-				try {
-					final DefaultObserverEx<T> oU = new DefaultObserverEx<T>(lockBoth, false) {
-						{
-							add("first", first);
-						}
-	
-						@Override
-						public void onError(Throwable ex) {
-							observer.error(ex);
-							close0(closeBoth.get());
-						}
-						
-						@Override
-						public void onFinish() {
-							if (wip.decrementAndGet() == 0) {
-								observer.next(result.get());
-								observer.finish();
-								close0(closeBoth.get());
-							}
-						}
-						@Override
-						public void onNext(T u) {
-							T v = queueV.poll();
-							if (v != null) {
-								if (!comparer.invoke(u, v)) {
-									result.set(false);
-									this.finish();
-								}
-							} else {
-								if (wip.get() == 2) {
-									queueU.add(u);
-								} else {
-									this.finish();
-								}
-							}
-						}
-					};
-					final DefaultObserverEx<T> oV = new DefaultObserverEx<T>(lockBoth, false) {
-						{
-							add("second", second);
-						}
-	
-						@Override
-						public void onError(Throwable ex) {
-							observer.error(ex);
-							close0(closeBoth.get());
-						}
-	
-						@Override
-						public void onFinish() {
-							if (wip.decrementAndGet() == 0) {
-								observer.next(result.get());
-								observer.finish();
-								close0(closeBoth.get());
-							}
-						}
-						@Override
-						public void onNext(T v) {
-							T u = queueU.poll();
-							if (u != null) {
-								if (!comparer.invoke(u, v)) {
-									result.set(false);
-									this.finish();
-								}
-							} else {
-								if (wip.get() == 2) {
-									queueV.add(v);
-								} else {
-									result.set(false);
-									this.finish();
-								}
-							}
-						}
-					};
-					Closeable c = close(oU, oV);
-					closeBoth.set(c);
-				} finally {
-					lockBoth.unlock();
-				}
-				return closeBoth.get();
-			}
-		};
-	}
-	/**
-	 * Creates an array from the observable sequence elements.
-	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
-	 * is forwarded (e.g., no partial array is created).</p>
-	 * @param source the source of anything
-	 * @return the object array
-	 */
-	@Nonnull
-	public static Observable<Object[]> toArray(@Nonnull final Observable<?> source) {
-		return toArray(source, new Object[0]);
-	}
-	/**
-	 * Creates an array from the observable sequence elements by using the given
-	 * array for the template to create a dynamicly typed array of Ts.
-	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
-	 * is forwarded (e.g., no partial array is created).</p>
-	 * @param <T> the source element type
-	 * @param source the source of Ts
-	 * @param a the template array, noes not change its value
-	 * @return the observable
-	 */
-	public static <T> Observable<T[]> toArray(
-			@Nonnull final Observable<? extends T> source, 
-			@Nonnull final T[] a) {
-		final Class<?> ct = a.getClass().getComponentType();
-		return new Observable<T[]>() {
-			@Override
-			public Closeable register(final Observer<? super T[]> observer) {
-				return source.register(new Observer<T>() {
-					/** The buffer for the Ts. */
-					final List<T> list = new LinkedList<T>();
-					@Override
-					public void next(T value) {
-						list.add(value);
-					}
-
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						@SuppressWarnings("unchecked") T[] arr = (T[])Array.newInstance(ct, list.size());
-						observer.next(list.toArray(arr));
-						observer.finish();
-					}
-					
-				});
-			}
-		};
-	}
-	/**
-	 * Maps the given source of Ts by using the key and value extractor and
-	 * returns a single Map of them.
-	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
-	 * is forwarded (e.g., no partial map is created).</p>
-	 * @param <T> the element type
-	 * @param <K> the key type
-	 * @param <V> the value type
-	 * @param source the source of Ts
-	 * @param keySelector the key selector
-	 * @param valueSelector the value selector
-	 * @param keyComparer the comparison function for keys
-	 * @return the new observable
-	 */
-	public static <T, K, V> Observable<Map<K, V>> toMap(
-			final Observable<? extends T> source,
-			final Func1<? super T, ? extends K> keySelector,
-			final Func1<? super T, ? extends V> valueSelector,
-			final Func2<? super K, ? super K, Boolean> keyComparer
-	) {
-		return new Observable<Map<K, V>>() {
-			@Override
-			public Closeable register(final Observer<? super Map<K, V>> observer) {
-				return source.register(new Observer<T>() {
-					/** The key class with custom equality comparer. */
-					class Key {
-						/** The key value. */
-						final K key;
-						/**
-						 * Constructor.
-						 * @param key the key
-						 */
-						Key(K key) {
-							this.key = key;
-						}
-						@Override
-						public boolean equals(Object obj) {
-							if (obj instanceof Key) {
-								return keyComparer.invoke(key, ((Key)obj).key);	
-							}
-							return false;
-						}
-						@Override
-						public int hashCode() {
-							return key != null ? key.hashCode() : 0;
-						}
-					}
-					/** The map. */
-					final Map<Key, V> map = new HashMap<Key, V>();
-					@Override
-					public void next(T value) {
-						Key k = new Key(keySelector.invoke(value));
-						V v = valueSelector.invoke(value);
-						map.put(k, v);
-					}
-
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						Map<K, V> result = new HashMap<K, V>();
-						for (Map.Entry<Key, V> e : map.entrySet()) {
-							result.put(e.getKey().key, e.getValue());
-						}
-						observer.next(result);
-						observer.finish();
-					}
-					
-				});
-			}
-		};
-	}
-	/**
-	 * Maps the given source of Ts by using the key extractor and
-	 * returns a single Map of them. The keys are compared against each other
-	 * by the <code>Object.equals()</code> semantics.
-	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
-	 * is forwarded (e.g., no partial map is created).</p>
-	 * @param <T> the element type
-	 * @param <K> the key type
-	 * @param <V> the value type
-	 * @param source the source of Ts
-	 * @param keySelector the key selector
-	 * @param valueSelector the value selector
-	 * @return the new observable
-	 */
-	public static <T, K, V> Observable<Map<K, V>> toMap(
-			final Observable<? extends T> source,
-			final Func1<? super T, ? extends K> keySelector,
-			final Func1<? super T, ? extends V> valueSelector
-	) {
-		return new Observable<Map<K, V>>() {
-			@Override
-			public Closeable register(final Observer<? super Map<K, V>> observer) {
-				return source.register(new Observer<T>() {
-					/** The map. */
-					final Map<K, V> map = new HashMap<K, V>();
-					@Override
-					public void next(T value) {
-						map.put(keySelector.invoke(value), valueSelector.invoke(value));
-					}
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-					@Override
-					public void finish() {
-						observer.next(map);
-						observer.finish();
-					}
-				});
-			}
-		};
-	}
-	/**
-	 * Maps the given source of Ts by using the key extractor and
-	 * returns a single Map of them. 
-	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
-	 * is forwarded (e.g., no partial map is created).</p>
-	 * @param <T> the element type
-	 * @param <K> the key type
-	 * @param source the source of Ts
-	 * @param keySelector the key selector
-	 * @param keyComparer the key comparer function
-	 * @return the new observable
-	 */
-	public static <K, T> Observable<Map<K, T>> toMap(
-			final Observable<? extends T> source,
-			final Func1<? super T, ? extends K> keySelector,
-			final Func2<? super K, ? super K, Boolean> keyComparer
-	) {
-		return toMap(source, keySelector, Functions.<T>identity(), keyComparer);
-	}
-	/**
-	 * Maps the given source of Ts by using the key extractor and
-	 * returns a single Map of them. The keys are compared against each other
-	 * by the <code>Object.equals()</code> semantics.
-	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
-	 * is forwarded (e.g., no partial map is created).</p>
-	 * @param <T> the element type
-	 * @param <K> the key type
-	 * @param source the source of Ts
-	 * @param keySelector the key selector
-	 * @return the new observable
-	 */
-	public static <K, T> Observable<Map<K, T>> toMap(
-			final Observable<T> source,
-			final Func1<? super T, ? extends K> keySelector
-	) {
-		return toMap(source, keySelector, Functions.<T>identity());
-	}
-	/**
-	 * Collect the elements of the source observable into a single list.
-	 * @param <T> the source element type
-	 * @param source the source observable
-	 * @return the new observable
-	 */
-	public static <T> Observable<List<T>> toList(
-		final Observable<? extends T> source
-	) {
-		return new Observable<List<T>>() {
-			@Override
-			public Closeable register(final Observer<? super List<T>> observer) {
-				return source.register(new Observer<T>() {
-					/** The list for aggregation. */
-					final List<T> list = new LinkedList<T>();
-					@Override
-					public void next(T value) {
-						list.add(value);
-					}
-
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.next(new ArrayList<T>(list));
-						observer.finish();
-					}
-					
-				});
-			}
-		};
-	}
-	/**
-	 * Maps the given source of Ts by using the key and value extractor and
-	 * returns a single multi-map of them.
-	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
-	 * is forwarded (e.g., no partial map is created).</p>
-	 * @param <T> the element type
-	 * @param <K> the key type
-	 * @param <V> the value type
-	 * @param source the source of Ts
-	 * @param keySelector the key selector
-	 * @param collectionSupplier the function which retuns a collection to hold the Vs.
-	 * @param valueSelector the value selector
-	 * @param keyComparer the comparison function for keys
-	 * @return the new observable
-	 */
-	public static <T, K, V> Observable<Map<K, Collection<V>>> toMultiMap(
-			final Observable<? extends T> source,
-			final Func1<? super T, ? extends K> keySelector,
-			final Func0<? extends Collection<V>> collectionSupplier,
-			final Func1<? super T, ? extends V> valueSelector,
-			final Func2<? super K, ? super K, Boolean> keyComparer
-	) {
-		return new Observable<Map<K, Collection<V>>>() {
-			@Override
-			public Closeable register(final Observer<? super Map<K, Collection<V>>> observer) {
-				return source.register(new Observer<T>() {
-					/** The key class with custom equality comparer. */
-					class Key {
-						/** The key value. */
-						final K key;
-						/**
-						 * Constructor.
-						 * @param key the key
-						 */
-						Key(K key) {
-							this.key = key;
-						}
-						@Override
-						public boolean equals(Object obj) {
-							if (obj instanceof Key) {
-								return keyComparer.invoke(key, ((Key)obj).key);	
-							}
-							return false;
-						}
-						@Override
-						public int hashCode() {
-							return key != null ? key.hashCode() : 0;
-						}
-					}
-					/** The map. */
-					final Map<Key, Collection<V>> map = new HashMap<Key, Collection<V>>();
-					@Override
-					public void next(T value) {
-						Key k = new Key(keySelector.invoke(value));
-						Collection<V> coll = map.get(k);
-						if (coll == null) {
-							coll = collectionSupplier.invoke();
-							map.put(k, coll);
-						}
-						V v = valueSelector.invoke(value);
-						coll.add(v);
-					}
-
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						Map<K, Collection<V>> result = new HashMap<K, Collection<V>>();
-						for (Map.Entry<Key, Collection<V>> e : map.entrySet()) {
-							result.put(e.getKey().key, e.getValue());
-						}
-						observer.next(result);
-						observer.finish();
-					}
-					
-				});
-			}
-		};
-	}
-	/**
-	 * Maps the given source of Ts by using the key and value extractor and
-	 * returns a single multi-map of them. The keys are compared against each other
-	 * by the <code>Object.equals()</code> semantics.
-	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
-	 * is forwarded (e.g., no partial map is created).</p>
-	 * @param <T> the element type
-	 * @param <K> the key type
-	 * @param <V> the value type
-	 * @param source the source of Ts
-	 * @param keySelector the key selector
-	 * @param collectionSupplier the function which retuns a collection to hold the Vs.
-	 * @param valueSelector the value selector
-	 * @return the new observable
-	 * @see Functions#listSupplier()
-	 * @see Functions#setSupplier()
-	 */
-	public static <T, K, V> Observable<Map<K, Collection<V>>> toMultiMap(
-			final Observable<? extends T> source,
-			final Func1<? super T, ? extends K> keySelector,
-			final Func0<? extends Collection<V>> collectionSupplier,
-			final Func1<? super T, ? extends V> valueSelector
-	) {
-		return new Observable<Map<K, Collection<V>>>() {
-			@Override
-			public Closeable register(final Observer<? super Map<K, Collection<V>>> observer) {
-				return source.register(new Observer<T>() {
-					/** The map. */
-					final Map<K, Collection<V>> map = new HashMap<K, Collection<V>>();
-					@Override
-					public void next(T value) {
-						K k = keySelector.invoke(value);
-						Collection<V> coll = map.get(k);
-						if (coll == null) {
-							coll = collectionSupplier.invoke();
-							map.put(k, coll);
-						}
-						V v = valueSelector.invoke(value);
-						coll.add(v);
-					}
-
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.next(map);
-						observer.finish();
-					}
-					
-				});
-			}
-		};
-	}
-	/**
-	 * Maps the given source of Ts by using the key extractor and
-	 * returns a single multi-map of them.
-	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
-	 * is forwarded (e.g., no partial map is created).</p>
-	 * @param <T> the element type
-	 * @param <K> the key type
-	 * @param source the source of Ts
-	 * @param keySelector the key selector
-	 * @param collectionSupplier the function which retuns a collection to hold the Vs.
-	 * @param keyComparer the comparison function for keys
-	 * @return the new observable
-	 */
-	public static <T, K> Observable<Map<K, Collection<T>>> toMultiMap(
-			final Observable<? extends T> source,
-			final Func1<? super T, ? extends K> keySelector,
-			final Func0<? extends Collection<T>> collectionSupplier,
-			final Func2<? super K, ? super K, Boolean> keyComparer
-	) {
-		return toMultiMap(
-				source, 
-				keySelector, 
-				collectionSupplier, 
-				Functions.<T>identity(),
-				keyComparer);
-	}
-	/**
-	 * Maps the given source of Ts by using the key  extractor and
-	 * returns a single multi-map of them. The keys are compared against each other
-	 * by the <code>Object.equals()</code> semantics.
-	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
-	 * is forwarded (e.g., no partial map is created).</p>
-	 * @param <T> the element type
-	 * @param <K> the key type
-	 * @param source the source of Ts
-	 * @param keySelector the key selector
-	 * @param collectionSupplier the function which retuns a collection to hold the Vs.
-	 * @return the new observable
-	 */
-	public static <T, K> Observable<Map<K, Collection<T>>> toMultiMap(
-			final Observable<? extends T> source,
-			final Func1<? super T, ? extends K> keySelector,
-			final Func0<? extends Collection<T>> collectionSupplier
-	) {
-		return toMultiMap(
-				source, 
-				keySelector, 
-				collectionSupplier, 
-				Functions.<T>identity());
 	}
 	/** Utility class. */
 	private Reactive() {

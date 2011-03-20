@@ -51,7 +51,9 @@ public abstract class DefaultRunnable implements Runnable {
 	public final void run() {
 		lock.lock();
 		try {
-			onRun();
+			if (!cancelled()) {
+				onRun();
+			}
 		} finally {
 			lock.unlock();
 		}
