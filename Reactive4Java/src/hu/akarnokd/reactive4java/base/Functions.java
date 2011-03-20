@@ -19,7 +19,11 @@ package hu.akarnokd.reactive4java.base;
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -910,6 +914,51 @@ public final class Functions {
 	@Nonnull 
 	public static Func2<Long, Long, Long> sumLong() {
 		return SUM_LONG;
+	}
+	/** A null safe equals function. */
+	private static final Func2<Object, Object, Boolean> NULL_SAFE_EQUALS = new Func2<Object, Object, Boolean>() {
+		@Override
+		public Boolean invoke(Object param1, Object param2) {
+			return param1 == param2 || (param1 != null && param1.equals(param2));
+		}
+	};
+	/**
+	 * Returns a function which compares its two paramerers by a null-safe
+	 * equals.
+	 * @param <T> the parameter type
+	 * @return the function
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> Func2<T, T, Boolean> equals() {
+		return (Func2<T, T, Boolean>)NULL_SAFE_EQUALS;
+	}
+	/**
+	 * A convenience function which returns a new ArrayList on every invocation.
+	 * <p>May be used with the Reactive.toMultiMap() method.</p>
+	 * @param <T> the element type
+	 * @return the function
+	 */
+	public static <T> Func0<List<T>> listSupplier() {
+		return new Func0<List<T>>() {
+			@Override
+			public List<T> invoke() {
+				return new ArrayList<T>();
+			}
+		};
+	}
+	/**
+	 * A convenience function which returns a new hashSet on every invocation.
+	 * <p>May be used with the Reactive.toMultiMap() method.</p>
+	 * @param <T> the element type
+	 * @return the function
+	 */
+	public static <T> Func0<Set<T>> setSupplier() {
+		return new Func0<Set<T>>() {
+			@Override
+			public Set<T> invoke() {
+				return new HashSet<T>();
+			}
+		};
 	}
 	/** Utility class. */
 	private Functions() {
