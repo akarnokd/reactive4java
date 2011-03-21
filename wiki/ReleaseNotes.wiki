@@ -7,25 +7,25 @@
 
   * Released: 2011-03-21 14:50
   * Added more reactive operators: 
-    * prune
-    * publish
-    * replay
-    * groupByUntil
-    * manySelect
-    * mostRecent
-    * sequenceEqual
-    * toArray
-    * toList
-    * toMap
-    * toMultiMap
-    * ignoreValues
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#prune(hu.akarnokd.reactive4java.reactive.Observable)'>prune</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#publish(hu.akarnokd.reactive4java.reactive.Observable)'>publish</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#replay(hu.akarnokd.reactive4java.reactive.Observable)'>replay</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#groupByUntil(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func1)'>groupByUntil</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#manySelect(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1)'>manySelect</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#mostRecent(hu.akarnokd.reactive4java.reactive.Observable, T)'>mostRecent</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#sequenceEqual(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.reactive.Observable)'>sequenceEqual</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#toArray(hu.akarnokd.reactive4java.reactive.Observable)'>toArray</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#toList(hu.akarnokd.reactive4java.reactive.Observable)'>toList</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#toMap(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func1)'>toMap</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#toMultiMap(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func0)'>toMultiMap</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#ignoreValues(hu.akarnokd.reactive4java.reactive.Observable)'>ignoreValues</a>
   * added overloads for reactive
-    * window (with time and/or buffer size)
-    * concat (observable sequence of observables)
-    * merge (observable sequence of observables)
-  * changed the Scheduler interface API to include the !TimeUnit
-  * added more convenience functions to Functions
-  * renamed asIterable and asObservable conversion methods to toIterable and toObservable
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#window(hu.akarnokd.reactive4java.reactive.Observable, int, int, hu.akarnokd.reactive4java.base.Scheduler)'>window</a> (with time and/or buffer size)
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#concat(hu.akarnokd.reactive4java.reactive.Observable)'>concat</a> (observable sequence of observables)
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#merge(hu.akarnokd.reactive4java.reactive.Observable)'>merge</a> (observable sequence of observables)
+  * changed the <a href=''>Scheduler</a> interface API to include the !TimeUnit
+  * added more convenience functions to <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Scheduler.html'>Functions</a>
+  * renamed asIterable and asObservable conversion methods to <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Scheduler.html'>toIterable</a> and <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#toObservable(java.lang.Iterable)'>toObservable</a>
 
 = 0.91 =
 
