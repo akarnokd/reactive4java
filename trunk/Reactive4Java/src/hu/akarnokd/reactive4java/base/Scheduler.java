@@ -16,6 +16,7 @@
 package hu.akarnokd.reactive4java.base;
 
 import java.io.Closeable;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
@@ -35,15 +36,15 @@ public interface Scheduler {
 	/**
 	 * Schedule a single execution of the runnable task
 	 * with the given delay of nanoseconds.
-	 * FIXME GWT probably doesn't support the TimeUnit enum
 	 * @param run the task to run
-	 * @param delay the initial delay in nanoseconds, 
+	 * @param delay the initial delay,
+	 * @param unit the delay time unit 
 	 * implementations might not have the capability to 
 	 * schedule in this resolution
 	 * @return the cancel handler
 	 */
 	@Nonnull 
-	Closeable schedule(@Nonnull Runnable run, long delay);
+	Closeable schedule(@Nonnull Runnable run, long delay, @Nonnull TimeUnit unit);
 	/**
 	 * Schedule a repeaded execution of the given task with
 	 * the given initialDelay (in nanoseconds) and betweenDelay
@@ -55,8 +56,9 @@ public interface Scheduler {
 	 * @param run the task to run
 	 * @param initialDelay the initial delay before the first run
 	 * @param betweenDelay the delay between task runs after the 
+	 * @param unit the delay time unit 
 	 * @return the cancel handler
 	 */
 	@Nonnull 
-	Closeable schedule(@Nonnull Runnable run, long initialDelay, long betweenDelay);
+	Closeable schedule(@Nonnull Runnable run, long initialDelay, long betweenDelay, @Nonnull TimeUnit unit);
 }

@@ -104,7 +104,7 @@ public final class Test {
 			}
 		});
 		
-		Reactive.asObservable(ys).register(Reactive.toObserver(new Action1<Integer>() {
+		Reactive.toObservable(ys).register(Reactive.toObserver(new Action1<Integer>() {
 			@Override
 			public void invoke(Integer value) {
 				System.out.printf("%s %d%n", Thread.currentThread(), value);

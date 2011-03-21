@@ -35,16 +35,20 @@ public class CurrentThreadScheduler implements Scheduler {
 	static class DelayedRunnable {
 		/** The actual runnable. */
 		public final Runnable run;
-		/** The delay in nanoseconds. */
+		/** The delay . */
 		public long delay;
+		/** The delay unit. */
+		public final TimeUnit unit;
 		/**
 		 * Constructor. Sets the task and the preferred delay.
 		 * @param task the task
 		 * @param delay the delay
+		 * @param unit the delay time unit
 		 */
-		public DelayedRunnable(@Nonnull Runnable task, long delay) {
+		public DelayedRunnable(@Nonnull Runnable task, long delay, @Nonnull TimeUnit unit) {
 			this.run = task;
 			this.delay = delay;
+			this.unit = unit;
 		}
 	}
 	/** The delayed runnable class. */
@@ -56,9 +60,14 @@ public class CurrentThreadScheduler implements Scheduler {
 		 * @param task the target tasks.
 		 * @param initialDelay the initial delay
 		 * @param betweenDelay the between delay
+		 * @param unit the delay time unit
 		 */
-		public RepeatedRunnable(@Nonnull Runnable task, long initialDelay, long betweenDelay) {
-			super(task, initialDelay);
+		public RepeatedRunnable(
+				@Nonnull Runnable task, 
+				long initialDelay, 
+				long betweenDelay, 
+				@Nonnull TimeUnit unit) {
+			super(task, initialDelay, unit);
 			this.betweenDelay = betweenDelay; 
 		}
 	}
@@ -79,7 +88,7 @@ public class CurrentThreadScheduler implements Scheduler {
 						break;
 					}
 					if (dr.delay > 0) {
-						TimeUnit.NANOSECONDS.sleep(dr.delay);
+						dr.unit.sleep(dr.delay);
 					}
 					try {
 						dr.run.run();
@@ -99,7 +108,7 @@ public class CurrentThreadScheduler implements Scheduler {
 	}
 	@Override
 	public Closeable schedule(Runnable run) {
-		final DelayedRunnable dr = new DelayedRunnable(run, 0);
+		final DelayedRunnable dr = new DelayedRunnable(run, 0, TimeUnit.MILLISECONDS);
 		tasks.add(dr);
 		schedulerLoop();
 		return new Closeable() {
@@ -111,8 +120,8 @@ public class CurrentThreadScheduler implements Scheduler {
 	}
 	
 	@Override
-	public Closeable schedule(Runnable run, long delay) {
-		final DelayedRunnable dr = new DelayedRunnable(run, delay);
+	public Closeable schedule(Runnable run, long delay, TimeUnit unit) {
+		final DelayedRunnable dr = new DelayedRunnable(run, delay, unit);
 		tasks.add(dr);
 		schedulerLoop();
 		return new Closeable() {
@@ -124,8 +133,8 @@ public class CurrentThreadScheduler implements Scheduler {
 	}
 
 	@Override
-	public Closeable schedule(Runnable run, long initialDelay, long betweenDelay) {
-		final RepeatedRunnable dr = new RepeatedRunnable(run, initialDelay, betweenDelay);
+	public Closeable schedule(Runnable run, long initialDelay, long betweenDelay, TimeUnit unit) {
+		final RepeatedRunnable dr = new RepeatedRunnable(run, initialDelay, betweenDelay, unit);
 		tasks.add(dr);
 		schedulerLoop();
 		return new Closeable() {
