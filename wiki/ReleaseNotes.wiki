@@ -3,6 +3,28 @@
 
 <wiki:toc max_depth="1" />
 
+= 0.92 =
+
+  * Released: 2011-03-21 14:50
+  * Added more reactive operators: 
+    * prune
+    * publish
+    * replay
+    * groupByUntil
+    * manySelect
+    * mostRecent
+    * sequenceEqual
+    * toArray
+    * toList
+    * toMap
+    * toMultiMap
+  * added overloads for reactive
+    * window (with time and/or buffer size)
+    * concat (observable sequence of observables)
+    * merge (observable sequence of observables)
+  * changed the Scheduler interface API to include the TimeUnit
+  * added more convenience functions to Functions
+
 = 0.91 =
 
   * Released: 2011-03-15 0:50
