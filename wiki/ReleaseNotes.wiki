@@ -22,7 +22,7 @@
     * window (with time and/or buffer size)
     * concat (observable sequence of observables)
     * merge (observable sequence of observables)
-  * changed the Scheduler interface API to include the TimeUnit
+  * changed the Scheduler interface API to include the !TimeUnit
   * added more convenience functions to Functions
 
 = 0.91 =
