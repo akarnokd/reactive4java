@@ -2,10 +2,10 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" output="test-classes" path="test"/>
-	<classpathentry kind="con" path="com.google.gwt.eclipse.core.GWT_CONTAINER/GWT (2)"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="war/WEB-INF/lib/jsr305.jar"/>
-	<classpathentry kind="lib" path="war/WEB-INF/lib/reactive4java-gwt-0.91.jar"/>
-	<classpathentry kind="lib" path="war/WEB-INF/lib/reactive4java-0.91.jar"/>
+	<classpathentry kind="lib" path="war/WEB-INF/lib/reactive4java-0.92.jar"/>
+	<classpathentry kind="lib" path="war/WEB-INF/lib/reactive4java-gwt-0.92.jar"/>
+	<classpathentry kind="con" path="com.google.gwt.eclipse.core.GWT_CONTAINER/GWT (1)"/>
 	<classpathentry kind="output" path="war/WEB-INF/classes"/>
 </classpath>
