@@ -111,14 +111,14 @@ public class DefaultScheduler implements Scheduler {
 	}
 
 	@Override
-	public Closeable schedule(Runnable run, long delay) {
-		return new FutureCloser(pool.schedule(run, delay, TimeUnit.NANOSECONDS));
+	public Closeable schedule(Runnable run, long delay, TimeUnit unit) {
+		return new FutureCloser(pool.schedule(run, delay, unit));
 	}
 
 	@Override
-	public Closeable schedule(Runnable run, long initialDelay, long betweenDelay) {
+	public Closeable schedule(Runnable run, long initialDelay, long betweenDelay, TimeUnit unit) {
 		return new FutureCloser(
-				pool.scheduleAtFixedRate(run, initialDelay, betweenDelay, TimeUnit.NANOSECONDS));
+				pool.scheduleAtFixedRate(run, initialDelay, betweenDelay, unit));
 	}
 	/**
 	 * Shutdown both pools.

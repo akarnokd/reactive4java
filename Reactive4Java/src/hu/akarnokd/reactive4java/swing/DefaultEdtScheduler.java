@@ -21,6 +21,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.SwingUtilities;
@@ -75,8 +76,8 @@ public class DefaultEdtScheduler implements Scheduler {
 	}
 
 	@Override
-	public Closeable schedule(final Runnable run, long delay) {
-		final Timer t = new Timer((int)(delay / 1000000), null);
+	public Closeable schedule(final Runnable run, long delay, final TimeUnit unit) {
+		final Timer t = new Timer((int)unit.convert(delay, TimeUnit.MILLISECONDS), null);
 		t.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -94,15 +95,15 @@ public class DefaultEdtScheduler implements Scheduler {
 	}
 
 	@Override
-	public Closeable schedule(final Runnable run, long initialDelay, long betweenDelay) {
-		final Timer t = new Timer((int)(initialDelay / 1000000), null);
+	public Closeable schedule(final Runnable run, long initialDelay, long betweenDelay, TimeUnit unit) {
+		final Timer t = new Timer((int)unit.convert(initialDelay, TimeUnit.MILLISECONDS), null);
 		t.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				run.run();
 			}
 		});
-		t.setDelay((int)(betweenDelay / 1000000));
+		t.setDelay((int)unit.convert(betweenDelay, TimeUnit.MILLISECONDS));
 		t.start();
 		return new Closeable() {
 			@Override

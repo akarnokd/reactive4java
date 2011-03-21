@@ -112,4 +112,17 @@ public final class SingleLaneExecutor<T> implements Closeable {
 		queue.drainTo(left);
 		wip.addAndGet(-left.size());
 	}
+	/**
+	 * Construct a single lane executor via the given parameters.
+	 * Convenience method for type inference.
+	 * @param <T> the value to submit
+	 * @param scheduler the scheduler
+	 * @param action the action to invoke with the given value
+	 * @return the instance
+	 */
+	public static <T> SingleLaneExecutor<T> create(
+			Scheduler scheduler, 
+			Action1<? super T> action) {
+		return new SingleLaneExecutor<T>(scheduler, action);
+	}
 }

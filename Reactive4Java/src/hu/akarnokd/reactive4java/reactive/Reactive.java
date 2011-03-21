@@ -25,6 +25,7 @@ import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Option;
+import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
 import hu.akarnokd.reactive4java.interactive.SingleContainer;
@@ -49,6 +50,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,7 +63,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
@@ -504,123 +508,6 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Convert the given observable instance into a classical iterable instance.
-	 * @param <T> the element type to iterate
-	 * @param observable the original observable
-	 * @return the iterable
-	 */
-	@Nonnull 
-	public static <T> Iterable<T> asIterable(
-			@Nonnull final Observable<? extends T> observable) {
-		return asIterable(observable, DEFAULT_SCHEDULER.get()); 
-	}
-	/**
-	 * Convert the given observable instance into a classical iterable instance.
-	 * @param <T> the element type to iterate
-	 * @param observable the original observable
-	 * @param pool the pool where to await elements from the observable.
-	 * @return the iterable
-	 */
-	@Nonnull 
-	public static <T> Iterable<T> asIterable(
-			@Nonnull final Observable<? extends T> observable, 
-			@Nonnull final Scheduler pool) {
-		return new Iterable<T>() {
-			@Override
-			public Iterator<T> iterator() {
-				final LinkedBlockingQueue<Option<T>> queue = new LinkedBlockingQueue<Option<T>>();
-				
-				final Closeable c = observable.register(new Observer<T>() {
-					@Override
-					public void error(Throwable ex) {
-						queue.add(Option.<T>error(ex));
-					}
-
-					@Override
-					public void finish() {
-						queue.add(Option.<T>none());
-					}
-
-					@Override
-					public void next(T value) {
-						queue.add(Option.some(value));
-					}
-					
-				});
-				
-				return new Iterator<T>() {
-					/** Close the association if there is no more elements. */
-					Closeable close = c;
-					/** The peek value due hasNext. */
-					Option<T> peek;
-					/** Indicator if there was a hasNext() call before the next() call. */
-					boolean peekBeforeNext;
-					/** Close the helper observer. */
-					void close() {
-						if (close != null) {
-							try {
-								close.close();
-								close = null;
-							} catch (IOException e) {
-								throw new RuntimeException(e);
-							}
-						}
-					}
-					@Override
-					protected void finalize() throws Throwable {
-						close();
-					}
-					@Override
-					public boolean hasNext() {
-						if (peek != Option.none()) {
-							if (!peekBeforeNext) {
-								try {
-									peek = queue.take();
-								} catch (InterruptedException e) {
-									throw new RuntimeException(e);
-								}
-							}
-							peekBeforeNext = true;
-						}
-						boolean result = peek != Option.none();
-						if (!result) {
-							close();
-						}
-						return result;
-					}
-					@Override
-					public T next() {
-						if (peekBeforeNext) {
-							peekBeforeNext = false;
-							if (peek != Option.none()) {
-								return peek.value();
-							}
-							close();
-							throw new NoSuchElementException();
-						}
-						peekBeforeNext = false;
-						if (peek != Option.none()) {
-							try {
-								peek = queue.take();
-							} catch (InterruptedException e) {
-								throw new RuntimeException(e);
-							}
-							if (peek != Option.none()) {
-								return peek.value();
-							}
-						}
-						close();
-						throw new NoSuchElementException();
-					}
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
-		};
-	}
-	/**
 	 * Convert the functional observable into a normal observable object.
 	 * @param <T> the type of the elements to observe.
 	 * @param source the source of the functional-observable elements
@@ -636,52 +523,6 @@ public final class Reactive {
 				return Actions.noAction0();
 			}
 		});
-	}
-	/**
-	 * Wrap the iterable object into an observable and use the
-	 * default pool when generating the iterator sequence.
-	 * @param <T> the type of the values
-	 * @param iterable the iterable instance
-	 * @return the observable 
-	 */
-	@Nonnull 
-	public static <T> Observable<T> asObservable(
-			@Nonnull final Iterable<? extends T> iterable) {
-		return asObservable(iterable, DEFAULT_SCHEDULER.get());
-	}
-	/**
-	 * Wrap the iterable object into an observable and use the
-	 * given pool when generating the iterator sequence.
-	 * @param <T> the type of the values
-	 * @param iterable the iterable instance
-	 * @param pool the thread pool where to generate the events from the iterable
-	 * @return the observable 
-	 */
-	@Nonnull 
-	public static <T> Observable<T> asObservable(
-			@Nonnull final Iterable<? extends T> iterable, 
-			@Nonnull final Scheduler pool) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				DefaultRunnable s = new DefaultRunnable() {
-					@Override
-					public void onRun() {
-						for (T t : iterable) {
-							if (cancelled()) {
-								break;
-							}
-							observer.next(t);
-						}
-						
-						if (!cancelled()) {
-							observer.finish();
-						}
-					}
-				};
-				return pool.schedule(s);
-			}
-		};
 	}
 	/**
 	 * Transform the given action to an observer.
@@ -749,7 +590,7 @@ public final class Reactive {
 				}
 			}
 		);
-	}	
+	}
 	/**
 	 * Computes and signals the average value of the Double source.
 	 * The source may not send nulls.
@@ -843,7 +684,7 @@ public final class Reactive {
 				}
 			}
 		);
-	}
+	}	
 	/**
 	 * Buffer the nodes as they become available and send them out in bufferSize chunks.
 	 * The observers return a new and modifiable list of T on every next() call.
@@ -946,7 +787,7 @@ public final class Reactive {
 				};
 				DefaultObserver<T> s = new DefaultObserver<T>(lock, true) {
 					/** The timer companion. */
-					Closeable timer = pool.schedule(r, unit.toNanos(time), unit.toNanos(time));
+					Closeable timer = pool.schedule(r, time, time, unit);
 					@Override
 					protected void onClose() {
 						close0(timer);
@@ -1037,7 +878,7 @@ public final class Reactive {
 					}
 				};
 				DefaultObserver<T> o = new DefaultObserver<T>(lock, true) {
-					Closeable timer = pool.schedule(r, unit.toNanos(time), unit.toNanos(time));
+					Closeable timer = pool.schedule(r, time, time, unit);
 					@Override
 					protected void onClose() {
 						close0(timer);
@@ -1632,7 +1473,7 @@ public final class Reactive {
 								}
 							}
 						};
-						outstanding.add(pool.schedule(r, unit.toNanos(time)));
+						outstanding.add(pool.schedule(r, time, unit));
 					}
 
 					@Override
@@ -1648,7 +1489,7 @@ public final class Reactive {
 								}
 							}
 						};
-						outstanding.add(pool.schedule(r, unit.toNanos(time)));
+						outstanding.add(pool.schedule(r, time, unit));
 					}
 					@Override
 					public void onNext(final T value) {
@@ -1662,7 +1503,7 @@ public final class Reactive {
 								}
 							}
 						};
-						outstanding.add(pool.schedule(r, unit.toNanos(time)));
+						outstanding.add(pool.schedule(r, time, unit));
 					}
 				};
 				return obs;
@@ -1973,7 +1814,7 @@ public final class Reactive {
 	 */
 	public static <T> T first(
 			@Nonnull final Observable<T> source) {
-		Iterator<T> it = asIterable(source).iterator();
+		Iterator<T> it = toIterable(source).iterator();
 		if (it.hasNext()) {
 			return it.next();
 		}
@@ -2153,6 +1994,7 @@ public final class Reactive {
 	/**
 	 * Generates a stream of Us by using a value T stream.
 	 * If T = int and U is double, this would be seen as for (int i = 0; i &lt; 10; i++) { sleep(time); yield return i / 2.0; }
+	 * FIXME timeunit for the delay function!
 	 * @param <T> the type of the generator values
 	 * @param <U> the type of the observed values
 	 * @param initial the initial generator value
@@ -2186,7 +2028,7 @@ public final class Reactive {
 						final T tn = next.invoke(current);
 						current = tn;
 						if (condition.invoke(tn) && !cancelled()) {
-							pool.schedule(this, TimeUnit.MILLISECONDS.toNanos(delay.invoke(tn)));
+							pool.schedule(this, delay.invoke(tn), TimeUnit.MILLISECONDS);
 						} else {
 							if (!cancelled()) {
 								observer.finish();
@@ -2197,7 +2039,7 @@ public final class Reactive {
 				};
 				
 				if (condition.invoke(initial)) {
-					return pool.schedule(s, TimeUnit.MILLISECONDS.toNanos(delay.invoke(initial)));
+					return pool.schedule(s, delay.invoke(initial), TimeUnit.MILLISECONDS);
 				}
 				return Functions.EMPTY_CLOSEABLE;
 			}
@@ -2282,6 +2124,260 @@ public final class Reactive {
 					}
 					
 				});
+			}
+		};
+	}
+	/**
+	 * Groups the source sequence of Ts until the specified duration for that group fires.
+	 * <p>The key comparison is done by the <code>Object.equals()</code> semantics of the <code>HashMap</code>.</p>
+	 * <p><b>Exception semantics:</b> if the source throws an exception, all active groups will receive
+	 * the exception followed by the outer observer of the groups.</p>
+	 * <p><b>Completion semantics:</b> if the source finishes, all active groups will receive a finish
+	 * signal followed by the outer observer.</p>
+	 * @param <T> the source element type
+	 * @param <K> the key type
+	 * @param <D> the duration element type, ignored
+	 * @param source the source of Ts
+	 * @param keySelector the key extractor
+	 * @param durationSelector the observable for a particular group termination
+	 * @return the new observable
+	 */
+	public static <T, K, D> Observable<GroupedObservable<K, T>> groupByUntil(
+			final Observable<? extends T> source,
+			final Func1<? super T, ? extends K> keySelector,
+			final Func1<? super GroupedObservable<K, T>, ? extends Observable<D>> durationSelector
+	) {
+		return groupByUntil(source, keySelector, Functions.<T>identity(), durationSelector);
+	}
+	/**
+	 * Groups the source sequence of Ts until the specified duration for that group fires.
+	 * <p><b>Exception semantics:</b> if the source throws an exception, all active groups will receive
+	 * the exception followed by the outer observer of the groups.</p>
+	 * <p><b>Completion semantics:</b> if the source finishes, all active groups will receive a finish
+	 * signal followed by the outer observer.</p>
+	 * @param <T> the source element type
+	 * @param <K> the key type
+	 * @param <D> the duration element type, ignored
+	 * @param source the source of Ts
+	 * @param keySelector the key extractor
+	 * @param durationSelector the observable for a particular group termination
+	 * @param keyComparer the key comparer for the grouping
+	 * @return the new observable
+	 */
+	public static <T, K, D> Observable<GroupedObservable<K, T>> groupByUntil(
+			final Observable<? extends T> source,
+			final Func1<? super T, ? extends K> keySelector,
+			final Func1<? super GroupedObservable<K, T>, ? extends Observable<D>> durationSelector,
+			final Func2<? super K, ? super K, Boolean> keyComparer
+	) {
+		return groupByUntil(source, keySelector, Functions.<T>identity(), durationSelector, keyComparer);
+	}
+	/**
+	 * Groups the source sequence of Ts until the specified duration for that group fires.
+	 * <p>The key comparison is done by the <code>Object.equals()</code> semantics of the <code>HashMap</code>.</p>
+	 * <p><b>Exception semantics:</b> if the source throws an exception, all active groups will receive
+	 * the exception followed by the outer observer of the groups.</p>
+	 * <p><b>Completion semantics:</b> if the source finishes, all active groups will receive a finish
+	 * signal followed by the outer observer.</p>
+	 * @param <T> the source element type
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @param <D> the duration element type, ignored
+	 * @param source the source of Ts
+	 * @param keySelector the key extractor
+	 * @param valueSelector the value extractor
+	 * @param durationSelector the observable for a particular group termination
+	 * @return the new observable
+	 */
+	public static <T, K, V, D> Observable<GroupedObservable<K, V>> groupByUntil(
+			final Observable<? extends T> source,
+			final Func1<? super T, ? extends K> keySelector,
+			final Func1<? super T, ? extends V> valueSelector,
+			final Func1<? super GroupedObservable<K, V>, ? extends Observable<D>> durationSelector
+	) {
+		return new Observable<GroupedObservable<K, V>>() {
+			@Override
+			public Closeable register(
+					final Observer<? super GroupedObservable<K, V>> observer) {
+				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
+					/** The active groups. */
+					final Map<K, GroupedRegisteringObservable<K, V>> groups = new HashMap<K, GroupedRegisteringObservable<K, V>>();
+					{
+						add("source", source);
+					}
+					@Override
+					protected void onError(Throwable ex) {
+						for (Observer<V> o : groups.values()) {
+							o.error(ex);
+						}
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						for (Observer<V> o : groups.values()) {
+							o.finish();
+						}
+						observer.finish();
+					}
+
+					@Override
+					protected void onNext(T value) {
+						final K k = keySelector.invoke(value);
+						final V v = valueSelector.invoke(value);
+						GroupedRegisteringObservable<K, V> gr = groups.get(k);
+						if (gr != null) {
+							gr = new GroupedRegisteringObservable<K, V>(k);
+							final GroupedRegisteringObservable<K, V> fgr = gr;
+							groups.put(k, gr);
+							add(fgr, durationSelector.invoke(gr).register(new DefaultObserver<D>(lock, true) {
+
+								@Override
+								protected void onError(Throwable ex) {
+									fgr.error(ex); // FIXME error propagation
+									groups.remove(k);
+									remove(fgr);
+								}
+
+								@Override
+								protected void onFinish() {
+									fgr.finish();
+									groups.remove(k);
+									remove(fgr);
+								}
+
+								@Override
+								protected void onNext(D value) {
+									fgr.finish();
+									groups.remove(k);
+									remove(fgr);
+								}
+								
+							}));
+							observer.next(gr);
+						}
+						gr.next(v);
+					}
+					
+				};
+				return o;
+			}
+		};
+	}
+	/**
+	 * Groups the source sequence of Ts until the specified duration for that group fires.
+	 * <p><b>Exception semantics:</b> if the source throws an exception, all active groups will receive
+	 * the exception followed by the outer observer of the groups.</p>
+	 * <p><b>Completion semantics:</b> if the source finishes, all active groups will receive a finish
+	 * signal followed by the outer observer.</p>
+	 * @param <T> the source element type
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @param <D> the duration element type, ignored
+	 * @param source the source of Ts
+	 * @param keySelector the key extractor
+	 * @param valueSelector the value extractor
+	 * @param durationSelector the observable for a particular group termination
+	 * @param keyComparer the key comparer for the grouping
+	 * @return the new observable
+	 */
+	public static <T, K, V, D> Observable<GroupedObservable<K, V>> groupByUntil(
+			final Observable<? extends T> source,
+			final Func1<? super T, ? extends K> keySelector,
+			final Func1<? super T, ? extends V> valueSelector,
+			final Func1<? super GroupedObservable<K, V>, ? extends Observable<D>> durationSelector,
+			final Func2<? super K, ? super K, Boolean> keyComparer
+	) {
+		return new Observable<GroupedObservable<K, V>>() {
+			@Override
+			public Closeable register(
+					final Observer<? super GroupedObservable<K, V>> observer) {
+				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
+					/** The key class with custom equality comparer. */
+					class Key {
+						/** The key value. */
+						final K key;
+						/**
+						 * Constructor.
+						 * @param key the key
+						 */
+						Key(K key) {
+							this.key = key;
+						}
+						@Override
+						public boolean equals(Object obj) {
+							if (obj instanceof Key) {
+								return keyComparer.invoke(key, ((Key)obj).key);	
+							}
+							return false;
+						}
+						@Override
+						public int hashCode() {
+							return key != null ? key.hashCode() : 0;
+						}
+					}
+					/** The active groups. */
+					final Map<Key, GroupedRegisteringObservable<K, V>> groups = new HashMap<Key, GroupedRegisteringObservable<K, V>>();
+					{
+						add("source", source);
+					}
+					@Override
+					protected void onError(Throwable ex) {
+						for (Observer<V> o : groups.values()) {
+							o.error(ex);
+						}
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						for (Observer<V> o : groups.values()) {
+							o.finish();
+						}
+						observer.finish();
+					}
+
+					@Override
+					protected void onNext(T value) {
+						final K kv = keySelector.invoke(value);
+						final Key k = new Key(kv);
+						final V v = valueSelector.invoke(value);
+						GroupedRegisteringObservable<K, V> gr = groups.get(k);
+						if (gr != null) {
+							gr = new GroupedRegisteringObservable<K, V>(kv);
+							final GroupedRegisteringObservable<K, V> fgr = gr;
+							groups.put(k, gr);
+							add(fgr, durationSelector.invoke(gr).register(new DefaultObserver<D>(lock, true) {
+
+								@Override
+								protected void onError(Throwable ex) {
+									fgr.error(ex); // FIXME error propagation
+									groups.remove(k);
+									remove(fgr);
+								}
+
+								@Override
+								protected void onFinish() {
+									fgr.finish();
+									groups.remove(k);
+									remove(fgr);
+								}
+
+								@Override
+								protected void onNext(D value) {
+									fgr.finish();
+									groups.remove(k);
+									remove(fgr);
+								}
+								
+							}));
+							observer.next(gr);
+						}
+						gr.next(v);
+					}
+					
+				};
+				return o;
 			}
 		};
 	}
@@ -3727,7 +3823,8 @@ public final class Reactive {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				
-				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
+				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
+					/** The single lane executor. */
 					final SingleLaneExecutor<Runnable> run = new SingleLaneExecutor<Runnable>(pool,
 						new Action1<Runnable>() {
 							@Override
@@ -3736,11 +3833,8 @@ public final class Reactive {
 							}
 						}
 					);
-
-					@Override
-					public void onClose() {
-//						run.close(); FIXME we should not cancel the pool?!
-						super.close();
+					{
+						add("source", source);
 					}
 
 					@Override
@@ -3773,7 +3867,7 @@ public final class Reactive {
 						});
 					}
 				};
-				return close(obs, source.register(obs));
+				return obs;
 			}
 		};
 	}
@@ -3998,6 +4092,203 @@ public final class Reactive {
 				System.out.println(value);
 			};
 		};
+	}
+	/**
+	 * Returns an observable which shares all registration to the source observable and
+	 * each observer will only see the last notification.
+	 * <p>Basically a replay with buffer size 1.</p>
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @return the observable
+	 */
+	public static <T> Observable<T> prune(
+			final Observable<? extends T> source
+	) {
+		return replay(source, 1);
+	}
+	/**
+	 * Returns an observable which shares all registration to the source observable and
+	 * each observer will only see the last notification.
+	 * <p>Basically a replay with buffer size 1.</p>
+	 * @param <T> the source element type
+	 * @param <U> the return element type
+	 * @param source the source of Ts
+	 * @param selector the output stream selector
+	 * @return the observable
+	 */
+	public static <T, U> Observable<U> prune(
+			final Observable<? extends T> source,
+			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector
+	) {
+		return replay(source, selector, 1);
+	}
+	/**
+	 * Returns an observable which shares all registration to the source observable and
+	 * each observer will only see the last notification.
+	 * <p>Basically a replay with buffer size 1.</p>
+	 * @param <T> the source element type
+	 * @param <U> the return element type
+	 * @param source the source of Ts
+	 * @param selector the output stream selector
+	 * @param scheduler the scheduler for replaying the single value
+	 * @return the observable
+	 */
+	public static <T, U> Observable<U> prune(
+			final Observable<? extends T> source,
+			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			final Scheduler scheduler
+	) {
+		return replay(source, selector, 1, scheduler);
+	}
+	/**
+	 * Returns an observable which shares all registration to the source observable and
+	 * each observer will only see the last notification.
+	 * <p>Basically a replay with buffer size 1.</p>
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param scheduler the scheduler for replaying the single value
+	 * @return the observable
+	 */
+	public static <T> Observable<T> prune(
+			final Observable<? extends T> source,
+			final Scheduler scheduler
+	) {
+		return replay(source, 1, scheduler);
+	}
+	/**
+	 * Returns an observable which shares a single subscription to the underlying source.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> publish(
+			final Observable<? extends T> source
+	) {
+		return publish(source, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Returns an observable which shares a single subscription to the underlying source.
+	 * @param <T> the element type
+	 * @param <U> the result type
+	 * @param source the source of Ts
+	 * @param selector the selector function for the return stream
+	 * @return the new observable
+	 */
+	public static <T, U> Observable<U> publish(
+			final Observable<? extends T> source,
+			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector
+	) {
+		return publish(selector.invoke(source));
+	}
+	/**
+	 * Returns an observable which shares a single subscription to the underlying source.
+	 * @param <T> the element type
+	 * @param <U> the result type
+	 * @param source the source of Ts
+	 * @param selector the selector function for the return stream
+	 * @param scheduler the scheduler where the values will be replayed
+	 * @return the new observable
+	 */
+	public static <T, U> Observable<U> publish(
+			final Observable<? extends T> source,
+			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			final Scheduler scheduler
+	) {
+		return publish(selector.invoke(source), scheduler);
+	}
+	/**
+	 * Returns an observable which shares a single subscription to the underlying source.
+	 * @param <T> the element type
+	 * @param <U> the result type
+	 * @param source the source of Ts
+	 * @param selector the selector function for the return stream
+	 * @param initialValue the initial stream value
+	 * @return the new observable
+	 */
+	public static <T, U> Observable<U> publish(
+			final Observable<? extends T> source,
+			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			final U initialValue
+	) {
+		return publish(selector.invoke(source), initialValue);
+	}
+	/**
+	 * Returns an observable which shares a single subscription to the underlying source.
+	 * @param <T> the element type
+	 * @param <U> the result type
+	 * @param source the source of Ts
+	 * @param selector the selector function for the return stream
+	 * @param initialValue the initial stream value
+	 * @param scheduler the scheduler where the values will be replayed
+	 * @return the new observable
+	 */
+	public static <T, U> Observable<U> publish(
+			final Observable<? extends T> source,
+			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			final U initialValue,
+			final Scheduler scheduler
+	) {
+		return publish(selector.invoke(source), initialValue, scheduler);
+	}
+	/**
+	 * Returns an observable which shares a single subscription to the underlying source.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param scheduler the scheduler where the values will be replayed
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> publish(
+			final Observable<? extends T> source,
+			final Scheduler scheduler
+	) {
+		return new Observable<T>() {
+			/** The first registree to initialize the common observer. */
+			final Lock lock = new ReentrantLock();
+			@GuardedBy("lock")
+			DefaultObservable<T> obs;
+			@Override
+			public Closeable register(Observer<? super T> observer) {
+				lock.lock();
+				try {
+					if (obs == null) {
+						obs = new DefaultObservable<T>();
+						observeOn(source, scheduler).register(obs);
+					}
+				} finally {
+					lock.unlock();
+				}
+				return obs.register(observer);
+			}
+		};
+
+	}
+	/**
+	 * Returns an observable which shares a single subscription to the underlying source.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param initialValue the initial stream value
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> publish(
+			final Observable<? extends T> source,
+			final T initialValue
+	) {
+		return publish(source, initialValue, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Returns an observable which shares a single subscription to the underlying source.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param initialValue the initial stream value
+	 * @param scheduler the scheduler where the values will be replayed
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> publish(
+			final Observable<? extends T> source,
+			final T initialValue,
+			final Scheduler scheduler
+	) {
+		return publish(startWith(source, initialValue, scheduler), scheduler);
 	}
 	/** 
 	 * Creates an observable which generates numbers from start.
@@ -4485,6 +4776,717 @@ public final class Reactive {
 		return DEFAULT_SCHEDULER.getAndSet(newScheduler);
 	}
 	/**
+	 * Creates an observable which shares the source observable and replays all source Ts
+	 * to any of the registering observers.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> replay(
+			final Observable<? extends T> source
+	) {
+		return replay(source, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Creates an observable which shares the source observable and replays the buffered source Ts
+	 * to any of the registering observers.
+	 * @param <T> the element type
+	 * @param <U> the return element type
+	 * @param source the source of Ts
+	 * @param selector the output stream selector
+	 * @param bufferSize the target buffer size
+	 * @return the new observable
+	 */
+	public static <T, U> Observable<U> replay(
+			final Observable<? extends T> source,
+			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			final int bufferSize
+	) {
+		return replay(selector.invoke(source), bufferSize);
+	}
+	/**
+	 * Creates an observable which shares the source observable and replays the bufferSize source Ts
+	 * to any of the registering observers. After the periodic timespan, the buffer is reset.
+	 * @param <T> the source element type
+	 * @param <U> the return element type
+	 * @param source the source of Ts
+	 * @param selector the output stream selector
+	 * @param bufferSize the buffer size
+	 * @param timeSpan the window length
+	 * @param unit the time unit
+	 * @return the new observer
+	 */
+	public static <T, U> Observable<U> replay(
+			final Observable<? extends T> source,
+			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			final int bufferSize,
+			final long timeSpan,
+			final TimeUnit unit
+	) {
+		return replay(selector.invoke(source), bufferSize, timeSpan, unit);
+	}
+	/**
+	 * Creates an observable which shares the source observable and replays the bufferSize source Ts
+	 * to any of the registering observers. After the periodic timespan, the buffer is reset.
+	 * @param <T> the source element type
+	 * @param <U> the return element type
+	 * @param source the source of Ts
+	 * @param selector the output stream selector
+	 * @param bufferSize the buffer size
+	 * @param timeSpan the window length
+	 * @param unit the time unit
+	 * @param scheduler the target scheduler
+	 * @return the new observer
+	 */
+	public static <T, U> Observable<U> replay(
+			final Observable<? extends T> source,
+			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			final int bufferSize,
+			final long timeSpan,
+			final TimeUnit unit,
+			final Scheduler scheduler
+	) {
+		return replay(selector.invoke(source), bufferSize, timeSpan, unit, scheduler);
+	}
+	/**
+	 * Creates an observable which shares the source observable and replays all source Ts
+	 * to any of the registering observers. After the periodic timespan, the buffer is reset.
+	 * @param <T> the source element type
+	 * @param <U> the return element type
+	 * @param source the source of Ts
+	 * @param selector the output stream selector
+	 * @param timeSpan the window length
+	 * @param unit the time unit
+	 * @return the new observer
+	 */
+	public static <T, U> Observable<U> replay(
+			final Observable<? extends T> source,
+			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			final long timeSpan,
+			final TimeUnit unit
+	) {
+		return replay(selector.invoke(source), timeSpan, unit);
+	}
+	/**
+	 * Creates an observable which shares the source observable and replays all source Ts
+	 * to any of the registering observers. After the periodic timespan, the buffer is reset.
+	 * @param <T> the source element type
+	 * @param <U> the return element type
+	 * @param source the source of Ts
+	 * @param selector the output stream selector
+	 * @param timeSpan the window length
+	 * @param unit the time unit
+	 * @param scheduler the target scheduler
+	 * @return the new observer
+	 */
+	public static <T, U> Observable<U> replay(
+			final Observable<? extends T> source,
+			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			final long timeSpan,
+			final TimeUnit unit,
+			final Scheduler scheduler
+	) {
+		return replay(selector.invoke(source), timeSpan, unit, scheduler);
+	}
+	/**
+	 * Creates an observable which shares the source observable and replays the buffered source Ts
+	 * to any of the registering observers.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param bufferSize the target buffer size
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> replay(
+			final Observable<? extends T> source,
+			final int bufferSize
+	) {
+		return replay(source, bufferSize, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Creates an observable which shares the source observable and replays the bufferSize source Ts
+	 * to any of the registering observers. After the periodic timespan, the buffer is reset.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param bufferSize the buffer size
+	 * @param timeSpan the window length
+	 * @param unit the time unit
+	 * @return the new observer
+	 */
+	public static <T> Observable<T> replay(
+			final Observable<? extends T> source,
+			final int bufferSize,
+			final long timeSpan,
+			final TimeUnit unit
+	) {
+		return replay(source, bufferSize, timeSpan, unit, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Creates an observable which shares the source observable and replays the bufferSize source Ts
+	 * to any of the registering observers. After the periodic timespan, the buffer is reset.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param bufferSize the buffer size
+	 * @param timeSpan the window length
+	 * @param unit the time unit
+	 * @param scheduler the target scheduler
+	 * @return the new observer
+	 */
+	public static <T> Observable<T> replay(
+			final Observable<? extends T> source,
+			final int bufferSize,
+			final long timeSpan,
+			final TimeUnit unit,
+			final Scheduler scheduler
+	) {
+		return new Observable<T>() {
+			/** The read-write lock. */
+			final ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
+			/** The read lock for reading elements of the buffer. */
+			final Lock readLock = rwLock.readLock();
+			/** The write lock to write elements of the buffer and add new listeners. */
+			final Lock writeLock = rwLock.writeLock();
+			/** The buffer that holds the observed values so far. */
+			@GuardedBy("rwLock")
+			CircularBuffer<Option<T>> buffer = new CircularBuffer<Option<T>>(bufferSize);
+			/** The single registration handler. */
+			@GuardedBy("writeLock")
+			Closeable sourceClose;
+			/** The single registration handler. */
+			@GuardedBy("writeLock")
+			Closeable timerClose;
+			/** The set of listeners active. */
+			@GuardedBy("writeLock")
+			Set<SingleLaneExecutor<Pair<Integer, CircularBuffer<Option<T>>>>> listeners = new HashSet<SingleLaneExecutor<Pair<Integer, CircularBuffer<Option<T>>>>>();
+			@Override
+			protected void finalize() throws Throwable {
+				close0(timerClose);
+				close0(sourceClose);
+				super.finalize();
+			}
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				writeLock.lock();
+				try {
+					if (sourceClose != null) {
+						sourceClose = source.register(new Observer<T>() {
+							/**
+							 * Buffer and submit the option to all registered listeners.
+							 * @param opt the option to submit
+							 */
+							void doOption(Option<T> opt) {
+								writeLock.lock();
+								try {
+									buffer.add(opt);
+									Pair<Integer, CircularBuffer<Option<T>>> of = Pair.of(buffer.tail(), buffer);
+									for (SingleLaneExecutor<Pair<Integer, CircularBuffer<Option<T>>>> l : listeners) {
+										l.add(of);
+									}
+								} finally {
+									writeLock.unlock();
+								}
+							}
+	
+							@Override
+							public void error(Throwable ex) {
+								doOption(Option.<T>error(ex));
+							}
+	
+							@Override
+							public void finish() {
+								doOption(Option.<T>none());
+							}
+							@Override
+							public void next(T value) {
+								doOption(Option.some(value));
+							}
+						});
+						timerClose = scheduler.schedule(new Runnable() {
+							@Override
+							public void run() {
+								writeLock.lock();
+								try {
+									buffer = new CircularBuffer<Option<T>>(bufferSize);
+								} finally {
+									writeLock.unlock();
+								}
+							}
+						}, timeSpan, timeSpan, unit);
+					}
+				} finally {
+					writeLock.unlock();
+				}
+				final AtomicBoolean cancel = new AtomicBoolean();
+				final SingleLaneExecutor<Pair<Integer, CircularBuffer<Option<T>>>> playback = SingleLaneExecutor.create(scheduler, new Action1<Pair<Integer, CircularBuffer<Option<T>>>>() {
+					/** The local buffer reader index. */
+					@GuardedBy("readLock")
+					int index = 0;
+					/** The last buffer. */
+					@GuardedBy("readLock")
+					CircularBuffer<Option<T>> last;
+					@Override
+					public void invoke(Pair<Integer, CircularBuffer<Option<T>>> value) {
+						readLock.lock();
+						try {
+							if (last != value.second) {
+								index = 0;
+								last = value.second;
+							}
+							index = Math.max(index, buffer.head());
+							while (index < value.first && !cancel.get()) {
+								dispatch(observer, last.get(index++));
+							}
+						} finally {
+							readLock.unlock();
+						}
+					}
+				});
+				writeLock.lock();
+				try {
+					playback.add(Pair.of(buffer.tail(), buffer));
+					listeners.add(playback);
+				} finally {
+					writeLock.unlock();
+				}
+				final Closeable c = new Closeable() {
+					@Override
+					public void close() throws IOException {
+						cancel.set(true);
+						writeLock.lock();
+						try {
+							listeners.remove(playback);
+						} finally {
+							writeLock.unlock();
+						}
+						close0(playback);
+					}
+				};
+				return c;
+			}
+		};
+	}
+	/**
+	 * Creates an observable which shares the source observable and replays all source Ts
+	 * to any of the registering observers.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param bufferSize the target buffer size
+	 * @param scheduler the scheduler from where the historical elements are emitted
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> replay(
+			final Observable<? extends T> source,
+			final int bufferSize,
+			final Scheduler scheduler
+	) {
+		return new Observable<T>() {
+			/** The read-write lock. */
+			final ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
+			/** The read lock for reading elements of the buffer. */
+			final Lock readLock = rwLock.readLock();
+			/** The write lock to write elements of the buffer and add new listeners. */
+			final Lock writeLock = rwLock.writeLock();
+			/** The buffer that holds the observed values so far. */
+			@GuardedBy("rwLock")
+			final CircularBuffer<Option<T>> buffer = new CircularBuffer<Option<T>>(bufferSize);
+			/** The single registration handler. */
+			@GuardedBy("writeLock")
+			Closeable sourceClose;
+			/** The set of listeners active. */
+			@GuardedBy("writeLock")
+			Set<SingleLaneExecutor<Integer>> listeners = new HashSet<SingleLaneExecutor<Integer>>();
+			@Override
+			protected void finalize() throws Throwable {
+				close0(sourceClose);
+				super.finalize();
+			}
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				writeLock.lock();
+				try {
+					if (sourceClose == null) {
+						sourceClose = source.register(new Observer<T>() {
+							/**
+							 * Buffer and submit the option to all registered listeners.
+							 * @param opt the option to submit
+							 */
+							void doOption(Option<T> opt) {
+								writeLock.lock();
+								try {
+									buffer.add(opt);
+									for (SingleLaneExecutor<Integer> l : listeners) {
+										l.add(buffer.tail());
+									}
+								} finally {
+									writeLock.unlock();
+								}
+							}
+	
+							@Override
+							public void error(Throwable ex) {
+								doOption(Option.<T>error(ex));
+							}
+	
+							@Override
+							public void finish() {
+								doOption(Option.<T>none());
+							}
+							@Override
+							public void next(T value) {
+								doOption(Option.some(value));
+							}
+						});
+					}
+				} finally {
+					writeLock.unlock();
+				}
+				final AtomicBoolean cancel = new AtomicBoolean();
+				final SingleLaneExecutor<Integer> playback = SingleLaneExecutor.create(scheduler, new Action1<Integer>() {
+					/** The local buffer reader index. */
+					@GuardedBy("readLock")
+					int index = 0;
+					@Override
+					public void invoke(Integer value) {
+						readLock.lock();
+						try {
+							index = Math.max(index, buffer.head());
+							while (index < value && !cancel.get()) {
+								dispatch(observer, buffer.get(index++));
+							}
+						} finally {
+							readLock.unlock();
+						}
+					}
+				});
+				writeLock.lock();
+				try {
+					playback.add(buffer.size());
+					listeners.add(playback);
+				} finally {
+					writeLock.unlock();
+				}
+				final Closeable c = new Closeable() {
+					@Override
+					public void close() throws IOException {
+						cancel.set(true);
+						writeLock.lock();
+						try {
+							listeners.remove(playback);
+						} finally {
+							writeLock.unlock();
+						}
+						close0(playback);
+					}
+				};
+				return c;
+			}
+		};
+	}
+	/**
+	 * Creates an observable which shares the source observable and replays all source Ts
+	 * to any of the registering observers. After the periodic timespan, the buffer is reset.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param timeSpan the window length
+	 * @param unit the time unit
+	 * @return the new observer
+	 */
+	public static <T> Observable<T> replay(
+			final Observable<? extends T> source,
+			final long timeSpan,
+			final TimeUnit unit
+	) {
+		return replay(source, timeSpan, unit, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Creates an observable which shares the source observable and replays all source Ts
+	 * to any of the registering observers. After the periodic timespan, the buffer is reset.
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @param timeSpan the window length
+	 * @param unit the time unit
+	 * @param scheduler the target scheduler
+	 * @return the new observer
+	 */
+	public static <T> Observable<T> replay(
+			final Observable<? extends T> source,
+			final long timeSpan,
+			final TimeUnit unit,
+			final Scheduler scheduler
+	) {
+		return new Observable<T>() {
+			/** The read-write lock. */
+			final ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
+			/** The read lock for reading elements of the buffer. */
+			final Lock readLock = rwLock.readLock();
+			/** The write lock to write elements of the buffer and add new listeners. */
+			final Lock writeLock = rwLock.writeLock();
+			/** The buffer that holds the observed values so far. */
+			@GuardedBy("rwLock")
+			List<Option<T>> buffer = new ArrayList<Option<T>>();
+			/** The single registration handler. */
+			@GuardedBy("writeLock")
+			Closeable sourceClose;
+			/** The single registration handler. */
+			@GuardedBy("writeLock")
+			Closeable timerClose;
+			/** The set of listeners active. */
+			@GuardedBy("writeLock")
+			Set<SingleLaneExecutor<Pair<Integer, List<Option<T>>>>> listeners = new HashSet<SingleLaneExecutor<Pair<Integer, List<Option<T>>>>>();
+			@Override
+			protected void finalize() throws Throwable {
+				close0(timerClose);
+				close0(sourceClose);
+				super.finalize();
+			}
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				writeLock.lock();
+				try {
+					if (sourceClose == null) {
+						sourceClose = source.register(new Observer<T>() {
+							/**
+							 * Buffer and submit the option to all registered listeners.
+							 * @param opt the option to submit
+							 */
+							void doOption(Option<T> opt) {
+								writeLock.lock();
+								try {
+									buffer.add(opt);
+									Pair<Integer, List<Option<T>>> of = Pair.of(buffer.size(), buffer);
+									for (SingleLaneExecutor<Pair<Integer, List<Option<T>>>> l : listeners) {
+										l.add(of);
+									}
+								} finally {
+									writeLock.unlock();
+								}
+							}
+	
+							@Override
+							public void error(Throwable ex) {
+								doOption(Option.<T>error(ex));
+							}
+	
+							@Override
+							public void finish() {
+								doOption(Option.<T>none());
+							}
+							@Override
+							public void next(T value) {
+								doOption(Option.some(value));
+							}
+						});
+						timerClose = scheduler.schedule(new Runnable() {
+							@Override
+							public void run() {
+								writeLock.lock();
+								try {
+									buffer = new ArrayList<Option<T>>();
+								} finally {
+									writeLock.unlock();
+								}
+							}
+						}, timeSpan, timeSpan, unit);
+					}
+				} finally {
+					writeLock.unlock();
+				}
+				final AtomicBoolean cancel = new AtomicBoolean();
+				final SingleLaneExecutor<Pair<Integer, List<Option<T>>>> playback = SingleLaneExecutor.create(scheduler, new Action1<Pair<Integer, List<Option<T>>>>() {
+					/** The local buffer reader index. */
+					@GuardedBy("readLock")
+					int index = 0;
+					/** The last buffer. */
+					@GuardedBy("readLock")
+					List<Option<T>> last;
+					@Override
+					public void invoke(Pair<Integer, List<Option<T>>> value) {
+						readLock.lock();
+						try {
+							if (last != value.second) {
+								index = 0;
+								last = value.second;
+							}
+							while (index < value.first && !cancel.get()) {
+								dispatch(observer, last.get(index++));
+							}
+						} finally {
+							readLock.unlock();
+						}
+					}
+				});
+				writeLock.lock();
+				try {
+					playback.add(Pair.of(buffer.size(), buffer));
+					listeners.add(playback);
+				} finally {
+					writeLock.unlock();
+				}
+				final Closeable c = new Closeable() {
+					@Override
+					public void close() throws IOException {
+						cancel.set(true);
+						writeLock.lock();
+						try {
+							listeners.remove(playback);
+						} finally {
+							writeLock.unlock();
+						}
+						close0(playback);
+					}
+				};
+				return c;
+			}
+		};
+	}
+	/**
+	 * Creates an observable which shares the source observable and replays all source Ts
+	 * to any of the registering observers.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param scheduler the scheduler from where the historical elements are emitted
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> replay(
+			final Observable<? extends T> source,
+			final Scheduler scheduler
+	) {
+		return new Observable<T>() {
+			/** The read-write lock. */
+			final ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
+			/** The read lock for reading elements of the buffer. */
+			final Lock readLock = rwLock.readLock();
+			/** The write lock to write elements of the buffer and add new listeners. */
+			final Lock writeLock = rwLock.writeLock();
+			/** The buffer that holds the observed values so far. */
+			@GuardedBy("rwLock")
+			final List<Option<T>> buffer = new ArrayList<Option<T>>();
+			/** The single registration handler. */
+			@GuardedBy("writeLock")
+			Closeable sourceClose;
+			/** The set of listeners active. */
+			@GuardedBy("writeLock")
+			Set<SingleLaneExecutor<Integer>> listeners = new HashSet<SingleLaneExecutor<Integer>>();
+			@Override
+			protected void finalize() throws Throwable {
+				close0(sourceClose);
+				super.finalize();
+			}
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				writeLock.lock();
+				try {
+					if (sourceClose == null) {
+						sourceClose = source.register(new Observer<T>() {
+							/**
+							 * Buffer and submit the option to all registered listeners.
+							 * @param opt the option to submit
+							 */
+							void doOption(Option<T> opt) {
+								writeLock.lock();
+								try {
+									buffer.add(opt);
+									for (SingleLaneExecutor<Integer> l : listeners) {
+										l.add(buffer.size());
+									}
+								} finally {
+									writeLock.unlock();
+								}
+							}
+	
+							@Override
+							public void error(Throwable ex) {
+								doOption(Option.<T>error(ex));
+							}
+	
+							@Override
+							public void finish() {
+								doOption(Option.<T>none());
+							}
+							@Override
+							public void next(T value) {
+								doOption(Option.some(value));
+							}
+						});
+					}
+				} finally {
+					writeLock.unlock();
+				}
+				final AtomicBoolean cancel = new AtomicBoolean();
+				final SingleLaneExecutor<Integer> playback = SingleLaneExecutor.create(scheduler, new Action1<Integer>() {
+					/** The local buffer reader index. */
+					@GuardedBy("readLock")
+					int index = 0;
+					@Override
+					public void invoke(Integer value) {
+						readLock.lock();
+						try {
+							while (index < value && !cancel.get()) {
+								dispatch(observer, buffer.get(index++));
+							}
+						} finally {
+							readLock.unlock();
+						}
+					}
+				});
+				writeLock.lock();
+				try {
+					playback.add(buffer.size());
+					listeners.add(playback);
+				} finally {
+					writeLock.unlock();
+				}
+				final Closeable c = new Closeable() {
+					@Override
+					public void close() throws IOException {
+						cancel.set(true);
+						writeLock.lock();
+						try {
+							listeners.remove(playback);
+						} finally {
+							writeLock.unlock();
+						}
+						close0(playback);
+					}
+				};
+				return c;
+			}
+		};
+	}
+	/**
+	 * Creates an observable which shares the source observable returned by the selector and replays all source Ts
+	 * to any of the registering observers.
+	 * @param <T> the element type
+	 * @param <U> the return element type
+	 * @param source the source of Ts
+	 * @param selector the output stream selector
+	 * @param bufferSize the target buffer size
+	 * @param scheduler the scheduler from where the historical elements are emitted
+	 * @return the new observable
+	 */
+	public static <T, U> Observable<U> replay(
+			final Observable<T> source,
+			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			final int bufferSize,
+			final Scheduler scheduler
+	) {
+		return replay(selector.invoke(source), bufferSize, scheduler);
+	}
+	/**
+	 * Returns the observable sequence for the supplied source observable by
+	 * invoking the selector function with it.
+	 * @param <T> the source element type
+	 * @param <U> the output element type
+	 * @param source the source of Ts
+	 * @param selector the selector which returns an observable of Us for the given <code>source</code>
+	 * @return the new observable
+	 */
+	public static <T, U> Observable<U> replay(
+		final Observable<T> source,
+		final Func1<? super Observable<T>, ? extends Observable<U>> selector
+	) {
+		return selector.invoke(source);
+	}
+	/**
 	 * Restore the default scheduler back to the <code>DefaultScheduler</code>
 	 * used when this class was initialized.
 	 */
@@ -4918,7 +5920,7 @@ public final class Reactive {
 								observer.next(current);
 							}
 						}
-					}, unit.toNanos(time), unit.toNanos(time));
+					}, time, time, unit);
 					@Override
 					protected void onClose() {
 						close0(c);
@@ -5457,7 +6459,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> T single(
 			@Nonnull Observable<? extends T> source) {
-		Iterator<T> it = asIterable(source).iterator();
+		Iterator<T> it = toIterable(source).iterator();
 		if (it.hasNext()) {
 			T one = it.next();
 			if (!it.hasNext()) {
@@ -5723,6 +6725,7 @@ public final class Reactive {
 			@Nonnull final Action0 action) {
 		return start(action, DEFAULT_SCHEDULER.get());
 	}
+	
 	/**
 	 * Invokes the action asynchronously on the given pool and
 	 * relays its finish() or error() messages.
@@ -5823,7 +6826,37 @@ public final class Reactive {
 			@Nonnull Observable<? extends T> source, 
 			@Nonnull Iterable<? extends T> values, 
 			@Nonnull Scheduler pool) {
-		return concat(asObservable(values, pool), source);
+		return concat(toObservable(values, pool), source);
+	}
+	/**
+	 * Start with the given iterable of values before relaying the Ts from the
+	 * source. The value is emmitted on the default pool.
+	 * @param <T> the element type
+	 * @param source the source
+	 * @param value the single value to start with
+	 * @return the new observable
+	 */
+	@Nonnull 
+	public static <T> Observable<T> startWith(
+			@Nonnull Observable<? extends T> source, 
+			T value) {
+		return startWith(source, Collections.singleton(value), DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Start with the given iterable of values before relaying the Ts from the
+	 * source. The value is emmitted on the given pool.
+	 * @param <T> the element type
+	 * @param source the source
+	 * @param value the value to start with
+	 * @param pool the pool where the iterable values should be emitted
+	 * @return the new observable
+	 */
+	@Nonnull 
+	public static <T> Observable<T> startWith(
+			@Nonnull Observable<? extends T> source, 
+			T value, 
+			@Nonnull Scheduler pool) {
+		return startWith(source, Collections.singleton(value), pool);
 	}
 	/**
 	 * Wrap the given observable into an new Observable instance, which calls the original subscribe() method
@@ -5913,6 +6946,7 @@ public final class Reactive {
 			@Nonnull final Observable<Float> source) {
 		return aggregate(source, Functions.sumFloat(), Functions.<Float, Integer>identityFirst());
 	}
+	
 	/**
 	 * Computes and signals the sum of the values of the Integer source.
 	 * The source may not send nulls. An empty source produces an empty sum
@@ -6043,7 +7077,7 @@ public final class Reactive {
 				return sources.register(outer);
 			}
 		};
-	}
+	}	
 	/**
 	 * Creates an observable which takes the specified number of
 	 * Ts from the source, unregisters and completes.
@@ -6297,7 +7331,7 @@ public final class Reactive {
 					public void onNext(T value) {
 						last = value;
 						close0(c);
-						c = pool.schedule(r, unit.toNanos(delay));
+						c = pool.schedule(r, delay, unit);
 					}
 				};
 				return close(obs, source.register(obs));
@@ -6393,11 +7427,10 @@ public final class Reactive {
 							cancel();
 						}
 					}
-				}, unit.toNanos(delay), unit.toNanos(delay));
+				}, delay, delay, unit);
 			}
 		};
 	}
-	
 	/**
 	 * Returns an observable which produces an ordered sequence of numbers with the specified delay.
 	 * It uses the default scheduler pool.
@@ -6529,7 +7562,7 @@ public final class Reactive {
 									src = other.register(observer);
 								}
 							}
-						}, unit.toNanos(time));
+						}, time, unit);
 					}
 				};
 				return obs;
@@ -6610,6 +7643,123 @@ public final class Reactive {
 	@Nonnull
 	public static Observable<Object[]> toArray(@Nonnull final Observable<?> source) {
 		return toArray(source, new Object[0]);
+	}
+	/**
+	 * Convert the given observable instance into a classical iterable instance.
+	 * @param <T> the element type to iterate
+	 * @param observable the original observable
+	 * @return the iterable
+	 */
+	@Nonnull 
+	public static <T> Iterable<T> toIterable(
+			@Nonnull final Observable<? extends T> observable) {
+		return toIterable(observable, DEFAULT_SCHEDULER.get()); 
+	}
+	/**
+	 * Convert the given observable instance into a classical iterable instance.
+	 * @param <T> the element type to iterate
+	 * @param observable the original observable
+	 * @param pool the pool where to await elements from the observable.
+	 * @return the iterable
+	 */
+	@Nonnull 
+	public static <T> Iterable<T> toIterable(
+			@Nonnull final Observable<? extends T> observable, 
+			@Nonnull final Scheduler pool) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				final LinkedBlockingQueue<Option<T>> queue = new LinkedBlockingQueue<Option<T>>();
+				
+				final Closeable c = observable.register(new Observer<T>() {
+					@Override
+					public void error(Throwable ex) {
+						queue.add(Option.<T>error(ex));
+					}
+
+					@Override
+					public void finish() {
+						queue.add(Option.<T>none());
+					}
+
+					@Override
+					public void next(T value) {
+						queue.add(Option.some(value));
+					}
+					
+				});
+				
+				return new Iterator<T>() {
+					/** Close the association if there is no more elements. */
+					Closeable close = c;
+					/** The peek value due hasNext. */
+					Option<T> peek;
+					/** Indicator if there was a hasNext() call before the next() call. */
+					boolean peekBeforeNext;
+					/** Close the helper observer. */
+					void close() {
+						if (close != null) {
+							try {
+								close.close();
+								close = null;
+							} catch (IOException e) {
+								throw new RuntimeException(e);
+							}
+						}
+					}
+					@Override
+					protected void finalize() throws Throwable {
+						close();
+					}
+					@Override
+					public boolean hasNext() {
+						if (peek != Option.none()) {
+							if (!peekBeforeNext) {
+								try {
+									peek = queue.take();
+								} catch (InterruptedException e) {
+									throw new RuntimeException(e);
+								}
+							}
+							peekBeforeNext = true;
+						}
+						boolean result = peek != Option.none();
+						if (!result) {
+							close();
+						}
+						return result;
+					}
+					@Override
+					public T next() {
+						if (peekBeforeNext) {
+							peekBeforeNext = false;
+							if (peek != Option.none()) {
+								return peek.value();
+							}
+							close();
+							throw new NoSuchElementException();
+						}
+						peekBeforeNext = false;
+						if (peek != Option.none()) {
+							try {
+								peek = queue.take();
+							} catch (InterruptedException e) {
+								throw new RuntimeException(e);
+							}
+							if (peek != Option.none()) {
+								return peek.value();
+							}
+						}
+						close();
+						throw new NoSuchElementException();
+					}
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
 	}
 	/**
 	 * Collect the elements of the source observable into a single list.
@@ -6800,7 +7950,6 @@ public final class Reactive {
 	) {
 		return toMap(source, keySelector, Functions.<T>identity());
 	}
-	
 	/**
 	 * Maps the given source of Ts by using the key  extractor and
 	 * returns a single multi-map of them. The keys are compared against each other
@@ -6990,6 +8139,52 @@ public final class Reactive {
 		};
 	}
 	/**
+	 * Wrap the iterable object into an observable and use the
+	 * default pool when generating the iterator sequence.
+	 * @param <T> the type of the values
+	 * @param iterable the iterable instance
+	 * @return the observable 
+	 */
+	@Nonnull 
+	public static <T> Observable<T> toObservable(
+			@Nonnull final Iterable<? extends T> iterable) {
+		return toObservable(iterable, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Wrap the iterable object into an observable and use the
+	 * given pool when generating the iterator sequence.
+	 * @param <T> the type of the values
+	 * @param iterable the iterable instance
+	 * @param pool the thread pool where to generate the events from the iterable
+	 * @return the observable 
+	 */
+	@Nonnull 
+	public static <T> Observable<T> toObservable(
+			@Nonnull final Iterable<? extends T> iterable, 
+			@Nonnull final Scheduler pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				DefaultRunnable s = new DefaultRunnable() {
+					@Override
+					public void onRun() {
+						for (T t : iterable) {
+							if (cancelled()) {
+								break;
+							}
+							observer.next(t);
+						}
+						
+						if (!cancelled()) {
+							observer.finish();
+						}
+					}
+				};
+				return pool.schedule(s);
+			}
+		};
+	}
+	/**
 	 * Wraps the given action as an observable which reacts only to <code>next()</code> events.
 	 * @param <T> the type of the values
 	 * @param action the action to wrap
@@ -7012,7 +8207,7 @@ public final class Reactive {
 				action.invoke(value);
 			};
 		};
-	}	
+	}
 	/**
 	 * Creates an observer which calls the given functions on its similarly named methods.
 	 * @param <T> the value type to receive
@@ -7503,9 +8698,12 @@ public final class Reactive {
 							new DefaultRunnable(lock) {
 								@Override
 								protected void onRun() {
-									createNewObservable();
+									// first only
+									if (current.get() == null) {
+										createNewObservable();
+									}
 								}
-							}, 0
+							}, 0, TimeUnit.MILLISECONDS
 						));
 					}
 					
@@ -7601,11 +8799,20 @@ public final class Reactive {
 					void registerTimer() {
 						replace("timer", "timer", scheduler.schedule(
 							new DefaultRunnable(lock) {
+								/** First run. */
+								boolean first;
 								@Override
 								protected void onRun() {
-									createNewObservable();
+									if (!first) {
+										first = true;
+										if (current.get() == null) {
+											createNewObservable();
+										}
+									} else {
+										createNewObservable();
+									}
 								}
-							}, 0, unit.toNanos(timeSpan)
+							}, timeSpan, unit
 						));
 					}
 					
@@ -7705,11 +8912,10 @@ public final class Reactive {
 
 					@Override
 					protected void onNext(T value) {
-						if (current.get() == null) {
-							createNewObservable();
-						}
 						DefaultObservable<T> d = current.get();
-						d.next(value);
+						if (d != null) {
+							d.next(value);
+						}
 					}
 
 					void registerTimer() {
@@ -7719,7 +8925,7 @@ public final class Reactive {
 								protected void onRun() {
 									createNewObservable();
 								}
-							}, unit.toNanos(timeSkip), unit.toNanos(timeSpan)
+							}, timeSkip, timeSpan, unit
 						));
 					}
 					
