@@ -25,6 +25,7 @@
     * merge (observable sequence of observables)
   * changed the Scheduler interface API to include the !TimeUnit
   * added more convenience functions to Functions
+  * renamed asIterable and asObservable conversion methods to toIterable and toObservable
 
 = 0.91 =
 
