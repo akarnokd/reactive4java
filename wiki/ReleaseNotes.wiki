@@ -18,6 +18,7 @@
     * toList
     * toMap
     * toMultiMap
+    * ignoreValues
   * added overloads for reactive
     * window (with time and/or buffer size)
     * concat (observable sequence of observables)
