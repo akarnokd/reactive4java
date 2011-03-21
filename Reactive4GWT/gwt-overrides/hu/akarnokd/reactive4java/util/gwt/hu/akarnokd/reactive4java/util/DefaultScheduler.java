@@ -19,6 +19,7 @@ import hu.akarnokd.reactive4java.base.Scheduler;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import com.google.gwt.user.client.Timer;
 
@@ -53,7 +54,7 @@ public class DefaultScheduler implements Scheduler {
 	}
 
 	@Override
-	public Closeable schedule(final Runnable run, long delay) {
+	public Closeable schedule(final Runnable run, long delay, TimeUnit unit) {
 		final Timer timer = new Timer() {
 			@Override
 			public void run() {
@@ -64,7 +65,7 @@ public class DefaultScheduler implements Scheduler {
 				}
 			}
 		};
-		timer.schedule((int)(delay / 1000000L));
+		timer.schedule((int)unit.convert(delay, TimeUnit.MILLISECONDS));
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
@@ -76,7 +77,7 @@ public class DefaultScheduler implements Scheduler {
 
 	@Override
 	public Closeable schedule(final Runnable run, 
-			long initialDelay, final long betweenDelay) {
+			long initialDelay, final long betweenDelay, final TimeUnit unit) {
 		final Timer outerTimer = new Timer() {
 			/** The inner timer. */
 			final Timer timer = new Timer() {
@@ -97,7 +98,7 @@ public class DefaultScheduler implements Scheduler {
 				try {
 					run.run();
 					if (!Thread.interrupted()) {
-						timer.scheduleRepeating((int)(betweenDelay / 1000000L));
+						timer.scheduleRepeating((int)unit.convert(betweenDelay, TimeUnit.MILLISECONDS));
 					}
 				} catch (Throwable ex) {
 					
@@ -110,7 +111,7 @@ public class DefaultScheduler implements Scheduler {
 				super.cancel();
 			}
 		};
-		outerTimer.schedule((int)(initialDelay / 1000000L));
+		outerTimer.schedule((int)unit.convert(initialDelay, TimeUnit.MILLISECONDS));
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
