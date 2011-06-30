@@ -8,7 +8,7 @@
   * Released: 2011-06-30 15:30
   * Bugfix: {{{CurrentThreadScheduler}}} did not work properly (incorrect peek/poll usage)
   * Bugfix: the {{{merge(O<O<T>>)}}} did not work properly (bad finish() behavior)
-  * Change: {{{manySelect}}} should work as originally intended by the Rx team (see [http://social.msdn.microsoft.com/Forums/en-US/rx/thread/e70fe8b6-6d9d-486a-a8d0-c1bc66551ded/ this] forum question.
+  * Change: {{{manySelect}}} should work as originally intended by the Rx team (see [http://social.msdn.microsoft.com/Forums/en-US/rx/thread/e70fe8b6-6d9d-486a-a8d0-c1bc66551ded/ this] forum question).
 
 = 0.92 =
 
