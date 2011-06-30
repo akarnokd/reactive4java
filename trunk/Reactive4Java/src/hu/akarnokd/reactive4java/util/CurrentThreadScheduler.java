@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
 
@@ -31,12 +32,16 @@ import javax.annotation.Nonnull;
  * @author akarnokd, 2011.02.07.
  */
 public class CurrentThreadScheduler implements Scheduler {
+	/** The relative order for zero delay invocations. */
+	public final AtomicLong sequence = new AtomicLong();
 	/** The delayed runnable class. */
-	static class DelayedRunnable {
+	class DelayedRunnable {
+		/** The relative sequence for same-delay invocations .*/
+		public final long id = sequence.getAndIncrement();
 		/** The actual runnable. */
 		public final Runnable run;
 		/** The delay . */
-		public long delay;
+		public final long delay;
 		/** The delay unit. */
 		public final TimeUnit unit;
 		/**
@@ -52,7 +57,7 @@ public class CurrentThreadScheduler implements Scheduler {
 		}
 	}
 	/** The delayed runnable class. */
-	static class RepeatedRunnable extends DelayedRunnable {
+	class RepeatedRunnable extends DelayedRunnable {
 		/** The in-between delay. */
 		public final long betweenDelay;
 		/**
@@ -75,7 +80,10 @@ public class CurrentThreadScheduler implements Scheduler {
 	protected PriorityQueue<DelayedRunnable> tasks = new PriorityQueue<DelayedRunnable>(128, new Comparator<DelayedRunnable>() {
 		@Override
 		public int compare(DelayedRunnable o1, DelayedRunnable o2) {
-			return o1.delay < o2.delay ? -1 : (o1.delay > o2.delay ? 1 : 0);
+			return o1.delay < o2.delay ? -1
+					: (o1.delay > o2.delay ? 1 
+					: (o1.id < o2.id ? -1 : (o1.id > o2.id ? 1 : 0))	
+			);
 		}
 	});
 	/** The main scheduler loop. */
@@ -83,7 +91,7 @@ public class CurrentThreadScheduler implements Scheduler {
 		if (tasks.size() == 1) {
 			try {
 				while (true) {
-					DelayedRunnable dr = tasks.peek();
+					DelayedRunnable dr = tasks.poll();
 					if (dr == null) {
 						break;
 					}
@@ -93,13 +101,12 @@ public class CurrentThreadScheduler implements Scheduler {
 					try {
 						dr.run.run();
 						if (dr instanceof RepeatedRunnable) {
-							dr.delay = ((RepeatedRunnable) dr).betweenDelay;
-							tasks.add(dr);
+							RepeatedRunnable rr = (RepeatedRunnable) dr;
+							tasks.add(new RepeatedRunnable(rr.run, rr.betweenDelay, rr.betweenDelay, rr.unit));
 						}
 					} catch (Throwable ex) {
 						// any exception interpreted as cancel running
 					}
-					tasks.poll();
 				}
 			} catch (InterruptedException ex) {
 				

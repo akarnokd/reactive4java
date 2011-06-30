@@ -81,8 +81,9 @@ public final class TestLambdas {
 		for (long i = 0; i < 10000000L; i++) {
 			sum += i;
 		}
-		System.out.printf("Direct: %d ns%n", (System.nanoTime() - t));
-
+		System.out.printf("Direct: %d ns with sum of %d%n", (System.nanoTime() - t), sum);
+		
+		
 		
 		System.out.printf("%nMain finished%n");
 	}
