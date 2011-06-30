@@ -3,6 +3,13 @@
 
 <wiki:toc max_depth="1" />
 
+= 0.93 =
+
+  * Released: 2011-06-30 15:30
+  * BugFix: CurrentThreadScheduler did not work properly (incorrect peek/poll usage)
+  * BugFix: the merge(O<O<T>>) did not work properly (bad finish() behavior)
+  * Change: manySelect now supposedly working as expected (see [http://social.msdn.microsoft.com/Forums/en-US/rx/thread/e70fe8b6-6d9d-486a-a8d0-c1bc66551ded/ this] forum question.
+
 = 0.92 =
 
   * Released: 2011-03-21 14:50
