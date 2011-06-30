@@ -3205,17 +3205,17 @@ public final class Reactive {
 	 * @param selector the selector that extracts an U from the series of Ts.
 	 * @return the new observable.
 	 */
-	public static <T, U> Observable<U> manySelect(
-			final Observable<T> source, 
-			final Func1<Observable<? super T>, ? extends U> selector) {
+	public static <T, U> Observable<U> manySelect0(
+			final Observable<? extends T> source, 
+			final Func1<Observable<T>, ? extends U> selector) {
 		return manySelect(source, selector, DEFAULT_SCHEDULER.get());
 	}
 	/**
-	 * Uses the selector function on the given source observable to extract a single
-	 * value and send this value to the registered observer.
-	 * It is sometimes called the comonadic bind operator and compared to the ContinueWith
-	 * semantics.
-	 * FIXME not sure what it should do
+	 * For each value of the source observable, it creates a view starting from that value into the source
+	 * and calls the given selector function asynchronously on the given scheduler.
+	 * The result of that computation is then transmitted to the observer.
+	 * <p>It is sometimes called the comonadic bind operator and compared to the ContinueWith
+	 * semantics.</p>
 	 * @param <T> the source element type
 	 * @param <U> the result element type
 	 * @param source the source of Ts
@@ -3224,37 +3224,76 @@ public final class Reactive {
 	 * @return the new observable.
 	 */
 	public static <T, U> Observable<U> manySelect(
-			final Observable<T> source, 
-			final Func1<Observable<? super T>, ? extends U> selector,
+			final Observable<? extends T> source, 
+			final Func1<Observable<T>, ? extends U> selector,
 			final Scheduler scheduler) {
 		return new Observable<U>() {
 			@Override
 			public Closeable register(final Observer<? super U> observer) {
-				return source.register(new Observer<T>() {
-					void continueWith() {
-						scheduler.schedule(new Runnable() {
+				final AtomicInteger wip = new AtomicInteger(1);
+				Closeable c = source.register(new DefaultObserverEx<T>(true) {
+					/** The skip position. */
+					int counter;
+					@Override
+					protected void onNext(T value) {
+						final Observable<T> ot = skip(source, counter);
+						wip.incrementAndGet();
+						add(counter, scheduler.schedule(new Runnable() {
 							@Override
 							public void run() {
-								observer.next(selector.invoke(source));
-								observer.finish();
+								observer.next(selector.invoke(ot));
+								if (wip.decrementAndGet() == 0) {
+									observer.finish();
+								}
 							}
-						});	
+						}));
+						counter++;
 					}
+
 					@Override
-					public void error(Throwable ex) {
-						continueWith();
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+						close();
 					}
+
 					@Override
-					public void finish() {
-						continueWith();
-					};
-					@Override
-					public void next(T value) {
-						// ignored
+					protected void onFinish() {
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+						}
 					}
+					
 				});
+				return c;
 			}
 		};
+	}
+	/**
+	 * For each of the source elements, creates a view of the source starting with the given
+	 * element and calls the selector function. The function's return observable is then merged
+	 * into a single observable sequence.<p>
+	 * For example, a source sequence of (1, 2, 3) will create three function calls with (1, 2, 3), (2, 3) and (3) as a content.
+	 * @param <T> the source element type
+	 * @param <U> the result element type
+	 * @param source the source of Ts
+	 * @param selector the selector function
+	 * @return the new observable
+	 */
+	public static <T, U> Observable<U> manySelect(
+			final Observable<? extends T> source,
+			final Func1<Observable<T>, Observable<U>> selector
+	) {
+		return merge(select(source, new Func1<T, Observable<U>>() {
+			/** The skip position. */
+			int counter;
+
+			@Override
+			public Observable<U> invoke(T param1) {
+				int i = counter++;
+				return selector.invoke(skip(source, i));
+			}
+			
+		}));
 	}
 	/**
 	 * Returns an observable which converts all messages to an <code>Option</code> value.
@@ -3423,10 +3462,7 @@ public final class Reactive {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				final AtomicInteger wip = new AtomicInteger(1);
-				DefaultObserverEx<Observable<T>> obs = new DefaultObserverEx<Observable<T>>(true) {
-					{
-						add("sources", sources);
-					}
+				DefaultObserverEx<Observable<T>> obs = new DefaultObserverEx<Observable<T>>(false) {
 					/**
 					 * The inner exception to forward.
 					 * @param ex the exception
@@ -3434,20 +3470,26 @@ public final class Reactive {
 					void innerError(Throwable ex) {
 						error(ex);
 					}
+					/** Signal finish if the sources and inner observables have all finished. */
+					void ifDoneFinish() {
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+							close();
+						}
+					}
 					@Override
 					protected void onError(Throwable ex) {
 						observer.error(ex);
 					}
 					@Override
 					protected void onFinish() {
-						if (wip.decrementAndGet() == 0) {
-							observer.finish();
-						}
+						ifDoneFinish();
 					}
 
 					@Override
 					protected void onNext(Observable<T> value) {
 						final Object token = new Object();
+						wip.incrementAndGet();
 						add(token, value.register(new DefaultObserver<T>(lock, true) {
 							@Override
 							public void onError(Throwable ex) {
@@ -3456,10 +3498,8 @@ public final class Reactive {
 
 							@Override
 							public void onFinish() {
-								if (wip.decrementAndGet() == 0) {
-									observer.finish();
-								}
 								remove(token);
+								ifDoneFinish();
 							}
 
 							@Override
@@ -3471,6 +3511,7 @@ public final class Reactive {
 					}
 					
 				};
+				obs.add("sources", sources);
 				return obs;
 			}
 		};
