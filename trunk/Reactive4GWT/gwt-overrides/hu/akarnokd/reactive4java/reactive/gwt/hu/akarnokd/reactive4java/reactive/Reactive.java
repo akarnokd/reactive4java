@@ -3397,7 +3397,7 @@ public final class Reactive {
 	 */
 	@Nonnull 
 	public static <T> Observable<T> merge(
-			@Nonnull final Iterable<Observable<? extends T>> sources) {
+			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
