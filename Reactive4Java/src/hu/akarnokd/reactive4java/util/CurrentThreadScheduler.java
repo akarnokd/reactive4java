@@ -76,6 +76,8 @@ public class CurrentThreadScheduler implements Scheduler {
 			this.betweenDelay = betweenDelay; 
 		}
 	}
+	/** The in progress value. */
+	protected int wip;
 	/** The priority queue for the tasks. */
 	protected PriorityQueue<DelayedRunnable> tasks = new PriorityQueue<DelayedRunnable>(128, new Comparator<DelayedRunnable>() {
 		@Override
@@ -88,7 +90,7 @@ public class CurrentThreadScheduler implements Scheduler {
 	});
 	/** The main scheduler loop. */
 	void schedulerLoop() {
-		if (tasks.size() == 1) {
+		if (wip == 1) {
 			try {
 				while (true) {
 					DelayedRunnable dr = tasks.poll();
@@ -106,6 +108,8 @@ public class CurrentThreadScheduler implements Scheduler {
 						}
 					} catch (Throwable ex) {
 						// any exception interpreted as cancel running
+					} finally {
+						wip--;
 					}
 				}
 			} catch (InterruptedException ex) {
@@ -117,6 +121,7 @@ public class CurrentThreadScheduler implements Scheduler {
 	public Closeable schedule(Runnable run) {
 		final DelayedRunnable dr = new DelayedRunnable(run, 0, TimeUnit.MILLISECONDS);
 		tasks.add(dr);
+		wip++;
 		schedulerLoop();
 		return new Closeable() {
 			@Override
@@ -130,6 +135,7 @@ public class CurrentThreadScheduler implements Scheduler {
 	public Closeable schedule(Runnable run, long delay, TimeUnit unit) {
 		final DelayedRunnable dr = new DelayedRunnable(run, delay, unit);
 		tasks.add(dr);
+		wip++;
 		schedulerLoop();
 		return new Closeable() {
 			@Override
@@ -143,6 +149,7 @@ public class CurrentThreadScheduler implements Scheduler {
 	public Closeable schedule(Runnable run, long initialDelay, long betweenDelay, TimeUnit unit) {
 		final RepeatedRunnable dr = new RepeatedRunnable(run, initialDelay, betweenDelay, unit);
 		tasks.add(dr);
+		wip++;
 		schedulerLoop();
 		return new Closeable() {
 			@Override
