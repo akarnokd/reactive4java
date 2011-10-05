@@ -3,6 +3,12 @@
 
 <wiki:toc max_depth="1" />
 
+= 0.94 =
+  * Released: 2011-10-05 8:30 CET
+  * Renamed *subscribeOn* to *registerOn* to keep a consistent terminology
+  * Added <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#combine(java.util.List)'>combine()</a> methods
+  * Bugfix: {{{CurrentThreadScheduler}}} still worked incorrectly
+
 = 0.93 =
 
   * Released: 2011-06-30 15:30
