@@ -6900,7 +6900,7 @@ public final class Reactive {
 		return startWith(source, Collections.singleton(value), pool);
 	}
 	/**
-	 * Wrap the given observable into an new Observable instance, which calls the original subscribe() method
+	 * Wrap the given observable into an new Observable instance, which calls the original register() method
 	 * on the supplied pool. 
 	 * @param <T> the type of the objects to observe
 	 * @param observable the original observable
@@ -6908,7 +6908,7 @@ public final class Reactive {
 	 * @return the new observable
 	 */
 	@Nonnull 
-	public static <T> Observable<T> subscribeOn(
+	public static <T> Observable<T> registerOn(
 			@Nonnull final Observable<T> observable, 
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
@@ -9320,6 +9320,90 @@ public final class Reactive {
 				return closeBoth.get();
 			}
 		};
+	}
+	/**
+	 * Combine the incoming Ts of the various observables into a single list of Ts like
+	 * using Reactive.zip() on more than two sources.
+	 * @param <T> the element type
+	 * @param srcs the iterable of observable sources.
+	 * @return the new observable
+	 */
+	public static <T> Observable<List<T>> combine(final List<? extends Observable<? extends T>> srcs) {
+		if (srcs.size() < 1) {
+			return Reactive.never();
+		} else
+		if (srcs.size() == 1) {
+			return Reactive.select(srcs.get(0), new Func1<T, List<T>>() {
+				@Override
+				public List<T> invoke(T param1) {
+					List<T> result = new ArrayList<T>(1);
+					result.add(param1);
+					return result;
+				};
+			});
+		}
+		return new Observable<List<T>>() {
+			@Override
+			public Closeable register(Observer<? super List<T>> observer) {
+				Observable<List<T>> res0 = Reactive.zip(srcs.get(0), srcs.get(1), new Func2<T, T, List<T>>() {
+					@Override
+					public java.util.List<T> invoke(T param1, T param2) {
+						List<T> result = new ArrayList<T>();
+						result.add(param1);
+						result.add(param2);
+						return result;
+					};
+				});
+				for (int i = 2; i < srcs.size(); i++) {
+					res0 = Reactive.zip(res0, srcs.get(i), new Func2<List<T>, T, List<T>>() {
+						@Override
+						public java.util.List<T> invoke(java.util.List<T> param1, T param2) {
+							param1.add(param2);
+							return param1;
+						};
+					});
+				}
+				return res0.register(observer);
+			}
+		};
+	}
+	/**
+	 * Combine a stream of Ts with a constant T whenever the src fires.
+	 * The observed list contains the values of src as the first value, constant as the second.
+	 * @param <T> the element type
+	 * @param src the source of Ts
+	 * @param constant the constant T to combine with
+	 * @return the new observer
+	 */
+	public static <T> Observable<List<T>> combine(Observable<? extends T> src, final T constant) {
+		return Reactive.select(src, new Func1<T, List<T>>() {
+			@Override
+			public List<T> invoke(T param1) {
+				List<T> result = new ArrayList<T>();
+				result.add(param1);
+				result.add(constant);
+				return result;
+			};
+		});
+	}
+	/**
+	 * Combine a constant T with a stream of Ts whenever the src fires.
+	 * The observed sequence contains the constant as first, the src value as second.
+	 * @param <T> the element type
+	 * @param constant the constant T to combine with
+	 * @param src the source of Ts
+	 * @return the new observer
+	 */
+	public static <T> Observable<List<T>> combine(final T constant, Observable<? extends T> src) {
+		return Reactive.select(src, new Func1<T, List<T>>() {
+			@Override
+			public List<T> invoke(T param1) {
+				List<T> result = new ArrayList<T>();
+				result.add(constant);
+				result.add(param1);
+				return result;
+			};
+		});
 	}
 	/** Utility class. */
 	private Reactive() {
