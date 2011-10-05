@@ -7,6 +7,7 @@
   * Released: 2011-10-05 8:30 CET
   * Renamed *subscribeOn* to *registerOn* to keep a consistent terminology
   * Added <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#combine(java.util.List)'>combine()</a> methods
+  * Fixed covariance issues with a few methods
   * Bugfix: {{{CurrentThreadScheduler}}} still worked incorrectly
 
 = 0.93 =
