@@ -804,6 +804,6 @@ public final class SwingObservables {
 	 */
 	@Nonnull 
 	public static <T> Observable<T> subscribeOnEdt(Observable<T> observable) {
-		return Reactive.subscribeOn(observable, DEFAULT_EDT_SCHEDULER.get());
+		return Reactive.registerOn(observable, DEFAULT_EDT_SCHEDULER.get());
 	}
 }
