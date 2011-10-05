@@ -35,7 +35,7 @@ import javax.swing.Timer;
  * operators to ensure your code interacts with Swing objects on the EDT.</p> 
  * @author akarnokd, 2011.02.02.
  * @see hu.akarnokd.reactive4java.reactive.Reactive#observeOn(hu.akarnokd.reactive4java.reactive.Observable, Scheduler)
- * @see hu.akarnokd.reactive4java.reactive.Reactive#subscribeOn(hu.akarnokd.reactive4java.reactive.Observable, Scheduler)
+ * @see hu.akarnokd.reactive4java.reactive.Reactive#registerOn(hu.akarnokd.reactive4java.reactive.Observable, Scheduler)
  */
 public class DefaultEdtScheduler implements Scheduler {
 	/**
