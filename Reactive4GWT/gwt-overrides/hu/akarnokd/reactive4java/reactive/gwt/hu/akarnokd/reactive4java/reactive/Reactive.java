@@ -980,6 +980,9 @@ public final class Reactive {
 	 * throws an exception and all subscriptions are terminated.</p>
 	 * <p><b>Completion semantics:</b> The output stream terminates 
 	 * after both streams terminate.</p>
+	 * <p>Note that at the beginning, when the left or right fires first, the selector function
+	 * will receive (value, null) or (null, value). If you want to react only in cases when both have sent
+	 * a value, use the {@link #combineLatestSent(Observable, Observable, Func2)} method.</p>
 	 * @param <T> the left element type
 	 * @param <U> the right element type
 	 * @param <V> the result element type
@@ -1044,6 +1047,97 @@ public final class Reactive {
 					protected void onNext(U value) {
 						rightRef.set(value);
 						observer.next(selector.invoke(leftRef.get(), value));
+					}
+					
+				};
+				closeBoth.set(close(obs1, obs2));
+				obs1.add(new Object(), left);
+				obs2.add(new Object(), right);
+				return closeBoth.get();
+			}
+		};
+	}
+	/**
+	 * Returns an observable which combines the latest values of
+	 * both streams whenever one sends a new value, but only after both sent a value.
+	 * <p><b>Exception semantics:</b> if any stream throws an exception, the output stream
+	 * throws an exception and all subscriptions are terminated.</p>
+	 * <p><b>Completion semantics:</b> The output stream terminates 
+	 * after both streams terminate.</p>
+	 * <p>The function will start combining the values only when both sides have already sent
+	 * a value.</p>
+	 * @param <T> the left element type
+	 * @param <U> the right element type
+	 * @param <V> the result element type
+	 * @param left the left stream
+	 * @param right the right stream
+	 * @param selector the function which combines values from both streams and returns a new value
+	 * @return the new observable.
+	 */
+	public static <T, U, V> Observable<V> combineLatestSent(
+			final Observable<? extends T> left, 
+			final Observable<? extends U> right,
+			final Func2<? super T, ? super U, ? extends V> selector
+	) {
+		return new Observable<V>() {
+			@Override
+			public Closeable register(final Observer<? super V> observer) {
+				final Lock lock = new ReentrantLock(true);
+				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
+				final AtomicReference<T> leftRef = new AtomicReference<T>();
+				final AtomicBoolean leftFirst = new AtomicBoolean();
+				final AtomicReference<U> rightRef = new AtomicReference<U>();
+				final AtomicBoolean rightFirst = new AtomicBoolean();
+				final AtomicInteger wip = new AtomicInteger(2);
+				DefaultObserverEx<T> obs1 = new DefaultObserverEx<T>(lock, false) {
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+						close0(closeBoth.get());
+					}
+
+					@Override
+					protected void onFinish() {
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+						}
+						close();
+					}
+
+					@Override
+					protected void onNext(T value) {
+						leftRef.set(value);
+						leftFirst.set(true);
+						if (rightFirst.get()) {
+							observer.next(selector.invoke(value, rightRef.get()));
+						}
+					}
+					
+				};
+				DefaultObserverEx<U> obs2 = new DefaultObserverEx<U>(lock, false) {
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+						close0(closeBoth.get());
+					}
+
+					@Override
+					protected void onFinish() {
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+						}
+						close();
+					}
+
+					@Override
+					protected void onNext(U value) {
+						rightRef.set(value);
+						rightFirst.set(true);
+						if (leftFirst.get()) {
+							observer.next(selector.invoke(leftRef.get(), value));
+						}
 					}
 					
 				};
