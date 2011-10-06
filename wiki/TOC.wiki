@@ -29,6 +29,4 @@
       * [ReactiveFunctional Functional]
       * [ReactiveOther Other]
   * [Examples Examples]
-    * [ExamplesInteractive Interactive]  
-    * [ExamplesReactive Reactive]
   * [FeatureComparison Comparison with others]
