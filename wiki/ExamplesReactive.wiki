@@ -2,7 +2,7 @@
 
 = Reactive Calculator =
 
-The following program shows a GUI with four fields. You can enter integer values into fields V2 and V3 and the program reactively calculates fields V1 and V4 with the formulas V1 = V2 * V3 and V4 = V1 + V3.
+The following program shows a GUI with four fields. You can enter integer values into fields V2 and V3 and the program reactively calculates fields V1 and V4 with the formulas V1 = V2 x V3 and V4 = V1 + V3.
 
 {{{
 import hu.akarnokd.reactive4java.base.Action1;
@@ -139,8 +139,10 @@ public class ReactiveCalculator extends JFrame {
 		
 		pack();
 		
-		Observable<DocumentEvent> o2 = SwingObservables.ObservableDocumentListener.register(t2.getDocument());
-		Observable<DocumentEvent> o3 = SwingObservables.ObservableDocumentListener.register(t3.getDocument());
+		Observable<DocumentEvent> o2 = SwingObservables.ObservableDocumentListener
+                        .register(t2.getDocument());
+		Observable<DocumentEvent> o3 = SwingObservables.ObservableDocumentListener
+                        .register(t3.getDocument());
 		
 		Func1<DocumentEvent, String> theNewText = new Func1<DocumentEvent, String>() {
 			@Override
@@ -172,13 +174,16 @@ public class ReactiveCalculator extends JFrame {
 			}
 		};
 		
-		Observable<Integer> int2 = Reactive.select(Reactive.where(Reactive.select(o2, theNewText), nonEmpty), parseInt);
-		Observable<Integer> int3 = Reactive.select(Reactive.where(Reactive.select(o3, theNewText), nonEmpty), parseInt);
+		Observable<Integer> int2 = Reactive.select(Reactive.where(
+                        Reactive.select(o2, theNewText), nonEmpty), parseInt);
+		Observable<Integer> int3 = Reactive.select(Reactive.where(
+                        Reactive.select(o3, theNewText), nonEmpty), parseInt);
 		
 		int2.register(v2);
 		int3.register(v3);
 		
-		Observable<Integer> v2xv3 = Reactive.where(Reactive.combineLatest(v3, v2, new Func2<Integer, Integer, Integer>() {
+		Observable<Integer> v2xv3 = Reactive.where(Reactive.combineLatest(v3, v2, 
+                new Func2<Integer, Integer, Integer>() {
 			@Override
 			public Integer invoke(Integer param1, Integer param2) {
 				if (param1 != null && param2 != null) {
@@ -190,7 +195,8 @@ public class ReactiveCalculator extends JFrame {
 		
 		v2xv3.register(v1);
 		
-		Observable<Integer> v1plusv3 = Reactive.where(Reactive.combineLatest(v1, v3, new Func2<Integer, Integer, Integer>() {
+		Observable<Integer> v1plusv3 = Reactive.where(Reactive.combineLatest(v1, v3, 
+                new Func2<Integer, Integer, Integer>() {
 			@Override
 			public Integer invoke(Integer param1, Integer param2) {
 				if (param1 != null && param2 != null) {
