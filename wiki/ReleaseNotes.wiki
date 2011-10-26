@@ -3,6 +3,14 @@
 
 <wiki:toc max_depth="1" />
 
+= 0.95 =
+  * Released: 2011-10-26 16:30 CET
+  * Refactored SwingObservables inner classes into top level classes
+  * Added CachedThreadPoolScheduler
+  * Added Closeables utility class
+  * removed toIterable(Observable, Scheduler) method
+  * Added CloseableIterable and CloseableIterator to allow closing the iterable returned by the toIterable()
+
 = 0.94 =
   * Released: 2011-10-05 8:30 CET
   * Renamed *subscribeOn* to *registerOn* to keep a consistent terminology
