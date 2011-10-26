@@ -20,6 +20,9 @@ import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Actions;
 import hu.akarnokd.reactive4java.base.CircularBuffer;
+import hu.akarnokd.reactive4java.base.CloseableIterable;
+import hu.akarnokd.reactive4java.base.CloseableIterator;
+import hu.akarnokd.reactive4java.base.Closeables;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
@@ -415,7 +418,7 @@ public final class Reactive {
 					
 					i++;
 				}
-				return closeAll(closers);
+				return Closeables.closeAll(closers);
 			}
 		};
 	}
@@ -470,7 +473,7 @@ public final class Reactive {
 					}
 					
 				};
-				return close(obs, source.register(obs));
+				return Closeables.close(obs, source.register(obs));
 			}
 		};
 	}
@@ -790,7 +793,7 @@ public final class Reactive {
 					Closeable timer = pool.schedule(r, time, time, unit);
 					@Override
 					protected void onClose() {
-						close0(timer);
+						Closeables.close0(timer);
 					}
 
 					@Override
@@ -820,7 +823,7 @@ public final class Reactive {
 						}
 					}
 				};
-				return close(s, source.register(s));
+				return Closeables.close(s, source.register(s));
 			}
 		};
 		
@@ -881,7 +884,7 @@ public final class Reactive {
 					Closeable timer = pool.schedule(r, time, time, unit);
 					@Override
 					protected void onClose() {
-						close0(timer);
+						Closeables.close0(timer);
 					}
 
 					@Override
@@ -901,75 +904,7 @@ public final class Reactive {
 						buffer.add(value);
 					}
 				};
-				return close(o, source.register(o));
-			}
-		};
-	}
-	/**
-	 * Wraps two or more closeables into one closeable.
-	 * <code>IOException</code>s thrown from the closeables are suppressed.
-	 * @param c0 the first closeable
-	 * @param c1 the second closeable
-	 * @param closeables the rest of the closeables
-	 * @return the composite closeable
-	 */
-	@Nonnull 
-	static Closeable close(
-			@Nonnull final Closeable c0, 
-			@Nonnull final Closeable c1, 
-			@Nonnull final Closeable... closeables) {
-		return new Closeable() {
-			@Override
-			public void close() throws IOException {
-				try {
-					c0.close();
-				} catch (IOException ex) {
-					
-				}
-				try {
-					c1.close();
-				} catch (IOException ex) {
-					
-				}
-				for (Closeable c : closeables) {
-					try {
-						c.close();
-					} catch (IOException ex) {
-						
-					}
-				}
-			}
-		};
-	}
-	/**
-	 * Invoke the <code>close()</code> method on the closeable instance
-	 * and throw away any <code>IOException</code> it might raise.
-	 * @param c the closeable instance, <code>null</code>s are simply ignored
-	 */
-	static void close0(Closeable c) {
-		if (c != null) {
-			try {
-				c.close();
-			} catch (IOException ex) {
-				
-			}
-		}
-	}
-	/**
-	 * Creates a composite closeable from the array of closeables.
-	 * <code>IOException</code>s thrown from the closeables are suppressed.
-	 * @param closeables the closeables array
-	 * @return the composite closeable
-	 */
-	@Nonnull 
-	static Closeable closeAll(
-			@Nonnull final Iterable<? extends Closeable> closeables) {
-		return new Closeable() {
-			@Override
-			public void close() throws IOException {
-				for (Closeable c : closeables) {
-					close0(c);
-				}
+				return Closeables.close(o, source.register(o));
 			}
 		};
 	}
@@ -1009,7 +944,7 @@ public final class Reactive {
 					@Override
 					protected void onError(Throwable ex) {
 						observer.error(ex);
-						close0(closeBoth.get());
+						Closeables.close0(closeBoth.get());
 					}
 
 					@Override
@@ -1032,7 +967,7 @@ public final class Reactive {
 					@Override
 					protected void onError(Throwable ex) {
 						observer.error(ex);
-						close0(closeBoth.get());
+						Closeables.close0(closeBoth.get());
 					}
 
 					@Override
@@ -1050,7 +985,7 @@ public final class Reactive {
 					}
 					
 				};
-				closeBoth.set(close(obs1, obs2));
+				closeBoth.set(Closeables.close(obs1, obs2));
 				obs1.add(new Object(), left);
 				obs2.add(new Object(), right);
 				return closeBoth.get();
@@ -1094,7 +1029,7 @@ public final class Reactive {
 					@Override
 					protected void onError(Throwable ex) {
 						observer.error(ex);
-						close0(closeBoth.get());
+						Closeables.close0(closeBoth.get());
 					}
 
 					@Override
@@ -1120,7 +1055,7 @@ public final class Reactive {
 					@Override
 					protected void onError(Throwable ex) {
 						observer.error(ex);
-						close0(closeBoth.get());
+						Closeables.close0(closeBoth.get());
 					}
 
 					@Override
@@ -1141,7 +1076,7 @@ public final class Reactive {
 					}
 					
 				};
-				closeBoth.set(close(obs1, obs2));
+				closeBoth.set(Closeables.close(obs1, obs2));
 				obs1.add(new Object(), left);
 				obs2.add(new Object(), right);
 				return closeBoth.get();
@@ -1178,7 +1113,7 @@ public final class Reactive {
 						}
 						@Override
 						protected void onClose() {
-							close0(current);
+							Closeables.close0(current);
 						}
 	
 						@Override
@@ -1190,7 +1125,7 @@ public final class Reactive {
 						@Override
 						public void onFinish() {
 							if (it.hasNext()) {
-								close0(current);
+								Closeables.close0(current);
 								current = it.next().register(this);
 							} else {
 								observer.finish();
@@ -1549,7 +1484,7 @@ public final class Reactive {
 						List<Closeable> list = new LinkedList<Closeable>();
 						outstanding.drainTo(list);
 						for (Closeable c : list) {
-							close0(c);
+							Closeables.close0(c);
 						}
 						super.close();
 					}
@@ -1829,7 +1764,7 @@ public final class Reactive {
 						exec.add(value);
 					}
 				};
-				return close(obs, source.register(obs));
+				return Closeables.close(obs, source.register(obs));
 			}
 		};
 	}
@@ -1983,7 +1918,7 @@ public final class Reactive {
 					i++;
 				}
 				runIfComplete(observer, lastValues, wip);
-				return closeAll(closeables);
+				return Closeables.closeAll(closeables);
 			}
 			/**
 			 * Runs the completion sequence once the WIP drops to zero.
@@ -2517,7 +2452,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						super.onClose();
-						close0(closeBoth.get());
+						Closeables.close0(closeBoth.get());
 					}
 
 					@Override
@@ -2569,7 +2504,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						super.onClose();
-						close0(closeBoth.get());
+						Closeables.close0(closeBoth.get());
 					}
 					@Override
 					protected void onError(Throwable ex) {
@@ -2622,7 +2557,7 @@ public final class Reactive {
 						r.next(value);
 					}
 				};
-				Closeable c = close(o1, o2);
+				Closeable c = Closeables.close(o1, o2);
 				closeBoth.set(c);
 				o1.add(new Object(), left);
 				o2.add(new Object(), right);
@@ -2710,7 +2645,7 @@ public final class Reactive {
 					
 				});
 				
-				return close(s1, s2);
+				return Closeables.close(s1, s2);
 			}
 		};
 	}
@@ -3036,7 +2971,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						super.onClose();
-						close0(closeBoth.get());
+						Closeables.close0(closeBoth.get());
 					}
 
 					@Override
@@ -3088,7 +3023,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						super.onClose();
-						close0(closeBoth.get());
+						Closeables.close0(closeBoth.get());
 					}
 					@Override
 					protected void onError(Throwable ex) {
@@ -3131,7 +3066,7 @@ public final class Reactive {
 						}
 					}
 				};
-				Closeable c = close(o1, o2);
+				Closeable c = Closeables.close(o1, o2);
 				closeBoth.set(c);
 				o1.add(new Object(), left);
 				o2.add(new Object(), right);
@@ -3538,7 +3473,7 @@ public final class Reactive {
 				if (wip.decrementAndGet() == 0) {
 					observer.finish();
 				}
-				return closeAll(disposables);
+				return Closeables.closeAll(disposables);
 			}
 		};
 	};
@@ -3788,7 +3723,7 @@ public final class Reactive {
 				return new Iterator<T>() {
 					@Override
 					protected void finalize() throws Throwable {
-						close0(c);
+						Closeables.close0(c);
 						super.finalize();
 					}
 
@@ -3845,7 +3780,7 @@ public final class Reactive {
 					public void close() throws IOException {
 						inner.close();
 						if (wip.decrementAndGet() == 0) {
-							close0(outer);
+							Closeables.close0(outer);
 						}
 					}
 				};
@@ -3922,7 +3857,7 @@ public final class Reactive {
 									peek.add(Option.<T>error(ex));
 								}
 								done = true;
-								close0(c);
+								Closeables.close0(c);
 							}
 						}
 						return !peek.isEmpty() && !done;
@@ -4706,7 +4641,7 @@ public final class Reactive {
 					}
 					
 				};
-				return close(obs, source.register(obs));
+				return Closeables.close(obs, source.register(obs));
 			}
 		};
 	}
@@ -5094,8 +5029,8 @@ public final class Reactive {
 			Set<SingleLaneExecutor<Pair<Integer, CircularBuffer<Option<T>>>>> listeners = new HashSet<SingleLaneExecutor<Pair<Integer, CircularBuffer<Option<T>>>>>();
 			@Override
 			protected void finalize() throws Throwable {
-				close0(timerClose);
-				close0(sourceClose);
+				Closeables.close0(timerClose);
+				Closeables.close0(sourceClose);
 				super.finalize();
 			}
 			@Override
@@ -5192,7 +5127,7 @@ public final class Reactive {
 						} finally {
 							writeLock.unlock();
 						}
-						close0(playback);
+						Closeables.close0(playback);
 					}
 				};
 				return c;
@@ -5231,7 +5166,7 @@ public final class Reactive {
 			Set<SingleLaneExecutor<Integer>> listeners = new HashSet<SingleLaneExecutor<Integer>>();
 			@Override
 			protected void finalize() throws Throwable {
-				close0(sourceClose);
+				Closeables.close0(sourceClose);
 				super.finalize();
 			}
 			@Override
@@ -5309,7 +5244,7 @@ public final class Reactive {
 						} finally {
 							writeLock.unlock();
 						}
-						close0(playback);
+						Closeables.close0(playback);
 					}
 				};
 				return c;
@@ -5369,8 +5304,8 @@ public final class Reactive {
 			Set<SingleLaneExecutor<Pair<Integer, List<Option<T>>>>> listeners = new HashSet<SingleLaneExecutor<Pair<Integer, List<Option<T>>>>>();
 			@Override
 			protected void finalize() throws Throwable {
-				close0(timerClose);
-				close0(sourceClose);
+				Closeables.close0(timerClose);
+				Closeables.close0(sourceClose);
 				super.finalize();
 			}
 			@Override
@@ -5466,7 +5401,7 @@ public final class Reactive {
 						} finally {
 							writeLock.unlock();
 						}
-						close0(playback);
+						Closeables.close0(playback);
 					}
 				};
 				return c;
@@ -5503,7 +5438,7 @@ public final class Reactive {
 			Set<SingleLaneExecutor<Integer>> listeners = new HashSet<SingleLaneExecutor<Integer>>();
 			@Override
 			protected void finalize() throws Throwable {
-				close0(sourceClose);
+				Closeables.close0(sourceClose);
 				super.finalize();
 			}
 			@Override
@@ -5580,7 +5515,7 @@ public final class Reactive {
 						} finally {
 							writeLock.unlock();
 						}
-						close0(playback);
+						Closeables.close0(playback);
 					}
 				};
 				return c;
@@ -5657,12 +5592,12 @@ public final class Reactive {
 						}
 						@Override
 						protected void onClose() {
-							close0(c);
+							Closeables.close0(c);
 						}
 
 						@Override
 						public void onError(Throwable ex) {
-							close0(c);
+							Closeables.close0(c);
 							if (it.hasNext()) {
 								c = it.next().register(this);
 							} else {
@@ -5673,7 +5608,7 @@ public final class Reactive {
 
 						@Override
 						public void onFinish() {
-							close0(c);
+							Closeables.close0(c);
 							if (it.hasNext()) {
 								c = it.next().register(this);
 							} else {
@@ -5722,12 +5657,12 @@ public final class Reactive {
 						}
 						@Override
 						protected void onClose() {
-							close0(c);
+							Closeables.close0(c);
 						}
 
 						@Override
 						public void onError(Throwable ex) {
-							close0(c);
+							Closeables.close0(c);
 							if (it.hasNext()) {
 								c = it.next().register(this);
 							} else {
@@ -5738,7 +5673,7 @@ public final class Reactive {
 
 						@Override
 						public void onFinish() {
-							close0(c);
+							Closeables.close0(c);
 							observer.finish();
 							close();
 						}
@@ -5778,12 +5713,12 @@ public final class Reactive {
 					}
 					@Override
 					protected void onClose() {
-						close0(c);
+						Closeables.close0(c);
 					}
 
 					@Override
 					public void onError(Throwable ex) {
-						close0(c);
+						Closeables.close0(c);
 						c = source.register(this);
 					}
 
@@ -5831,7 +5766,7 @@ public final class Reactive {
 					}
 					@Override
 					public void onError(Throwable ex) {
-						close0(c);
+						Closeables.close0(c);
 						if (remainingCount-- > 0) {
 							c = source.register(this);
 						} else {
@@ -5888,7 +5823,7 @@ public final class Reactive {
 		try {
 			latch.await();
 		} finally {
-			close0(c);
+			Closeables.close0(c);
 		}
 	}
 	/**
@@ -5931,7 +5866,7 @@ public final class Reactive {
 		try {
 			latch.await();
 		} finally {
-			close0(c);
+			Closeables.close0(c);
 		}
 	}
 	/**
@@ -5963,7 +5898,7 @@ public final class Reactive {
 		try {
 			latch.await();
 		} finally {
-			close0(c);
+			Closeables.close0(c);
 		}
 	}
 	/**
@@ -6001,7 +5936,7 @@ public final class Reactive {
 		try {
 			return latch.await(time, unit);
 		} finally {
-			close0(c);
+			Closeables.close0(c);
 		}
 	}
 	/**
@@ -6058,7 +5993,7 @@ public final class Reactive {
 					}, time, time, unit);
 					@Override
 					protected void onClose() {
-						close0(c);
+						Closeables.close0(c);
 					}
 					@Override
 					public void onError(Throwable ex) {
@@ -6075,7 +6010,7 @@ public final class Reactive {
 						current = value;
 					}
 				};
-				return close(obs, source.register(obs));
+				return Closeables.close(obs, source.register(obs));
 			}
 		};
 	}
@@ -6336,7 +6271,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						for (Closeable c : active.values()) {
-							close0(c);
+							Closeables.close0(c);
 						}
 					}
 
@@ -6392,7 +6327,7 @@ public final class Reactive {
 						active.put(o, sub.register(o));
 					}
 				};
-				return close(obs, source.register(obs));
+				return Closeables.close(obs, source.register(obs));
 			}
 		};
 	}
@@ -6509,7 +6444,7 @@ public final class Reactive {
 						@Override
 						public void onError(Throwable ex) {
 							observer.error(ex);
-							close0(closeBoth.get());
+							Closeables.close0(closeBoth.get());
 						}
 						
 						@Override
@@ -6517,7 +6452,7 @@ public final class Reactive {
 							if (wip.decrementAndGet() == 0) {
 								observer.next(result.get());
 								observer.finish();
-								close0(closeBoth.get());
+								Closeables.close0(closeBoth.get());
 							}
 						}
 						@Override
@@ -6545,7 +6480,7 @@ public final class Reactive {
 						@Override
 						public void onError(Throwable ex) {
 							observer.error(ex);
-							close0(closeBoth.get());
+							Closeables.close0(closeBoth.get());
 						}
 	
 						@Override
@@ -6553,7 +6488,7 @@ public final class Reactive {
 							if (wip.decrementAndGet() == 0) {
 								observer.next(result.get());
 								observer.finish();
-								close0(closeBoth.get());
+								Closeables.close0(closeBoth.get());
 							}
 						}
 						@Override
@@ -6574,7 +6509,7 @@ public final class Reactive {
 							}
 						}
 					};
-					Closeable c = close(oU, oV);
+					Closeable c = Closeables.close(oU, oV);
 					closeBoth.set(c);
 				} finally {
 					lockBoth.unlock();
@@ -6780,7 +6715,7 @@ public final class Reactive {
 					}
 					@Override
 					protected void onClose() {
-						close0(c);
+						Closeables.close0(c);
 					}
 
 					@Override
@@ -6799,7 +6734,7 @@ public final class Reactive {
 						}
 					}
 				};
-				return close(obs, source.register(obs));
+				return Closeables.close(obs, source.register(obs));
 			}
 		};
 	}
@@ -7190,7 +7125,7 @@ public final class Reactive {
 					}
 					@Override
 					protected void onClose() {
-						close0(inner);
+						Closeables.close0(inner);
 					}
 
 					@Override
@@ -7205,7 +7140,7 @@ public final class Reactive {
 					}
 					@Override
 					protected void onNext(Observable<? extends T> value) {
-						close0(inner);
+						Closeables.close0(inner);
 						inner = value.register(innerObserver);
 					}
 				};
@@ -7323,7 +7258,7 @@ public final class Reactive {
 					}
 					@Override
 					protected void onClose() {
-						close0(c);
+						Closeables.close0(c);
 					}
 					@Override
 					protected void onError(Throwable ex) {
@@ -7338,7 +7273,7 @@ public final class Reactive {
 						observer.next(value);
 					}
 				};
-				return close(obs, source.register(obs));
+				return Closeables.close(obs, source.register(obs));
 			}
 		};
 	}
@@ -7370,7 +7305,7 @@ public final class Reactive {
 					}
 					@Override
 					protected void onClose() {
-						close0(c);
+						Closeables.close0(c);
 					}
 
 					@Override
@@ -7451,7 +7386,7 @@ public final class Reactive {
 					};
 					@Override
 					protected void onClose() {
-						close0(c);
+						Closeables.close0(c);
 					}
 					@Override
 					public void onError(Throwable ex) {
@@ -7465,11 +7400,11 @@ public final class Reactive {
 					@Override
 					public void onNext(T value) {
 						last = value;
-						close0(c);
+						Closeables.close0(c);
 						c = pool.schedule(r, delay, unit);
 					}
 				};
-				return close(obs, source.register(obs));
+				return Closeables.close(obs, source.register(obs));
 			}
 		};
 	}
@@ -7661,8 +7596,8 @@ public final class Reactive {
 					}
 					@Override
 					protected void onClose() {
-						close0(timer);
-						close0(src);
+						Closeables.close0(timer);
+						Closeables.close0(src);
 					}
 					@Override
 					protected void onError(Throwable ex) {
@@ -7677,7 +7612,7 @@ public final class Reactive {
 					@Override
 					protected void onNext(T value) {
 						if (timer != null) {
-							close0(timer);
+							Closeables.close0(timer);
 							timer = null;
 						}
 						observer.next(value);
@@ -7692,7 +7627,7 @@ public final class Reactive {
 							@Override
 							public void onRun() {
 								if (!cancelled()) {
-									close0(src);
+									Closeables.close0(src);
 									timer = null;
 									src = other.register(observer);
 								}
@@ -7786,24 +7721,11 @@ public final class Reactive {
 	 * @return the iterable
 	 */
 	@Nonnull 
-	public static <T> Iterable<T> toIterable(
+	public static <T> CloseableIterable<T> toIterable(
 			@Nonnull final Observable<? extends T> observable) {
-		return toIterable(observable, DEFAULT_SCHEDULER.get()); 
-	}
-	/**
-	 * Convert the given observable instance into a classical iterable instance.
-	 * @param <T> the element type to iterate
-	 * @param observable the original observable
-	 * @param pool the pool where to await elements from the observable.
-	 * @return the iterable
-	 */
-	@Nonnull 
-	public static <T> Iterable<T> toIterable(
-			@Nonnull final Observable<? extends T> observable, 
-			@Nonnull final Scheduler pool) {
-		return new Iterable<T>() {
+		return new CloseableIterable<T>() {
 			@Override
-			public Iterator<T> iterator() {
+			public CloseableIterator<T> iterator() {
 				final LinkedBlockingQueue<Option<T>> queue = new LinkedBlockingQueue<Option<T>>();
 				
 				final Closeable c = observable.register(new Observer<T>() {
@@ -7824,7 +7746,7 @@ public final class Reactive {
 					
 				});
 				
-				return new Iterator<T>() {
+				return new CloseableIterator<T>() {
 					/** Close the association if there is no more elements. */
 					Closeable close = c;
 					/** The peek value due hasNext. */
@@ -7832,14 +7754,12 @@ public final class Reactive {
 					/** Indicator if there was a hasNext() call before the next() call. */
 					boolean peekBeforeNext;
 					/** Close the helper observer. */
-					void close() {
-						if (close != null) {
-							try {
-								close.close();
-								close = null;
-							} catch (IOException e) {
-								throw new RuntimeException(e);
-							}
+					@Override
+					public void close() throws IOException {
+						Closeable cl = close;
+						close = null;
+						if (cl != null) {
+							cl.close();
 						}
 					}
 					@Override
@@ -7859,9 +7779,6 @@ public final class Reactive {
 							peekBeforeNext = true;
 						}
 						boolean result = peek != Option.none();
-						if (!result) {
-							close();
-						}
 						return result;
 					}
 					@Override
@@ -7871,7 +7788,6 @@ public final class Reactive {
 							if (peek != Option.none()) {
 								return peek.value();
 							}
-							close();
 							throw new NoSuchElementException();
 						}
 						peekBeforeNext = false;
@@ -7885,7 +7801,6 @@ public final class Reactive {
 								return peek.value();
 							}
 						}
-						close();
 						throw new NoSuchElementException();
 					}
 					@Override
@@ -8464,7 +8379,7 @@ public final class Reactive {
 						try {
 							observer.error(ex);
 						} finally {
-							close0(resource);
+							Closeables.close0(resource);
 						}
 					}
 
@@ -8473,7 +8388,7 @@ public final class Reactive {
 						try {
 							observer.finish();
 						} finally {
-							close0(resource);
+							Closeables.close0(resource);
 						}
 						
 					}
@@ -8699,8 +8614,8 @@ public final class Reactive {
 					}
 					@Override
 					public void onClose() {
-						close0(woc);
-						close0(openWindow);
+						Closeables.close0(woc);
+						Closeables.close0(openWindow);
 					}
 
 					@Override
@@ -8722,7 +8637,7 @@ public final class Reactive {
 						current.next(value);
 					}
 				};
-				return close(obs, source.register(obs));
+				return Closeables.close(obs, source.register(obs));
 			}
 		};
 	}
@@ -9131,7 +9046,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						super.onClose();
-						close0(closeBoth.get());
+						Closeables.close0(closeBoth.get());
 					}
 
 					@Override
@@ -9161,7 +9076,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						super.onClose();
-						close0(closeBoth.get());
+						Closeables.close0(closeBoth.get());
 					}
 
 					@Override
@@ -9200,7 +9115,7 @@ public final class Reactive {
 					}
 				};
 				
-				closeBoth.set(close(o1, o2));
+				closeBoth.set(Closeables.close(o1, o2));
 				o1.add(new Object(), source);
 				o2.add(new Object(), windowOpening);
 				return closeBoth.get();
@@ -9261,7 +9176,7 @@ public final class Reactive {
 					}
 					@Override
 					protected void onClose() {
-						close0(c);
+						Closeables.close0(c);
 					}
 
 					@Override
@@ -9333,20 +9248,20 @@ public final class Reactive {
 						}
 						@Override
 						protected void onClose() {
-							close0(c);
+							Closeables.close0(c);
 						}
 	
 						@Override
 						public void onError(Throwable ex) {
 							observer.error(ex);
-							close0(closeBoth.get());
+							Closeables.close0(closeBoth.get());
 						}
 						
 						@Override
 						public void onFinish() {
 							if (wip.decrementAndGet() == 0) {
 								observer.finish();
-								close0(closeBoth.get());
+								Closeables.close0(closeBoth.get());
 							}
 						}
 						@Override
@@ -9376,20 +9291,20 @@ public final class Reactive {
 						}
 						@Override
 						protected void onClose() {
-							close0(c);
+							Closeables.close0(c);
 						}
 	
 						@Override
 						public void onError(Throwable ex) {
 							observer.error(ex);
-							close0(closeBoth.get());
+							Closeables.close0(closeBoth.get());
 						}
 	
 						@Override
 						public void onFinish() {
 							if (wip.decrementAndGet() == 0) {
 								observer.finish();
-								close0(closeBoth.get());
+								Closeables.close0(closeBoth.get());
 							}
 						}
 						@Override
@@ -9406,7 +9321,7 @@ public final class Reactive {
 							}
 						}
 					};
-					Closeable c = close(oU, oV);
+					Closeable c = Closeables.close(oU, oV);
 					closeBoth.set(c);
 				} finally {
 					lockBoth.unlock();
