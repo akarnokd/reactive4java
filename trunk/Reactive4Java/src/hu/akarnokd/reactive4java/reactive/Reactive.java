@@ -3438,9 +3438,8 @@ public final class Reactive {
 				final AtomicInteger wip = new AtomicInteger(sourcesList.size() + 1);
 				final List<DefaultObserver<T>> observers = new ArrayList<DefaultObserver<T>>();
 				final Lock lock = new ReentrantLock();
-				int i = 0;
-				for (i = 0; i < sourcesList.size(); i++) {
-					final int j = i++;
+				for (int i = 0; i < sourcesList.size(); i++) {
+					final int j = i;
 					DefaultObserver<T> obs = new DefaultObserver<T>(lock, true) {
 						@Override
 						public void onError(Throwable ex) {
@@ -3467,7 +3466,7 @@ public final class Reactive {
 					observers.add(obs);
 					disposables.add(obs);
 				}
-				for (i = 0; i < observers.size(); i++) {
+				for (int i = 0; i < observers.size(); i++) {
 					disposables.add(sourcesList.get(i).register(observers.get(i)));
 				}
 				if (wip.decrementAndGet() == 0) {
