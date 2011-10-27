@@ -3465,7 +3465,7 @@ public final class Reactive {
 						}
 					};
 					observers.add(obs);
-					disposables.add(observers.get(i));
+					disposables.add(obs);
 				}
 				for (i = 0; i < observers.size(); i++) {
 					disposables.add(sourcesList.get(i).register(observers.get(i)));
