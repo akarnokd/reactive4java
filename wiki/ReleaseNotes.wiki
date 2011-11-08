@@ -3,6 +3,10 @@
 
 <wiki:toc max_depth="1" />
 
+= 0.95.1 =
+  * Released: 2011-11-08 09:00 CET
+  * Fixed a bug in the merge operator
+
 = 0.95 =
   * Released: 2011-10-26 16:30 CET
   * Refactored SwingObservables inner classes into top level classes
