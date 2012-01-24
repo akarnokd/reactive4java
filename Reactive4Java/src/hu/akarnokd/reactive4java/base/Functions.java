@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 David Karnok
+ * Copyright 2011-2012 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -225,6 +225,25 @@ public final class Functions {
 			@Override
 			public U invoke(T param1) {
 				action.invoke(param1);
+				return result;
+			};
+		};
+	}
+	/**
+	 * Wraps the given action into a function which calls the
+	 * action and then returns the <code>result</code> value.
+	 * @param <T> the first parameter type
+	 * @param <U> the second parameter type
+	 * @param <V> the result type
+	 * @param action the action to invoke
+	 * @param result the result to present after the action invocation
+	 * @return the function
+	 */
+	public static <T, U, V> Func2<T, U, V> asFunc2(final Action2<T, U> action, final V result) {
+		return new Func2<T, U, V>() {
+			@Override
+			public V invoke(T param1, U param2) {
+				action.invoke(param1, param2);
 				return result;
 			};
 		};

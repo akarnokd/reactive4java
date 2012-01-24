@@ -171,7 +171,7 @@
     <metadata name="net.sf.eclipsecs.core.lastEnabledSeverity" value="inherit"/>
   </module>
   <module name="RegexpHeader">
-    <property name="header" value="^/\*$\n^ \* Copyright 2011 David Karnok.*$\n^ \*$\n^ \* Licensed under the Apache License, Version 2\.0.*$"/>
+    <property name="header" value="^/\*$\n^ \* Copyright 2011-2012 David Karnok.*$\n^ \*$\n^ \* Licensed under the Apache License, Version 2\.0.*$"/>
     <metadata name="com.atlassw.tools.eclipse.checkstyle.comment" value="GE header"/>
   </module>
 </module>
