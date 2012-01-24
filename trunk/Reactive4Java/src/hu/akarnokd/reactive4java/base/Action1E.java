@@ -13,16 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package hu.akarnokd.reactive4java.interactive;
+
+package hu.akarnokd.reactive4java.base;
 
 /**
- * The extension interface to an iterable which
- * holds a group key for its contents.
- * @param <K> the group key type
- * @param <V> the value type
- * @author akarnokd, 2011.02.03.
+ * An action with one parameter and exception.
+ * @author karnokd, 2012.01.24.
+ * @param <T> the first parameter type
+ * @param <E> the exception type
  */
-public interface GroupedIterable<K, V> extends Iterable<V> {
-	/** @return the key of this iterable. */
-	K key();
+public interface Action1E<T, E extends Exception> {
+	/**
+	 * Invoke the action.
+	 * @param t the first parameter
+	 * @throws E the exception
+	 */
+	void invoke(T t) throws E;
 }
