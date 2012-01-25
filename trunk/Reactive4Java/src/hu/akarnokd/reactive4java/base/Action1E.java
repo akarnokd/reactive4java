@@ -21,6 +21,7 @@ package hu.akarnokd.reactive4java.base;
  * @author karnokd, 2012.01.24.
  * @param <T> the first parameter type
  * @param <E> the exception type
+ * @since 0.96
  */
 public interface Action1E<T, E extends Exception> {
 	/**

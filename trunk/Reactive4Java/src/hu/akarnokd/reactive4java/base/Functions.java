@@ -20,9 +20,11 @@ import java.io.Closeable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -38,28 +40,28 @@ import javax.annotation.Nonnull;
  */
 public final class Functions {
 	/** Constant function returning always false. */
-	private static final Predicate1<Void> FALSE1 = new Predicate1<Void>() {
+	private static final Pred1<Void> FALSE1 = new Pred1<Void>() {
 		@Override
 		public Boolean invoke(Void param1) {
 			return false;
 		}
 	};
 	/** Constant function returning always true. */
-	private static final Predicate1<Void> TRUE1 = new Predicate1<Void>() {
+	private static final Pred1<Void> TRUE1 = new Pred1<Void>() {
 		@Override
 		public Boolean invoke(Void param1) {
 			return true;
 		}
 	};
 	/** Constant parameterless function which returns always false. */
-	public static final Predicate0 FALSE = new Predicate0() {
+	public static final Pred0 FALSE = new Pred0() {
 		@Override
 		public Boolean invoke() {
 			return false;
 		}
 	};
 	/** Constant parameterless function which returns always true. */
-	public static final Predicate0 TRUE = new Predicate0() {
+	public static final Pred0 TRUE = new Pred0() {
 		@Override
 		public Boolean invoke() {
 			return true;
@@ -149,8 +151,8 @@ public final class Functions {
 	 */
 	@SuppressWarnings("unchecked")
 	@Nonnull 
-	public static <T> Predicate1<T> alwaysFalse() {
-		return (Predicate1<T>)FALSE1;
+	public static <T> Pred1<T> alwaysFalse() {
+		return (Pred1<T>)FALSE1;
 	}
 	/**
 	 * Returns a function which always returns true regardless of its parameters.
@@ -159,8 +161,8 @@ public final class Functions {
 	 */
 	@Nonnull 
 	@SuppressWarnings("unchecked")
-	public static <T> Predicate1<T> alwaysTrue() {
-		return (Predicate1<T>)TRUE1;
+	public static <T> Pred1<T> alwaysTrue() {
+		return (Pred1<T>)TRUE1;
 	}
 	/**
 	 * Wraps the given Func0 object into a callable instance.
@@ -977,6 +979,61 @@ public final class Functions {
 			public Set<T> invoke() {
 				return new HashSet<T>();
 			}
+		};
+	}
+	/**
+	 * Creates a single parameter function which returns values from the given map.
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @param map the backing map.
+	 * @return the created function
+	 * @since 0.96
+	 */
+	public static <K, V> Func1<K, V> asFunc1(final Map<? super K, ? extends V> map) {
+		return new Func1<K, V>() {
+			@Override
+			public V invoke(K param1) {
+				return map.get(param1);
+			}
+		};
+	}
+	/**
+	 * Wraps a two-layer (map of map of something) into a two parameter function.
+	 * <p>If the first level map returns null, the function returns null.</p>
+	 * @param <K1> the first level key type
+	 * @param <K2> the second level key type
+	 * @param <V> the value type type
+	 * @param map the source map of map of something 
+	 * @return the function
+	 * @since 0.96
+	 */
+	public static <K1, K2, V> Func2<K1, K2, V> asFunc2(
+			final Map<? super K1, ? extends Map<? super K2, ? extends V>> map) {
+		return new Func2<K1, K2, V>() {
+			@Override
+			public V invoke(K1 param1, K2 param2) {
+				Map<? super K2, ? extends V> map2 = map.get(param1);
+				if (map2 != null) {
+					return map2.get(param2);
+				}
+				return null;
+			}
+		};
+	}
+	/**
+	 * Creates a single parameter predicate function which returns true if the supplied
+	 * parameter is in the given collection.
+	 * @param <K> the element type
+	 * @param set the backing set
+	 * @return the created function
+	 * @since 0.96
+	 */
+	public static <K> Func1<K, Boolean> asFunc1(final Collection<? extends K> set) {
+		return new Pred1<K>() {
+			@Override
+			public Boolean invoke(K param1) {
+				return set.contains(param1);
+			};
 		};
 	}
 	/** Utility class. */

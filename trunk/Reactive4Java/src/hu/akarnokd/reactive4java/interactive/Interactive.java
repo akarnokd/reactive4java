@@ -24,6 +24,7 @@ import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Option;
+import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.interactive.Interactive.LinkedBuffer.N;
 import hu.akarnokd.reactive4java.util.DefaultScheduler;
@@ -2159,11 +2160,21 @@ public final class Interactive {
 									while (it.hasNext()) {
 										T value = it.next();
 										U key = keySelector.invoke(value);
-										if (lastKey == null || (max ^ (keyComparator.compare(lastKey, key) > 0))) {
+										if (lastKey == null) {
 											intermediate = new ArrayList<T>();
 											lastKey = key;
+											intermediate.add(value);
+										} else {
+											int c = keyComparator.compare(lastKey, key);
+											if ((c < 0 && max) || (c > 0 && !max)) {
+												intermediate = new ArrayList<T>();
+												lastKey = key;
+												c = 0;
+											}
+											if (c == 0) {
+												intermediate.add(value);
+											}
 										}
-										intermediate.add(value);
 									}
 									if (intermediate != null) {
 										result.add(Option.some(intermediate));
@@ -3732,6 +3743,165 @@ public final class Interactive {
 							return peek.take().value();
 						}
 						throw new NoSuchElementException();
+					}
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Returns the first element from the iterable sequence or
+	 * throws a NoSuchElementException.
+	 * @param <T> the value type
+	 * @param src the source sequence
+	 * @return the first element
+	 * @since 0.96
+	 */
+	public static <T> T first(@Nonnull Iterable<? extends T> src) {
+		return src.iterator().next();
+	}
+	/**
+	 * Takes the input elements and returns an iterable which
+	 * traverses the array. The supplied array is
+	 * shared by the iterator. Any changes to the array will be
+	 * reflected by the iterator
+	 * <p>The resulting {@code Iterable} does not support {@code remove()}.</p>
+	 * @param <T> the element type
+	 * @param ts the input array
+	 * @return the iterable for the array
+	 * @since 0.96
+	 */
+	public static <T> Iterable<T> toIterable(@Nonnull final T... ts) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					/** The current location. */
+					int index;
+					/** The lenght. */
+					final int size = ts.length;
+					@Override
+					public boolean hasNext() {
+						return index < size;
+					}
+					@Override
+					public T next() {
+						if (hasNext()) {
+							return ts[index++];
+						}
+						throw new NoSuchElementException();
+					}
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Returns a pair of the maximum argument and value from the given sequence.
+	 * @param <T> the element type
+	 * @param <V> the value type
+	 * @param source the source sequence of Ts
+	 * @param valueSelector the selector to extract the value from T
+	 * @param valueComparator the comparator to compare two values
+	 * @return the first pair of max argument and value or null if the source sequence was empty
+	 * @since 0.96
+	 */
+	public static <T, V> Pair<T, V> argAndMax(
+			@Nonnull Iterable<? extends T> source, 
+			@Nonnull Func1<? super T, ? extends V> valueSelector, 
+			@Nonnull Comparator<? super V> valueComparator) {
+		T arg = null;
+		V max = null;
+		boolean hasElement = false;
+		for (T item : source) {
+			V itemValue = valueSelector.invoke(item);
+			if (!hasElement || valueComparator.compare(max, itemValue) < 0) {
+				arg = item;
+				max = itemValue;
+			}
+			hasElement = true;
+		}
+		if (hasElement) {
+			return Pair.of(arg, max);
+		}
+		return null;
+	}
+	/**
+	 * Returns a pair of the maximum argument and value from the given sequence.
+	 * @param <T> the element type of the sequence
+	 * @param <V> the value type for the comparison, must be self comparable
+	 * @param source the source sequence
+	 * @param valueSelector the value selector function
+	 * @return the pair of the first maximum element and value, null if the sequence was empty
+	 * @since 0.96
+	 */
+	public static <T, V extends Comparable<? super V>> Pair<T, V> argAndMax(
+			@Nonnull Iterable<? extends T> source, 
+			@Nonnull Func1<? super T, ? extends V> valueSelector) {
+		return argAndMax(source, valueSelector, Functions.<V>comparator());
+	}
+	/**
+	 * Returns a pair of the maximum argument and value from the given sequence.
+	 * @param <T> the element type of the sequence
+	 * @param <V> the value type for the comparison, must be self comparable
+	 * @param source the source sequence
+	 * @param valueSelector the value selector function
+	 * @return the pair of the first maximum element and value, null if the sequence was empty
+	 * @since 0.96
+	 */
+	public static <T, V extends Comparable<? super V>> Pair<T, V> argAndMin(
+			@Nonnull Iterable<? extends T> source, 
+			@Nonnull Func1<? super T, ? extends V> valueSelector) {
+		return argAndMin(source, valueSelector, Functions.<V>comparator());
+	}
+	/**
+	 * Returns a pair of the minimum argument and value from the given sequence.
+	 * @param <T> the element type
+	 * @param <V> the value type
+	 * @param source the source sequence of Ts
+	 * @param valueSelector the selector to extract the value from T
+	 * @param valueComparator the comparator to compare two values
+	 * @return the first pair of min argument and value or null if the source sequence was empty
+	 * @since 0.96
+	 */
+	public static <T, V> Pair<T, V> argAndMin(
+			@Nonnull Iterable<? extends T> source, 
+			@Nonnull Func1<? super T, ? extends V> valueSelector, 
+			@Nonnull final Comparator<? super V> valueComparator) {
+		return argAndMax(source, valueSelector, new Comparator<V>() {
+			@Override
+			public int compare(V o1, V o2) {
+				return valueComparator.compare(o2, o1);
+			};
+		});
+	}
+	/**
+	 * Creates an iterable sequence which returns the given value indefinitely.
+	 * <p>(E.g., having the hasNext() always return true and the next() always return the value.</p>
+	 * <p>The returned iterable does not support the {@code remove()} method.</p>
+	 * @param <T> the value type
+	 * @param value the value to repeat
+	 * @return the iterable
+	 * @since 0.96
+	 */
+	public static <T> Iterable<T> repeat(final T value) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					@Override
+					public boolean hasNext() {
+						return true;
+					}
+					@Override
+					public T next() {
+						return value;
 					}
 					@Override
 					public void remove() {
