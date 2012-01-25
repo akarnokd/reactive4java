@@ -19,6 +19,7 @@ import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Actions;
 import hu.akarnokd.reactive4java.base.CircularBuffer;
+import hu.akarnokd.reactive4java.base.Closeables;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
@@ -30,7 +31,6 @@ import hu.akarnokd.reactive4java.interactive.Interactive.LinkedBuffer.N;
 import hu.akarnokd.reactive4java.util.DefaultScheduler;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -51,7 +51,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * The interactive (i.e., <code>Iterable</code> based) counterparts
@@ -643,20 +642,6 @@ public final class Interactive {
 				};
 			}
 		};
-	}
-	/**
-	 * Invoke the <code>close()</code> method on the closeable instance
-	 * and throw away any <code>IOException</code> it might raise.
-	 * @param c the closeable instance, <code>null</code>s are simply ignored
-	 */
-	static void close0(@Nullable Closeable c) {
-		if (c != null) {
-			try {
-				c.close();
-			} catch (IOException ex) {
-				
-			}
-		}
 	}
 	/**
 	 * Concatenate the given iterable sources one
@@ -1993,7 +1978,7 @@ public final class Interactive {
 								return peek.take().value();
 							} catch (RuntimeException ex) {
 								for (Closeable h : handlers) {
-									close0(h);
+									Closeables.close0(h);
 								}
 								throw ex;
 							}
@@ -3567,7 +3552,7 @@ public final class Interactive {
 						}
 						if (once) {
 							once = false;
-							close0(c);
+							Closeables.close0(c);
 						}
 						return false;
 					}

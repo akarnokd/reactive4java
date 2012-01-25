@@ -7715,6 +7715,7 @@ public final class Reactive {
 	}
 	/**
 	 * Convert the given observable instance into a classical iterable instance.
+	 * <p>THe resulting iterable does not support the {@code remove()} method.</p>
 	 * @param <T> the element type to iterate
 	 * @param observable the original observable
 	 * @return the iterable
