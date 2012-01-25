@@ -21,6 +21,6 @@ package hu.akarnokd.reactive4java.base;
  * @author akarnokd, 2011.02.19.
  * @param <T> the parameter type
  */
-public interface Predicate1<T> extends Func1<T, Boolean> {
+public interface Pred1<T> extends Func1<T, Boolean> {
 
 }

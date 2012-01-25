@@ -16,10 +16,12 @@
 package hu.akarnokd.reactive4java.base;
 
 /**
- * A convenience extension interface over the Func0 with
+ * A convenience extension interface over the Func2 with
  * the return type fixed as boolean.
  * @author akarnokd, 2011.02.19.
+ * @param <T> the first parameter type
+ * @param <U> the second parameter type
  */
-public interface Predicate0 extends Func0<Boolean> {
+public interface Pred2<T, U> extends Func2<T, U, Boolean> {
 
 }

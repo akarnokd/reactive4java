@@ -22,6 +22,7 @@ package hu.akarnokd.reactive4java.base;
  * @param <T> the first parameter type
  * @param <V> the second parameter type
  * @param <E> the exception type
+ * @since 0.96
  */
 public interface Action2E<T, V, E extends Exception> {
 	/**

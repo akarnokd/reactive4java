@@ -20,6 +20,7 @@ package hu.akarnokd.reactive4java.base;
  * A parameterless action with exception.
  * @author akarnokd
  * @param <E> the exception
+ * @since 0.96
  */
 public interface Action0E<E extends Exception> {
 	/**
