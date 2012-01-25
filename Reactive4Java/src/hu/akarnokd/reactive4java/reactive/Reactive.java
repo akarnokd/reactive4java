@@ -1843,11 +1843,15 @@ public final class Reactive {
 	 */
 	public static <T> T first(
 			@Nonnull final Observable<T> source) {
-		Iterator<T> it = toIterable(source).iterator();
-		if (it.hasNext()) {
-			return it.next();
+		CloseableIterator<T> it = toIterable(source).iterator();
+		try {
+			if (it.hasNext()) {
+				return it.next();
+			}
+			throw new NoSuchElementException();
+		} finally {
+			Closeables.close0(it);
 		}
-		throw new NoSuchElementException();
 	}
 	/**
 	 * Creates a concatenated sequence of Observables based on the decision function of <code>selector</code> keyed by the source iterable.
@@ -3236,7 +3240,7 @@ public final class Reactive {
 	 */
 	public static <T, U> Observable<U> manySelect0(
 			final Observable<? extends T> source, 
-			final Func1<Observable<T>, ? extends U> selector) {
+			final Func1<? super Observable<T>, ? extends U> selector) {
 		return manySelect(source, selector, DEFAULT_SCHEDULER.get());
 	}
 	/**
@@ -3254,7 +3258,7 @@ public final class Reactive {
 	 */
 	public static <T, U> Observable<U> manySelect(
 			final Observable<? extends T> source, 
-			final Func1<Observable<T>, ? extends U> selector,
+			final Func1<? super Observable<T>, ? extends U> selector,
 			final Scheduler scheduler) {
 		return new Observable<U>() {
 			@Override
@@ -3310,7 +3314,7 @@ public final class Reactive {
 	 */
 	public static <T, U> Observable<U> manySelect(
 			final Observable<? extends T> source,
-			final Func1<Observable<T>, Observable<U>> selector
+			final Func1<? super Observable<T>, ? extends Observable<U>> selector
 	) {
 		return merge(select(source, new Func1<T, Observable<U>>() {
 			/** The skip position. */
