@@ -3803,6 +3803,47 @@ public final class Interactive {
 		};
 	}
 	/**
+	 * Takes the input elements and returns an iterable which
+	 * traverses the array between the two indexes. The supplied array is
+	 * shared by the iterator. Any changes to the array will be
+	 * reflected by the iterator.
+	 * <p>The resulting {@code Iterable} does not support {@code remove()}.</p>
+	 * @param <T> the element type
+	 * @param from the starting index inclusive
+	 * @param to the end index exclusive
+	 * @param ts the input array
+	 * @return the iterable for the array
+	 * @since 0.96
+	 */
+	public static <T> Iterable<T> toIterable(final int from, final int to, @Nonnull final T... ts) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					/** The current location. */
+					int index = from;
+					/** The lenght. */
+					final int size = ts.length;
+					@Override
+					public boolean hasNext() {
+						return index < size && index < to;
+					}
+					@Override
+					public T next() {
+						if (hasNext()) {
+							return ts[index++];
+						}
+						throw new NoSuchElementException();
+					}
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+	}
+	/**
 	 * Returns a pair of the maximum argument and value from the given sequence.
 	 * @param <T> the element type
 	 * @param <V> the value type
@@ -3910,6 +3951,56 @@ public final class Interactive {
 				};
 			}
 		};
+	}
+	/**
+	 * Returns an iterable which repeats the given single value the specified number of times. 
+	 * <p>The returned iterable does not support the {@code remove()} method.</p>
+	 * @param <T> the value type
+	 * @param value the value to repeat
+	 * @param count the repeat amount
+	 * @return the iterable
+	 * @since 0.96
+	 */
+	public static <T> Iterable<T> repeat(final T value, final int count) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					int index;
+					@Override
+					public boolean hasNext() {
+						return index < count;
+					}
+					@Override
+					public T next() {
+						if (hasNext()) {
+							index++;
+							return value;
+						}
+						throw new NoSuchElementException();
+					}
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Creates an iterable sequence which returns all elements from source
+	 * followed by the supplied value as last.
+	 * <p>The returned iterable forwards all {@code remove()}
+	 * methods to the source iterable, except the last element where it
+	 * throws UnsupportedOperationException.</p>
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param value the value to append
+	 * @return the new iterable
+	 * @since 0.96
+	 */
+	public static <T> Iterable<T> endWith(final Iterable<? extends T> source, T value) {
+		return concat(source, singleton(value));
 	}
 	/** Utility class. */
 	private Interactive() {
