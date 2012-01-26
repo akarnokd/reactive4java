@@ -975,7 +975,7 @@ public final class Interactive {
 	 * @param <T> the element type
 	 * @param <U> the key type
 	 * @param source the source iterable
-	 * @param keyExtractor 
+	 * @param keyExtractor the function to extract the keys which will be compared
 	 * @return the new iterable
 	 */
 	@Nonnull 
@@ -3986,6 +3986,48 @@ public final class Interactive {
 	 */
 	public static <T> Iterable<T> endWith(final Iterable<? extends T> source, T value) {
 		return concat(source, singleton(value));
+	}
+	/**
+	 * Computes and signals the sum of the values of the Integer source by using
+	 * a double intermediate representation.
+	 * The source may not send nulls. An empty source produces an empty sum
+	 * @param source the source of integers to aggregate.
+	 * @return the observable for the sum value
+	 * @Since 0.96
+	 */
+	@Nonnull 
+	public static Iterable<Double> sumIntAsDouble(
+			@Nonnull final Iterable<Integer> source) {
+		return aggregate(source, 
+			new Func2<Double, Integer, Double>() {
+				@Override
+				public Double invoke(Double param1, Integer param2) {
+					return param1 + param2;
+				}
+			},
+			Functions.<Double, Integer>identityFirst()
+		);
+	}
+	/**
+	 * Computes and signals the sum of the values of the Long sourceby using
+	 * a double intermediate representation.
+	 * The source may not send nulls.
+	 * @param source the source of longs to aggregate.
+	 * @return the observable for the sum value
+	 * @since 0.96
+	 */
+	@Nonnull 
+	public static Iterable<Double> sumLongAsDouble(
+			@Nonnull final Iterable<Long> source) {
+		return aggregate(source, 
+				new Func2<Double, Long, Double>() {
+					@Override
+					public Double invoke(Double param1, Long param2) {
+						return param1 + param2;
+					}
+				},
+				Functions.<Double, Integer>identityFirst()
+			);
 	}
 	/** Utility class. */
 	private Interactive() {

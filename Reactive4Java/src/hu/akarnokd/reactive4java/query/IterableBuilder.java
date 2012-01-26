@@ -29,6 +29,8 @@ import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -56,18 +58,6 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	public static <T> IterableBuilder<T> defer(
 			@Nonnull final Func0<? extends Iterable<T>> func) {
 		return from(Interactive.defer(func));
-	}
-	/**
-	 * Convert the source materialized elements into normal iterator behavior.
-	 * The returned iterator will throw an <code>UnsupportedOperationException</code> for its <code>remove()</code> method.
-	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
-	 * for its <code>remove()</code> method.</p>
-	 * @param <T> the source element types
-	 * @param source the source of T options
-	 * @return the new iterable
-	 */
-	public static <T> IterableBuilder<T> dematerialize(@Nonnull Iterable<? extends Option<? extends T>> source) {
-		return from(Interactive.dematerialize(source));
 	}
 	/**
 	 * Creates a new iterable builder instance by wrapping the given
@@ -292,9 +282,75 @@ public final class IterableBuilder<T> implements Iterable<T> {
 		return Interactive.argAndMin(it, valueSelector, valueComparator);
 	}
 	/**
+	 * Computes and signals the average value of the BigDecimal source.
+	 * The source may not send nulls.
+	 * <p>Note that it uses forced cast of this sequence. If T != BigDecimal this
+	 * method is guaranteed to throw ClassCastException.</p>
+	 * @return the observable for the average value
+	 */
+	@Nonnull
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<BigDecimal> averageBigDecimal() {
+		return from(Interactive.averageBigDecimal((Iterable<BigDecimal>)it));
+	}
+	/**
+	 * Computes and signals the average value of the BigInteger source.
+	 * The source may not send nulls.
+	 * <p>Note that it uses forced cast of this sequence. If T != BigInteger this
+	 * method is guaranteed to throw ClassCastException.</p>
+	 * @return the observable for the average value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<BigDecimal> averageBigInteger() {
+		return from(Interactive.averageBigInteger((Iterable<BigInteger>)it));
+	}
+	/**
+	 * Computes and signals the average value of the Double source.
+	 * The source may not send nulls.
+	 * @return the observable for the average value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<Double> averageDouble() {
+		return from(Interactive.averageDouble((Iterable<Double>)it));
+	}
+	/**
+	 * Computes and signals the average value of the Float source.
+	 * The source may not send nulls.
+	 * @return the observable for the average value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<Float> averageFloat() {
+		return from(Interactive.averageFloat((Iterable<Float>)it));
+	}
+	/**
+	 * Computes and signals the average value of the integer source.
+	 * The source may not send nulls.
+	 * The intermediate aggregation used double values.
+	 * @return the observable for the average value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<Double> averageInt() {
+		return from(Interactive.averageInt((Iterable<Integer>)it));
+
+	}
+	/**
+	 * Computes and signals the average value of the Long source.
+	 * The source may not send nulls.
+	 * The intermediate aggregation used double values.
+	 * @return the observable for the average value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<Double> averageLong() {
+		return from(Interactive.averageLong((Iterable<Long>)it));
+	}
+	/**
 	 * Returns an iterable which buffers the source elements 
 	 * into <code>bufferSize</code> lists.
-	 * FIXME what to do on empty source or last chunk?
 	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
 	 * for its <code>remove()</code> method.</p>
 	 * @param bufferSize the buffer size.
@@ -302,7 +358,7 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 */
 	public IterableBuilder<List<T>> buffer(int bufferSize) {
 		return from(Interactive.buffer(it, bufferSize));
-	}
+	}	
 	/**
 	 * Casts the source iterable into a different typ by using a type token.
 	 * If the source contains a wrong element, the <code>next()</code>
@@ -344,42 +400,162 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	public IterableBuilder<T> concatAll(@Nonnull Iterable<? extends Iterable<? extends T>> others) {
 		return from(Interactive.concat(Interactive.startWith(others, it)));
 	}
+	/**
+	 * Returns an iterable which checks for the existence of the supplied
+	 * value by comparing the elements of the source iterable using reference
+	 * and <code>equals()</code>. The iterable then returns a single true or false.
+	 * @param value the value to check
+	 * @return the new iterable
+	 */
 	public IterableBuilder<Boolean> contains(final T value) {
 		return from(Interactive.contains(it, value));
 	}
+	/**
+	 * Counts the elements of the iterable source by using a 32 bit <code>int</code>.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @return the new iterable
+	 */
 	public IterableBuilder<Integer> count() {
 		return from(Interactive.count(it));
 	}
+	/**
+	 * Counts the elements of the iterable source by using a 64 bit <code>long</code>.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @return the new iterable
+	 */
 	public IterableBuilder<Long> countLong() {
 		return from(Interactive.countLong(it));
 	}
+	/**
+	 * Convert the source materialized elements into normal iterator behavior.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @return the new iterable
+	 */
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<T> dematerialize() {
+		return from(Interactive.dematerialize((Iterable<Option<T>>)it));
+	}
+	/**
+	 * Creates an iterable which ensures that subsequent values of T are not equal  (reference and equals).
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> distinct() {
 		return from(Interactive.distinct(it));
 	}
+	/**
+	 * Creates an iterable which ensures that subsequent values of 
+	 * T are not equal in respect to the extracted keys (reference and equals).
+	 * @param <U> the key type
+	 * @param keySelector the function to extract the keys which will be compared
+	 * @return the new iterable
+	 */
 	public <U> IterableBuilder<T> distinct(@Nonnull final Func1<T, U> keySelector) {
 		return from(Interactive.distinct(it, keySelector));
 	}
+	/**
+	 * Returns an iterable which filters its elements based if they vere ever seen before in
+	 * the current iteration.
+	 * Value equality is computed by reference equality and <code>equals()</code>
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> distinctSet() {
 		return from(Interactive.distinctSet(it));
 	}
+	/**
+	 * Returns an iterable which filters its elements by an unique key
+	 * in a way that when multiple source items produce the same key, only
+	 * the first one ever seen gets relayed further on.
+	 * Key equality is computed by reference equality and <code>equals()</code>
+	 * @param <U> the key element type
+	 * @param keySelector the key selector for only-once filtering
+	 * @return the new iterable
+	 */
 	public <U> IterableBuilder<T> distinctSet(@Nonnull Func1<? super T, ? extends U> keySelector) {
 		return from(Interactive.distinctSet(it, keySelector, Functions.<T>identity()));
 	}
+	/**
+	 * Returns an iterable which reiterates over and over again on <code>source</code>
+	 * as long as the gate is true. The gate function is checked only
+	 * when a pass over the source stream was completed.
+	 * Note that using this operator on an empty iterable may result
+	 * in a direct infinite loop in hasNext() or next() calls depending on the gate function.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
+	 * @param gate the gate function to stop the repeat
+	 * @return the new iterable
+	 */
+	@Nonnull 
+	public IterableBuilder<T> doWhile(
+			@Nonnull final Func0<Boolean> gate) {
+		return from(Interactive.doWhile(it, gate));
+	}
+	/**
+	 * Creates an iterable sequence which returns all elements from source
+	 * followed by the supplied value as last.
+	 * <p>The returned iterable forwards all {@code remove()}
+	 * methods to the source iterable, except the last element where it
+	 * throws UnsupportedOperationException.</p>
+	 * @param value the value to append
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> endWith(final T value) {
 		return from(Interactive.endWith(it, value));
 	}
+	/**
+	 * Returns an iterable which executes the given action after
+	 * the stream completes.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
+	 * @param action the action to invoke
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> finish(@Nonnull Action0 action) {
 		return from(Interactive.finish(it, action));
 	}
+	/**
+	 * Returns the first element from the iterable sequence or
+	 * throws a NoSuchElementException.
+	 * @return the first element
+	 */
 	public T first() {
 		return Interactive.first(it);
 	}
+	/**
+	 * Creates an iterable which traverses the source iterable,
+	 * and based on the key selector, groups values extracted by valueSelector into GroupedIterables,
+	 * which can be interated over later on.
+	 * The equivalence of the keys are determined via reference
+	 * equality and <code>equals()</code> equality.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <K> the result group element type
+	 * @param <V> the result group keys
+	 * @param keySelector the key selector
+	 * @param valueSelector the value selector
+	 * @return the new iterable
+	 */
 	public <K, V> IterableBuilder<GroupedIterable<K, V>> groupBy(@Nonnull final Func1<T, K> keySelector, final Func1<T, V> valueSelector) {
 		return from(Interactive.groupBy(it, keySelector, valueSelector));
 	}
+	/**
+	 * Construct a new iterable which will invoke the specified action
+	 * before the source value gets relayed through it.
+	 * Can be used to inject side-effects before returning a value.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
+	 * @param action the action to invoke before each next() is returned.
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> invoke(@Nonnull Action1<? super T> action) {
 		return from(Interactive.invoke(it, action));
 	}
+	/**
+	 * Returns a single true if the target iterable is empty.
+	 * @return the new iterable
+	 */
 	public IterableBuilder<Boolean> isEmpty() {
 		return from(Interactive.isEmpty(it));
 	}
@@ -387,74 +563,302 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	public Iterator<T> iterator() {
 		return it.iterator();
 	}
+	/**
+	 * Concatenates the source strings one after another and uses the given separator.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
+	 * @param separator the separator to use
+	 * @return the new iterable
+	 */
 	public IterableBuilder<String> join(String separator) {
 		return from(Interactive.join(it, separator));
 	}
+	/**
+	 * Returns the last element of the iterable or throws a <code>NoSuchElementException</code> if the iterable is empty.
+	 * @return the last value
+	 */
 	public T last() {
 		return Interactive.last(it);
 	}
+	/**
+	 * Transforms the sequence of the source iterable into an option sequence of
+	 * Option.some(), Option.none() and Option.error() values, depending on
+	 * what the source's hasNext() and next() produces.
+	 * The returned iterator will throw an <code>UnsupportedOperationException</code> for its <code>remove()</code> method.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @return the new iterable
+	 */
 	public IterableBuilder<Option<T>> materialize() {
 		return from(Interactive.materialize(it));
 	}
+	/**
+	 * Returns the maximum value of the given iterable source.
+	 * @param <U> the self comparable type
+	 * @return the new iterable
+	 */
+	@SuppressWarnings("unchecked")
+	public <U extends Comparable<? super U>> IterableBuilder<U> max() {
+		return from(Interactive.max((Iterable<U>)it));
+	}
+	/**
+	 * Returns the maximum value of the given iterable source in respect to the supplied comparator.
+	 * @param comparator the comparator to use
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> max(@Nonnull Comparator<? super T> comparator) {
 		return from(Interactive.max(it, comparator));
 	}
+	/**
+	 * Returns an iterator which will produce a single List of the maximum values encountered
+	 * in the source stream based on the supplied key selector.
+	 * @param <U> the source element type, which must be self comparable
+	 * @return the new iterable
+	 */
+	@SuppressWarnings("unchecked")
+	public <U extends Comparable<? super U>> IterableBuilder<List<U>> maxBy() {
+		return from(Interactive.maxBy((Iterable<U>)it));
+	}
+	/**
+	 * Returns an iterator which will produce a single List of the maximum values encountered
+	 * in the source stream based on the supplied comparator.
+	 * @param comparator the key comparator
+	 * @return the new iterable
+	 */
 	public IterableBuilder<List<T>> maxBy(@Nonnull Comparator<? super T> comparator) {
 		return from(Interactive.maxBy(it, comparator));
 	}
+	/**
+	 * Returns an iterator which will produce a single List of the maximum values encountered
+	 * in the source stream based on the supplied key selector.
+	 * @param <U> the key type, which must be self-comparable
+	 * @param keySelector the selector for keys
+	 * @return the new iterable
+	 */
 	public <U extends Comparable<? super U>> IterableBuilder<List<T>> mayBy(@Nonnull Func1<? super T, U> keySelector) {
 		return from(Interactive.maxBy(it, keySelector));
 	}
+	/**
+	 * Returns an iterator which will produce a single List of the minimum values encountered
+	 * in the source stream based on the supplied key selector and comparator.
+	 * @param <U> the key type
+	 * @param keySelector the selector for keys
+	 * @param keyComparator the key comparator
+	 * @return the new iterable
+	 */
 	public <U> IterableBuilder<List<T>> mayBy(@Nonnull Func1<? super T, U> keySelector, @Nonnull Comparator<? super U> keyComparator) {
 		return from(Interactive.maxBy(it, keySelector, keyComparator));
 	}
+	/**
+	 * Enumerates the source iterable once and caches its results.
+	 * Any iterator party will basically drain this cache, e.g.,
+	 * reiterating over this iterable will produce no results.
+	 * Note: the name is not a misspelling, see <a href='http://en.wikipedia.org/wiki/Memoization'>Memoization</a>.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param bufferSize the size of the buffering
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> memoize(int bufferSize) {
 		return from(Interactive.memoize(it, bufferSize));
 	}
+	/**
+	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
+	 * how many iterator attaches to it and each iterator see only the values.
+	 * Note: the name is not a misspelling, see <a href='http://en.wikipedia.org/wiki/Memoization'>Memoization</a>.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> memoizeAll() {
 		return from(Interactive.memoizeAll(it));
 	}
+	/**
+	 * Returns the maximum value of the given iterable source.
+	 * @param <U> the self comparable type
+	 * @return the new iterable
+	 */
+	@SuppressWarnings("unchecked")
+	public <U extends Comparable<? super U>> IterableBuilder<U> min() {
+		return from(Interactive.min((Iterable<U>)it));
+	}
+	/**
+	 * Returns the minimum value of the given iterable source in respect to the supplied comparator.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param comparator the comparator to use
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> min(@Nonnull Comparator<? super T> comparator) {
 		return from(Interactive.min(it, comparator));
 	}
+	/**
+	 * Returns an iterator which will produce a single List of the minimum values encountered
+	 * in the source stream based on the supplied comparator.
+	 * @param comparator the key comparator
+	 * @return the new iterable
+	 */
 	public IterableBuilder<List<T>> minBy(@Nonnull Comparator<? super T> comparator) {
 		return from(Interactive.minBy(it, comparator));
 	}
+	/**
+	 * Returns an iterator which will produce a single List of the minimum values encountered
+	 * in the source stream based on the supplied key selector.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <U> the key type, which must be self-comparable
+	 * @param keySelector the selector for keys
+	 * @return the new iterable
+	 */
 	public <U extends Comparable<? super U>> IterableBuilder<List<T>> minBy(@Nonnull Func1<? super T, U> keySelector) {
 		return from(Interactive.minBy(it, keySelector));
 	}
+	/**
+	 * Returns an iterator which will produce a single List of the minimum values encountered
+	 * in the source stream based on the supplied key selector and comparator.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <U> the key type
+	 * @param keySelector the selector for keys
+	 * @param keyComparator the key comparator
+	 * @return the new iterable
+	 */
 	public <U> IterableBuilder<List<T>> minBy(@Nonnull Func1<? super T, U> keySelector, @Nonnull Comparator<? super U> keyComparator) {
 		return from(Interactive.minBy(it, keySelector, keyComparator));
 	}
+	/**
+	 * Returns an iterator which will produce a single List of the minimum values encountered
+	 * in the source stream based on the supplied key selector.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <U> the source element type, which must be self comparable
+	 * @return the new iterable
+	 */
+	@SuppressWarnings("unchecked")
+	public <U extends Comparable<? super U>> IterableBuilder<List<U>> minxBy() {
+		return from(Interactive.minBy((Iterable<U>)it));
+	}
+	/**
+	 * Returns an iterable which traverses the entire
+	 * source iterable and creates an ordered list
+	 * of elements. Once the source iterator completes,
+	 * the elements are streamed to the output.
+	 * @param comparator the value comparator
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> orderBy(@Nonnull Comparator<? super T> comparator) {
 		return from(Interactive.orderBy(it, comparator));
 	}
+	/**
+	 * Returns an iterable which traverses the entire
+	 * source iterable and creates an ordered list
+	 * of elements. Once the source iterator completes,
+	 * the elements are streamed to the output.
+	 * @param <U> the key type for the ordering, must be self comparable
+	 * @param keySelector the key selector for comparison
+	 * @return the new iterable
+	 */
 	public <U extends Comparable<? super U>> IterableBuilder<T> orderBy(@Nonnull Func1<? super T, ? extends U> keySelector) {
 		return from(Interactive.orderBy(it, keySelector));
 	}
+	/**
+	 * Returns an iterable which traverses the entire
+	 * source iterable and creates an ordered list
+	 * of elements. Once the source iterator completes,
+	 * the elements are streamed to the output.
+	 * @param <U> the key type for the ordering
+	 * @param keySelector the key selector for comparison
+	 * @param keyComparator the key comparator function
+	 * @return the new iterable
+	 */
 	public <U> IterableBuilder<T> orderBy(@Nonnull Func1<? super T, ? extends U> keySelector, @Nonnull Comparator<? super U> keyComparator) {
 		return from(Interactive.orderBy(it, keySelector, keyComparator));
 	}
+	/**
+	 * Applies the <code>func</code> function for a shared instance of the source,
+	 * e.g., <code>func.invoke(share(source))</code>.
+	 * @param <U> the return types
+	 * @param func invoke the function on the buffering iterable and return an iterator over it.
+	 * @return the new iterable
+	 */
 	public <U> IterableBuilder<U> prune(@Nonnull Func1<? super Iterable<? extends T>, ? extends Iterable<U>> func) {
 		return from(Interactive.prune(it, func));
 	}
+	/**
+	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
+	 * how many iterator attaches to it and each iterator see only the same cached values.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for <code>remove()</code> method of its first element, then it might throw for any
+	 * subsequent element, depending on the source iterable.</p>
+	 * @param <U> the return types
+	 * @param func invoke the function on the buffering iterable and return an iterator over it.
+	 * @param initial the initial value to append to the output stream
+	 * @return the new iterable
+	 */
 	public <U> IterableBuilder<U> publish(@Nonnull final Func1<? super Iterable<? super T>, ? extends Iterable<? extends U>> func, 
 			final U initial) {
 		return from(Interactive.publish(it, func, initial));
 	}
+	/**
+	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
+	 * how many iterator attaches to it and each iterator see only the values.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <U> the return types
+	 * @param func invoke the function on the buffering iterable and return an iterator over it.
+	 * @return the new iterable
+	 */
 	public <U> IterableBuilder<U> publish(@Nonnull final Func1<? super Iterable<T>, ? extends Iterable<U>> func) {
 		return from(Interactive.publish(it, func));
 	}
+	/**
+	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
+	 * how many iterator attaches to it and each iterator may only see one source element.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <U> the return types
+	 * @param func invoke the function on the buffering iterable and return an iterator over it.
+	 * @return the new iterable
+	 */
 	public <U> IterableBuilder<U> replay(@Nonnull final Func1<? super Iterable<T>, ? extends Iterable<U>> func) {
 		return from(Interactive.replay(it, func));
 	}
+	/**
+	 * The returned iterable ensures that the source iterable is only traversed once, regardless of
+	 * how many iterator attaches to it and each iterator see only the some cached values.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <U> the return types
+	 * @param func invoke the function on the buffering iterable and return an iterator over it.
+	 * @param bufferSize the buffer size
+	 * @return the new iterable
+	 */
 	public <U> IterableBuilder<U> replay(@Nonnull final Func1<? super Iterable<T>, ? extends Iterable<U>> func, 
 			final int bufferSize) {
 		return from(Interactive.replay(it, func, bufferSize));
 	}
+	/**
+	 * Generates an iterable which acts like a running sum when iterating over the source iterable, e.g.,
+	 * For each element in T, it computes a value by using the current aggregation value and returns it.
+	 * The first call to the aggregator function will receive a zero for its first argument.
+	 * @param <U> the destination element type
+	 * @param aggregator the function which takes the current running aggregation value, the current element and produces a new aggregation value.
+	 * @return the new iterable
+	 */
 	public <U> IterableBuilder<U> scan(@Nonnull final Func2<? super U, ? super T, ? extends U> aggregator) {
 		return from(Interactive.scan(it, aggregator));
 	}
+	/**
+	 * Generates an iterable which acts like a running sum when iterating over the source iterable, e.g.,
+	 * For each element in T, it computes a value by using the current aggregation value and returns it.
+	 * The first call to the aggregator function will receive a zero for its first argument.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
+	 * @param <U> the destination element type
+	 * @param seed the initial value of the running aggregation
+	 * @param aggregator the function which takes the current running aggregation value, the current element and produces a new aggregation value.
+	 * @return the new iterable
+	 */
 	public <U> IterableBuilder<U> scan(final U seed, 
 			@Nonnull final Func2<? super U, ? super T, ? extends U> aggregator) {
 		return from(Interactive.scan(it, seed, aggregator));
@@ -495,32 +899,142 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	public <U> IterableBuilder<U> selectMany(@Nonnull final Func1<? super T, ? extends Iterable<? extends U>> selector) {
 		return from(Interactive.selectMany(it, selector));
 	}
+	/**
+	 * Returns an iterable which ensures the source iterable is
+	 * only traversed once and clients may take values from each other,
+	 * e.g., they share the same iterator.
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> share() {
 		return from(Interactive.share(it));
 	}
+	/**
+	 * Returns an iterable which skips the last <code>num</code> elements from the
+	 * source iterable.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param num the number of elements to skip at the end
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> skipLast(final int num) {
 		return from(Interactive.skipLast(it, num));
 	}
+	/**
+	 * Returns an iterable which prefixes the source iterable values
+	 * by a constant.
+	 * It is equivalent to <code>concat(singleton(value), source)</code>.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method for the first element, and might
+	 * throw for subsequent elements, depending on the source iterable.</p>
+	 * @param value the value to prefix
+	 * @return the new iterable.
+	 */
 	public IterableBuilder<T> startWith(T value) {
 		return from(Interactive.startWith(it, value));
 	}
+	/**
+	 * Computes and signals the sum of the values of the BigDecimal source.
+	 * The source may not send nulls.
+	 * @return the observable for the sum value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<BigDecimal> sumBigDecimal() {
+		return from(Interactive.sumBigDecimal((Iterable<BigDecimal>)it));
+	}
+	/**
+	 * Computes and signals the sum of the values of the BigInteger source.
+	 * The source may not send nulls.
+	 * @return the observable for the sum value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<BigInteger> sumBigInteger() {
+		return from(Interactive.sumBigInteger((Iterable<BigInteger>)it));
+	}
+	/**
+	 * Computes and signals the sum of the values of the Double source.
+	 * The source may not send nulls.
+	 * @return the observable for the sum value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<Double> sumDouble() {
+		return from(Interactive.sumDouble((Iterable<Double>)it));
+	}
+	/**
+	 * Computes and signals the sum of the values of the Float source.
+	 * The source may not send nulls.
+	 * @return the observable for the sum value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<Float> sumFloat() {
+		return from(Interactive.sumFloat((Iterable<Float>)it));
+	}
+	/**
+	 * Computes and signals the sum of the values of the Integer source.
+	 * The source may not send nulls. An empty source produces an empty sum
+	 * @return the observable for the sum value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<Integer> sumInt() {
+		return from(Interactive.sumInt((Iterable<Integer>)it));
+	}
+	/**
+	 * Computes and signals the sum of the values of the Integer source by using
+	 * a double intermediate representation.
+	 * The source may not send nulls. An empty source produces an empty sum
+	 * @return the observable for the sum value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<Double> sumIntAsDouble() {
+		return from(Interactive.sumIntAsDouble((Iterable<Integer>)it));
+	}
+	/**
+	 * Computes and signals the sum of the values of the Long source.
+	 * The source may not send nulls.
+	 * @return the observable for the sum value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<Long> sumLong() {
+		return from(Interactive.sumLong((Iterable<Long>)it));
+	}
+	/**
+	 * Computes and signals the sum of the values of the Long sourceby using
+	 * a double intermediate representation.
+	 * The source may not send nulls.
+	 * @return the observable for the sum value
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public IterableBuilder<Double> sumLongAsDouble() {
+		return from(Interactive.sumLongAsDouble((Iterable<Long>)it));
+	}
+	/**
+	 * Returns the iterable which returns the first <code>num</code> element.
+	 * from the source iterable.
+	 * <p>The returned iterator forwards all <code>remove()</code> calls
+	 * to the source.</p>
+	 * @param num the number of items to take
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> take(int num) {
 		return from(Interactive.take(it, num));
 	}
+	/**
+	 * Returns an iterable which takes only the last <code>num</code> elements from the
+	 * source iterable.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param num the number of elements to skip at the end
+	 * @return the new iterable
+	 */
 	public IterableBuilder<T> takeLast(int num) {
 		return from(Interactive.takeLast(it, num));
-	}
-	/**
-	 * Iterates over and returns all elements in a list.
-	 * @return the list of the values from this iterable
-	 */
-	@Nonnull
-	public List<T> toList() {
-		List<T> result = new ArrayList<T>();
-		for (T t : it) {
-			result.add(t);
-		}
-		return result;
 	}
 	/**
 	 * Returns an object array of all elements in this
@@ -542,6 +1056,18 @@ public final class IterableBuilder<T> implements Iterable<T> {
 		return toList().toArray(a);
 	}
 	/**
+	 * Iterates over and returns all elements in a list.
+	 * @return the list of the values from this iterable
+	 */
+	@Nonnull
+	public List<T> toList() {
+		List<T> result = new ArrayList<T>();
+		for (T t : it) {
+			result.add(t);
+		}
+		return result;
+	}
+	/**
 	 * Converts this iterable into an observable builder
 	 * which uses the default scheduler of {@link hu.akarnokd.reactive4java.reactive.Reactive} to emit values.
 	 * @return the observable builder
@@ -549,6 +1075,7 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	public ObservableBuilder<T> toObservable() {
 		return ObservableBuilder.from(it);
 	}
+	
 	/**
 	 * Converts this iterable into an observable builder
 	 * which uses the supplied Scheduler to emit values. 
