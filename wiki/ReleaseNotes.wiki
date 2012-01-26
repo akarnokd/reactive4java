@@ -8,7 +8,7 @@
   * Fixed maxBy and minBy operators
   * Added a few mission operators
   * Added more helper and conversion functions and actions
-  * Added IterableBuilder and ObservableBuilder classes which let you chain operations.
+  * Added !IterableBuilder and !ObservableBuilder classes which let you chain operations.
 
 = 0.95.1 =
   * Released: 2011-11-08 09:00 CET
