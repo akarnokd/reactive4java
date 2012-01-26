@@ -1818,7 +1818,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the observable
 	 */
 	@Nonnull 
-	public ObservableBuilder<Float> range(
+	public static ObservableBuilder<Float> range(
 			final float start, 
 			final int count, 
 			final float step) {
@@ -1834,7 +1834,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the observable of float
 	 */
 	@Nonnull 
-	public ObservableBuilder<Float> range(
+	public static ObservableBuilder<Float> range(
 			final float start, 
 			final int count, 
 			final float step, 
@@ -1848,7 +1848,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the observable
 	 */
 	@Nonnull 
-	public ObservableBuilder<Integer> range(
+	public static ObservableBuilder<Integer> range(
 			final int start, 
 			final int count) {
 		return from(Reactive.range(start, count));
@@ -1860,7 +1860,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the execution thread pool.
 	 * @return the observable
 	 */
-	public ObservableBuilder<Integer> range(
+	public static ObservableBuilder<Integer> range(
 			final int start, 
 			final int count, 
 			@Nonnull final Scheduler pool) {
@@ -3251,5 +3251,27 @@ public final class ObservableBuilder<T> implements Observable<T> {
 			@Nonnull final Observable<? extends U> right, 
 			@Nonnull final Func2<T, U, V> selector) {
 		return from(Reactive.zip(o, right, selector));
+	}
+	/**
+	 * Runs this observable and prints the values.
+	 * <p>Is the same as using {@code this.run(Reactive.print())}.</p>
+	 */
+	public void print() {
+		try {
+			Reactive.run(o, Reactive.print());
+		} catch (InterruptedException ex) {
+			ex.printStackTrace();
+		}
+	}
+	/**
+	 * Runs this observable and prints the values.
+	 * <p>Is the same as using {@code this.run(Reactive.println())}.</p>
+	 */
+	public void println() {
+		try {
+			Reactive.run(o, Reactive.println());
+		} catch (InterruptedException ex) {
+			ex.printStackTrace();
+		}
 	}
 }

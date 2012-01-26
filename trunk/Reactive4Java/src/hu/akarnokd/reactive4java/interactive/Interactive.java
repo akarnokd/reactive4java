@@ -3993,7 +3993,7 @@ public final class Interactive {
 	 * The source may not send nulls. An empty source produces an empty sum
 	 * @param source the source of integers to aggregate.
 	 * @return the observable for the sum value
-	 * @Since 0.96
+	 * @since 0.96
 	 */
 	@Nonnull 
 	public static Iterable<Double> sumIntAsDouble(

@@ -838,6 +838,26 @@ public final class IterableBuilder<T> implements Iterable<T> {
 		return from(Interactive.replay(it, func, bufferSize));
 	}
 	/**
+	 * Iterates over the given source without using its returned value. 
+	 * This method is useful when the concrete values from the iterator
+	 * are not needed but the iteration itself implies some side effects.
+	 */
+	public void run() {
+		Interactive.run(it);
+	}
+	/**
+	 * Iterate over the source and submit each value to the
+	 * given action. Basically, a for-each loop with pluggable
+	 * action.
+	 * This method is useful when the concrete values from the iterator
+	 * are not needed but the iteration itself implies some side effects.
+	 * @param action the action to invoke on with element
+	 */
+	public void run(
+			@Nonnull final Action1<? super T> action) {
+		Interactive.run(it, action);
+	}
+	/**
 	 * Generates an iterable which acts like a running sum when iterating over the source iterable, e.g.,
 	 * For each element in T, it computes a value by using the current aggregation value and returns it.
 	 * The first call to the aggregator function will receive a zero for its first argument.
@@ -1055,6 +1075,7 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	public T[] toArray(T[] a) {
 		return toList().toArray(a);
 	}
+	
 	/**
 	 * Iterates over and returns all elements in a list.
 	 * @return the list of the values from this iterable
@@ -1075,7 +1096,6 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	public ObservableBuilder<T> toObservable() {
 		return ObservableBuilder.from(it);
 	}
-	
 	/**
 	 * Converts this iterable into an observable builder
 	 * which uses the supplied Scheduler to emit values. 
@@ -1124,5 +1144,19 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	public <U, V> IterableBuilder<V> zip(@Nonnull final Iterable<? extends U> right, 
 			@Nonnull final Func2<? super T, ? super U, ? extends V> combiner) {
 		return from(Interactive.zip(it, right, combiner));
+	}
+	/**
+	 * Runs this iterable and prints the values.
+	 * <p>Is the same as using {@code this.run(Interactive.print())}.</p>
+	 */
+	public void print() {
+		Interactive.run(it, Interactive.print());
+	}
+	/**
+	 * Runs this iterable and prints the values.
+	 * <p>Is the same as using {@code this.run(Interactive.println())}.</p>
+	 */
+	public void println() {
+		Interactive.run(it, Interactive.println());
 	}
 }
