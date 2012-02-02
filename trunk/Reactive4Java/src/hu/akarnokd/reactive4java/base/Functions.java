@@ -21,7 +21,6 @@ import java.lang.ref.Reference;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,16 +46,30 @@ import javax.annotation.Nonnull;
  */
 public final class Functions {
 	/** Constant function returning always false. */
-	private static final Pred1<Void> FALSE1 = new Pred1<Void>() {
+	private static final Pred1<Object> FALSE1 = new Pred1<Object>() {
 		@Override
-		public Boolean invoke(Void param1) {
+		public Boolean invoke(Object param1) {
 			return false;
 		}
 	};
 	/** Constant function returning always true. */
-	private static final Pred1<Void> TRUE1 = new Pred1<Void>() {
+	private static final Pred1<Object> TRUE1 = new Pred1<Object>() {
 		@Override
-		public Boolean invoke(Void param1) {
+		public Boolean invoke(Object param1) {
+			return true;
+		}
+	};
+	/** Constant function returning always false. */
+	private static final Pred2<Object, Object> FALSE2 = new Pred2<Object, Object>() {
+		@Override
+		public Boolean invoke(Object param1, Object param2) {
+			return false;
+		}
+	};
+	/** Constant function returning always true. */
+	private static final Pred2<Object, Object> TRUE2 = new Pred2<Object, Object>() {
+		@Override
+		public Boolean invoke(Object param1, Object param2) {
 			return true;
 		}
 	};
@@ -158,7 +171,7 @@ public final class Functions {
 	 */
 	@SuppressWarnings("unchecked")
 	@Nonnull 
-	public static <T> Pred1<T> alwaysFalse() {
+	public static <T> Pred1<T> alwaysFalse1() {
 		return (Pred1<T>)FALSE1;
 	}
 	/**
@@ -168,8 +181,30 @@ public final class Functions {
 	 */
 	@Nonnull 
 	@SuppressWarnings("unchecked")
-	public static <T> Pred1<T> alwaysTrue() {
+	public static <T> Pred1<T> alwaysTrue1() {
 		return (Pred1<T>)TRUE1;
+	}
+	/**
+	 * Returns a function which always returns false regardless of its parameters.
+	 * @param <T> the type of the parameter (irrelevant)
+	 * @param <U> the type of the parameter (irrelevant)
+	 * @return the function which returns always false
+	 */
+	@SuppressWarnings("unchecked")
+	@Nonnull 
+	public static <T, U> Pred2<T, U> alwaysFalse2() {
+		return (Pred2<T, U>)FALSE2;
+	}
+	/**
+	 * Returns a function which always returns true regardless of its parameters.
+	 * @param <T> the type of the parameter (irrelevant)
+	 * @param <U> the type of the parameter (irrelevant)
+	 * @return the function which returns always true
+	 */
+	@Nonnull 
+	@SuppressWarnings("unchecked")
+	public static <T, U> Pred2<T, U> alwaysTrue2() {
+		return (Pred2<T, U>)TRUE2;
 	}
 	/**
 	 * Wraps the given Func0 object into a callable instance.
@@ -229,7 +264,7 @@ public final class Functions {
 	 * @param result the result to present after the action invocation
 	 * @return the function
 	 */
-	public static <T, U> Func1<T, U> asFunc1(final Action1<T> action, final U result) {
+	public static <T, U> Func1<T, U> asFunc1(final Action1<? super T> action, final U result) {
 		return new Func1<T, U>() {
 			@Override
 			public U invoke(T param1) {
@@ -248,7 +283,7 @@ public final class Functions {
 	 * @param result the result to present after the action invocation
 	 * @return the function
 	 */
-	public static <T, U, V> Func2<T, U, V> asFunc2(final Action2<T, U> action, final V result) {
+	public static <T, U, V> Func2<T, U, V> asFunc2(final Action2<? super T, ? super U> action, final V result) {
 		return new Func2<T, U, V>() {
 			@Override
 			public V invoke(T param1, U param2) {
@@ -961,34 +996,6 @@ public final class Functions {
 		return (Func2<T, T, Boolean>)NULL_SAFE_EQUALS;
 	}
 	/**
-	 * A convenience function which returns a new ArrayList on every invocation.
-	 * <p>May be used with the Reactive.toMultiMap() method.</p>
-	 * @param <T> the element type
-	 * @return the function
-	 */
-	public static <T> Func0<List<T>> listSupplier() {
-		return new Func0<List<T>>() {
-			@Override
-			public List<T> invoke() {
-				return new ArrayList<T>();
-			}
-		};
-	}
-	/**
-	 * A convenience function which returns a new hashSet on every invocation.
-	 * <p>May be used with the Reactive.toMultiMap() method.</p>
-	 * @param <T> the element type
-	 * @return the function
-	 */
-	public static <T> Func0<Set<T>> setSupplier() {
-		return new Func0<Set<T>>() {
-			@Override
-			public Set<T> invoke() {
-				return new HashSet<T>();
-			}
-		};
-	}
-	/**
 	 * Creates a single parameter function which returns values from the given map.
 	 * @param <K> the key type
 	 * @param <V> the value type
@@ -1035,7 +1042,7 @@ public final class Functions {
 	 * @return the created function
 	 * @since 0.96
 	 */
-	public static <K> Func1<K, Boolean> asFunc1(final Collection<? extends K> set) {
+	public static <K> Func1<K, Boolean> asFunc1(final Set<? super K> set) {
 		return new Pred1<K>() {
 			@Override
 			public Boolean invoke(K param1) {
@@ -1224,6 +1231,39 @@ public final class Functions {
 		};
 	}
 	/**
+	 * Wrap the given two dimensional array into a function which
+	 * returns the {@code param1, param2} element. 
+	 * @param values the values
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static Func2<Integer, Integer, Long> asFunc2(@Nonnull final long[][] values) {
+		return new Func2<Integer, Integer, Long>() {
+			@Override
+			public Long invoke(Integer param1, Integer param2) {
+				return values[param1][param2];
+			}
+		};
+	}
+	/**
+	 * Wrap the given two dimensional array into a function which
+	 * returns the {@code param1, param2} element.
+	 * @param <T> the element type 
+	 * @param values the values
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static <T> Func2<Integer, Integer, T> asFunc2(@Nonnull final T[][] values) {
+		return new Func2<Integer, Integer, T>() {
+			@Override
+			public T invoke(Integer param1, Integer param2) {
+				return values[param1][param2];
+			}
+		};
+	}
+	/**
 	 * Wrap the given one dimensional array into a function which
 	 * returns the {@code param1} element. 
 	 * @param values the values
@@ -1247,6 +1287,22 @@ public final class Functions {
 	 * @since 0.96.1
 	 */
 	@Nonnull 
+	public static Func1<Integer, Long> asFunc1(@Nonnull final long... values) {
+		return new Func1<Integer, Long>() {
+			@Override
+			public Long invoke(Integer param1) {
+				return values[param1];
+			}
+		};
+	}
+	/**
+	 * Wrap the given one dimensional array into a function which
+	 * returns the {@code param1} element. 
+	 * @param values the values
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
 	public static Func1<Integer, Integer> asFunc1(@Nonnull final int... values) {
 		return new Func1<Integer, Integer>() {
 			@Override
@@ -1257,34 +1313,66 @@ public final class Functions {
 	}
 	/**
 	 * Wrap the given list into a function which
-	 * returns the {@code param1} element. 
+	 * returns the {@code param1} element.
+	 * @param <T> the element type 
 	 * @param values the values
 	 * @return the function
 	 * @since 0.96.1
 	 */
 	@Nonnull 
-	public static Func1<Integer, Double> asDoubleFunc1(@Nonnull final List<Double> values) {
-		return new Func1<Integer, Double>() {
+	public static <T> Func1<Integer, T> asFunc1(@Nonnull final List<? extends T> values) {
+		return new Func1<Integer, T>() {
 			@Override
-			public Double invoke(Integer param1) {
+			public T invoke(Integer param1) {
 				return values.get(param1);
 			}
 		};
 	}
 	/**
-	 * Wrap the given list into a function which
-	 * returns the {@code param1} element. 
+	 * Wrap the given list of number into a function which
+	 * returns the {@code param1} element as double.
 	 * @param values the values
 	 * @return the function
 	 * @since 0.96.1
 	 */
 	@Nonnull 
-	public static Func1<Integer, Integer> asIntFunc1(
-			@Nonnull final List<Integer> values) {
+	public static Func1<Integer, Double> asDoubleFunc1(@Nonnull final List<? extends Number> values) {
+		return new Func1<Integer, Double>() {
+			@Override
+			public Double invoke(Integer param1) {
+				return values.get(param1).doubleValue();
+			}
+		};
+	}
+	/**
+	 * Wrap the given list of number into a function which
+	 * returns the {@code param1} element as int.
+	 * @param values the values
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static Func1<Integer, Integer> asIntFunc1(@Nonnull final List<? extends Number> values) {
 		return new Func1<Integer, Integer>() {
 			@Override
 			public Integer invoke(Integer param1) {
-				return values.get(param1);
+				return values.get(param1).intValue();
+			}
+		};
+	}
+	/**
+	 * Wrap the given list of number into a function which
+	 * returns the {@code param1} element as long.
+	 * @param values the values
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static Func1<Integer, Long> asLongFunc1(@Nonnull final List<? extends Number> values) {
+		return new Func1<Integer, Long>() {
+			@Override
+			public Long invoke(Integer param1) {
+				return values.get(param1).longValue();
 			}
 		};
 	}
@@ -1545,6 +1633,158 @@ public final class Functions {
 			@Override
 			public V invoke(T param1, U param2) {
 				return f.invoke();
+			}
+		};
+	}
+	/**
+	 * Creates a constant function which always returns the given
+	 * value regardless of the parameters.
+	 * @param <T> the first parameter type, irrelevant
+	 * @param <U> the second parameter type, irrelevant
+	 * @param <V> the return type
+	 * @param value the value to return
+	 * @return the created function
+	 */
+	public static <T, U, V> Func2<T, U, V> constant2(final V value) {
+		return new Func2<T, U, V>() {
+			@Override
+			public V invoke(T param1, U param2) {
+				return value;
+			};
+		};
+	}
+	/**
+	 * Wraps the given Runnable into a function which calls the
+	 * action and then returns the <code>result</code> value.
+	 * @param <T> the result type
+	 * @param action the action to invoke
+	 * @param result the result to present after the action invocation
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	public static <T> Func0<T> asFunc0(final Runnable action, final T result) {
+		return new Func0<T>() {
+			@Override
+			public T invoke() {
+				action.run();
+				return result;
+			};
+		};
+	}
+	/**
+	 * Wraps the given Runnable into a function which calls the
+	 * action and then returns the <code>result</code> value.
+	 * @param <T> the parameter type, irrelevant
+	 * @param <U> the result type
+	 * @param action the action to invoke
+	 * @param result the result to present after the action invocation
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	public static <T, U> Func1<T, U> asFunc1(final Runnable action, final U result) {
+		return new Func1<T, U>() {
+			@Override
+			public U invoke(T param1) {
+				action.run();
+				return result;
+			};
+		};
+	}
+	/**
+	 * Wraps the given action into a function which calls the
+	 * action and then returns the <code>result</code> value.
+	 * @param <T> the parameter type, irrelevant
+	 * @param <U> the result type
+	 * @param action the action to invoke
+	 * @param result the result to present after the action invocation
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	public static <T, U> Func1<T, U> asFunc1(final Action0 action, final U result) {
+		return new Func1<T, U>() {
+			@Override
+			public U invoke(T param1) {
+				action.invoke();
+				return result;
+			};
+		};
+	}
+	/**
+	 * Wraps the given callable function into a 1 parameter function.
+	 * <p>If the callable throws an exception, it gets wrapped into RuntimeException and gets rethrown.</p>
+	 * @param <T> the function parameter type, irrelevant
+	 * @param <U> the return type
+	 * @param call the callable instance
+	 * @return the new function
+	 */
+	public static <T, U> Func1<T, U> asFunc1(@Nonnull final Callable<? extends U> call) {
+		return new Func1<T, U>() {
+			@Override
+			public U invoke(T param1) {
+				try {
+					return call.call();
+				} catch (Exception ex) {
+					throw new RuntimeException(ex);
+				}
+			}
+		};
+	}
+	/**
+	 * Wraps the given callable function into a 2 parameter function.
+	 * <p>If the callable throws an exception, it gets wrapped into RuntimeException and gets rethrown.</p>
+	 * @param <T> the function first parameter type, irrelevant
+	 * @param <U> the function second parameter type, irrelevant
+	 * @param <V> the return type
+	 * @param call the callable instance
+	 * @return the new function
+	 */
+	public static <T, U, V> Func2<T, U, V> asFunc2(@Nonnull final Callable<? extends V> call) {
+		return new Func2<T, U, V>() {
+			@Override
+			public V invoke(T param1, U param2) {
+				try {
+					return call.call();
+				} catch (Exception ex) {
+					throw new RuntimeException(ex);
+				}
+			}
+		};
+	}
+	/**
+	 * Wraps the given action into a 2 parameter function which returns the supplied value.
+	 * <p>If the callable throws an exception, it gets wrapped into RuntimeException and gets rethrown.</p>
+	 * @param <T> the function first parameter type, irrelevant
+	 * @param <U> the function second parameter type, irrelevant
+	 * @param <V> the return type
+	 * @param action the action to invoke
+	 * @param value the value to return
+	 * @return the new function
+	 */
+	public static <T, U, V> Func2<T, U, V> asFunc2(@Nonnull final Action0 action, final V value) {
+		return new Func2<T, U, V>() {
+			@Override
+			public V invoke(T param1, U param2) {
+				action.invoke();
+				return value;
+			}
+		};
+	}
+	/**
+	 * Wraps the given Runnable into a 2 parameter function which returns the supplied value.
+	 * <p>If the callable throws an exception, it gets wrapped into RuntimeException and gets rethrown.</p>
+	 * @param <T> the function first parameter type, irrelevant
+	 * @param <U> the function second parameter type, irrelevant
+	 * @param <V> the return type
+	 * @param action the action to invoke
+	 * @param value the value to return
+	 * @return the new function
+	 */
+	public static <T, U, V> Func2<T, U, V> asFunc2(@Nonnull final Runnable action, final V value) {
+		return new Func2<T, U, V>() {
+			@Override
+			public V invoke(T param1, U param2) {
+				action.run();
+				return value;
 			}
 		};
 	}

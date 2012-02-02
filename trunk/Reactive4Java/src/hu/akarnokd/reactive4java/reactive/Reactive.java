@@ -432,7 +432,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> Observable<Boolean> any(
 			@Nonnull final Observable<T> source) {
-		return any(source, Functions.alwaysTrue());
+		return any(source, Functions.alwaysTrue1());
 	}
 	/**
 	 * Signals a single TRUE if the source signals any next() and the value matches the predicate before it signals a finish().

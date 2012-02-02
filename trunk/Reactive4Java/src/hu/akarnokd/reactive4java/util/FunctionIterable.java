@@ -158,7 +158,7 @@ public final class FunctionIterable {
 	 * @return the function of function of option of T
 	 */
 	public static <T> Func0<Func0<Option<T>>> emptyAna() {
-		Func1<T, Boolean> condition = Functions.alwaysFalse(); // type inference issues
+		Func1<T, Boolean> condition = Functions.alwaysFalse1(); // type inference issues
 		return ana(null, condition, null);
 	}
 	/**

@@ -125,7 +125,7 @@ public final class ActionObservable {
 	 * @return the action to action to option
 	 */
 	public static <T> Action1<Action1<Option<T>>> emptyAna() {
-		Func1<T, Boolean> condition = Functions.alwaysFalse();
+		Func1<T, Boolean> condition = Functions.alwaysFalse1();
 		return ana(null, condition, null);
 	}
 	/**
