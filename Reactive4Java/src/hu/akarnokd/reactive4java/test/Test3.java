@@ -91,7 +91,7 @@ public final class Test3 {
 		});
 		
 		AtomicBoolean sw = new AtomicBoolean(true);
-		Reactive.ifThen(Functions.atomicSource(sw), tss, tss2).register(Reactive.println());
+		Reactive.ifThen(Functions.asFunc0(sw), tss, tss2).register(Reactive.println());
 		Thread.sleep(3000);
 		sw.set(false);
 		
