@@ -22,11 +22,17 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -1034,6 +1040,344 @@ public final class Functions {
 			public Boolean invoke(K param1) {
 				return set.contains(param1);
 			};
+		};
+	}
+	/**
+	 * A list creator factory.
+	 * @param <T> the value type
+	 * @return a function which creates a new empty instance of the given concrete list implementation.
+	 * @since 0.96.1
+	 */
+	public static <T> Func0<ArrayList<T>> arrayListProvider() {
+		return new Func0<ArrayList<T>>() {
+			@Override
+			public ArrayList<T> invoke() {
+				return new ArrayList<T>();
+			}
+		};
+	}
+	/**
+	 * A list creator factory.
+	 * @param <T> the value type
+	 * @return a function which creates a new empty instance of the given concrete list implementation.
+	 * @since 0.96.1
+	 */
+	public static <T> Func0<LinkedList<T>> linkedListProvider() {
+		return new Func0<LinkedList<T>>() {
+			@Override
+			public LinkedList<T> invoke() {
+				return new LinkedList<T>();
+			}
+		};
+	}
+	/**
+	 * A map creator factory.
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @return a function which creates a new empty instance of the given concrete map implementation.
+	 * @since 0.96.1
+	 */
+	public static <K, V> Func0<HashMap<K, V>> hashMapProvider() {
+		return new Func0<HashMap<K, V>>() {
+			@Override
+			public HashMap<K, V> invoke() {
+				return new HashMap<K, V>();
+			}
+		};
+	}
+	/**
+	 * A map creator factory.
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @return a function which creates a new empty instance of the given concrete map implementation.
+	 * @since 0.96.1
+	 */
+	public static <K, V> Func0<TreeMap<K, V>> treeMapProvider() {
+		return new Func0<TreeMap<K, V>>() {
+			@Override
+			public TreeMap<K, V> invoke() {
+				return new TreeMap<K, V>();
+			}
+		};
+	}
+	/**
+	 * A map creator factory.
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @param keyComparator the key comparator function
+	 * @return a function which creates a new empty instance of the given concrete map implementation.
+	 * @since 0.96.1
+	 */
+	public static <K, V> Func0<TreeMap<K, V>> treeMapProvider(@Nonnull final Comparator<? super K> keyComparator) {
+		return new Func0<TreeMap<K, V>>() {
+			@Override
+			public TreeMap<K, V> invoke() {
+				return new TreeMap<K, V>(keyComparator);
+			}
+		};
+	}
+	/**
+	 * A map creator factory.
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @return a function which creates a new empty instance of the given concrete map implementation.
+	 * @since 0.96.1
+	 */
+	public static <K, V> Func0<LinkedHashMap<K, V>> linkedHashMapProvider() {
+		return new Func0<LinkedHashMap<K, V>>() {
+			@Override
+			public LinkedHashMap<K, V> invoke() {
+				return new LinkedHashMap<K, V>();
+			}
+		};
+	}
+	/**
+	 * A map creator factory.
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @return a function which creates a new empty instance of the given concrete map implementation.
+	 * @since 0.96.1
+	 */
+	public static <K, V> Func0<ConcurrentHashMap<K, V>> concurrentHashMapProvider() {
+		return new Func0<ConcurrentHashMap<K, V>>() {
+			@Override
+			public ConcurrentHashMap<K, V> invoke() {
+				return new ConcurrentHashMap<K, V>();
+			}
+		};
+	}
+	/**
+	 * A set creation provider.
+	 * @param <T> the element type
+	 * @return the function which creates an empty instance of the set
+	 * @since 0.96.1
+	 */
+	public static <T> Func0<HashSet<T>> hashSetProvider() {
+		return new Func0<HashSet<T>>() {
+			@Override
+			public HashSet<T> invoke() {
+				return new HashSet<T>();
+			}
+		};
+	}
+	/**
+	 * A set creation provider.
+	 * @param <T> the element type
+	 * @return the function which creates an empty instance of the set
+	 * @since 0.96.1
+	 */
+	public static <T> Func0<TreeSet<T>> treeSetProvider() {
+		return new Func0<TreeSet<T>>() {
+			@Override
+			public TreeSet<T> invoke() {
+				return new TreeSet<T>();
+			}
+		};
+	}
+	/**
+	 * A set creation provider.
+	 * @param <T> the element type
+	 * @param elementComparator the custom element comparator
+	 * @return the function which creates an empty instance of the set
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static <T> Func0<TreeSet<T>> treeSetProvider(@Nonnull final Comparator<? super T> elementComparator) {
+		return new Func0<TreeSet<T>>() {
+			@Override
+			public TreeSet<T> invoke() {
+				return new TreeSet<T>(elementComparator);
+			}
+		};
+	}
+	/**
+	 * Wrap the given two dimensional array into a function which
+	 * returns the {@code param1, param2} element. 
+	 * @param values the values
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static Func2<Integer, Integer, Double> asFunc2(@Nonnull final double[][] values) {
+		return new Func2<Integer, Integer, Double>() {
+			@Override
+			public Double invoke(Integer param1, Integer param2) {
+				return values[param1][param2];
+			}
+		};
+	}
+	/**
+	 * Wrap the given two dimensional array into a function which
+	 * returns the {@code param1, param2} element. 
+	 * @param values the values
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static Func2<Integer, Integer, Integer> asFunc2(@Nonnull final int[][] values) {
+		return new Func2<Integer, Integer, Integer>() {
+			@Override
+			public Integer invoke(Integer param1, Integer param2) {
+				return values[param1][param2];
+			}
+		};
+	}
+	/**
+	 * Wrap the given one dimensional array into a function which
+	 * returns the {@code param1} element. 
+	 * @param values the values
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static Func1<Integer, Double> asFunc1(@Nonnull final double... values) {
+		return new Func1<Integer, Double>() {
+			@Override
+			public Double invoke(Integer param1) {
+				return values[param1];
+			}
+		};
+	}
+	/**
+	 * Wrap the given one dimensional array into a function which
+	 * returns the {@code param1} element. 
+	 * @param values the values
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static Func1<Integer, Integer> asFunc1(@Nonnull final int... values) {
+		return new Func1<Integer, Integer>() {
+			@Override
+			public Integer invoke(Integer param1) {
+				return values[param1];
+			}
+		};
+	}
+	/**
+	 * Wrap the given list into a function which
+	 * returns the {@code param1} element. 
+	 * @param values the values
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static Func1<Integer, Double> asDoubleFunc1(@Nonnull final List<Double> values) {
+		return new Func1<Integer, Double>() {
+			@Override
+			public Double invoke(Integer param1) {
+				return values.get(param1);
+			}
+		};
+	}
+	/**
+	 * Wrap the given list into a function which
+	 * returns the {@code param1} element. 
+	 * @param values the values
+	 * @return the function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static Func1<Integer, Integer> asIntFunc1(
+			@Nonnull final List<Integer> values) {
+		return new Func1<Integer, Integer>() {
+			@Override
+			public Integer invoke(Integer param1) {
+				return values.get(param1);
+			}
+		};
+	}
+	/**
+	 * Returns a function which takes the logical and of the given two functions when invoked.
+	 * @param <T> the element type
+	 * @param f1 the first function
+	 * @param f2 the second function
+	 * @return the combined function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static <T> Func1<T, Boolean> and(
+			@Nonnull final Func1<? super T, Boolean> f1, 
+			@Nonnull final Func1<? super T, Boolean> f2) {
+		return new Func1<T, Boolean>() {
+			@Override
+			public Boolean invoke(T param1) {
+				return f1.invoke(param1) && f2.invoke(param1);
+			}
+		};
+	}
+	/**
+	 * Returns a function which takes the logical and of the given two functions when invoked.
+	 * @param <T> the element type
+	 * @param f1 the first function
+	 * @param f2 the second function
+	 * @return the combined function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static <T> Func1<T, Boolean> or(
+			@Nonnull final Func1<? super T, Boolean> f1, 
+			@Nonnull final Func1<? super T, Boolean> f2) {
+		return new Func1<T, Boolean>() {
+			@Override
+			public Boolean invoke(T param1) {
+				return f1.invoke(param1) || f2.invoke(param1);
+			}
+		};
+	}
+	/**
+	 * Returns a function which takes the logical and of the given two functions when invoked.
+	 * @param <T> the element type
+	 * @param f1 the first function
+	 * @param f2 the second function
+	 * @return the combined function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static <T> Func1<T, Boolean> xor(
+			@Nonnull final Func1<? super T, Boolean> f1, 
+			@Nonnull final Func1<? super T, Boolean> f2) {
+		return new Func1<T, Boolean>() {
+			@Override
+			public Boolean invoke(T param1) {
+				return f1.invoke(param1) ^ f2.invoke(param1);
+			}
+		};
+	}
+	/**
+	 * Returns a function which creates the logical not of the wrapped function value for value t:T.
+	 * @param <T> the parameter type
+	 * @param f the function to wrap
+	 * @return the new function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static <T> Func1<T, Boolean> not(
+			@Nonnull final Func1<? super T, Boolean> f) {
+		return new Pred1<T>() {
+			@Override
+			public Boolean invoke(T param1) {
+				return !f.invoke(param1);
+			}
+		};
+	}
+	/**
+	 * Returns a function which creates the logical not of the wrapped function value for value 
+	 * t:T and u:U.
+	 * @param <T> the first parameter type
+	 * @param <U> the second parameter type
+	 * @param f the function to wrap
+	 * @return the new function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static <T, U> Func2<T, U, Boolean> not(
+			@Nonnull final Func2<? super T, ? super U, Boolean> f) {
+		return new Pred2<T, U>() {
+			@Override
+			public Boolean invoke(T param1, U param2) {
+				return !f.invoke(param1, param2);
+			}
 		};
 	}
 	/** Utility class. */
