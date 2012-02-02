@@ -4029,6 +4029,28 @@ public final class Interactive {
 				Functions.<Double, Integer>identityFirst()
 			);
 	}
+	/**
+	 * Creates an iterable which traverses the source iterable,
+	 * and based on the key selector, groups values of T into GroupedIterables,
+	 * which can be interated over later on.
+	 * The equivalence of the keys are determined via reference
+	 * equality and <code>equals()</code> equality.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <T> the source element type
+	 * @param <V> the result group keys
+	 * @param source the source of Ts
+	 * @param keySelector the key selector
+	 * @return the new iterable
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static <T, V> Iterable<GroupedIterable<V, T>> groupBy(
+			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Func1<? super T, ? extends V> keySelector
+			) {
+		return groupBy(source, keySelector, Functions.<T>identity());
+	}
 	/** Utility class. */
 	private Interactive() {
 		// utility class

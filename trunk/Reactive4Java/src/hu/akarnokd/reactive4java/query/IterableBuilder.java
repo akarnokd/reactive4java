@@ -32,9 +32,11 @@ import hu.akarnokd.reactive4java.reactive.Reactive;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 
@@ -536,9 +538,74 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 * @param keySelector the key selector
 	 * @param valueSelector the value selector
 	 * @return the new iterable
+	 * @since 0.96.1
 	 */
-	public <K, V> IterableBuilder<GroupedIterable<K, V>> groupBy(@Nonnull final Func1<T, K> keySelector, final Func1<T, V> valueSelector) {
+	public <K, V> IterableBuilder<GroupedIterable<K, V>> groupBy0(
+			@Nonnull final Func1<? super T, ? extends K> keySelector, 
+			final Func1<? super T, ? extends V> valueSelector) {
 		return from(Interactive.groupBy(it, keySelector, valueSelector));
+	}
+	/**
+	 * Creates an iterable which traverses the source iterable,
+	 * and based on the key selector, groups values the elements into GroupedIterables,
+	 * which can be interated over later on.
+	 * The equivalence of the keys are determined via reference
+	 * equality and <code>equals()</code> equality.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <K> the result group element type
+	 * @param keySelector the key selector
+	 * @return the new iterable
+	 * @since 0.96.1
+	 */
+	public <K> IterableBuilder<GroupedIterable<K, T>> groupBy0(
+			@Nonnull final Func1<? super T, ? extends K> keySelector) {
+		return from(Interactive.groupBy(it, keySelector, Functions.<T>identity()));
+	}
+	/**
+	 * Creates an iterable which traverses the source iterable,
+	 * and based on the key selector, groups values the elements into GroupedIterables,
+	 * which can be interated over later on.
+	 * The equivalence of the keys are determined via reference
+	 * equality and <code>equals()</code> equality.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <K> the result group element type
+	 * @param keySelector the key selector
+	 * @return the new iterable
+	 * @since 0.96.1
+	 */
+	public <K> IterableBuilder<Pair<K, IterableBuilder<T>>> groupBy(
+			@Nonnull final Func1<? super T, ? extends K> keySelector) {
+		return groupBy(keySelector, Functions.<T>identity());
+	}
+	/**
+	 * Creates an iterable which traverses the source iterable,
+	 * and based on the key selector, groups values extracted by valueSelector into 
+	 * a pair of Key and IterableBuilder instances,
+	 * which can be interated over later on.
+	 * The equivalence of the keys are determined via reference
+	 * equality and <code>equals()</code> equality.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <K> the result group element type
+	 * @param <V> the result group keys
+	 * @param keySelector the key selector
+	 * @param valueSelector the value selector
+	 * @return the new iterable
+	 * @since 0.96.1
+	 */
+	public <K, V> IterableBuilder<Pair<K, IterableBuilder<V>>> groupBy(
+			@Nonnull final Func1<? super T, ? extends K> keySelector, 
+			final Func1<? super T, ? extends V> valueSelector) {
+		return from(Interactive.select(Interactive.groupBy(it, keySelector, valueSelector), 
+				new Func1<GroupedIterable<K, V>, Pair<K, IterableBuilder<V>>>() { 
+			@Override
+			public Pair<K, IterableBuilder<V>> invoke(
+					GroupedIterable<K, V> param1) {
+				return Pair.of(param1.key(), from(param1));
+			}
+		}));
 	}
 	/**
 	 * Construct a new iterable which will invoke the specified action
@@ -1158,5 +1225,101 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 */
 	public void println() {
 		Interactive.run(it, Interactive.println());
+	}
+	/**
+	 * Convert the iterable values into a map representation.
+	 * <p>If an element maps to the same key, the existing value will be overwritten.</p>
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @param keySelector the function to extract a key from an element
+	 * @param valueSelector the function to extract a value from an element
+	 * @param mapProvider the map provider
+	 * @return the filled-in map.
+	 * @since 0.96.1
+	 */
+	public <K, V> Map<K, V> toMap(
+			Func1<? super T, ? extends K> keySelector, 
+			Func1<? super T, ? extends V> valueSelector,
+			Func0<? extends Map<K, V>> mapProvider) {
+		Map<K, V> map = mapProvider.invoke();
+		for (T t : it) {
+			K key = keySelector.invoke(t);
+			V value = valueSelector.invoke(t);
+			map.put(key, value);
+		}
+		return map;
+	}
+	/**
+	 * Convert the iterable values into a map representation.
+	 * <p>If an element maps to the same key, the existing value will be overwritten.</p>
+	 * <p>See Functions.hashMapProvider() and others for some standard map implementations.</p>
+	 * @param <K> the key type
+	 * @param keySelector the function to extract a key from an element
+	 * @param mapProvider the map provider
+	 * @return the filled-in map.
+	 * @since 0.96.1
+	 */
+	public <K> Map<K, T> toMap(
+			Func1<? super T, ? extends K> keySelector,
+			Func0<? extends Map<K, T>> mapProvider) {
+		return toMap(keySelector, Functions.<T>identity(), mapProvider);
+	}
+	/**
+	 * Convert the values into a multimap representation where each
+	 * key can have multiple values.
+	 * <p>See Functions.hashMapProvider(), Functions.arrayListProvider()
+	 * and others for some standard map implementations.</p>
+	 * @param <K> the key type
+	 * @param <V> the value type
+	 * @param <C> the collection type
+	 * @param keySelector the key selector
+	 * @param valueSelector the value selector
+	 * @param mapProvider the provider for the base map
+	 * @param collectionProvider the provider for the value collection
+	 * @return the multimap
+	 * @since 0.96.1
+	 */
+	public <K, V, C extends Collection<V>> Map<K, C> toMultimap(
+			Func1<? super T, ? extends K> keySelector, 
+			Func1<? super T, ? extends V> valueSelector,
+			Func0<? extends Map<K, C>> mapProvider,
+			Func0<? extends C> collectionProvider) {
+		Map<K, C> result = mapProvider.invoke();
+		for (T t : it) {
+			K key = keySelector.invoke(t);
+			V value = valueSelector.invoke(t);
+			
+			C coll = result.get(key);
+			if (coll == null) {
+				coll = collectionProvider.invoke();
+				result.put(key, coll);
+			}
+			coll.add(value);
+		}
+		return result;
+	}
+	/**
+	 * Convinience method to create a hashmap from the elements.
+	 * @param <K> the key type
+	 * @param keySelector the key selector
+	 * @return the map
+	 * @since 0.96.1
+	 */
+	public <K> Map<K, T> toHashMap(Func1<? super T, ? extends K> keySelector) {
+		return toMap(keySelector, Functions.<T>identity(), Functions.<K, T>hashMapProvider());
+	}
+	/**
+	 * Convinience method to create a hash-multimap with list from the elements.
+	 * @param <K> the key type
+	 * @param keySelector the key selector
+	 * @return the multimap
+	 * @since 0.96.1
+	 */
+	public <K> Map<K, List<T>> toHashMultimap(Func1<? super T, ? extends K> keySelector) {
+		return toMultimap(
+				keySelector, 
+				Functions.<T>identity(), 
+				Functions.<K, List<T>>hashMapProvider(), 
+				Functions.<T>arrayListProvider());
 	}
 }
