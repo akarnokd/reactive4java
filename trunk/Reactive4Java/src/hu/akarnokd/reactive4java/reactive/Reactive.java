@@ -4603,7 +4603,7 @@ public final class Reactive {
 	public static <T> Observable<T> relayUntil(
 			@Nonnull final Observable<? extends T> source, 
 			@Nonnull final Func0<Boolean> condition) {
-		return relayWhile(source, Functions.negate(condition));
+		return relayWhile(source, Functions.not(condition));
 	}
 	/**
 	 * Relay the stream of Ts until condition turns into false.

@@ -17,6 +17,7 @@
 package hu.akarnokd.reactive4java.base;
 
 import java.io.Closeable;
+import java.lang.ref.Reference;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -210,7 +211,7 @@ public final class Functions {
 	 * @param result the result to present after the action invocation
 	 * @return the function
 	 */
-	public static <T> Func0<T> asFunc1(final Action0 action, final T result) {
+	public static <T> Func0<T> asFunc0(final Action0 action, final T result) {
 		return new Func0<T>() {
 			@Override
 			public T invoke() {
@@ -263,7 +264,7 @@ public final class Functions {
 	 * @return the Func0 function wrapping the call
 	 */
 	@Nonnull 
-	public static <T> Func0<T> asFunction(
+	public static <T> Func0<T> asFunc0(
 			@Nonnull final Callable<? extends T> call) {
 		return new Func0<T>() {
 			@Override
@@ -283,7 +284,7 @@ public final class Functions {
 	 * @return the wrapped comparator
 	 */
 	@Nonnull 
-	public static <T> Func2<T, T, Integer> asFunction(
+	public static <T> Func2<T, T, Integer> asFunc2(
 			@Nonnull final Comparator<? super T> comparator) {
 		return new Func2<T, T, Integer>() {
 			@Override
@@ -298,7 +299,7 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static Func0<Boolean> atomicSource(
+	public static Func0<Boolean> asFunc0(
 			@Nonnull final AtomicBoolean source) {
 		return new Func0<Boolean>() {
 			@Override
@@ -313,7 +314,7 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static Func0<Integer> atomicSource(
+	public static Func0<Integer> asFunc0(
 			@Nonnull final AtomicInteger source) {
 		return new Func0<Integer>() {
 			@Override
@@ -328,7 +329,7 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static Func0<Long> atomicSource(
+	public static Func0<Long> asFunc0(
 			@Nonnull final AtomicLong source) {
 		return new Func0<Long>() {
 			@Override
@@ -344,7 +345,7 @@ public final class Functions {
 	 * @return the function
 	 */
 	@Nonnull 
-	public static <T> Func0<T> atomicSource(
+	public static <T> Func0<T> asFunc0(
 			@Nonnull final AtomicReference<? extends T> source) {
 		return new Func0<T>() {
 			@Override
@@ -856,7 +857,7 @@ public final class Functions {
 	 * @return the wrapped negator function
 	 */
 	@Nonnull 
-	public static Func0<Boolean> negate(
+	public static Func0<Boolean> not(
 			@Nonnull final Func0<Boolean> func) {
 		return new Func0<Boolean>() {
 			@Override
@@ -1288,8 +1289,8 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Returns a function which takes the logical and of the given two functions when invoked.
-	 * @param <T> the element type
+	 * Returns a function which takes the logical AND of the given two functions when invoked.
+	 * @param <T> the parameter type
 	 * @param f1 the first function
 	 * @param f2 the second function
 	 * @return the combined function
@@ -1307,7 +1308,7 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Returns a function which takes the logical and of the given two functions when invoked.
+	 * Returns a function which takes the logical OR of the given two functions when invoked.
 	 * @param <T> the element type
 	 * @param f1 the first function
 	 * @param f2 the second function
@@ -1326,7 +1327,7 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Returns a function which takes the logical and of the given two functions when invoked.
+	 * Returns a function which takes the logical XOR of the given two functions when invoked.
 	 * @param <T> the element type
 	 * @param f1 the first function
 	 * @param f2 the second function
@@ -1341,6 +1342,66 @@ public final class Functions {
 			@Override
 			public Boolean invoke(T param1) {
 				return f1.invoke(param1) ^ f2.invoke(param1);
+			}
+		};
+	}
+	/**
+	 * Returns a function which takes the logical AND of the given two functions when invoked.
+	 * @param <T> the first parameter type
+	 * @param <U> the second parameter type
+	 * @param f1 the first function
+	 * @param f2 the second function
+	 * @return the combined function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static <T, U> Func2<T, U, Boolean> and(
+			@Nonnull final Func2<? super T, ? super U, Boolean> f1, 
+			@Nonnull final Func2<? super T, ? super U, Boolean> f2) {
+		return new Pred2<T, U>() {
+			@Override
+			public Boolean invoke(T param1, U param2) {
+				return f1.invoke(param1, param2) && f2.invoke(param1, param2);
+			}
+		};
+	}
+	/**
+	 * Returns a function which takes the logical OR of the given two functions when invoked.
+	 * @param <T> the first parameter type
+	 * @param <U> the second parameter type
+	 * @param f1 the first function
+	 * @param f2 the second function
+	 * @return the combined function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static <T, U> Func2<T, U, Boolean> or(
+			@Nonnull final Func2<? super T, ? super U, Boolean> f1, 
+			@Nonnull final Func2<? super T, ? super U, Boolean> f2) {
+		return new Pred2<T, U>() {
+			@Override
+			public Boolean invoke(T param1, U param2) {
+				return f1.invoke(param1, param2) || f2.invoke(param1, param2);
+			}
+		};
+	}
+	/**
+	 * Returns a function which takes the logical XOR of the given two functions when invoked.
+	 * @param <T> the first parameter type
+	 * @param <U> the second parameter type
+	 * @param f1 the first function
+	 * @param f2 the second function
+	 * @return the combined function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static <T, U> Func2<T, U, Boolean> xor(
+			@Nonnull final Func2<? super T, ? super U, Boolean> f1, 
+			@Nonnull final Func2<? super T, ? super U, Boolean> f2) {
+		return new Pred2<T, U>() {
+			@Override
+			public Boolean invoke(T param1, U param2) {
+				return f1.invoke(param1, param2) ^ f2.invoke(param1, param2);
 			}
 		};
 	}
@@ -1380,8 +1441,114 @@ public final class Functions {
 			}
 		};
 	}
+	/**
+	 * Wrap the given reference into a function.
+	 * <p>Note that the references may return null if their
+	 * contained object gets garbage collected.</p>
+	 * @param <T> the referenced object type
+	 * @param ref the reference object
+	 * @return the function
+	 */
+	public static <T> Func0<T> asFunc0(@Nonnull final Reference<? extends T> ref) {
+		return new Func0<T>() {
+			@Override
+			public T invoke() {
+				return ref.get();
+			}
+		};
+	}
+	/**
+	 * Returns a function which takes the logical AND of the given two functions when invoked.
+	 * @param f1 the first function
+	 * @param f2 the second function
+	 * @return the combined function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static Func0<Boolean> and(
+			@Nonnull final Func0<Boolean> f1, 
+			@Nonnull final Func0<Boolean> f2) {
+		return new Func0<Boolean>() {
+			@Override
+			public Boolean invoke() {
+				return f1.invoke() && f2.invoke();
+			}
+		};
+	}
+	/**
+	 * Returns a function which takes the logical OR of the given two functions when invoked.
+	 * @param f1 the first function
+	 * @param f2 the second function
+	 * @return the combined function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static Func0<Boolean> or(
+			@Nonnull final Func0<Boolean> f1, 
+			@Nonnull final Func0<Boolean> f2) {
+		return new Func0<Boolean>() {
+			@Override
+			public Boolean invoke() {
+				return f1.invoke() || f2.invoke();
+			}
+		};
+	}
+	/**
+	 * Returns a function which takes the logical XOR of the given two functions when invoked.
+	 * @param f1 the first function
+	 * @param f2 the second function
+	 * @return the combined function
+	 * @since 0.96.1
+	 */
+	@Nonnull 
+	public static Func0<Boolean> xor(
+			@Nonnull final Func0<Boolean> f1, 
+			@Nonnull final Func0<Boolean> f2) {
+		return new Func0<Boolean>() {
+			@Override
+			public Boolean invoke() {
+				return f1.invoke() ^ f2.invoke();
+			}
+		};
+	}
+	/**
+	 * Wraps the given zero parameter function into a 1 parameter function which 
+	 * ignores its parameter.
+	 * @param <T> the function parameter type (irrelevant)
+	 * @param <U> the function return type
+	 * @param f the function to wrap
+	 * @return the new function
+	 * @since 0.96.1
+	 */
+	@Nonnull
+	public static <T, U> Func1<T, U> asFunc1(@Nonnull final Func0<? extends U> f) {
+		return new Func1<T, U>() {
+			@Override
+			public U invoke(T param1) {
+				return f.invoke();
+			}
+		};
+	}
+	/**
+	 * Wraps the given zero parameter function into a 2 parameter function which 
+	 * ignores its parameters.
+	 * @param <T> the function first parameter type (irrelevant)
+	 * @param <U> the function second parameter type (irrelevant)
+	 * @param <V> the function return type
+	 * @param f the function to wrap
+	 * @return the new function
+	 * @since 0.96.1
+	 */
+	@Nonnull
+	public static <T, U, V> Func2<T, U, V> asFunc2(@Nonnull final Func0<? extends V> f) {
+		return new Func2<T, U, V>() {
+			@Override
+			public V invoke(T param1, U param2) {
+				return f.invoke();
+			}
+		};
+	}
 	/** Utility class. */
 	private Functions() {
-		// TODO Auto-generated constructor stub
 	}
 }
