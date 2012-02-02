@@ -36,10 +36,6 @@ public final class Func0Builder<T> implements Func0<T> {
 	/** The wrapped function. */
 	@Nonnull 
 	protected final Func0<T> f;
-	/** A function always returning false. */
-	public static final Func0Builder<Boolean> FALSE = from(Functions.FALSE);
-	/** A function always returning true. */
-	public static final Func0Builder<Boolean> TRUE = from(Functions.TRUE);
 	/**
 	 * Constructs an instance of this builder with the wrapped function.
 	 * @param f the function to wrap
@@ -79,6 +75,17 @@ public final class Func0Builder<T> implements Func0<T> {
 	 */
 	public static <T> Func0Builder<T> from(@Nonnull Action0 action, T result) {
 		return from(Functions.asFunc0(action, result));
+	}
+	/**
+	 * Construct a function which invokes the given runnable and
+	 * returns a constant value.
+	 * @param <T> the return type
+	 * @param run the runnable to wrap
+	 * @param result the return value by this function
+	 * @return the function builder
+	 */
+	public static <T> Func0Builder<T> from(@Nonnull Runnable run, T result) {
+		return from(Functions.asFunc0(run, result));
 	}
 	/**
 	 * Construct a function from the given callable instance.
@@ -121,6 +128,18 @@ public final class Func0Builder<T> implements Func0<T> {
 	 */
 	public static <T> Func0Builder<T> from(@Nonnull AtomicReference<? extends T> value) {
 		return from(Functions.asFunc0(value));
+	}
+	/**
+	 * @return a function builder which returns always true.
+	 */
+	public static Func0Builder<Boolean> alwaysTrue() {
+		return from(Functions.TRUE);
+	}
+	/** 
+	 * @return a function builder which retuns always false. 
+	 */
+	public static Func0Builder<Boolean> alwaysFalse() {
+		return from(Functions.FALSE);
 	}
 	/**
 	 * Wraps the given reference object into a function call.
