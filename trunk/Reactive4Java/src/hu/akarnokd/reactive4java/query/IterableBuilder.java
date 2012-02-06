@@ -1322,4 +1322,39 @@ public final class IterableBuilder<T> implements Iterable<T> {
 				Functions.<K, List<T>>hashMapProvider(), 
 				Functions.<T>arrayListProvider());
 	}
+	/**
+	 * Returns each pair of subsequent elements as pairs.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @return the iterable builder
+	 * @since 0.96.1
+	 */
+	public IterableBuilder<Pair<T, T>> subsequent() {
+		return from(Interactive.subsequent(it));
+	}
+	/**
+	 * Returns each pair of subsequent elements as pairs.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param count the number of subsequent elements
+	 * @return the iterable builder
+	 * @since 0.96.1
+	 */
+	public IterableBuilder<IterableBuilder<T>> subsequent(int count) {
+		return from(Interactive.subsequent(it, count))
+				.select(IterableBuilder.<T>toBuilder());
+	}
+	/**
+	 * @param <T> the elmeent type
+	 * @return a function which wraps its iterable parameter into an iterablebuilder instance
+	 * @since 0.96.1
+	 */
+	public static <T> Func1<Iterable<T>, IterableBuilder<T>> toBuilder() {
+		return new Func1<Iterable<T>, IterableBuilder<T>>() {
+			@Override
+			public IterableBuilder<T> invoke(Iterable<T> param1) {
+				return from(param1);
+			}
+		};
+	}
 }

@@ -4051,6 +4051,114 @@ public final class Interactive {
 			) {
 		return groupBy(source, keySelector, Functions.<T>identity());
 	}
+	/**
+	 * Creates an iterable which returns two subsequent items from the source
+	 * iterable as pairs of values. If the {@code source} contains zero or one elements, this
+	 * iterable will be empty.
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <T> the element type
+	 * @param source the source iterable
+	 * @return the new iterable
+	 * @since 0.96.1
+	 */
+	public static <T> Iterable<Pair<T, T>> subsequent(@Nonnull final Iterable<? extends T> source) {
+		return new Iterable<Pair<T, T>>() {
+			@Override
+			public Iterator<Pair<T, T>> iterator() {
+				final Iterator<? extends T> it = source.iterator();
+				if (!it.hasNext()) {
+					return Interactive.<Pair<T, T>>empty().iterator();
+				}
+				final T flast = it.next();
+				return new Iterator<Pair<T, T>>() {
+					/** The last source value. */
+					T last = flast;
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+					@Override
+					public Pair<T, T> next() {
+						if (hasNext()) {
+							T curr = it.next();
+							Pair<T, T> ret = Pair.of(last, curr);
+							last = curr;
+							return ret;
+						}
+						throw new NoSuchElementException();
+					}
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Creates an iterable which returns {@code count} subsequent items from the source
+	 * iterable as sequence of values.
+	 * If the {@code source} contains less than {@code count} elements, this
+	 * iterable will be empty.	 
+	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
+	 * for its <code>remove()</code> method.</p>
+	 * @param <T> the element type
+	 * @param source the source iterable
+	 * @param count the element count
+	 * @return the new iterable
+	 * @since 0.96.1
+	 */
+	public static <T> Iterable<Iterable<T>> subsequent(
+			@Nonnull final Iterable<? extends T> source, 
+			final int count) {
+		if (count <= 0) {
+			throw new IllegalArgumentException("Count must be > 0");
+		}
+		if (count == 1) {
+			return Interactive.select(source, new Func1<T, Iterable<T>>() {
+				@Override
+				public Iterable<T> invoke(T param1) {
+					return singleton(param1);
+				}
+			});
+		}
+		return new Iterable<Iterable<T>>() {
+			@Override
+			public Iterator<Iterable<T>> iterator() {
+				// get the first count-1 elements
+				final LinkedList<T> ll = new LinkedList<T>();
+				final Iterator<? extends T> it = source.iterator();
+				int cnt = 0;
+				while (it.hasNext() && cnt < count - 1) {
+					ll.add(it.next());
+					cnt++;
+				}
+				if (cnt < count - 1) {
+					return Interactive.<Iterable<T>>empty().iterator();
+				}
+				return new Iterator<Iterable<T>>() {
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+					@Override
+					public Iterable<T> next() {
+						if (hasNext()) {
+							ll.add(it.next());
+							ll.removeFirst();
+							return new ArrayList<T>(ll);
+						}
+						throw new NoSuchElementException();
+					}
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+	}
 	/** Utility class. */
 	private Interactive() {
 		// utility class
