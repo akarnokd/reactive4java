@@ -1788,6 +1788,19 @@ public final class Functions {
 			}
 		};
 	}
+	/**
+	 * @param <T> the first parameter type
+	 * @param <U> the second parameter type
+	 * @return a function which pairs its arguments
+	 */
+	public static <T, U> Func2<T, U, Pair<T, U>> pairUp() {
+		return new Func2<T, U, Pair<T, U>>() {
+			@Override
+			public Pair<T, U> invoke(T param1, U param2) {
+				return Pair.of(param1, param2);
+			}
+		};
+	}
 	/** Utility class. */
 	private Functions() {
 	}
