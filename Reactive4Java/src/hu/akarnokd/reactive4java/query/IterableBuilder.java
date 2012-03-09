@@ -810,6 +810,19 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 * source iterable and creates an ordered list
 	 * of elements. Once the source iterator completes,
 	 * the elements are streamed to the output.
+	 * <p>Note: the element type should be self comparable or a ClassCastException is thrown.</p>
+	 * @param <U> the source element type, which must be self comparable
+	 * @return the new iterable
+	 */
+	@SuppressWarnings("unchecked")
+	public <U extends Comparable<? super U>> IterableBuilder<U> orderBy() {
+		return from(Interactive.orderBy((Iterable<U>)it));
+	}
+	/**
+	 * Returns an iterable which traverses the entire
+	 * source iterable and creates an ordered list
+	 * of elements. Once the source iterator completes,
+	 * the elements are streamed to the output.
 	 * @param comparator the value comparator
 	 * @return the new iterable
 	 */
