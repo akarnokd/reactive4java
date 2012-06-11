@@ -15,6 +15,8 @@
  */
 package hu.akarnokd.reactive4java.reactive;
 
+import hu.akarnokd.reactive4java.base.Closeables;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -69,6 +71,11 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 		}
 	}
 	/**
+	 * Called internally with the global lock held to ensure any dependent registrations succeed to
+	 * store the closeable reference before returning.
+	 */
+	protected void onRegister() { }
+	/**
 	 * Registers itself with the given source observable and stores the registration info by the given token.
 	 * @param token the reference token
 	 * @param source the target observable
@@ -79,6 +86,27 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 			if (!completed) {
 				subObservers.put(token, source.register(this));
 			}
+		} finally {
+			lock.unlock();
+		}
+	}
+	/**
+	 * While holding the global lock, executes the onRegister method then 
+	 * registers this instance with the supplied source observable.
+	 * @param source the source observable
+	 * @return the registration closeable
+	 */
+	public Closeable registerWith(Observable<? extends T> source) {
+		lock.lock();
+		try {
+			if (!completed) {
+				onRegister();
+				if (!completed) {
+					subObservers.put(this, source.register(this));
+				}
+				return this;
+			}
+			return Closeables.emptyCloseable();
 		} finally {
 			lock.unlock();
 		}

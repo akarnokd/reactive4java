@@ -7224,11 +7224,10 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
-					/** The signaller closeable. */
-					final Closeable c;
-					{
-						c = signaller.register(new DefaultObserver<U>(lock, true) {
+				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
+					@Override
+					protected void onRegister() {
+						add("signaller", signaller.register(new DefaultObserver<U>(lock, true) {
 
 							@Override
 							protected void onError(Throwable ex) {
@@ -7246,7 +7245,7 @@ public final class Reactive {
 								innerClose();
 							}
 							
-						});
+						}));
 					}
 					/** Callback for the inner close. */
 					void innerClose() {
@@ -7258,10 +7257,6 @@ public final class Reactive {
 					 */
 					void innerError(Throwable ex) {
 						error(ex);
-					}
-					@Override
-					protected void onClose() {
-						Closeables.close0(c);
 					}
 					@Override
 					protected void onError(Throwable ex) {
@@ -7276,7 +7271,7 @@ public final class Reactive {
 						observer.next(value);
 					}
 				};
-				return Closeables.close(obs, source.register(obs));
+				return obs.registerWith(source);
 			}
 		};
 	}
@@ -7295,22 +7290,7 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
-					/** The source closeable. */
-					Closeable c;
-					{
-						lock.lock();
-						try {
-							c = source.register(this);
-						} finally {
-							lock.unlock();
-						}
-					}
-					@Override
-					protected void onClose() {
-						Closeables.close0(c);
-					}
-
+				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					@Override
 					public void onError(Throwable ex) {
 						observer.error(ex);
@@ -7330,7 +7310,7 @@ public final class Reactive {
 						}
 					}
 				};
-				return obs;
+				return obs.registerWith(source);
 			}
 		};
 	}
