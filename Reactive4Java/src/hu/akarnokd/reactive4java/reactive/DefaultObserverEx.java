@@ -84,7 +84,10 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 		lock.lock();
 		try {
 			if (!completed) {
-				subObservers.put(token, source.register(this));
+				Closeable c = source.register(this);
+				if (!completed) {
+					subObservers.put(token, c);
+				}
 			}
 		} finally {
 			lock.unlock();
@@ -102,7 +105,10 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 			if (!completed) {
 				onRegister();
 				if (!completed) {
-					subObservers.put(this, source.register(this));
+					Closeable c = source.register(this);
+					if (!completed) {
+						subObservers.put(this, c);
+					}
 				}
 				return this;
 			}
