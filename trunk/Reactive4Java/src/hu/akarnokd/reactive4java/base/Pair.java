@@ -60,4 +60,8 @@ public final class Pair<T, U> {
 	public int hashCode() {
 		return (17 + (first != null ? first.hashCode() : 0)) * 31 + (second != null ? second.hashCode() : 0);
 	}
+	@Override
+	public String toString() {
+		return "(" + first + ", " + second + ")";
+	}
 }

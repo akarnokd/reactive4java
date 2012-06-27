@@ -1842,7 +1842,7 @@ public final class Reactive {
 	 * @return the first element
 	 */
 	public static <T> T first(
-			@Nonnull final Observable<T> source) {
+			@Nonnull final Observable<? extends T> source) {
 		CloseableIterator<T> it = toIterable(source).iterator();
 		try {
 			if (it.hasNext()) {
@@ -3619,9 +3619,9 @@ public final class Reactive {
 	 */
 	@Nonnull 
 	public static <T, Key> Observable<List<T>> minBy(
-			@Nonnull final Observable<T> source, 
-			@Nonnull final Func1<T, Key> keyExtractor, 
-			@Nonnull final Comparator<Key> keyComparator) {
+			@Nonnull final Observable<? extends T> source, 
+			@Nonnull final Func1<? super T, ? extends Key> keyExtractor, 
+			@Nonnull final Comparator<? super Key> keyComparator) {
 		return minMax(source, keyExtractor, keyComparator, false);
 	}
 	/**
@@ -4622,16 +4622,12 @@ public final class Reactive {
 				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
 					@Override
 					public void onError(Throwable ex) {
-						if (condition.invoke()) {
-							observer.error(ex);
-						}
+						observer.error(ex);
 					}
 
 					@Override
 					public void onFinish() {
-						if (condition.invoke()) {
-							observer.finish();
-						}
+						observer.finish();
 					}
 
 					@Override
@@ -4639,7 +4635,7 @@ public final class Reactive {
 						if (condition.invoke()) {
 							observer.next(value);
 						} else {
-							close();
+							finish();
 						}
 					}
 					
@@ -7163,13 +7159,35 @@ public final class Reactive {
 	public static <T> Observable<T> take(
 			@Nonnull final Observable<? extends T> source, 
 			final int count) {
-		return relayUntil(source, new Func0<Boolean>() {
-			int i = count;
+		
+		return new Observable<T>() {
 			@Override
-			public Boolean invoke() {
-				return i-- > 0;
+			public Closeable register(final Observer<? super T> observer) {
+				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
+					/** The countdown. */
+					protected int i = count;
+					@Override
+					protected void onNext(T value) {
+						observer.next(value);
+						if (--i == 0) {
+							finish();
+						}
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						observer.finish();
+					}
+					
+				};
+				return o.registerWith(source);
 			}
-		});
+		};
 	}
 	/**
 	 * Returns an observable which returns the last <code>count</code>
@@ -7224,54 +7242,51 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
+				final Lock lock0 = new ReentrantLock(true);
+				DefaultObserverEx<T> o = new DefaultObserverEx<T>(lock0, true) {
 					@Override
 					protected void onRegister() {
-						add("signaller", signaller.register(new DefaultObserver<U>(lock, true) {
+						add("signaller", signaller.register(new Observer<U>() {
+							@Override
+							public void next(U value) {
+								innerFinish();
+							}
 
 							@Override
-							protected void onError(Throwable ex) {
+							public void error(Throwable ex) {
 								innerError(ex);
 							}
 
 							@Override
-							protected void onFinish() {
-								innerClose();
+							public void finish() {
+								innerFinish();
 							}
-
-							@Override
-							protected void onNext(U value) {
-								close();
-								innerClose();
-							}
-							
 						}));
 					}
-					/** Callback for the inner close. */
-					void innerClose() {
-						close();
+					/** Error call from the inner. */
+					protected void innerError(Throwable t) {
+						error(t);
 					}
-					/**
-					 * The callback for the inner error.
-					 * @param ex the inner exception
-					 */
-					void innerError(Throwable ex) {
-						error(ex);
-					}
-					@Override
-					protected void onError(Throwable ex) {
-						observer.error(ex);
-					}
-					@Override
-					protected void onFinish() {
-						observer.finish();
+					/** Finish call from the inner. */
+					protected void innerFinish() {
+						finish();
 					}
 					@Override
 					protected void onNext(T value) {
 						observer.next(value);
 					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						observer.finish();
+					}
 				};
-				return obs.registerWith(source);
+				return o.registerWith(source);
 			}
 		};
 	}
@@ -7303,7 +7318,7 @@ public final class Reactive {
 					@Override
 					public void onNext(T value) {
 						if (predicate.invoke(value)) {
-								observer.next(value);
+							observer.next(value);
 						} else {
 							observer.finish();
 							close();

@@ -57,12 +57,15 @@ public final class Test7 {
 			)
 		);
 
-		run(
-			Reactive.take(
+		Observable<Long> o = Reactive.take(
 				Reactive.tick(1, TimeUnit.SECONDS),
 				10
-			)
-		);
+			);
+
+		run(o);
+		run(o);
+		
+		
 		
 		run(Reactive.takeWhile(Reactive.tick(1, TimeUnit.SECONDS), Functions.lessThan(5L)));
 		
@@ -72,7 +75,7 @@ public final class Test7 {
 				Reactive.throttle(
 					Reactive.concat(
 						Reactive.tick(0, 10, 200, TimeUnit.MILLISECONDS),
-						Reactive.tick(10, 5, 1, TimeUnit.SECONDS)
+						Reactive.tick(10, 15, 1, TimeUnit.SECONDS)
 					),
 				500, TimeUnit.MILLISECONDS)
 			)
