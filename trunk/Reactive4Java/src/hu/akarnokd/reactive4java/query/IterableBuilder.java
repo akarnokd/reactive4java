@@ -71,8 +71,8 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 * @param ts the array of ts
 	 * @return the created iterable builder
 	 */
-	public static <T> IterableBuilder<T> from(int from, int to, @Nonnull final T... ts) {
-		return from(Interactive.toIterable(from, to, ts));
+	public static <T> IterableBuilder<T> fromPart(int from, int to, @Nonnull final T... ts) {
+		return from(Interactive.toIterablePart(from, to, ts));
 	}
 	/**
 	 * Creates a new iterable builder instance by wrapping the given

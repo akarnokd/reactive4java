@@ -6528,15 +6528,19 @@ public final class Reactive {
 	@Nonnull 
 	public static <T> T single(
 			@Nonnull Observable<? extends T> source) {
-		Iterator<T> it = toIterable(source).iterator();
-		if (it.hasNext()) {
-			T one = it.next();
-			if (!it.hasNext()) {
-				return one;
+		CloseableIterator<T> it = toIterable(source).iterator();
+		try {
+			if (it.hasNext()) {
+				T one = it.next();
+				if (!it.hasNext()) {
+					return one;
+				}
+				throw new TooManyElementsException();
 			}
-			throw new TooManyElementsException();
+			throw new NoSuchElementException();
+		} finally {
+			Closeables.close0(it);
 		}
-		throw new NoSuchElementException();
 	}
 	/**
 	 * Returns the single value in the observables.

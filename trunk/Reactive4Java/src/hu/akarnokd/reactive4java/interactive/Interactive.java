@@ -3297,6 +3297,7 @@ public final class Interactive {
 					@Override
 					public T next() {
 						if (hasNext()) {
+							count++;
 							return it.next();
 						}
 						throw new NoSuchElementException();
@@ -3800,7 +3801,7 @@ public final class Interactive {
 	 * @return the iterable for the array
 	 * @since 0.96
 	 */
-	public static <T> Iterable<T> toIterable(final int from, final int to, @Nonnull final T... ts) {
+	public static <T> Iterable<T> toIterablePart(final int from, final int to, @Nonnull final T... ts) {
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
