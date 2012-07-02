@@ -152,8 +152,8 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param ts the element array
 	 * @return the created observable builder
 	 */
-	public static <T> ObservableBuilder<T> from(int start, int end, @Nonnull Scheduler scheduler, @Nonnull T... ts) {
-		return from(Interactive.toIterable(start, end, ts), scheduler);
+	public static <T> ObservableBuilder<T> fromPart(int start, int end, @Nonnull Scheduler scheduler, @Nonnull T... ts) {
+		return from(Interactive.toIterablePart(start, end, ts), scheduler);
 	}
 	/**
 	 * Creates an observable sequence from the subarray of values and uses
@@ -164,8 +164,8 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param ts the element array
 	 * @return the created observable builder
 	 */
-	public static <T> ObservableBuilder<T> from(int start, int end, @Nonnull T... ts) {
-		return from(Interactive.toIterable(start, end, ts));
+	public static <T> ObservableBuilder<T> fromPart(int start, int end, @Nonnull T... ts) {
+		return from(Interactive.toIterablePart(start, end, ts));
 	}
 	/**
 	 * Creates an observable builder from the source sequence by using
