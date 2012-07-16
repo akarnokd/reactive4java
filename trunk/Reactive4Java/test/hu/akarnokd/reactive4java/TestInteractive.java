@@ -20,18 +20,18 @@ import static hu.akarnokd.reactive4java.interactive.Interactive.elementsEqual;
 import static hu.akarnokd.reactive4java.interactive.Interactive.first;
 import static hu.akarnokd.reactive4java.interactive.Interactive.join;
 import static hu.akarnokd.reactive4java.interactive.Interactive.size;
+import static hu.akarnokd.reactive4java.interactive.Interactive.take;
 import static hu.akarnokd.reactive4java.interactive.Interactive.toIterable;
 import static junit.framework.Assert.assertTrue;
-import hu.akarnokd.reactive4java.interactive.Interactive;
 import org.junit.Test;
 
 /**
  * Test the interactive operators.
- * @author Harmath Dénes, 2012.07.13.
+ * @author Harmath Denes, 2012.07.13.
  */
 public class TestInteractive {
 	/**
-	 * Create comma separated list of values.
+	 * Returns a user-friendly textual representation of the given sequence.
 	 * @param source the source sequence
 	 * @return the output text
 	 */
@@ -72,10 +72,10 @@ public class TestInteractive {
 	 * Test take().
 	 */
 	@Test
-	public void take() {
+	public void takeOk() {
 		Iterable<Integer> prefix = toIterable(1, 2);
 		Iterable<Integer> i = concat(prefix, toIterable(3, 4));
-		assertEqual(Interactive.take(i, size(prefix)), prefix);
+		assertEqual(take(i, size(prefix)), prefix);
 	}
 
 }
