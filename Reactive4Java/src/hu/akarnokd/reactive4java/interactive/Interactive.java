@@ -29,7 +29,6 @@ import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.interactive.Interactive.LinkedBuffer.N;
 import hu.akarnokd.reactive4java.util.DefaultScheduler;
-
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -49,8 +48,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * The interactive (i.e., <code>Iterable</code> based) counterparts
@@ -1111,6 +1110,43 @@ public final class Interactive {
 			}
 		};
 	}
+
+	/**
+	 * Determines whether two iterables contain equal elements in the same
+	 * order. More specifically, this method returns {@code true} if
+	 * {@code iterable1} and {@code iterable2} contain the same number of
+	 * elements and every element of {@code iterable1} is equal to the
+	 * corresponding element of {@code iterable2}.
+	 * @param iterable1 the first iterable
+	 * @param iterable2 the second iterable
+	 * @return true if both iterables are either empty or contain the same number and equal items
+	 */
+	public static boolean elementsEqual(@Nonnull Iterable<?> iterable1,
+			@Nonnull Iterable<?> iterable2) {
+		Iterator<?> iterator1 = iterable1.iterator();
+		Iterator<?> iterator2 = iterable2.iterator();
+		while (iterator1.hasNext()) {
+			if (!iterator2.hasNext()) {
+				return false;
+			}
+			Object o1 = iterator1.next();
+			Object o2 = iterator2.next();
+			if (!equal(o1, o2)) {
+				return false;
+			}
+		}
+		return !iterator2.hasNext();
+	}
+	/**
+	 * Compare two object in a null-safe manner.
+	 * @param a the first object
+	 * @param b the second object
+	 * @return true if both are null or equal according to Object.equals
+	 */
+	private static boolean equal(@Nullable Object a, @Nullable Object b) {
+		return (a == b) || ((a != null) && a.equals(b));
+	}
+
 	/**
 	 * Returns an empty iterable which will not produce elements.
 	 * Its <code>hasNext()</code> returns always false,
@@ -3095,6 +3131,14 @@ public final class Interactive {
 				};
 			}
 		};
+	}
+	/**
+	 * Immediately returns the number of elements in {@code iterable}.
+	 * @param iterable the input sequence
+	 * @return the number of elements in the sequence 
+	 */
+	public static int size(Iterable<?> iterable) {
+		return first(count(iterable));
 	}
 	/**
 	 * Returns an iterable which skips the last <code>num</code> elements from the
