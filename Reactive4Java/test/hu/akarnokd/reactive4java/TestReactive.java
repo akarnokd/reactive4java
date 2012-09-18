@@ -15,18 +15,29 @@
  */
 package hu.akarnokd.reactive4java;
 
+import static hu.akarnokd.reactive4java.base.Functions.equal;
 import static hu.akarnokd.reactive4java.query.ObservableBuilder.from;
+import static hu.akarnokd.reactive4java.reactive.Reactive.all;
+import static hu.akarnokd.reactive4java.reactive.Reactive.any;
 import static hu.akarnokd.reactive4java.reactive.Reactive.concat;
 import static hu.akarnokd.reactive4java.reactive.Reactive.count;
 import static hu.akarnokd.reactive4java.reactive.Reactive.empty;
 import static hu.akarnokd.reactive4java.reactive.Reactive.sequenceEqual;
 import static hu.akarnokd.reactive4java.reactive.Reactive.single;
+import static hu.akarnokd.reactive4java.reactive.Reactive.skip;
+import static hu.akarnokd.reactive4java.reactive.Reactive.skipLast;
+import static hu.akarnokd.reactive4java.reactive.Reactive.skipWhile;
 import static hu.akarnokd.reactive4java.reactive.Reactive.take;
+import static hu.akarnokd.reactive4java.reactive.Reactive.takeLast;
+import static hu.akarnokd.reactive4java.reactive.Reactive.takeWhile;
 import static hu.akarnokd.reactive4java.reactive.Reactive.toIterable;
+import static java.util.Collections.nCopies;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
+import hu.akarnokd.reactive4java.query.ObservableBuilder;
 import hu.akarnokd.reactive4java.reactive.Observable;
+import java.util.Collection;
 import java.util.NoSuchElementException;
 import org.junit.Test;
 
@@ -79,9 +90,99 @@ public class TestReactive {
 	@Test
 	public void takeOk() {
 		Observable<Integer> prefix = from(1, 2);
-		Observable<Integer> o = concat(prefix, from(3, 4));
+		Observable<Integer> postfix = from(3, 4);
+		Observable<Integer> o = concat(prefix, postfix);
 		Integer count = single(count(prefix));
-		assertEqual(take(o, count), prefix);
+		assertEqual(prefix, take(o, count));
+	}
+	/**
+	 * Tests skip().
+	 */
+	@Test
+	public void skipOk() {
+		Observable<Integer> prefix = from(1, 2);
+		Observable<Integer> postfix = from(3, 4);
+		Observable<Integer> o = concat(prefix, postfix);
+		Integer count = single(count(prefix));
+		assertEqual(postfix, skip(o, count));
+	}
+	/**
+	 * Tests takeLast().
+	 */
+	@Test
+	public void takeLastOk() {
+		Observable<Integer> prefix = from(1, 2);
+		Observable<Integer> postfix = from(3, 4);
+		Observable<Integer> o = concat(prefix, postfix);
+		Integer count = single(count(postfix));
+		assertEqual(postfix, takeLast(o, count));
+	}
+	/**
+	 * Tests skipLast().
+	 */
+	@Test
+	public void skipLastOk() {
+		Observable<Integer> prefix = from(1, 2);
+		Observable<Integer> postfix = from(3, 4);
+		Observable<Integer> o = concat(prefix, postfix);
+		Integer count = single(count(postfix));
+		assertEqual(prefix, skipLast(o, count));
+	}
+	/**
+	 * Tests takeWhile() with some elements taken.
+	 */
+	@Test
+	public void takeWhileSome() {
+		Integer value = 42;
+		Observable<Integer> prefix = from(value, value);
+		Observable<Integer> postfix = from(0, value);
+		Observable<Integer> o = concat(prefix, postfix);
+		assertEqual(prefix, takeWhile(o, equal(value)));
+	}
+	/**
+	 * Tests takeWhile() with all elements taken.
+	 */
+	@Test
+	public void takeWhileAll() {
+		Integer value = 42;
+		Observable<Integer> o = from(value, value);
+		assertEqual(o, takeWhile(o, equal(value)));
+	}
+	/**
+	 * Tests takeWhile() with no elements taken.
+	 */
+	@Test
+	public void takeWhileNone() {
+		Integer value = 42;
+		assertEqual(empty(), takeWhile(from(0, value), equal(value)));
+	}
+	/**
+	 * Tests skipWhile() with some elements skipped.
+	 */
+	@Test
+	public void skipWhileSome() {
+		Integer value = 42;
+		Observable<Integer> prefix = from(value, value);
+		Observable<Integer> postfix = from(0, value);
+		Observable<Integer> o = concat(prefix, postfix);
+		assertEqual(postfix, skipWhile(o, equal(value)));
+	}
+	/**
+	 * Tests skipWhile() with all elements skipped.
+	 */
+	@Test
+	public void skipWhileAll() {
+		Integer value = 42;
+		assertEqual(empty(), skipWhile(from(value, value), equal(value)));
+	}
+	/**
+	 * Tests skipWhile() with no elements skipped.
+	 */
+	@Test
+	public void skipWhileNone() {
+		Integer value = 42;
+		ObservableBuilder<Integer> o = from(0, value);
+		assertEqual(o, skipWhile(o, equal(value)));
 	}
 	/**
 	 * Tests sequenceEqual() in case of equal sequences.
@@ -99,6 +200,13 @@ public class TestReactive {
 		Observable<Integer> prefix = from(1, 2);
 		Observable<Integer> o = concat(prefix, from(3, 4));
 		assertNotEqual(o, prefix);
+	}
+	/**
+	 * Tests sequenceEqual() in case of an empty and non-empty sequence.
+	 */
+	@Test
+	public void sequenceEqualNotBecauseEmpty() {
+		assertNotEqual(from(1, 2), empty());
 	}
 	/**
 	 * Tests the commutativity of sequenceEqual().
@@ -132,5 +240,43 @@ public class TestReactive {
 	public void singleTooManyElements() {
 		single(from(1, 2));
 	}
-
+	/**
+	 * Tests all() properly returning <code>true</code>.
+	 */
+	@Test
+	public void allTrue() {
+		int value = 42;
+		assertEqual(from(true), all(from(value, value, value), equal(value)));
+	}
+	/**
+	 * Tests all() properly returning <code>false</code>.
+	 */
+	@Test
+	public void allFalse() {
+		int value = 42;
+		assertEqual(from(false), all(from(value, 0, value), equal(value)));
+	}
+	/**
+	 * Tests any() properly returning <code>true</code>.
+	 */
+	@Test
+	public void anyTrue() {
+		int value = 42;
+		assertEqual(from(true), any(from(0, value, 0), equal(value)));
+	}
+	/**
+	 * Tests any() properly returning <code>false</code>.
+	 */
+	@Test
+	public void anyFalse() {
+		assertEqual(from(false), any(from(0, 0, 0), equal(1)));
+	}
+	/**
+	 * Tests count().
+	 */
+	@Test
+	public void countOk() {
+		Collection<Integer> i = nCopies(3, 0);
+		assertEqual(from(i.size()), count(from(i)));
+	}
 }

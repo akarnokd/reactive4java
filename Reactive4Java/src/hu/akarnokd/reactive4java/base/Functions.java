@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.annotation.Nonnull;
 
 /**
@@ -98,14 +97,14 @@ public final class Functions {
 	public static final Runnable EMPTY_RUNNABLE = new Runnable() {
 		@Override
 		public void run() {
-			
+
 		};
 	};
 	/** An empty runnable. */
 	public static final Closeable EMPTY_CLOSEABLE = new Closeable() {
 		@Override
 		public void close() {
-			
+
 		};
 	};
 	/** Function to sum integers in aggregators. */
@@ -170,7 +169,7 @@ public final class Functions {
 	 * @return the function which returns always false
 	 */
 	@SuppressWarnings("unchecked")
-	@Nonnull 
+	@Nonnull
 	public static <T> Pred1<T> alwaysFalse1() {
 		return (Pred1<T>)FALSE1;
 	}
@@ -179,7 +178,7 @@ public final class Functions {
 	 * @param <T> the type of the parameter (irrelevant)
 	 * @return the function which returns always true
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public static <T> Pred1<T> alwaysTrue1() {
 		return (Pred1<T>)TRUE1;
@@ -191,7 +190,7 @@ public final class Functions {
 	 * @return the function which returns always false
 	 */
 	@SuppressWarnings("unchecked")
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Pred2<T, U> alwaysFalse2() {
 		return (Pred2<T, U>)FALSE2;
 	}
@@ -201,7 +200,7 @@ public final class Functions {
 	 * @param <U> the type of the parameter (irrelevant)
 	 * @return the function which returns always true
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public static <T, U> Pred2<T, U> alwaysTrue2() {
 		return (Pred2<T, U>)TRUE2;
@@ -212,7 +211,7 @@ public final class Functions {
 	 * @param func the function to wrap
 	 * @return the callable wrapper
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Callable<T> asCallable(
 			@Nonnull final Func0<? extends T> func) {
 		return new Callable<T>() {
@@ -228,7 +227,7 @@ public final class Functions {
 	 * @param func the function to wrap
 	 * @return the comparator
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Comparator<T> asComparator(
 			@Nonnull final Func2<? super T, ? super T, Integer> func) {
 		return new Comparator<T>() {
@@ -298,7 +297,7 @@ public final class Functions {
 	 * @param call the original call function
 	 * @return the Func0 function wrapping the call
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func0<T> asFunc0(
 			@Nonnull final Callable<? extends T> call) {
 		return new Func0<T>() {
@@ -318,7 +317,7 @@ public final class Functions {
 	 * @param comparator the comparator
 	 * @return the wrapped comparator
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func2<T, T, Integer> asFunc2(
 			@Nonnull final Comparator<? super T> comparator) {
 		return new Func2<T, T, Integer>() {
@@ -333,7 +332,7 @@ public final class Functions {
 	 * @param source the source atomic reference
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func0<Boolean> asFunc0(
 			@Nonnull final AtomicBoolean source) {
 		return new Func0<Boolean>() {
@@ -348,7 +347,7 @@ public final class Functions {
 	 * @param source the source atomic reference
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func0<Integer> asFunc0(
 			@Nonnull final AtomicInteger source) {
 		return new Func0<Integer>() {
@@ -363,7 +362,7 @@ public final class Functions {
 	 * @param source the source atomic reference
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func0<Long> asFunc0(
 			@Nonnull final AtomicLong source) {
 		return new Func0<Long>() {
@@ -379,7 +378,7 @@ public final class Functions {
 	 * @param source the source atomic reference
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func0<T> asFunc0(
 			@Nonnull final AtomicReference<? extends T> source) {
 		return new Func0<T>() {
@@ -396,7 +395,7 @@ public final class Functions {
 	 * @param <T> the element types to compare
 	 * @return the comparator
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T extends Comparable<? super T>> Comparator<T> comparator() {
 		return new Comparator<T>() {
 			@Override
@@ -421,7 +420,7 @@ public final class Functions {
 	 * @param <T> the element types to compare
 	 * @return the comparator
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T extends Comparable<? super T>> Comparator<T> comparator0() {
 		return new Comparator<T>() {
 			@Override
@@ -477,7 +476,7 @@ public final class Functions {
 	 * @param value the value to return
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <Param1, Result> Func1<Param1, Result> constant(final Result value) {
 		return new Func1<Param1, Result>() {
 			@Override
@@ -492,7 +491,7 @@ public final class Functions {
 	 * @param value the value to return
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func0<T> constant0(final T value) {
 		return new Func0<T>() {
 			@Override
@@ -504,7 +503,7 @@ public final class Functions {
 	/**
 	 * @return a function which returns param - 1 for <code>BigInteger</code>s.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<BigInteger, BigInteger> decrementBigInteger() {
 		return new Func1<BigInteger, BigInteger>() {
 			@Override
@@ -516,7 +515,7 @@ public final class Functions {
 	/**
 	 * @return a function which returns param - 1 for Integers.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<Integer, Integer> decrementInt() {
 		return new Func1<Integer, Integer>() {
 			@Override
@@ -528,7 +527,7 @@ public final class Functions {
 	/**
 	 * @return a function which returns param + 1 for Longs.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<Long, Long> decrementLong() {
 		return new Func1<Long, Long>() {
 			@Override
@@ -544,7 +543,7 @@ public final class Functions {
 	 * @param value the value
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func1<T, Boolean> equal(final T value) {
 		return new Func1<T, Boolean>() {
 			@Override
@@ -559,7 +558,7 @@ public final class Functions {
 	 * @param value constant to compare against
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T extends Comparable<? super T>> Func1<T, Boolean> greaterOrEqual(
 			@Nonnull final T value) {
 		return new Func1<T, Boolean>() {
@@ -577,9 +576,9 @@ public final class Functions {
 	 * @param comparator the comparator for Ts.
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func1<T, Boolean> greaterOrEqual(
-			@Nonnull final T value, 
+			@Nonnull final T value,
 			@Nonnull final Comparator<? super T> comparator) {
 		return new Func1<T, Boolean>() {
 			@Override
@@ -589,13 +588,13 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Create a function which returns true for submitted values greater 
+	 * Create a function which returns true for submitted values greater
 	 * than the given value.
 	 * @param <T> a type which is comparable with itself
 	 * @param value constant to compare against
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T extends Comparable<? super T>> Func1<T, Boolean> greaterThan(
 			@Nonnull final T value) {
 		return new Func1<T, Boolean>() {
@@ -613,9 +612,9 @@ public final class Functions {
 	 * @param comparator the comparator for Ts.
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func1<T, Boolean> greaterThan(
-			@Nonnull final T value, 
+			@Nonnull final T value,
 			@Nonnull final Comparator<? super T> comparator) {
 		return new Func1<T, Boolean>() {
 			@Override
@@ -630,7 +629,7 @@ public final class Functions {
 	 * @return the function which returns its parameter as is
 	 */
 	@SuppressWarnings("unchecked")
-	@Nonnull 
+	@Nonnull
 	public static <T> Func1<T, T> identity() {
 		return (Func1<T, T>)IDENTITY;
 	}
@@ -641,7 +640,7 @@ public final class Functions {
 	 * @return the function
 	 */
 	@SuppressWarnings("unchecked")
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Func2<T, U, T> identityFirst() {
 		return (Func2<T, U, T>)IDENTITY_FIRST;
 	}
@@ -652,14 +651,14 @@ public final class Functions {
 	 * @return the function
 	 */
 	@SuppressWarnings("unchecked")
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Func2<T, U, U> identitySecond() {
 		return (Func2<T, U, U>)IDENTITY_SECOND;
 	}
 	/**
 	 * @return a function which returns param + 1 for <code>BigInteger</code>s.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<BigInteger, BigInteger> incrementBigInteger() {
 		return new Func1<BigInteger, BigInteger>() {
 			@Override
@@ -674,7 +673,7 @@ public final class Functions {
 	 * @param value the value to increment by
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<Integer, Integer> incrementBy(final int value) {
 		return new Func1<Integer, Integer>() {
 			@Override
@@ -689,7 +688,7 @@ public final class Functions {
 	 * @param value the value to increment by
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<Long, Long> incrementBy(final long value) {
 		return new Func1<Long, Long>() {
 			@Override
@@ -701,7 +700,7 @@ public final class Functions {
 	/**
 	 * @return a function which returns param + 1 for Integers.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<Integer, Integer> incrementInt() {
 		return new Func1<Integer, Integer>() {
 			@Override
@@ -713,7 +712,7 @@ public final class Functions {
 	/**
 	 * @return a function which returns param + 1 for Longs.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<Long, Long> incrementLong() {
 		return new Func1<Long, Long>() {
 			@Override
@@ -723,13 +722,13 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Create a function which returns true for submitted values less or equal 
+	 * Create a function which returns true for submitted values less or equal
 	 * than the given value.
 	 * @param <T> a type which is comparable to itself
 	 * @param value constant to compare against
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T extends Comparable<? super T>> Func1<T, Boolean> lessOrEqual(
 			@Nonnull final T value) {
 		return new Func1<T, Boolean>() {
@@ -740,16 +739,16 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Create a function which returns true for submitted values less or equal 
+	 * Create a function which returns true for submitted values less or equal
 	 * than the given value in respect to the supplied comparator.
 	 * @param <T> a type which is comparable to itself
 	 * @param value constant to compare against
 	 * @param comparator the comparator
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func1<T, Boolean> lessOrEqual(
-			@Nonnull final T value, 
+			@Nonnull final T value,
 			@Nonnull final Comparator<? super T> comparator) {
 		return new Func1<T, Boolean>() {
 			@Override
@@ -759,13 +758,13 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Create a function which returns true for submitted values less 
+	 * Create a function which returns true for submitted values less
 	 * than the given value.
 	 * @param <T> a type which is comparable with itself
 	 * @param value constant to compare against
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T extends Comparable<? super T>> Func1<T, Boolean> lessThan(
 			@Nonnull final T value) {
 		return new Func1<T, Boolean>() {
@@ -776,16 +775,16 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Create a function which returns true for submitted values less 
+	 * Create a function which returns true for submitted values less
 	 * than the given value in respect to the supplied comparator.
 	 * @param <T> a type which is comparable to itself
 	 * @param value constant to compare against
 	 * @param comparator the comparator
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func1<T, Boolean> lessThan(
-			@Nonnull final T value, 
+			@Nonnull final T value,
 			@Nonnull final Comparator<? super T> comparator) {
 		return new Func1<T, Boolean>() {
 			@Override
@@ -801,7 +800,7 @@ public final class Functions {
 	 * @param <T> the parameter types, which must be self-comparable
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T extends Comparable<? super T>> Func2<T, T, T> max() {
 		return new Func2<T, T, T>() {
 			@Override
@@ -824,7 +823,7 @@ public final class Functions {
 	 * @param comparator the value comparator
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func2<T, T, T> max(
 			@Nonnull final Comparator<? super T> comparator) {
 		return new Func2<T, T, T>() {
@@ -847,7 +846,7 @@ public final class Functions {
 	 * @param <T> the parameter types, which must be self-comparable
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T extends Comparable<? super T>> Func2<T, T, T> min() {
 		return new Func2<T, T, T>() {
 			@Override
@@ -870,7 +869,7 @@ public final class Functions {
 	 * @param comparator the value comparator
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func2<T, T, T> min(
 			@Nonnull final Comparator<? super T> comparator) {
 		return new Func2<T, T, T>() {
@@ -891,7 +890,7 @@ public final class Functions {
 	 * @param func the original function
 	 * @return the wrapped negator function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func0<Boolean> not(
 			@Nonnull final Func0<Boolean> func) {
 		return new Func0<Boolean>() {
@@ -908,7 +907,7 @@ public final class Functions {
 	 * @param value the value
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func1<T, Boolean> notEqual(
 			@Nonnull final T value) {
 		return new Func1<T, Boolean>() {
@@ -920,61 +919,61 @@ public final class Functions {
 	}
 	/**
 	 * Retuns a function that adds two BigDecimal numbers and
-	 * returns a new one. 
-	 * <p>If the first parameter is null, it returns the second parameter.</p> 
-	 * @return Function to sum integers in aggregators. 
+	 * returns a new one.
+	 * <p>If the first parameter is null, it returns the second parameter.</p>
+	 * @return Function to sum integers in aggregators.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func2<BigDecimal, BigDecimal, BigDecimal> sumBigDecimal() {
 		return SUM_BIGDECIMAL;
 	}
-	/** 
+	/**
 	 * Retuns a function that adds two BigInteger numbers and
-	 * returns a new one. 
-	 * <p>If the first parameter is null, it returns the second parameter.</p> 
-	 * @return Function to sum integers in aggregators. 
+	 * returns a new one.
+	 * <p>If the first parameter is null, it returns the second parameter.</p>
+	 * @return Function to sum integers in aggregators.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func2<BigInteger, BigInteger, BigInteger> sumBigInteger() {
 		return SUM_BIGINTEGER;
 	}
-	/** 
+	/**
 	 * Retuns a function that adds two Double number and
-	 * returns a new one. 
-	 * <p>If the first parameter is null, it returns the second parameter.</p> 
-	 * @return Function to sum integers in aggregators. 
+	 * returns a new one.
+	 * <p>If the first parameter is null, it returns the second parameter.</p>
+	 * @return Function to sum integers in aggregators.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func2<Double, Double, Double> sumDouble() {
 		return SUM_DOUBLE;
 	}
-	/** 
+	/**
 	 * Retuns a function that adds two Float number and
-	 * returns a new one. 
-	 * <p>If the first parameter is null, it returns the second parameter.</p> 
-	 * @return Function to sum integers in aggregators. 
+	 * returns a new one.
+	 * <p>If the first parameter is null, it returns the second parameter.</p>
+	 * @return Function to sum integers in aggregators.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func2<Float, Float, Float> sumFloat() {
 		return SUM_FLOAT;
 	}
-	/** 
+	/**
 	 * Retuns a function that adds two Integer number and
-	 * returns a new one. 
-	 * <p>If the first parameter is null, it returns the second parameter.</p> 
-	 * @return Function to sum integers in aggregators. 
+	 * returns a new one.
+	 * <p>If the first parameter is null, it returns the second parameter.</p>
+	 * @return Function to sum integers in aggregators.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func2<Integer, Integer, Integer> sumInteger() {
 		return SUM_INTEGER;
 	}
-	/** 
+	/**
 	 * Retuns a function that adds two Long number and
-	 * returns a new one. 
-	 * <p>If the first parameter is null, it returns the second parameter.</p> 
-	 * @return Function to sum integers in aggregators. 
+	 * returns a new one.
+	 * <p>If the first parameter is null, it returns the second parameter.</p>
+	 * @return Function to sum integers in aggregators.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func2<Long, Long, Long> sumLong() {
 		return SUM_LONG;
 	}
@@ -1017,7 +1016,7 @@ public final class Functions {
 	 * @param <K1> the first level key type
 	 * @param <K2> the second level key type
 	 * @param <V> the value type type
-	 * @param map the source map of map of something 
+	 * @param map the source map of map of something
 	 * @return the function
 	 * @since 0.96
 	 */
@@ -1189,7 +1188,7 @@ public final class Functions {
 	 * @return the function which creates an empty instance of the set
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func0<TreeSet<T>> treeSetProvider(@Nonnull final Comparator<? super T> elementComparator) {
 		return new Func0<TreeSet<T>>() {
 			@Override
@@ -1200,12 +1199,12 @@ public final class Functions {
 	}
 	/**
 	 * Wrap the given two dimensional array into a function which
-	 * returns the {@code param1, param2} element. 
+	 * returns the {@code param1, param2} element.
 	 * @param values the values
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func2<Integer, Integer, Double> asFunc2(@Nonnull final double[][] values) {
 		return new Func2<Integer, Integer, Double>() {
 			@Override
@@ -1216,12 +1215,12 @@ public final class Functions {
 	}
 	/**
 	 * Wrap the given two dimensional array into a function which
-	 * returns the {@code param1, param2} element. 
+	 * returns the {@code param1, param2} element.
 	 * @param values the values
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func2<Integer, Integer, Integer> asFunc2(@Nonnull final int[][] values) {
 		return new Func2<Integer, Integer, Integer>() {
 			@Override
@@ -1232,12 +1231,12 @@ public final class Functions {
 	}
 	/**
 	 * Wrap the given two dimensional array into a function which
-	 * returns the {@code param1, param2} element. 
+	 * returns the {@code param1, param2} element.
 	 * @param values the values
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func2<Integer, Integer, Long> asFunc2(@Nonnull final long[][] values) {
 		return new Func2<Integer, Integer, Long>() {
 			@Override
@@ -1249,12 +1248,12 @@ public final class Functions {
 	/**
 	 * Wrap the given two dimensional array into a function which
 	 * returns the {@code param1, param2} element.
-	 * @param <T> the element type 
+	 * @param <T> the element type
 	 * @param values the values
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func2<Integer, Integer, T> asFunc2(@Nonnull final T[][] values) {
 		return new Func2<Integer, Integer, T>() {
 			@Override
@@ -1265,12 +1264,12 @@ public final class Functions {
 	}
 	/**
 	 * Wrap the given one dimensional array into a function which
-	 * returns the {@code param1} element. 
+	 * returns the {@code param1} element.
 	 * @param values the values
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<Integer, Double> asFunc1(@Nonnull final double... values) {
 		return new Func1<Integer, Double>() {
 			@Override
@@ -1281,12 +1280,12 @@ public final class Functions {
 	}
 	/**
 	 * Wrap the given one dimensional array into a function which
-	 * returns the {@code param1} element. 
+	 * returns the {@code param1} element.
 	 * @param values the values
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<Integer, Long> asFunc1(@Nonnull final long... values) {
 		return new Func1<Integer, Long>() {
 			@Override
@@ -1297,12 +1296,12 @@ public final class Functions {
 	}
 	/**
 	 * Wrap the given one dimensional array into a function which
-	 * returns the {@code param1} element. 
+	 * returns the {@code param1} element.
 	 * @param values the values
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<Integer, Integer> asFunc1(@Nonnull final int... values) {
 		return new Func1<Integer, Integer>() {
 			@Override
@@ -1314,12 +1313,12 @@ public final class Functions {
 	/**
 	 * Wrap the given list into a function which
 	 * returns the {@code param1} element.
-	 * @param <T> the element type 
+	 * @param <T> the element type
 	 * @param values the values
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func1<Integer, T> asFunc1(@Nonnull final List<? extends T> values) {
 		return new Func1<Integer, T>() {
 			@Override
@@ -1335,7 +1334,7 @@ public final class Functions {
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<Integer, Double> asDoubleFunc1(@Nonnull final List<? extends Number> values) {
 		return new Func1<Integer, Double>() {
 			@Override
@@ -1351,7 +1350,7 @@ public final class Functions {
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<Integer, Integer> asIntFunc1(@Nonnull final List<? extends Number> values) {
 		return new Func1<Integer, Integer>() {
 			@Override
@@ -1367,7 +1366,7 @@ public final class Functions {
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func1<Integer, Long> asLongFunc1(@Nonnull final List<? extends Number> values) {
 		return new Func1<Integer, Long>() {
 			@Override
@@ -1384,14 +1383,26 @@ public final class Functions {
 	 * @return the combined function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func1<T, Boolean> and(
-			@Nonnull final Func1<? super T, Boolean> f1, 
+			@Nonnull final Func1<? super T, Boolean> f1,
 			@Nonnull final Func1<? super T, Boolean> f2) {
 		return new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param1) {
 				return f1.invoke(param1) && f2.invoke(param1);
+			}
+		};
+	}
+	/**
+	 * @return curried logical OR
+	 */
+	@Nonnull
+	public static Func2<Boolean, Boolean, Boolean> or() {
+		return new Func2<Boolean, Boolean, Boolean>() {
+			@Override
+			public Boolean invoke(Boolean a, Boolean b) {
+				return a || b;
 			}
 		};
 	}
@@ -1403,9 +1414,9 @@ public final class Functions {
 	 * @return the combined function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func1<T, Boolean> or(
-			@Nonnull final Func1<? super T, Boolean> f1, 
+			@Nonnull final Func1<? super T, Boolean> f1,
 			@Nonnull final Func1<? super T, Boolean> f2) {
 		return new Func1<T, Boolean>() {
 			@Override
@@ -1422,9 +1433,9 @@ public final class Functions {
 	 * @return the combined function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func1<T, Boolean> xor(
-			@Nonnull final Func1<? super T, Boolean> f1, 
+			@Nonnull final Func1<? super T, Boolean> f1,
 			@Nonnull final Func1<? super T, Boolean> f2) {
 		return new Func1<T, Boolean>() {
 			@Override
@@ -1442,9 +1453,9 @@ public final class Functions {
 	 * @return the combined function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Func2<T, U, Boolean> and(
-			@Nonnull final Func2<? super T, ? super U, Boolean> f1, 
+			@Nonnull final Func2<? super T, ? super U, Boolean> f1,
 			@Nonnull final Func2<? super T, ? super U, Boolean> f2) {
 		return new Pred2<T, U>() {
 			@Override
@@ -1462,9 +1473,9 @@ public final class Functions {
 	 * @return the combined function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Func2<T, U, Boolean> or(
-			@Nonnull final Func2<? super T, ? super U, Boolean> f1, 
+			@Nonnull final Func2<? super T, ? super U, Boolean> f1,
 			@Nonnull final Func2<? super T, ? super U, Boolean> f2) {
 		return new Pred2<T, U>() {
 			@Override
@@ -1482,9 +1493,9 @@ public final class Functions {
 	 * @return the combined function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Func2<T, U, Boolean> xor(
-			@Nonnull final Func2<? super T, ? super U, Boolean> f1, 
+			@Nonnull final Func2<? super T, ? super U, Boolean> f1,
 			@Nonnull final Func2<? super T, ? super U, Boolean> f2) {
 		return new Pred2<T, U>() {
 			@Override
@@ -1500,7 +1511,7 @@ public final class Functions {
 	 * @return the new function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func1<T, Boolean> not(
 			@Nonnull final Func1<? super T, Boolean> f) {
 		return new Pred1<T>() {
@@ -1511,7 +1522,7 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Returns a function which creates the logical not of the wrapped function value for value 
+	 * Returns a function which creates the logical not of the wrapped function value for value
 	 * t:T and u:U.
 	 * @param <T> the first parameter type
 	 * @param <U> the second parameter type
@@ -1519,7 +1530,7 @@ public final class Functions {
 	 * @return the new function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Func2<T, U, Boolean> not(
 			@Nonnull final Func2<? super T, ? super U, Boolean> f) {
 		return new Pred2<T, U>() {
@@ -1546,15 +1557,27 @@ public final class Functions {
 		};
 	}
 	/**
+	 * @return curried logical AND
+	 */
+	@Nonnull
+	public static Func2<Boolean, Boolean, Boolean> and() {
+		return new Func2<Boolean, Boolean, Boolean>() {
+			@Override
+			public Boolean invoke(Boolean a, Boolean b) {
+				return a && b;
+			}
+		};
+	}
+	/**
 	 * Returns a function which takes the logical AND of the given two functions when invoked.
 	 * @param f1 the first function
 	 * @param f2 the second function
 	 * @return the combined function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func0<Boolean> and(
-			@Nonnull final Func0<Boolean> f1, 
+			@Nonnull final Func0<Boolean> f1,
 			@Nonnull final Func0<Boolean> f2) {
 		return new Func0<Boolean>() {
 			@Override
@@ -1570,9 +1593,9 @@ public final class Functions {
 	 * @return the combined function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func0<Boolean> or(
-			@Nonnull final Func0<Boolean> f1, 
+			@Nonnull final Func0<Boolean> f1,
 			@Nonnull final Func0<Boolean> f2) {
 		return new Func0<Boolean>() {
 			@Override
@@ -1588,9 +1611,9 @@ public final class Functions {
 	 * @return the combined function
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Func0<Boolean> xor(
-			@Nonnull final Func0<Boolean> f1, 
+			@Nonnull final Func0<Boolean> f1,
 			@Nonnull final Func0<Boolean> f2) {
 		return new Func0<Boolean>() {
 			@Override
@@ -1600,7 +1623,7 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Wraps the given zero parameter function into a 1 parameter function which 
+	 * Wraps the given zero parameter function into a 1 parameter function which
 	 * ignores its parameter.
 	 * @param <T> the function parameter type (irrelevant)
 	 * @param <U> the function return type
@@ -1618,7 +1641,7 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Wraps the given zero parameter function into a 2 parameter function which 
+	 * Wraps the given zero parameter function into a 2 parameter function which
 	 * ignores its parameters.
 	 * @param <T> the function first parameter type (irrelevant)
 	 * @param <U> the function second parameter type (irrelevant)

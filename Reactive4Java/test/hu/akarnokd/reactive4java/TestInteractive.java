@@ -17,12 +17,12 @@ package hu.akarnokd.reactive4java;
 
 import static hu.akarnokd.reactive4java.interactive.Interactive.concat;
 import static hu.akarnokd.reactive4java.interactive.Interactive.elementsEqual;
-import static hu.akarnokd.reactive4java.interactive.Interactive.first;
 import static hu.akarnokd.reactive4java.interactive.Interactive.join;
 import static hu.akarnokd.reactive4java.interactive.Interactive.size;
 import static hu.akarnokd.reactive4java.interactive.Interactive.take;
 import static hu.akarnokd.reactive4java.interactive.Interactive.toIterable;
 import static junit.framework.Assert.assertTrue;
+import java.util.Iterator;
 import org.junit.Test;
 
 /**
@@ -36,7 +36,8 @@ public class TestInteractive {
 	 * @return the output text
 	 */
 	public static String makeString(Iterable<?> source) {
-		return first(join(source, ", "));
+		Iterator<String> iterator = join(source, ", ").iterator();
+		return iterator.hasNext() ? iterator.next() : "";
 	}
 	/**
 	 * Compare two sequences and assert their equivalence.
