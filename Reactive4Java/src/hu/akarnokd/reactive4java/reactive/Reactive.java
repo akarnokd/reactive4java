@@ -16,6 +16,7 @@
 
 package hu.akarnokd.reactive4java.reactive;
 
+import static hu.akarnokd.reactive4java.base.Functions.and;
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Actions;
@@ -52,10 +53,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -293,7 +296,7 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Signals a single true or false if all elements of the observable matches the predicate.
+	 * Signals a single true or false if all elements of the observable match the predicate.
 	 * It may return early with a result of false if the predicate simply does not match the current element.
 	 * For a true result, it waits for all elements of the source observable.
 	 * @param <T> the type of the source data
@@ -433,7 +436,7 @@ public final class Reactive {
 		return any(source, Functions.alwaysTrue1());
 	}
 	/**
-	 * Signals a single TRUE if the source signals any next() and the value matches the predicate before it signals a finish().
+	 * Signals a single TRUE if the source ever signals next() and any of the values matches the predicate before it signals a finish().
 	 * It signals a false otherwise.
 	 * @param <T> the source element type.
 	 * @param source the source observable
@@ -6421,99 +6424,9 @@ public final class Reactive {
 			final Observable<? extends T> first,
 			final Observable<? extends T> second,
 			final Func2<? super T, ? super T, Boolean> comparer) {
-		return new Observable<Boolean>() {
-			@Override
-			public Closeable register(final Observer<? super Boolean> observer) {
-				final LinkedBlockingQueue<T> queueU = new LinkedBlockingQueue<T>();
-				final LinkedBlockingQueue<T> queueV = new LinkedBlockingQueue<T>();
-				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
-				final AtomicInteger wip = new AtomicInteger(2);
-				final Lock lockBoth = new ReentrantLock(true);
-				final AtomicBoolean result = new AtomicBoolean(true);
-
-				lockBoth.lock();
-				try {
-					final DefaultObserverEx<T> oU = new DefaultObserverEx<T>(lockBoth, false) {
-						{
-							add("first", first);
-						}
-
-						@Override
-						public void onError(Throwable ex) {
-							observer.error(ex);
-							Closeables.close0(closeBoth.get());
-						}
-
-						@Override
-						public void onFinish() {
-							if (wip.decrementAndGet() == 0) {
-								observer.next(result.get());
-								observer.finish();
-								Closeables.close0(closeBoth.get());
-							}
-						}
-						@Override
-						public void onNext(T u) {
-							T v = queueV.poll();
-							if (v != null) {
-								if (!comparer.invoke(u, v)) {
-									result.set(false);
-									this.finish();
-								}
-							} else {
-								if (wip.get() == 2) {
-									queueU.add(u);
-								} else {
-									this.finish();
-								}
-							}
-						}
-					};
-					final DefaultObserverEx<T> oV = new DefaultObserverEx<T>(lockBoth, false) {
-						{
-							add("second", second);
-						}
-
-						@Override
-						public void onError(Throwable ex) {
-							observer.error(ex);
-							Closeables.close0(closeBoth.get());
-						}
-
-						@Override
-						public void onFinish() {
-							if (wip.decrementAndGet() == 0) {
-								observer.next(result.get());
-								observer.finish();
-								Closeables.close0(closeBoth.get());
-							}
-						}
-						@Override
-						public void onNext(T v) {
-							T u = queueU.poll();
-							if (u != null) {
-								if (!comparer.invoke(u, v)) {
-									result.set(false);
-									this.finish();
-								}
-							} else {
-								if (wip.get() == 2) {
-									queueV.add(v);
-								} else {
-									result.set(false);
-									this.finish();
-								}
-							}
-						}
-					};
-					Closeable c = Closeables.close(oU, oV);
-					closeBoth.set(c);
-				} finally {
-					lockBoth.unlock();
-				}
-				return closeBoth.get();
-			}
-		};
+			Observable<Boolean> pairwiseEqual = all(zip(first, second, comparer), Functions.<Boolean>identity());
+			Observable<Boolean> sameSize = combineLatestSent(count(first), count(second), Functions.equals());
+			return combineLatestSent(pairwiseEqual, sameSize, and());
 	}
 	/**
 	 * Returns the single element of the given observable source.
@@ -6623,17 +6536,13 @@ public final class Reactive {
 	 * @return the new observable
 	 */
 	@Nonnull
-	public static <T> Observable<T> skipLast(
-			@Nonnull final Observable<? extends T> source,
-			final int count) {
+	public static <T> Observable<T> skipLast(final Observable<? extends T> source, final int count) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
-					/** The temporar buffer to delay the values. */
-					final CircularBuffer<T> buffer = new CircularBuffer<T>(count);
-					/** The current size of the buffer. */
-					int size;
+					final Queue<T> buffer = new ConcurrentLinkedQueue<T>();
+
 					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
@@ -6641,19 +6550,16 @@ public final class Reactive {
 
 					@Override
 					public void finish() {
+						while (buffer.size() > count) {
+							observer.next(buffer.poll());
+						}
 						observer.finish();
 					}
 
 					@Override
 					public void next(T value) {
 						buffer.add(value);
-						size++;
-						if (size > count) {
-							observer.next(buffer.take());
-							size--;
-						}
 					}
-
 				});
 			}
 		};
