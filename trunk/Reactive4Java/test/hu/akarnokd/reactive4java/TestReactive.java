@@ -27,7 +27,6 @@ import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
 import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Reactive;
 import java.util.NoSuchElementException;
 import org.junit.Test;
 
@@ -131,7 +130,7 @@ public class TestReactive {
 	 */
 	@Test(expected = TooManyElementsException.class)
 	public void singleTooManyElements() {
-		Reactive.single(from(1, 2));
+		single(from(1, 2));
 	}
 
 }
