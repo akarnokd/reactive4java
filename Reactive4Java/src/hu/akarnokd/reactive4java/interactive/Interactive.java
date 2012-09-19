@@ -131,16 +131,16 @@ public final class Interactive {
 	 * @param <U> the itermediate aggregation type
 	 * @param <V> the resulting aggregation type
 	 * @param source the source of Ts
-	 * @param sum the function which takes the current itermediate value, 
+	 * @param sum the function which takes the current itermediate value,
 	 * the current source value and should produce a new intermediate value.
 	 * for the first element of T, the U parameter will receive null
 	 * @param divide the function which takes the last intermediate value and a total count of Ts seen and should return the final aggregation value.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U, V> Iterable<V> aggregate(
-			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func2<? super U, ? super T, ? extends U> sum, 
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Func2<? super U, ? super T, ? extends U> sum,
 			@Nonnull final Func2<? super U, ? super Integer, ? extends V> divide) {
 		return new Iterable<V>() {
 			@Override
@@ -149,7 +149,7 @@ public final class Interactive {
 					/** The source iterator. */
 					final Iterator<? extends T> it = source.iterator();
 					/** The single result container. */
-					final SingleContainer<Option<? extends V>> result = new SingleContainer<Option<? extends V>>(); 
+					final SingleContainer<Option<? extends V>> result = new SingleContainer<Option<? extends V>>();
 					/** We have finished the aggregation. */
 					boolean done;
 					@Override
@@ -187,7 +187,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -203,9 +203,9 @@ public final class Interactive {
 	 * @param predicate the predicate
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<Boolean> all(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return new Iterable<Boolean>() {
 			@Override
@@ -251,7 +251,7 @@ public final class Interactive {
 					@Override
 					public void remove() {
 						throw new UnsupportedOperationException();
-					} 
+					}
 				};
 			}
 		};
@@ -263,9 +263,9 @@ public final class Interactive {
 	 * @param predicate the predicate tester function
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<Boolean> any(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return any(where(source, predicate));
 	}
@@ -277,7 +277,7 @@ public final class Interactive {
 	 * @param source the source of Ts
 	 * @return the new iterable with a single true or false
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<Boolean> any(
 			@Nonnull final Iterable<T> source) {
 		return new Iterable<Boolean>() {
@@ -312,7 +312,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -324,7 +324,7 @@ public final class Interactive {
 	 * @param source the source of BigDecimal values
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<BigDecimal> averageBigDecimal(
 			@Nonnull Iterable<BigDecimal> source) {
 		return aggregate(source,
@@ -349,7 +349,7 @@ public final class Interactive {
 	 * @param source the source of BigInteger values
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<BigDecimal> averageBigInteger(
 			@Nonnull Iterable<BigInteger> source) {
 		return aggregate(source,
@@ -374,7 +374,7 @@ public final class Interactive {
 	 * @param source the source of Double values
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Double> averageDouble(
 			@Nonnull Iterable<Double> source) {
 		return aggregate(source,
@@ -399,7 +399,7 @@ public final class Interactive {
 	 * @param source the source of Float values
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Float> averageFloat(
 			@Nonnull Iterable<Float> source) {
 		return aggregate(source,
@@ -424,7 +424,7 @@ public final class Interactive {
 	 * @param source the source of Integer values
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Double> averageInt(
 			@Nonnull Iterable<Integer> source) {
 		return aggregate(source,
@@ -449,7 +449,7 @@ public final class Interactive {
 	 * @param source the source of Integer values
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Double> averageLong(
 			@Nonnull Iterable<Long> source) {
 		return aggregate(source,
@@ -468,7 +468,7 @@ public final class Interactive {
 		);
 	}
 	/**
-	 * Returns an iterable which buffers the source elements 
+	 * Returns an iterable which buffers the source elements
 	 * into <code>bufferSize</code> lists.
 	 * FIXME what to do on empty source or last chunk?
 	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
@@ -478,9 +478,9 @@ public final class Interactive {
 	 * @param bufferSize the buffer size.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<List<T>> buffer(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			final int bufferSize) {
 		if (bufferSize <= 0) {
 			throw new IllegalArgumentException("bufferSize <= 0");
@@ -545,9 +545,9 @@ public final class Interactive {
 	 * @param token the type token
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> cast(
-			@Nonnull final Iterable<?> source, 
+			@Nonnull final Iterable<?> source,
 			@Nonnull final Class<T> token) {
 		return new Iterable<T>() {
 			@Override
@@ -569,7 +569,7 @@ public final class Interactive {
 					public void remove() {
 						it.remove();
 					}
-					
+
 				};
 			}
 		};
@@ -580,7 +580,7 @@ public final class Interactive {
 	 * @param source the source iterable.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> catchException(
 			@Nonnull final Iterable<? extends T> source) {
 		Iterable<? extends T> e = empty();
@@ -596,9 +596,9 @@ public final class Interactive {
 	 * @param handler the exception handler.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> catchException(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super Throwable, ? extends Iterable<? extends T>> handler) {
 		return new Iterable<T>() {
 			@Override
@@ -637,14 +637,14 @@ public final class Interactive {
 					public void remove() {
 						it.remove();
 					}
-					
+
 				};
 			}
 		};
 	}
 	/**
 	 * Concatenate the given iterable sources one
-	 * after another in a way, that calling the second <code>iterator()</code> 
+	 * after another in a way, that calling the second <code>iterator()</code>
 	 * only happens when there is no more element in the first iterator.
 	 * <p>The returned iterator forwards all <code>remove()</code> calls
 	 * to the current source (e.g., you can remove the same elements from
@@ -653,17 +653,17 @@ public final class Interactive {
 	 * @param sources the list of iterables to concatenate
 	 * @return a new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> concat(
 			@Nonnull final Iterable<? extends Iterable<? extends T>> sources) {
-		/* 
-		 * for (I<T> ii : sources) {  
+		/*
+		 * for (I<T> ii : sources) {
 		 *     for (T t : ii) {
 		 *         yield t;
 		 *     }
-		 * }     
+		 * }
 		 */
-		
+
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
@@ -696,7 +696,7 @@ public final class Interactive {
 								} else {
 									break;
 								}
-							} while (true);							
+							} while (true);
 							throw new NoSuchElementException();
 						}
 
@@ -708,12 +708,12 @@ public final class Interactive {
 				}
 				return Interactive.<T>empty().iterator();
 			}
-			
+
 		};
 	}
 	/**
 	 * Concatenate the given iterable sources one
-	 * after another in a way, that calling the second <code>iterator()</code> 
+	 * after another in a way, that calling the second <code>iterator()</code>
 	 * only happens when there is no more element in the first iterator.
 	 * <p>The returned iterator forwards all <code>remove()</code> calls
 	 * to the current source (first or next).
@@ -722,9 +722,9 @@ public final class Interactive {
 	 * @param second the second iterable
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> concat(
-			@Nonnull final Iterable<? extends T> first, 
+			@Nonnull final Iterable<? extends T> first,
 			@Nonnull final Iterable<? extends T> second) {
 		List<Iterable<? extends T>> list = new LinkedList<Iterable<? extends T>>();
 		list.add(first);
@@ -740,7 +740,7 @@ public final class Interactive {
 	 * @param value the value to check
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<Boolean> contains(
 			@Nonnull final Iterable<? extends T> source, final T value) {
 		return any(source, new Func1<T, Boolean>() {
@@ -758,7 +758,7 @@ public final class Interactive {
 	 * @param source the source iterable
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<Integer> count(
 			@Nonnull final Iterable<T> source) {
 		return new Iterable<Integer>() {
@@ -785,7 +785,7 @@ public final class Interactive {
 									peek.add(Option.<Integer>error(t));
 								} finally {
 									done = true;
-								} 
+								}
 							}
 						}
 						return !peek.isEmpty();
@@ -803,7 +803,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -816,7 +816,7 @@ public final class Interactive {
 	 * @param source the source iterable
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<Long> countLong(
 			@Nonnull final Iterable<T> source) {
 		return new Iterable<Long>() {
@@ -843,7 +843,7 @@ public final class Interactive {
 									peek.add(Option.<Long>error(t));
 								} finally {
 									done = true;
-								} 
+								}
 							}
 						}
 						return !peek.isEmpty();
@@ -861,7 +861,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -873,7 +873,7 @@ public final class Interactive {
 	 * @param func the function that returns an iterable.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> defer(
 			@Nonnull final Func0<? extends Iterable<T>> func) {
 		return new Iterable<T>() {
@@ -892,7 +892,7 @@ public final class Interactive {
 	 * @param source the source of T options
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> dematerialize(
 			@Nonnull final Iterable<? extends Option<? extends T>> source) {
 		return new Iterable<T>() {
@@ -927,7 +927,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -938,7 +938,7 @@ public final class Interactive {
 	 * @param source the source iterable
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> distinct(
 			@Nonnull final Iterable<? extends T> source) {
 		return where(source,
@@ -969,7 +969,7 @@ public final class Interactive {
 		});
 	}
 	/**
-	 * Creates an iterable which ensures that subsequent values of 
+	 * Creates an iterable which ensures that subsequent values of
 	 * T are not equal in respect to the extracted keys (reference and equals).
 	 * @param <T> the element type
 	 * @param <U> the key type
@@ -977,7 +977,7 @@ public final class Interactive {
 	 * @param keyExtractor the function to extract the keys which will be compared
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<T> distinct(
 			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<T, U> keyExtractor) {
@@ -1017,7 +1017,7 @@ public final class Interactive {
 	 * @param source the source of Ts
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> distinctSet(
 			@Nonnull final Iterable<? extends T> source) {
 		return distinctSet(source, Functions.<T>identity(), Functions.<T>identity());
@@ -1035,10 +1035,10 @@ public final class Interactive {
 	 * @param valueSelector the value select for the output of the first key cases
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U, V> Iterable<V> distinctSet(
-			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? super T, ? extends U> keySelector, 
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Func1<? super T, ? extends U> keySelector,
 			@Nonnull final Func1<? super T, ? extends V> valueSelector) {
 		return select(where(source,
 		new Func0<Func2<Integer, T, Boolean>>() {
@@ -1073,9 +1073,9 @@ public final class Interactive {
 	 * @param gate the gate function to stop the repeat
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> doWhile(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func0<Boolean> gate) {
 		return new Iterable<T>() {
 			@Override
@@ -1090,7 +1090,7 @@ public final class Interactive {
 							} else {
 								it = source.iterator();
 							}
-								
+
 						}
 						return false;
 					}
@@ -1157,7 +1157,7 @@ public final class Interactive {
 	 * @return the iterable
 	 */
 	@SuppressWarnings("unchecked")
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> empty() {
 		return (Iterable<T>)EMPTY_ITERABLE;
 	}
@@ -1171,9 +1171,9 @@ public final class Interactive {
 	 * @param action the action to invoke
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> finish(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Action0 action) {
 		return new Iterable<T>() {
 			@Override
@@ -1207,7 +1207,7 @@ public final class Interactive {
 					public void remove() {
 						it.remove();
 					}
-					
+
 				};
 			}
 		};
@@ -1218,14 +1218,14 @@ public final class Interactive {
 	 * The difference from SelectMany is that the {@code Iterable&lt;U>}s are
 	 * created before their concatenation starts.
 	 * @param <T> the source element type
-	 * @param <U> the output element type 
+	 * @param <U> the output element type
 	 * @param source the source
 	 * @param selector the result selector
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<U> forEach(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, ? extends Iterable<? extends U>> selector) {
 		List<Iterable<? extends U>> list = new LinkedList<Iterable<? extends U>>();
 		for (Iterable<? extends U> us : select(source, selector)) {
@@ -1251,10 +1251,10 @@ public final class Interactive {
 	 * @param next the function that computes the next value.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> generate(
-			final T seed, 
-			@Nonnull final Func1<? super T, Boolean> predicate, 
+			final T seed,
+			@Nonnull final Func1<? super T, Boolean> predicate,
 			@Nonnull final Func1<? super T, ? extends T> next) {
 		return new Iterable<T>() {
 			@Override
@@ -1280,7 +1280,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -1316,13 +1316,13 @@ public final class Interactive {
 	 * @param unit the time unit for initialDelay and betweenDelay
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> generate(
-			final T seed, 
-			@Nonnull final Func1<? super T, Boolean> predicate, 
+			final T seed,
+			@Nonnull final Func1<? super T, Boolean> predicate,
 			@Nonnull final Func1<? super T, ? extends T> next,
-			final long initialDelay, 
-			final long betweenDelay, 
+			final long initialDelay,
+			final long betweenDelay,
 			@Nonnull final TimeUnit unit) {
 		return new Iterable<T>() {
 			@Override
@@ -1370,16 +1370,16 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
-		
+
 	}
 	/**
 	 * @return the current default pool used by the Observables methods
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Scheduler getDefaultScheduler() {
 		return DEFAULT_SCHEDULER.get();
 	}
@@ -1399,10 +1399,10 @@ public final class Interactive {
 	 * @param valueSelector the value selector
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U, V> Iterable<GroupedIterable<V, U>> groupBy(
-			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? super T, ? extends V> keySelector, 
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Func1<? super T, ? extends V> keySelector,
 			@Nonnull final Func1<? super T, ? extends U> valueSelector) {
 		return distinctSet(new Iterable<GroupedIterable<V, U>>() {
 			@Override
@@ -1433,7 +1433,7 @@ public final class Interactive {
 								}
 								groupIt = groups.values().iterator();
 							}
-							return groupIt.next(); 
+							return groupIt.next();
 						}
 						throw new NoSuchElementException();
 					}
@@ -1442,7 +1442,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		}, new Func1<GroupedIterable<V, U>, V>() {
@@ -1450,7 +1450,7 @@ public final class Interactive {
 			public V invoke(GroupedIterable<V, U> param1) {
 				return param1.key();
 			}
-			
+
 		}, Functions.<GroupedIterable<V, U>>identity());
 	}
 	/**
@@ -1464,9 +1464,9 @@ public final class Interactive {
 	 * @param action the action to invoke before each next() is returned.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> invoke(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Action1<? super T> action) {
 		return new Iterable<T>() {
 			@Override
@@ -1502,10 +1502,10 @@ public final class Interactive {
 	 * @param finish the action to invoke after the last element
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> invoke(
-			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull Action1<? super T> next, 
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull Action1<? super T> next,
 			@Nonnull Action0 finish) {
 		return invoke(source, next, Actions.noAction1(), finish);
 	}
@@ -1518,10 +1518,10 @@ public final class Interactive {
 	 * @param error the error action to invoke for an error
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> invoke(
-			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Action1<? super T> next, 
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Action1<? super T> next,
 			@Nonnull final Action1<? super Throwable> error) {
 		return invoke(source, next, error, Actions.noAction0());
 	}
@@ -1538,11 +1538,11 @@ public final class Interactive {
 	 * @param finish the action to invoke after the last element
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> invoke(
-			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Action1<? super T> next, 
-			@Nonnull final Action1<? super Throwable> error, 
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Action1<? super T> next,
+			@Nonnull final Action1<? super Throwable> error,
 			@Nonnull final Action0 finish) {
 		return new Iterable<T>() {
 			@Override
@@ -1599,7 +1599,7 @@ public final class Interactive {
 	 * @param source source iterable with any type
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Boolean> isEmpty(
 			@Nonnull final Iterable<?> source) {
 		return select(any(source), new Func1<Boolean, Boolean>() {
@@ -1617,9 +1617,9 @@ public final class Interactive {
 	 * @param separator the separator to use
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<String> join(
-			@Nonnull final Iterable<?> source, 
+			@Nonnull final Iterable<?> source,
 			final String separator) {
 		return aggregate(source,
 			new Func2<StringBuilder, Object, StringBuilder>() {
@@ -1671,7 +1671,7 @@ public final class Interactive {
 	 * @param source the source of at least Ts.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<Option<T>> materialize(
 			@Nonnull final Iterable<? extends T> source) {
 		return new Iterable<Option<T>>() {
@@ -1716,7 +1716,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -1724,25 +1724,25 @@ public final class Interactive {
 	/**
 	 * Returns the maximum value of the given iterable source.
 	 * @param <T> the element type, which must be self comparable
-	 * @param source the source elements 
+	 * @param source the source elements
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T extends Comparable<? super T>> Iterable<T> max(
 			@Nonnull final Iterable<? extends T> source) {
-		return aggregate(source, Functions.<T>max(), 
+		return aggregate(source, Functions.<T>max(),
 				Functions.<T, Integer>identityFirst());
 	}
 	/**
 	 * Returns the maximum value of the given iterable source in respect to the supplied comparator.
 	 * @param <T> the element type, which must be self comparable
-	 * @param source the source elements 
+	 * @param source the source elements
 	 * @param comparator the comparator to use
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> max(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Comparator<? super T> comparator) {
 		return aggregate(source, Functions.<T>max(comparator), Functions.<T, Integer>identityFirst());
 	}
@@ -1753,7 +1753,7 @@ public final class Interactive {
 	 * @param source the source of Ts
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T extends Comparable<? super T>> Iterable<List<T>> maxBy(
 			@Nonnull final Iterable<? extends T> source) {
 		return minMax(source, Functions.<T>identity(), Functions.<T>comparator(), true);
@@ -1766,9 +1766,9 @@ public final class Interactive {
 	 * @param comparator the key comparator
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<List<T>> maxBy(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Comparator<? super T> comparator) {
 		return minMax(source, Functions.<T>identity(), comparator, true);
 	}
@@ -1781,9 +1781,9 @@ public final class Interactive {
 	 * @param keySelector the selector for keys
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U extends Comparable<? super U>> Iterable<List<T>> maxBy(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, ? extends U> keySelector) {
 		return minMax(source, keySelector, Functions.<U>comparator(), true);
 	}
@@ -1797,10 +1797,10 @@ public final class Interactive {
 	 * @param keyComparator the key comparator
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<List<T>> maxBy(
-			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? super T, ? extends U> keySelector, 
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Func1<? super T, ? extends U> keySelector,
 			@Nonnull final Comparator<? super U> keyComparator) {
 		return minMax(source, keySelector, keyComparator, true);
 	}
@@ -1817,9 +1817,9 @@ public final class Interactive {
 	 * @param bufferSize the size of the buffering
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> memoize(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			final int bufferSize) {
 		if (bufferSize < 0) {
 			throw new IllegalArgumentException("bufferSize < 0");
@@ -1877,7 +1877,7 @@ public final class Interactive {
 	 * @param source the source of Ts
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> memoizeAll(
 			@Nonnull final Iterable<? extends T> source) {
 		final Iterator<? extends T> it = source.iterator();
@@ -1918,7 +1918,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -1931,7 +1931,7 @@ public final class Interactive {
 	 * @param sources the iterable of source iterables.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> merge(
 			@Nonnull final Iterable<? extends Iterable<? extends T>> sources) {
 		return merge(sources, getDefaultScheduler());
@@ -1948,7 +1948,7 @@ public final class Interactive {
 	 * @return the new iterable
 	 */
 	public static <T> Iterable<T> merge(
-			@Nonnull final Iterable<? extends Iterable<? extends T>> sources, 
+			@Nonnull final Iterable<? extends Iterable<? extends T>> sources,
 			@Nonnull final Scheduler scheduler) {
 		return new Iterable<T>() {
 			@Override
@@ -2026,7 +2026,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -2040,9 +2040,9 @@ public final class Interactive {
 	 * @param second the second iterable
 	 * @return the resulting stream of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> merge(
-			@Nonnull final Iterable<? extends T> first, 
+			@Nonnull final Iterable<? extends T> first,
 			@Nonnull final Iterable<? extends T> second) {
 		List<Iterable<? extends T>> list = new ArrayList<Iterable<? extends T>>(2);
 		list.add(first);
@@ -2054,10 +2054,10 @@ public final class Interactive {
 	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
 	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type, which must be self comparable
-	 * @param source the source elements 
+	 * @param source the source elements
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T extends Comparable<? super T>> Iterable<T> min(
 			@Nonnull final Iterable<? extends T> source) {
 		return aggregate(source, Functions.<T>min(), Functions.<T, Integer>identityFirst());
@@ -2067,13 +2067,13 @@ public final class Interactive {
 	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
 	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type, which must be self comparable
-	 * @param source the source elements 
+	 * @param source the source elements
 	 * @param comparator the comparator to use
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> min(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			final Comparator<? super T> comparator) {
 		return aggregate(source, Functions.<T>min(comparator), Functions.<T, Integer>identityFirst());
 	}
@@ -2086,7 +2086,7 @@ public final class Interactive {
 	 * @param source the source of Ts
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T extends Comparable<? super T>> Iterable<List<T>> minBy(
 			@Nonnull final Iterable<? extends T> source) {
 		return minMax(source, Functions.<T>identity(), Functions.<T>comparator(), false);
@@ -2099,9 +2099,9 @@ public final class Interactive {
 	 * @param comparator the key comparator
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<List<T>> minBy(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Comparator<? super T> comparator) {
 		return minMax(source, Functions.<T>identity(), comparator, false);
 	}
@@ -2116,9 +2116,9 @@ public final class Interactive {
 	 * @param keySelector the selector for keys
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U extends Comparable<? super U>> Iterable<List<T>> minBy(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, ? extends U> keySelector) {
 		return minMax(source, keySelector, Functions.<U>comparator(), false);
 	}
@@ -2134,10 +2134,10 @@ public final class Interactive {
 	 * @param keyComparator the key comparator
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<List<T>> minBy(
-			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? super T, ? extends U> keySelector, 
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Func1<? super T, ? extends U> keySelector,
 			@Nonnull final Comparator<? super U> keyComparator) {
 		return minMax(source, keySelector, keyComparator, false);
 	}
@@ -2154,11 +2154,11 @@ public final class Interactive {
 	 * @param max should the computation return the minimums or the maximums
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	static <T, U> Iterable<List<T>> minMax(
-			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? super T, ? extends U> keySelector, 
-			@Nonnull final Comparator<? super U> keyComparator, 
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Func1<? super T, ? extends U> keySelector,
+			@Nonnull final Comparator<? super U> keyComparator,
 			final boolean max) {
 		return new Iterable<List<T>>() {
 			@Override
@@ -2167,7 +2167,7 @@ public final class Interactive {
 					/** The source iterator. */
 					final Iterator<? extends T> it = source.iterator();
 					/** The single result container. */
-					final SingleContainer<Option<? extends List<T>>> result = new SingleContainer<Option<? extends List<T>>>(); 
+					final SingleContainer<Option<? extends List<T>>> result = new SingleContainer<Option<? extends List<T>>>();
 					/** We have finished the aggregation. */
 					boolean done;
 					@Override
@@ -2220,7 +2220,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -2335,24 +2335,24 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
 	}
 	/**
-	 * Creates an observer with debugging purposes. 
+	 * Creates an observer with debugging purposes.
 	 * It prints the submitted values to STDOUT separated by commas and line-broken by 80 characters, the exceptions to STDERR
 	 * and prints an empty newline when it receives a finish().
 	 * @param <T> the value type
 	 * @return the observer
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Action1<T> print() {
 		return print(", ", 80);
 	}
 	/**
-	 * Creates an observer with debugging purposes. 
+	 * Creates an observer with debugging purposes.
 	 * It prints the submitted values to STDOUT, the exceptions to STDERR
 	 * and prints an empty newline when it receives a finish().
 	 * @param <T> the value type
@@ -2360,7 +2360,7 @@ public final class Interactive {
 	 * @param maxLineLength how many characters to print into each line
 	 * @return the observer
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Action1<T> print(final String separator, final int maxLineLength) {
 		return new Action1<T>() {
 			/** Indicator for the first element. */
@@ -2395,12 +2395,12 @@ public final class Interactive {
 		};
 	}
 	/**
-	 * Creates an action for debugging purposes. 
+	 * Creates an action for debugging purposes.
 	 * It prints the submitted values to STDOUT with a line break.
 	 * @param <T> the value type
 	 * @return the observer
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Action1<T> println() {
 		return new Action1<T>() {
 			@Override
@@ -2410,13 +2410,13 @@ public final class Interactive {
 		};
 	}
 	/**
-	 * Creates an action for debugging purposes. 
+	 * Creates an action for debugging purposes.
 	 * It prints the submitted values to STDOUT with a line break.
 	 * @param <T> the value type
 	 * @param prefix the prefix to use when printing
 	 * @return the action
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Action1<T> println(final String prefix) {
 		return new Action1<T>() {
 			@Override
@@ -2435,9 +2435,9 @@ public final class Interactive {
 	 * @param func invoke the function on the buffering iterable and return an iterator over it.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<U> prune(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super Iterable<? extends T>, ? extends Iterable<U>> func) {
 		return func.invoke(share(source));
 	}
@@ -2454,10 +2454,10 @@ public final class Interactive {
 	 * @param initial the initial value to append to the output stream
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<U> publish(
-			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? super Iterable<? super T>, ? extends Iterable<? extends U>> func, 
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Func1<? super Iterable<? super T>, ? extends Iterable<? extends U>> func,
 			final U initial) {
 		return startWith(func.invoke(memoizeAll(source)), initial);
 	}
@@ -2472,9 +2472,9 @@ public final class Interactive {
 	 * @param func invoke the function on the buffering iterable and return an iterator over it.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<U> publish(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super Iterable<T>, ? extends Iterable<U>> func) {
 		return func.invoke(memoizeAll(source));
 	}
@@ -2486,7 +2486,7 @@ public final class Interactive {
 	 * @param count the number of elements to return, negative count means counting down from the start.
 	 * @return the iterator.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Integer> range(final int start, final int count) {
 		return new Iterable<Integer>() {
 			@Override
@@ -2520,7 +2520,7 @@ public final class Interactive {
 	 * @param count the number of elements to return, negative count means counting down from the start.
 	 * @return the iterator.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Long> range(final long start, final long count) {
 		return new Iterable<Long>() {
 			@Override
@@ -2553,9 +2553,9 @@ public final class Interactive {
 	 * @param gate the gate to stop the relaying
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> relayWhile(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func0<Boolean> gate) {
 		return where(source, new Func0<Func2<Integer, T, Boolean>>() {
 			@Override
@@ -2578,7 +2578,7 @@ public final class Interactive {
 	 * @param newScheduler the new scheduler
 	 * @return the current scheduler
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Scheduler replaceDefaultScheduler(
 			@Nonnull Scheduler newScheduler) {
 		if (newScheduler == null) {
@@ -2597,9 +2597,9 @@ public final class Interactive {
 	 * @param func invoke the function on the buffering iterable and return an iterator over it.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<U> replay(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super Iterable<T>, ? extends Iterable<U>> func) {
 		return func.invoke(memoize(source, 0));
 	}
@@ -2615,10 +2615,10 @@ public final class Interactive {
 	 * @param bufferSize the buffer size
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<U> replay(
-			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func1<? super Iterable<T>, ? extends Iterable<U>> func, 
+			@Nonnull final Iterable<? extends T> source,
+			@Nonnull final Func1<? super Iterable<T>, ? extends Iterable<U>> func,
 			final int bufferSize) {
 		return func.invoke(memoize(source, bufferSize));
 	}
@@ -2630,7 +2630,7 @@ public final class Interactive {
 	 * @param sources the list of sources to try one after another
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> resumeAlways(
 			@Nonnull final Iterable<? extends Iterable<? extends T>> sources) {
 		return new Iterable<T>() {
@@ -2670,7 +2670,7 @@ public final class Interactive {
 							}
 							return !peek.isEmpty();
 						}
-	
+
 						@Override
 						public T next() {
 							if (hasNext()) {
@@ -2678,7 +2678,7 @@ public final class Interactive {
 							}
 							throw new NoSuchElementException();
 						}
-	
+
 						@Override
 						public void remove() {
 							it.remove();
@@ -2696,9 +2696,9 @@ public final class Interactive {
 	 * @param second the second source
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> resumeAlways(
-			@Nonnull final Iterable<? extends T> first, 
+			@Nonnull final Iterable<? extends T> first,
 			@Nonnull final Iterable<? extends T> second) {
 		List<Iterable<? extends T>> list = new ArrayList<Iterable<? extends T>>(2);
 		list.add(first);
@@ -2713,7 +2713,7 @@ public final class Interactive {
 	 * @param sources the list of sources to try one after another
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> resumeOnError(
 			@Nonnull final Iterable<? extends Iterable<? extends T>> sources) {
 		return new Iterable<T>() {
@@ -2747,7 +2747,7 @@ public final class Interactive {
 							}
 							return !peek.isEmpty();
 						}
-	
+
 						@Override
 						public T next() {
 							if (hasNext()) {
@@ -2755,7 +2755,7 @@ public final class Interactive {
 							}
 							throw new NoSuchElementException();
 						}
-	
+
 						@Override
 						public void remove() {
 							it.remove();
@@ -2773,9 +2773,9 @@ public final class Interactive {
 	 * @param second the second source
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> resumeOnError(
-			@Nonnull final Iterable<? extends T> first, 
+			@Nonnull final Iterable<? extends T> first,
 			@Nonnull final Iterable<? extends T> second) {
 		List<Iterable<? extends T>> list = new ArrayList<Iterable<? extends T>>(2);
 		list.add(first);
@@ -2805,9 +2805,9 @@ public final class Interactive {
 	 * @param count the number of retry attempts
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> retry(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			final int count) {
 		return new Iterable<T>() {
 			@Override
@@ -2851,7 +2851,7 @@ public final class Interactive {
 					public void remove() {
 						it.remove();
 					}
-					
+
 				};
 			}
 		};
@@ -2867,14 +2867,14 @@ public final class Interactive {
 	 * @param action the action to invoke on with element
 	 */
 	public static <T> void run(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull Action1<? super T> action) {
 		for (T t : source) {
 			action.invoke(t);
 		}
 	}
 	/**
-	 * Iterates over the given source without using its returned value. 
+	 * Iterates over the given source without using its returned value.
 	 * This method is useful when the concrete values from the iterator
 	 * are not needed but the iteration itself implies some side effects.
 	 * @param source the source iterable to run through
@@ -2893,9 +2893,9 @@ public final class Interactive {
 	 * @param aggregator the function which takes the current running aggregation value, the current element and produces a new aggregation value.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<U> scan(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func2<? super U, ? super T, ? extends U> aggregator) {
 		return scan(source, null, aggregator);
 	}
@@ -2912,10 +2912,10 @@ public final class Interactive {
 	 * @param aggregator the function which takes the current running aggregation value, the current element and produces a new aggregation value.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<U> scan(
-			@Nonnull final Iterable<? extends T> source, 
-			final U seed, 
+			@Nonnull final Iterable<? extends T> source,
+			final U seed,
 			@Nonnull final Func2<? super U, ? super T, ? extends U> aggregator) {
 		return new Iterable<U>() {
 			@Override
@@ -2924,7 +2924,7 @@ public final class Interactive {
 				return new Iterator<U>() {
 					/** The current value. */
 					U current = seed;
-					
+
 					@Override
 					public boolean hasNext() {
 						return it.hasNext();
@@ -2954,9 +2954,9 @@ public final class Interactive {
 	 * @param selector the selector function
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<U> select(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, ? extends U> selector) {
 		return select(source, new Func2<Integer, T, U>() {
 			@Override
@@ -2977,9 +2977,9 @@ public final class Interactive {
 	 * @param selector the selector function
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<U> select(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func2<Integer, ? super T, ? extends U> selector) {
 		return new Iterable<U>() {
 			@Override
@@ -3002,7 +3002,7 @@ public final class Interactive {
 					public void remove() {
 						it.remove();
 					}
-					
+
 				};
 			}
 		};
@@ -3018,16 +3018,16 @@ public final class Interactive {
 	 * @param selector the selector for multiple Us for each T
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<U> selectMany(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, ? extends Iterable<? extends U>> selector) {
 		/*
 		 * for (T t : source) {
 		 *     for (U u : selector(t)) {
 		 *         yield u;
 		 *     }
-		 * } 
+		 * }
 		 */
 		return new Iterable<U>() {
 			@Override
@@ -3069,7 +3069,7 @@ public final class Interactive {
 						}
 						sel.remove();
 					}
-					
+
 				};
 			}
 		};
@@ -3082,7 +3082,7 @@ public final class Interactive {
 	 * @param source the source iterable
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> share(
 			@Nonnull final Iterable<T> source) {
 		return new Iterable<T>() {
@@ -3101,7 +3101,7 @@ public final class Interactive {
 	 * @param value the value to return
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> singleton(final T value) {
 		return new Iterable<T>() {
 			@Override
@@ -3127,7 +3127,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -3135,7 +3135,7 @@ public final class Interactive {
 	/**
 	 * Immediately returns the number of elements in {@code iterable}.
 	 * @param iterable the input sequence
-	 * @return the number of elements in the sequence 
+	 * @return the number of elements in the sequence
 	 */
 	public static int size(Iterable<?> iterable) {
 		return first(count(iterable));
@@ -3150,9 +3150,9 @@ public final class Interactive {
 	 * @param num the number of elements to skip at the end
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> skipLast(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			final int num) {
 		return new Iterable<T>() {
 			@Override
@@ -3186,7 +3186,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -3203,9 +3203,9 @@ public final class Interactive {
 	 * @param value the value to prefix
 	 * @return the new iterable.
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> startWith(
-			@Nonnull Iterable<? extends T> source, 
+			@Nonnull Iterable<? extends T> source,
 			final T value) {
 		return concat(singleton(value), source);
 	}
@@ -3216,7 +3216,7 @@ public final class Interactive {
 	 * @param source the source
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<BigDecimal> sumBigDecimal(
 			@Nonnull Iterable<BigDecimal> source) {
 		return aggregate(source,
@@ -3230,7 +3230,7 @@ public final class Interactive {
 	 * @param source the source
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<BigInteger> sumBigInteger(
 			@Nonnull Iterable<BigInteger> source) {
 		return aggregate(source,
@@ -3244,7 +3244,7 @@ public final class Interactive {
 	 * @param source the source
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Double> sumDouble(
 			@Nonnull Iterable<Double> source) {
 		return aggregate(source,
@@ -3256,7 +3256,7 @@ public final class Interactive {
 	 * @param source the source
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Float> sumFloat(
 			@Nonnull Iterable<Float> source) {
 		return aggregate(source,
@@ -3268,7 +3268,7 @@ public final class Interactive {
 	 * @param source the source
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Integer> sumInt(
 			@Nonnull Iterable<Integer> source) {
 		return aggregate(source,
@@ -3280,7 +3280,7 @@ public final class Interactive {
 	 * @param source the source
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Long> sumLong(
 			@Nonnull Iterable<Long> source) {
 		return aggregate(source,
@@ -3290,7 +3290,7 @@ public final class Interactive {
 	/**
 	 * Returns an iterable, which will query the selector for a key, then
 	 * queries the map for an Iterable. The returned iterator will
-	 * then traverse that Iterable. If the map does not contain an 
+	 * then traverse that Iterable. If the map does not contain an
 	 * element, az empty iterable is used.
 	 * @param <T> the key type
 	 * @param <U> the output type
@@ -3298,9 +3298,9 @@ public final class Interactive {
 	 * @param options the available options in
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Iterable<U> switchCase(
-			@Nonnull final Func0<T> selector, 
+			@Nonnull final Func0<T> selector,
 			@Nonnull final Map<T, Iterable<U>> options) {
 		return new Iterable<U>() {
 			@Override
@@ -3309,7 +3309,7 @@ public final class Interactive {
 				return it != null ? it.iterator() : Interactive.<U>empty().iterator();
 			}
 		};
-	
+
 	}
 	/**
 	 * Returns the iterable which returns the first <code>num</code> element.
@@ -3321,9 +3321,9 @@ public final class Interactive {
 	 * @param num the number of items to take
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> take(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			final int num) {
 		return new Iterable<T>() {
 			@Override
@@ -3365,9 +3365,9 @@ public final class Interactive {
 	 * @param num the number of elements to skip at the end
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> takeLast(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			final int num) {
 		return new Iterable<T>() {
 			@Override
@@ -3401,7 +3401,7 @@ public final class Interactive {
 					public void remove() {
 						throw new UnsupportedOperationException();
 					}
-					
+
 				};
 			}
 		};
@@ -3414,13 +3414,13 @@ public final class Interactive {
 	 * Calling <code>remove()</code> will always throw a <code>IllegalStateException</code>.
 	 * If the given Throwable instance extends a <code>RuntimeException</code>, it is throws
 	 * as is, but when the throwable is a checked exception, it is wrapped
-	 * into a <code>RuntimeException</code>. 
+	 * into a <code>RuntimeException</code>.
 	 * FIXME not sure about next() semantics
 	 * @param <T> the element type, irrelevant
 	 * @param t the exception to throw
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> throwException(
 			@Nonnull final Throwable t) {
 		return new Iterable<T>() {
@@ -3450,7 +3450,7 @@ public final class Interactive {
 					public void remove() {
 						throw new IllegalStateException();
 					}
-					
+
 				};
 			}
 		};
@@ -3461,7 +3461,7 @@ public final class Interactive {
 	 * @param e the iterable
 	 * @return the new enumerable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Enumerable<T> toEnumerable(
 			@Nonnull final Iterable<? extends T> e) {
 		return new Enumerable<T>() {
@@ -3477,7 +3477,7 @@ public final class Interactive {
 	 * @param it the source iterator
 	 * @return the new enumerator
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Enumerator<T> toEnumerator(
 			@Nonnull final Iterator<? extends T> it) {
 		return new Enumerator<T>() {
@@ -3502,7 +3502,7 @@ public final class Interactive {
 				hasValue = false;
 				return false;
 			}
-			
+
 		};
 	}
 	/**
@@ -3511,7 +3511,7 @@ public final class Interactive {
 	 * @param e the enumerable
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> toIterable(
 			@Nonnull final Enumerable<? extends T> e) {
 		return new Iterable<T>() {
@@ -3529,7 +3529,7 @@ public final class Interactive {
 	 * @param en the source enumerator
 	 * @return the new iterator
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterator<T> toIterator(
 			@Nonnull final Enumerator<? extends T> en) {
 		return new Iterator<T>() {
@@ -3577,7 +3577,7 @@ public final class Interactive {
 	 * @param usage the function which gives an iterable for a resource token.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U extends Closeable> Iterable<T> using(
 			@Nonnull final Func0<U> resource,
 			@Nonnull final Func1<? super U, Iterable<? extends T>> usage) {
@@ -3614,7 +3614,7 @@ public final class Interactive {
 					public void remove() {
 						it.remove();
 					}
-					
+
 				};
 			}
 		};
@@ -3632,9 +3632,9 @@ public final class Interactive {
 	 * @param predicateFactory the predicate factory which should return a new predicate function for each iterator.
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> where(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func0<? extends Func2<Integer, ? super T, Boolean>> predicateFactory) {
 		/*
 		 * int i = 0;
@@ -3645,7 +3645,7 @@ public final class Interactive {
 		 *     i++;
 		 * }
 		 */
-		
+
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
@@ -3678,14 +3678,14 @@ public final class Interactive {
 						if (hasNext()) {
 							return peek.take();
 						}
-						throw new NoSuchElementException(); 
+						throw new NoSuchElementException();
 					}
 
 					@Override
 					public void remove() {
 						it.remove();
 					}
-					
+
 				};
 			}
 		};
@@ -3699,9 +3699,9 @@ public final class Interactive {
 	 * @param predicate the predicate function
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> where(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return where(source, Functions.constant0(new Func2<Integer, T, Boolean>() {
 			@Override
@@ -3719,9 +3719,9 @@ public final class Interactive {
 	 * @param predicate the predicate
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Iterable<T> where(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func2<Integer, ? super T, Boolean> predicate) {
 		return where(source, Functions.constant0(predicate));
 	}
@@ -3739,10 +3739,10 @@ public final class Interactive {
 	 * @param combiner the combiner function
 	 * @return the new iterable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U, V> Iterable<V> zip(
-			@Nonnull final Iterable<? extends T> left, 
-			@Nonnull final Iterable<? extends U> right, 
+			@Nonnull final Iterable<? extends T> left,
+			@Nonnull final Iterable<? extends U> right,
 			@Nonnull final Func2<? super T, ? super U, ? extends V> combiner) {
 		return new Iterable<V>() {
 			@Override
@@ -3884,8 +3884,8 @@ public final class Interactive {
 	 * @since 0.96
 	 */
 	public static <T, V> Pair<T, V> argAndMax(
-			@Nonnull Iterable<? extends T> source, 
-			@Nonnull Func1<? super T, ? extends V> valueSelector, 
+			@Nonnull Iterable<? extends T> source,
+			@Nonnull Func1<? super T, ? extends V> valueSelector,
 			@Nonnull Comparator<? super V> valueComparator) {
 		T arg = null;
 		V max = null;
@@ -3913,7 +3913,7 @@ public final class Interactive {
 	 * @since 0.96
 	 */
 	public static <T, V extends Comparable<? super V>> Pair<T, V> argAndMax(
-			@Nonnull Iterable<? extends T> source, 
+			@Nonnull Iterable<? extends T> source,
 			@Nonnull Func1<? super T, ? extends V> valueSelector) {
 		return argAndMax(source, valueSelector, Functions.<V>comparator());
 	}
@@ -3927,7 +3927,7 @@ public final class Interactive {
 	 * @since 0.96
 	 */
 	public static <T, V extends Comparable<? super V>> Pair<T, V> argAndMin(
-			@Nonnull Iterable<? extends T> source, 
+			@Nonnull Iterable<? extends T> source,
 			@Nonnull Func1<? super T, ? extends V> valueSelector) {
 		return argAndMin(source, valueSelector, Functions.<V>comparator());
 	}
@@ -3942,8 +3942,8 @@ public final class Interactive {
 	 * @since 0.96
 	 */
 	public static <T, V> Pair<T, V> argAndMin(
-			@Nonnull Iterable<? extends T> source, 
-			@Nonnull Func1<? super T, ? extends V> valueSelector, 
+			@Nonnull Iterable<? extends T> source,
+			@Nonnull Func1<? super T, ? extends V> valueSelector,
 			@Nonnull final Comparator<? super V> valueComparator) {
 		return argAndMax(source, valueSelector, new Comparator<V>() {
 			@Override
@@ -3983,7 +3983,7 @@ public final class Interactive {
 		};
 	}
 	/**
-	 * Returns an iterable which repeats the given single value the specified number of times. 
+	 * Returns an iterable which repeats the given single value the specified number of times.
 	 * <p>The returned iterable does not support the {@code remove()} method.</p>
 	 * @param <T> the value type
 	 * @param value the value to repeat
@@ -4040,10 +4040,10 @@ public final class Interactive {
 	 * @return the observable for the sum value
 	 * @since 0.96
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Double> sumIntAsDouble(
 			@Nonnull final Iterable<Integer> source) {
-		return aggregate(source, 
+		return aggregate(source,
 			new Func2<Double, Integer, Double>() {
 				@Override
 				public Double invoke(Double param1, Integer param2) {
@@ -4061,10 +4061,10 @@ public final class Interactive {
 	 * @return the observable for the sum value
 	 * @since 0.96
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Iterable<Double> sumLongAsDouble(
 			@Nonnull final Iterable<Long> source) {
-		return aggregate(source, 
+		return aggregate(source,
 				new Func2<Double, Long, Double>() {
 					@Override
 					public Double invoke(Double param1, Long param2) {
@@ -4089,9 +4089,9 @@ public final class Interactive {
 	 * @return the new iterable
 	 * @since 0.96.1
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, V> Iterable<GroupedIterable<V, T>> groupBy(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, ? extends V> keySelector
 			) {
 		return groupBy(source, keySelector, Functions.<T>identity());
@@ -4145,7 +4145,7 @@ public final class Interactive {
 	 * Creates an iterable which returns {@code count} subsequent items from the source
 	 * iterable as sequence of values.
 	 * If the {@code source} contains less than {@code count} elements, this
-	 * iterable will be empty.	 
+	 * iterable will be empty.
 	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
 	 * for its <code>remove()</code> method.</p>
 	 * @param <T> the element type
@@ -4155,13 +4155,13 @@ public final class Interactive {
 	 * @since 0.96.1
 	 */
 	public static <T> Iterable<Iterable<T>> subsequent(
-			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Iterable<? extends T> source,
 			final int count) {
 		if (count <= 0) {
 			throw new IllegalArgumentException("Count must be > 0");
 		}
 		if (count == 1) {
-			return Interactive.select(source, new Func1<T, Iterable<T>>() {
+			return select(source, new Func1<T, Iterable<T>>() {
 				@Override
 				public Iterable<T> invoke(T param1) {
 					return singleton(param1);
@@ -4208,5 +4208,5 @@ public final class Interactive {
 	private Interactive() {
 		// utility class
 	}
-	
+
 }

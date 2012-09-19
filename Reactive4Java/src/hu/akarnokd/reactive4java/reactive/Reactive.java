@@ -74,7 +74,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
-
 /**
  * Utility class with operators and helper methods for reactive programming with <code>Observable</code>s and <code>Observer</code>s.
  * Guidances were taken from
@@ -520,7 +519,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T> Observable<T> asObservable(
 			@Nonnull final Action1<Action1<Option<T>>> source) {
-		return Reactive.create(new Func1<Observer<? super T>, Action0>() {
+		return create(new Func1<Observer<? super T>, Action0>() {
 			@Override
 			public Action0 invoke(final Observer<? super T> o) {
 				source.invoke(asAction(o));
@@ -3385,8 +3384,8 @@ public final class Reactive {
 	 */
 	@Nonnull
 	public static <T> Observable<T> max(
-			@Nonnull final Observable<T> source,
-			@Nonnull final Comparator<T> comparator) {
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Comparator<? super T> comparator) {
 		return aggregate(source, Functions.<T>max(comparator), Functions.<T, Integer>identityFirst());
 		}
 	/**
@@ -4665,7 +4664,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T> Observable<T> removeTimestamped(
 			@Nonnull Observable<Timestamped<T>> source) {
-		Func1<Timestamped<T>, T> f = Reactive.unwrapTimestamped();
+		Func1<Timestamped<T>, T> f = unwrapTimestamped();
 		return select(source, f);
 	}
 	/**
@@ -9261,9 +9260,9 @@ public final class Reactive {
 		return new Observable<List<T>>() {
 			@Override
 			public Closeable register(Observer<? super List<T>> observer) {
-				Observable<List<T>> res0 = Reactive.zip(srcs.get(0), srcs.get(1), new Func2<T, T, List<T>>() {
+				Observable<List<T>> res0 = zip(srcs.get(0), srcs.get(1), new Func2<T, T, List<T>>() {
 					@Override
-					public java.util.List<T> invoke(T param1, T param2) {
+					public List<T> invoke(T param1, T param2) {
 						List<T> result = new ArrayList<T>();
 						result.add(param1);
 						result.add(param2);
@@ -9271,9 +9270,9 @@ public final class Reactive {
 					};
 				});
 				for (int i = 2; i < srcs.size(); i++) {
-					res0 = Reactive.zip(res0, srcs.get(i), new Func2<List<T>, T, List<T>>() {
+					res0 = zip(res0, srcs.get(i), new Func2<List<T>, T, List<T>>() {
 						@Override
-						public java.util.List<T> invoke(java.util.List<T> param1, T param2) {
+						public List<T> invoke(List<T> param1, T param2) {
 							param1.add(param2);
 							return param1;
 						};
