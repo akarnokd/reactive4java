@@ -143,12 +143,12 @@ One of the hardest things to comprehend about reactive programming at first is t
 
 We distinguish two base kind of observable sequences:
 
-  * *hot observables*: compute only when someone is registered
+  * *cold observables*: compute only when someone is registered
     * example: a for-each loop generating values once someone registers, everyone will get the same sequence of values
-  * *cold observables*: events fly around no matter if there is someone listening
+  * *hot observables*: events fly around no matter if there is someone listening
     * example: mouse movement events
 
-Hot observables usually maintain an implicit registration with their clients whereas cold observables have some list-of-observers.
+Cold observables usually maintain an implicit registration with their clients whereas hot observables have some list-of-observers.
 
 == Composition ==
 
