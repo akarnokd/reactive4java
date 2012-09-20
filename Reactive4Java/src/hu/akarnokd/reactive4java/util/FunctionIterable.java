@@ -21,7 +21,6 @@ import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Option;
-
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -86,12 +85,12 @@ public final class FunctionIterable {
 	 * @return a function to function to option of R.
 	 */
 	public static <T, R> Func0<Func0<Option<R>>> bind(
-			final Func0<Func0<Option<T>>> source, 
+			final Func0<Func0<Option<T>>> source,
 			final Func1<T, Func0<Func0<Option<R>>>> selector) {
 		return new Func0<Func0<Option<R>>>() {
 			@Override
 			public Func0<Option<R>> invoke() {
-				
+
 				return new Func0<Option<R>>() {
 					/** The source of Ts. */
 					final Func0<Option<T>> e = source.invoke();
@@ -118,7 +117,7 @@ public final class FunctionIterable {
 							}
 							lastInner = innerE.invoke();
 						} while (lastInner == Option.none());
-						
+
 						return lastInner;
 					}
 				};
@@ -127,7 +126,7 @@ public final class FunctionIterable {
 	}
 	/**
 	 * Anamorphism that creates Ts starting from the seed value until the condition holds.
-	 * Its equivalent is a for loop: for (int i = 0; i &lt; 10; i++) 
+	 * Its equivalent is a for loop: for (int i = 0; i &lt; 10; i++)
 	 * @param <T> the type of the values to generate
 	 * @param seed the initial value
 	 * @param condition the condition until the Ts should be produced
@@ -135,7 +134,7 @@ public final class FunctionIterable {
 	 * @return the function of founction of option of T
 	 */
 	public static <T> Func0<Func0<Option<T>>> ana(
-			final T seed, final Func1<T, Boolean> condition, 
+			final T seed, final Func1<T, Boolean> condition,
 			final Func1<T, T> next) {
 		return new Func0<Func0<Option<T>>>() {
 			@Override
@@ -179,7 +178,7 @@ public final class FunctionIterable {
 				}
 				once = true;
 				return true;
-			};
+			}
 		}, next);
 	}
 	/**
@@ -193,11 +192,11 @@ public final class FunctionIterable {
 	 * @return the aggregation result
 	 */
 	public static <T, R> R cata(
-			Func0<Func0<Option<T>>> source, 
-			R seed, 
+			Func0<Func0<Option<T>>> source,
+			R seed,
 			Func2<R, T, R> aggregator) {
 		Func0<Option<T>> e = source.invoke();
-		
+
 		R result = seed;
 		Option<T> value = null;
 		while ((value = e.invoke()) != Option.none()) {
