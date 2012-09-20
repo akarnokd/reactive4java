@@ -16,9 +16,11 @@
 package hu.akarnokd.reactive4java;
 
 import static hu.akarnokd.reactive4java.base.Functions.equal;
+import static hu.akarnokd.reactive4java.base.Functions.pairUp;
 import static hu.akarnokd.reactive4java.query.ObservableBuilder.from;
 import static hu.akarnokd.reactive4java.reactive.Reactive.all;
 import static hu.akarnokd.reactive4java.reactive.Reactive.any;
+import static hu.akarnokd.reactive4java.reactive.Reactive.combine;
 import static hu.akarnokd.reactive4java.reactive.Reactive.concat;
 import static hu.akarnokd.reactive4java.reactive.Reactive.count;
 import static hu.akarnokd.reactive4java.reactive.Reactive.empty;
@@ -31,19 +33,23 @@ import static hu.akarnokd.reactive4java.reactive.Reactive.take;
 import static hu.akarnokd.reactive4java.reactive.Reactive.takeLast;
 import static hu.akarnokd.reactive4java.reactive.Reactive.takeWhile;
 import static hu.akarnokd.reactive4java.reactive.Reactive.toIterable;
+import static hu.akarnokd.reactive4java.reactive.Reactive.zip;
+import static java.util.Arrays.asList;
 import static java.util.Collections.nCopies;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
 import hu.akarnokd.reactive4java.query.ObservableBuilder;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import java.util.Collection;
+import java.util.List;
 import java.util.NoSuchElementException;
 import org.junit.Test;
 
 /**
  * Test the reactive operators.
- * @author Harmath Denes, 2012.07.16.
+ * @author Denes Harmath, 2012.07.16.
  */
 public class TestReactive {
 	/**
@@ -83,6 +89,16 @@ public class TestReactive {
 	 */
 	public static <T> void assertNotEqual(Observable<? extends T> expected, Observable<? extends T> actual) {
 		assertCompare(expected, actual, false);
+	}
+	/**
+	 * Assert if the sequence contains only the given item.
+	 * @param <T> the element type
+	 * @param expected the expected value
+	 * @param actual the actual sequence
+	 */
+	public static <T> void assertSingle(T expected, Observable<? extends T> actual) {
+		String message = "expected: " + expected + "; actual: " + makeString(actual);
+		assertEquals(message, expected, single(actual));
 	}
 	/**
 	 * Tests take().
@@ -246,7 +262,7 @@ public class TestReactive {
 	@Test
 	public void allTrue() {
 		int value = 42;
-		assertEqual(from(true), all(from(value, value, value), equal(value)));
+		assertSingle(true, all(from(value, value, value), equal(value)));
 	}
 	/**
 	 * Tests all() properly returning <code>false</code>.
@@ -254,7 +270,7 @@ public class TestReactive {
 	@Test
 	public void allFalse() {
 		int value = 42;
-		assertEqual(from(false), all(from(value, 0, value), equal(value)));
+		assertSingle(false, all(from(value, 0, value), equal(value)));
 	}
 	/**
 	 * Tests any() properly returning <code>true</code>.
@@ -262,14 +278,14 @@ public class TestReactive {
 	@Test
 	public void anyTrue() {
 		int value = 42;
-		assertEqual(from(true), any(from(0, value, 0), equal(value)));
+		assertSingle(true, any(from(0, value, 0), equal(value)));
 	}
 	/**
 	 * Tests any() properly returning <code>false</code>.
 	 */
 	@Test
 	public void anyFalse() {
-		assertEqual(from(false), any(from(0, 0, 0), equal(1)));
+		assertSingle(false, any(from(0, 0, 0), equal(1)));
 	}
 	/**
 	 * Tests count().
@@ -277,6 +293,46 @@ public class TestReactive {
 	@Test
 	public void countOk() {
 		Collection<Integer> i = nCopies(3, 0);
-		assertEqual(from(i.size()), count(from(i)));
+		assertSingle(i.size(), count(from(i)));
+	}
+	/**
+	 * Tests zip().
+	 */
+	@Test
+	public void zipOk() {
+		final int a0 = 0;
+		final int b0 = 1;
+		final int a1 = 2;
+		final int b1 = 3;
+		ObservableBuilder<Integer> a = from(a0, a1, 0);
+		ObservableBuilder<Integer> b = from(b0, b1);
+		ObservableBuilder<Pair<Integer, Integer>> expected = from(Pair.of(a0, b0), Pair.of(a1, b1));
+		assertEqual(expected, zip(a, b, pairUp()));
+	}
+	/**
+	 * Tests combine() with value.
+	 */
+	@Test
+	public void combineValue() {
+		final int a0 = 0;
+		final int a1 = 1;
+		final int value = 3;
+		ObservableBuilder<Integer> a = from(a0, a1);
+		ObservableBuilder<List<Integer>> expected = from(asList(a0, value), asList(a1, value));
+		assertEqual(expected, combine(a, value));
+	}
+	/**
+	 * Tests combine() with observables.
+	 */
+	@Test
+	public void combineObservables() {
+		final int a0 = 0;
+		final int b0 = 1;
+		final int a1 = 2;
+		final int b1 = 3;
+		ObservableBuilder<Integer> a = from(a0, a1, 0);
+		ObservableBuilder<Integer> b = from(b0, b1);
+		ObservableBuilder<List<Integer>> expected = from(asList(a0, b0), asList(a1, b1));
+		assertEqual(expected, combine(asList(a, b)));
 	}
 }
