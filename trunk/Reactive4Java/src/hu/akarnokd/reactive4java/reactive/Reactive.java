@@ -188,7 +188,7 @@ public final class Reactive {
 					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
-					};
+					}
 					@Override
 					public void finish() {
 						if (phase >= 1) { // FIXME not sure about this
@@ -217,7 +217,7 @@ public final class Reactive {
 	 * @param <U> the type of the intermediate sum value
 	 * @param <V> the type of the final average value
 	 * @param source the source of BigDecimals to aggregate.
-	 * @param sum the function which sums the input Ts. The first received T will be acompanied by a null U.
+	 * @param sum the function which sums the input Ts. The first received T will be accompanied by a null U.
 	 * @param divide the function which perform the final division based on the number of elements
 	 * @return the observable for the average value
 	 */
@@ -260,7 +260,7 @@ public final class Reactive {
 	/**
 	 * Apply an accumulator function over the observable source and submit the accumulated value to the returned observable.
 	 * @param <T> the input element type
-	 * @param <U> the ouput element type
+	 * @param <U> the output element type
 	 * @param source the source observable
 	 * @param seed the initial value of the accumulator
 	 * @param accumulator the accumulator function where the first parameter is the current accumulated value and the second is the now received value.
@@ -280,7 +280,7 @@ public final class Reactive {
 					@Override
 					public void error(Throwable ex) {
 						observer.error(ex);
-					};
+					}
 					@Override
 					public void finish() {
 						observer.next(result);
@@ -300,7 +300,7 @@ public final class Reactive {
 	 * For a true result, it waits for all elements of the source observable.
 	 * @param <T> the type of the source data
 	 * @param source the source observable
-	 * @param predicate the predicate to setisfy
+	 * @param predicate the predicate to satisfy
 	 * @return the observable resulting in a single result
 	 */
 	@Nonnull
@@ -319,7 +319,7 @@ public final class Reactive {
 					@Override
 					public void onError(Throwable ex) {
 						observer.error(ex);
-					};
+					}
 					@Override
 					public void onFinish() {
 						if (!done) {
@@ -405,7 +405,7 @@ public final class Reactive {
 							} else {
 								close();
 							}
-						};
+						}
 					};
 					observers.add(obs);
 				}
@@ -761,7 +761,7 @@ public final class Reactive {
 	 * @param <T> the type of the values
 	 * @param source the source observable
 	 * @param bufferSize the allowed buffer size
-	 * @param time the time value to wait betveen buffer fills
+	 * @param time the time value to wait between buffer fills
 	 * @param unit the time unit
 	 * @param pool the pool where to schedule the buffer splits
 	 * @return the observable of list of Ts
@@ -1263,7 +1263,7 @@ public final class Reactive {
 			@Override
 			public Boolean invoke(T param1) {
 				return param1 == value || (param1 != null && param1.equals(value));
-			};
+			}
 		});
 	}
 	/**
@@ -1278,7 +1278,7 @@ public final class Reactive {
 		return new Observable<Integer>() {
 			@Override
 			public Closeable register(final Observer<? super Integer> observer) {
-				//FIXME sequence guaranties?
+				//FIXME sequence guarantees?
 				return source.register(new Observer<T>() {
 					/** The counter. */
 					int count;
@@ -1314,7 +1314,7 @@ public final class Reactive {
 		return new Observable<Long>() {
 			@Override
 			public Closeable register(final Observer<? super Long> observer) {
-				//FIXME sequence guaranties?
+				//FIXME sequence guarantees?
 				return source.register(new Observer<T>() {
 					/** The counter. */
 					long count;
@@ -1427,7 +1427,7 @@ public final class Reactive {
 	 * The returned observable invokes the <code>observableFactory</code> whenever an observer
 	 * tries to subscribe to it.
 	 * @param <T> the type of elements to observer
-	 * @param observableFactory the factory which is responsivle to create a source observable.
+	 * @param observableFactory the factory which is responsible to create a source observable.
 	 * @return the result observable
 	 */
 	@Nonnull
@@ -1442,7 +1442,7 @@ public final class Reactive {
 	}
 	/**
 	 * Delays the propagation of events of the source by the given amount. It uses the pool for the scheduled waits.
-	 * The delay preserves the relative time difference between subsequent notifiactions.
+	 * The delay preserves the relative time difference between subsequent notifications.
 	 * It uses the default scheduler pool when submitting the delayed values
 	 * @param <T> the type of elements
 	 * @param source the source of Ts
@@ -1459,7 +1459,7 @@ public final class Reactive {
 	}
 	/**
 	 * Delays the propagation of events of the source by the given amount. It uses the pool for the scheduled waits.
-	 * The delay preserves the relative time difference between subsequent notifiactions
+	 * The delay preserves the relative time difference between subsequent notifications
 	 * @param <T> the type of elements
 	 * @param source the source of Ts
 	 * @param time the time value
@@ -1630,7 +1630,7 @@ public final class Reactive {
 	 * @param <T> the type of the values to observe
 	 * @param <U> the key type check for distinction
 	 * @param source the source of Ts
-	 * @param keyExtractor the etractor for the keys
+	 * @param keyExtractor the extractor for the keys
 	 * @return the new filtered observable
 	 */
 	@Nonnull
@@ -1739,7 +1739,7 @@ public final class Reactive {
 
 								}
 							);
-						};
+						}
 					});
 					@Override
 					public void onClose() {
@@ -1834,7 +1834,7 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Blocks until the first element of the observable becomes availabel and returns that element.
+	 * Blocks until the first element of the observable becomes available and returns that element.
 	 * Might block forever.
 	 * Might throw a NoSuchElementException when the observable doesn't produce any more elements
 	 * @param <T> the type of the elements
@@ -1946,8 +1946,8 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Generates a stream of Us by using a value T stream using the default pool fo the generator loop.
-	 * If T = int and U is double, this would be seen as for (int i = 0; i &lt; 10; i++) { yield return i / 2.0; }
+	 * Generates a stream of Us by using a value T stream using the default pool for the generator loop.
+	 * If T = int and U is double, this would be seen as <code>for (int i = 0; i &lt; 10; i++) { yield return i / 2.0; }</code>
 	 * @param <T> the type of the generator values
 	 * @param <U> the type of the observed values
 	 * @param initial the initial generator value
@@ -1966,7 +1966,7 @@ public final class Reactive {
 	}
 	/**
 	 * Generates a stream of Us by using a value T stream.
-	 * If T = int and U is double, this would be seen as for (int i = 0; i &lt; 10; i++) { yield return i / 2.0; }
+	 * If T = int and U is double, this would be seen as <code>for (int i = 0; i &lt; 10; i++) { yield return i / 2.0; }</code>
 	 * @param <T> the type of the generator values
 	 * @param <U> the type of the observed values
 	 * @param initial the initial generator value
@@ -2005,7 +2005,7 @@ public final class Reactive {
 	}
 	/**
 	 * Generates a stream of Us by using a value T stream.
-	 * If T = int and U is double, this would be seen as for (int i = 0; i &lt; 10; i++) { sleep(time); yield return i / 2.0; }
+	 * If T = int and U is double, this would be seen as <code>for (int i = 0; i &lt; 10; i++) { sleep(time); yield return i / 2.0; }</code>
 	 * @param <T> the type of the generator values
 	 * @param <U> the type of the observed values
 	 * @param initial the initial generator value
@@ -2026,7 +2026,7 @@ public final class Reactive {
 	}
 	/**
 	 * Generates a stream of Us by using a value T stream.
-	 * If T = int and U is double, this would be seen as for (int i = 0; i &lt; 10; i++) { sleep(time); yield return i / 2.0; }
+	 * If T = int and U is double, this would be seen as <code>for (int i = 0; i &lt; 10; i++) { sleep(time); yield return i / 2.0; }</code>
 	 * FIXME timeunit for the delay function!
 	 * @param <T> the type of the generator values
 	 * @param <U> the type of the observed values
@@ -2086,7 +2086,7 @@ public final class Reactive {
 		return DEFAULT_SCHEDULER.get();
 	}
 	/**
-	 * Group the specified source accoring to the keys provided by the extractor function.
+	 * Group the specified source according to the keys provided by the extractor function.
 	 * The resulting observable gets notified once a new group is encountered.
 	 * Each previously encountered group by itself receives updates along the way.
 	 * If the source finish(), all encountered group will finish().
@@ -2104,7 +2104,7 @@ public final class Reactive {
 		return groupBy(source, keyExtractor, Functions.<T>identity());
 	}
 	/**
-	 * Group the specified source accoring to the keys provided by the extractor function.
+	 * Group the specified source according to the keys provided by the extractor function.
 	 * The resulting observable gets notified once a new group is encountered.
 	 * Each previously encountered group by itself receives updates along the way.
 	 * If the source finish(), all encountered group will finish().
@@ -3253,7 +3253,7 @@ public final class Reactive {
 	 * @param <U> the result element type
 	 * @param source the source of Ts
 	 * @param selector the selector that extracts an U from the series of Ts.
-	 * @param scheduler the scheduler where the extracted U will be emmitted from.
+	 * @param scheduler the scheduler where the extracted U will be emitted from.
 	 * @return the new observable.
 	 */
 	public static <T, U> Observable<U> manySelect(
@@ -3362,7 +3362,7 @@ public final class Reactive {
 				});
 			}
 		};
-	};
+	}
 	/**
 	 * Returns the maximum value encountered in the source observable once it sends finish().
 	 * @param <T> the element type which must be comparable to itself
@@ -3479,7 +3479,7 @@ public final class Reactive {
 				return Closeables.closeAll(disposables);
 			}
 		};
-	};
+	}
 	/**
 	 * Merge the dynamic sequence of observables of T.
 	 * <p><b>Exception semantics:</b> if the sources or any inner observer signals an
@@ -3875,7 +3875,7 @@ public final class Reactive {
 					@Override
 					public void remove() {
 						throw new UnsupportedOperationException();
-					};
+					}
 				};
 			}
 		};
@@ -4034,7 +4034,7 @@ public final class Reactive {
 							@Override
 							public int compare(T o1, T o2) {
 								return keyComparator.compare(keySelector.invoke(o1), keySelector.invoke(o2));
-							};
+							}
 						});
 						for (T t : buffer) {
 							observer.next(t);
@@ -4111,7 +4111,7 @@ public final class Reactive {
 						len += s.length() + separator.length();
 					}
 				}
-			};
+			}
 		};
 	}
 	/**
@@ -4135,7 +4135,7 @@ public final class Reactive {
 			@Override
 			public void next(T value) {
 				System.out.println(value);
-			};
+			}
 		};
 	}
 	/**
@@ -4163,7 +4163,7 @@ public final class Reactive {
 			public void next(T value) {
 				System.out.print(prefix);
 				System.out.println(value);
-			};
+			}
 		};
 	}
 	/**
@@ -5901,12 +5901,12 @@ public final class Reactive {
 		}
 	}
 	/**
-	 * Blocks until the observable calls finish() or error() or the specified amount of time ellapses. Values are ignored.
+	 * Blocks until the observable calls finish() or error() or the specified amount of time elapses. Values are ignored.
 	 * FIXME might be infeasible due the potential side effects along the event stream
 	 * @param source the source observable
 	 * @param time the time value
 	 * @param unit the time unit
-	 * @return false if the waiting time ellapsed before the run completed
+	 * @return false if the waiting time elapsed before the run completed
 	 * @throws InterruptedException if the current thread is interrupted while waiting on
 	 * the observable.
 	 */
@@ -6238,7 +6238,7 @@ public final class Reactive {
 			@Override
 			public U invoke(T param1, U param2) {
 				return param2;
-			};
+			}
 		});
 	}
 	/**
@@ -6776,7 +6776,7 @@ public final class Reactive {
 	}
 	/**
 	 * Start with the given iterable of values before relaying the Ts from the
-	 * source. The iterable values are emmitted on the default pool.
+	 * source. The iterable values are emitted on the default pool.
 	 * @param <T> the element type
 	 * @param source the source
 	 * @param values the values to start with
@@ -6790,7 +6790,7 @@ public final class Reactive {
 	}
 	/**
 	 * Start with the given iterable of values before relaying the Ts from the
-	 * source. The iterable values are emmitted on the given pool.
+	 * source. The iterable values are emitted on the given pool.
 	 * @param <T> the element type
 	 * @param source the source
 	 * @param values the values to start with
@@ -6806,7 +6806,7 @@ public final class Reactive {
 	}
 	/**
 	 * Start with the given iterable of values before relaying the Ts from the
-	 * source. The value is emmitted on the default pool.
+	 * source. The value is emitted on the default pool.
 	 * @param <T> the element type
 	 * @param source the source
 	 * @param value the single value to start with
@@ -6820,7 +6820,7 @@ public final class Reactive {
 	}
 	/**
 	 * Start with the given iterable of values before relaying the Ts from the
-	 * source. The value is emmitted on the given pool.
+	 * source. The value is emitted on the given pool.
 	 * @param <T> the element type
 	 * @param source the source
 	 * @param value the value to start with
@@ -7564,7 +7564,7 @@ public final class Reactive {
 			final long time,
 			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
-		Observable<T> other = Reactive.throwException(new TimeoutException());
+		Observable<T> other = throwException(new TimeoutException());
 		return timeout(source, time, unit, other, pool);
 	}
 	/**
@@ -7621,7 +7621,7 @@ public final class Reactive {
 	}
 	/**
 	 * Convert the given observable instance into a classical iterable instance.
-	 * <p>THe resulting iterable does not support the {@code remove()} method.</p>
+	 * <p>The resulting iterable does not support the {@code remove()} method.</p>
 	 * @param <T> the element type to iterate
 	 * @param observable the original observable
 	 * @return the iterable
@@ -8161,7 +8161,7 @@ public final class Reactive {
 			@Override
 			public void next(T value) {
 				action.invoke(value);
-			};
+			}
 		};
 	}
 	/**
@@ -8670,7 +8670,7 @@ public final class Reactive {
 	}
 	/**
 	 * Projects each value of T into an observable which are closed by
-	 * either the <code>count</code> limit or the ellapsed timespan.
+	 * either the <code>count</code> limit or the elapsed timespan.
 	 * @param <T> the element type
 	 * @param source the source of Ts
 	 * @param count the maximum count of the elements in each window
@@ -8688,7 +8688,7 @@ public final class Reactive {
 	}
 	/**
 	 * Projects each value of T into an observable which are closed by
-	 * either the <code>count</code> limit or the ellapsed timespan.
+	 * either the <code>count</code> limit or the elapsed timespan.
 	 * @param <T> the element type
 	 * @param source the source of Ts
 	 * @param count the maximum count of the elements in each window
@@ -9039,7 +9039,7 @@ public final class Reactive {
 			@Override
 			public Timestamped<T> invoke(T param1) {
 				return Timestamped.of(param1);
-			};
+			}
 		};
 
 	}
@@ -9113,7 +9113,7 @@ public final class Reactive {
 	 * Creates an observable which waits for events from left
 	 * and combines it with the next available value from the right observable,
 	 * applies the selector function and emits the resulting T.
-	 * Basically it emmits a T when both an U and V is available.
+	 * Basically it emits a T when both an U and V is available.
 	 * The output stream throws error or terminates if any of the streams
 	 * throws or terminates.
 	 * FIXME not sure how to implement this, and how to close and signal
@@ -9238,23 +9238,23 @@ public final class Reactive {
 	}
 	/**
 	 * Combine the incoming Ts of the various observables into a single list of Ts like
-	 * using Reactive.zip() on more than two sources.
+	 * using zip() on more than two sources.
 	 * @param <T> the element type
 	 * @param srcs the iterable of observable sources.
 	 * @return the new observable
 	 */
 	public static <T> Observable<List<T>> combine(final List<? extends Observable<? extends T>> srcs) {
 		if (srcs.size() < 1) {
-			return Reactive.never();
+			return never();
 		} else
 		if (srcs.size() == 1) {
-			return Reactive.select(srcs.get(0), new Func1<T, List<T>>() {
+			return select(srcs.get(0), new Func1<T, List<T>>() {
 				@Override
 				public List<T> invoke(T param1) {
 					List<T> result = new ArrayList<T>(1);
 					result.add(param1);
 					return result;
-				};
+				}
 			});
 		}
 		return new Observable<List<T>>() {
@@ -9267,7 +9267,7 @@ public final class Reactive {
 						result.add(param1);
 						result.add(param2);
 						return result;
-					};
+					}
 				});
 				for (int i = 2; i < srcs.size(); i++) {
 					res0 = zip(res0, srcs.get(i), new Func2<List<T>, T, List<T>>() {
@@ -9275,7 +9275,7 @@ public final class Reactive {
 						public List<T> invoke(List<T> param1, T param2) {
 							param1.add(param2);
 							return param1;
-						};
+						}
 					});
 				}
 				return res0.register(observer);
@@ -9291,14 +9291,14 @@ public final class Reactive {
 	 * @return the new observer
 	 */
 	public static <T> Observable<List<T>> combine(Observable<? extends T> src, final T constant) {
-		return Reactive.select(src, new Func1<T, List<T>>() {
+		return select(src, new Func1<T, List<T>>() {
 			@Override
 			public List<T> invoke(T param1) {
 				List<T> result = new ArrayList<T>();
 				result.add(param1);
 				result.add(constant);
 				return result;
-			};
+			}
 		});
 	}
 	/**
@@ -9310,14 +9310,14 @@ public final class Reactive {
 	 * @return the new observer
 	 */
 	public static <T> Observable<List<T>> combine(final T constant, Observable<? extends T> src) {
-		return Reactive.select(src, new Func1<T, List<T>>() {
+		return select(src, new Func1<T, List<T>>() {
 			@Override
 			public List<T> invoke(T param1) {
 				List<T> result = new ArrayList<T>();
 				result.add(constant);
 				result.add(param1);
 				return result;
-			};
+			}
 		});
 	}
 	/** Utility class. */
