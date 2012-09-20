@@ -128,10 +128,10 @@ public final class Interactive {
 	 * The returned iterator will throw an <code>UnsupportedOperationException</code>
 	 * for its <code>remove()</code> method.
 	 * @param <T> the source element type
-	 * @param <U> the itermediate aggregation type
+	 * @param <U> the intermediate aggregation type
 	 * @param <V> the resulting aggregation type
 	 * @param source the source of Ts
-	 * @param sum the function which takes the current itermediate value,
+	 * @param sum the function which takes the current intermediate value,
 	 * the current source value and should produce a new intermediate value.
 	 * for the first element of T, the U parameter will receive null
 	 * @param divide the function which takes the last intermediate value and a total count of Ts seen and should return the final aggregation value.
@@ -535,7 +535,7 @@ public final class Interactive {
 		};
 	}
 	/**
-	 * Casts the source iterable into a different typ by using a type token.
+	 * Casts the source iterable into a different type by using a type token.
 	 * If the source contains a wrong element, the <code>next()</code>
 	 * will throw a <code>ClassCastException</code>.
 	 * <p>The returned iterator forwards all <code>remove()</code> calls
@@ -575,7 +575,7 @@ public final class Interactive {
 		};
 	}
 	/**
-	 * Creates an iterable which if iterates over the sourec and encounters an exception, it simply stops the iteration, consuming the exception.
+	 * Creates an iterable which if iterates over the source and encounters an exception, it simply stops the iteration, consuming the exception.
 	 * @param <T> the element type
 	 * @param source the source iterable.
 	 * @return the new iterable
@@ -587,7 +587,7 @@ public final class Interactive {
 		return catchException(source, Functions.constant(e));
 	}
 	/**
-	 * Creates an iterable which if iterates over the sourec and encounters an exception,
+	 * Creates an iterable which if iterates over the source and encounters an exception,
 	 * the iteration is continued on the new iterable returned by the handler function.
 	 * <p>The returned iterator forwards all <code>remove()</code> calls
 	 * to the source.</p>
@@ -730,7 +730,7 @@ public final class Interactive {
 		list.add(first);
 		list.add(second);
 		return concat(list);
-	};
+	}
 	/**
 	 * Returns an iterable which checks for the existence of the supplied
 	 * value by comparing the elements of the source iterable using reference
@@ -747,7 +747,7 @@ public final class Interactive {
 			@Override
 			public Boolean invoke(T param1) {
 				return param1 == value || (param1 != null && param1.equals(value));
-			};
+			}
 		});
 	}
 	/**
@@ -963,9 +963,9 @@ public final class Interactive {
 						}
 						last = param1;
 						return true;
-					};
+					}
 				};
-			};
+			}
 		});
 	}
 	/**
@@ -1004,13 +1004,13 @@ public final class Interactive {
 						}
 						last = key;
 						return true;
-					};
+					}
 				};
-			};
+			}
 		});
 	}
 	/**
-	 * Returns an iterable which filters its elements based if they vere ever seen before in
+	 * Returns an iterable which filters its elements based if they were ever seen before in
 	 * the current iteration.
 	 * Value equality is computed by reference equality and <code>equals()</code>
 	 * @param <T> the source element type
@@ -1049,15 +1049,15 @@ public final class Interactive {
 					@Override
 					public Boolean invoke(Integer index, T param1) {
 						return memory.add(keySelector.invoke(param1));
-					};
+					}
 				};
-			};
+			}
 		})
 		, new Func1<T, V>() {
 			@Override
 			public V invoke(T param1) {
 				return valueSelector.invoke(param1);
-			};
+			}
 		});
 	}
 	/**
@@ -1386,7 +1386,7 @@ public final class Interactive {
 	/**
 	 * Creates an iterable which traverses the source iterable,
 	 * and based on the key selector, groups values extracted by valueSelector into GroupedIterables,
-	 * which can be interated over later on.
+	 * which can be iterated over later on.
 	 * The equivalence of the keys are determined via reference
 	 * equality and <code>equals()</code> equality.
 	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
@@ -2316,7 +2316,7 @@ public final class Interactive {
 									U key1 = keySelector.invoke(o1);
 									U key2 = keySelector.invoke(o2);
 									return keyComparator.compare(key1, key2);
-								};
+								}
 							});
 							bufIterator = buffer.iterator();
 						}
@@ -2391,7 +2391,7 @@ public final class Interactive {
 						len += s.length() + separator.length();
 					}
 				}
-			};
+			}
 		};
 	}
 	/**
@@ -2406,7 +2406,7 @@ public final class Interactive {
 			@Override
 			public void invoke(T value) {
 				System.out.println(value);
-			};
+			}
 		};
 	}
 	/**
@@ -2423,7 +2423,7 @@ public final class Interactive {
 			public void invoke(T value) {
 				System.out.print(prefix);
 				System.out.println(value);
-			};
+			}
 		};
 	}
 	/**
@@ -2567,14 +2567,14 @@ public final class Interactive {
 					public Boolean invoke(Integer param1, T param2) {
 						active &= gate.invoke();
 						return active;
-					};
+					}
 				};
 			}
 		});
 	}
 	/**
 	 * Replace the current default scheduler with the specified  new scheduler.
-	 * This method is threadsafe
+	 * This method is thread-safe.
 	 * @param newScheduler the new scheduler
 	 * @return the current scheduler
 	 */
@@ -2962,7 +2962,7 @@ public final class Interactive {
 			@Override
 			public U invoke(Integer param1, T param2) {
 				return selector.invoke(param2);
-			};
+			}
 		});
 	}
 	/**
@@ -3198,7 +3198,7 @@ public final class Interactive {
 	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
 	 * for its <code>remove()</code> method for the first element, and might
 	 * throw for subsequent elements, depending on the source iterable.</p>
-	 * @param <T> the lement type
+	 * @param <T> the element type
 	 * @param source the source iterable
 	 * @param value the value to prefix
 	 * @return the new iterable.
@@ -3623,7 +3623,7 @@ public final class Interactive {
 	 * Creates an iterable which filters the source iterable with the
 	 * given predicate factory function. The predicate returned by the factory receives an index
 	 * telling how many elements were processed thus far.
-	 * Use this construct if you want to use some memorizing predicat function (e.g., filter by subsequent distinct, filter by first occurrences only)
+	 * Use this construct if you want to use some memorizing predicate function (e.g., filter by subsequent distinct, filter by first occurrences only)
 	 * which need to be invoked per iterator() basis.
 	 * <p>The returned iterator forwards all <code>remove()</code> calls
 	 * to the source.</p>
@@ -3693,7 +3693,7 @@ public final class Interactive {
 	/**
 	 * Creates an iterable which filters the source iterable with the
 	 * given predicate function. The predicate receives the value and
-	 * must return a boolean wether to accept that entry.
+	 * must return a boolean whether to accept that entry.
 	 * @param <T> the element type
 	 * @param source the source iterable
 	 * @param predicate the predicate function
@@ -3949,7 +3949,7 @@ public final class Interactive {
 			@Override
 			public int compare(V o1, V o2) {
 				return valueComparator.compare(o2, o1);
-			};
+			}
 		});
 	}
 	/**
@@ -4077,7 +4077,7 @@ public final class Interactive {
 	/**
 	 * Creates an iterable which traverses the source iterable,
 	 * and based on the key selector, groups values of T into GroupedIterables,
-	 * which can be interated over later on.
+	 * which can be iterated over later on.
 	 * The equivalence of the keys are determined via reference
 	 * equality and <code>equals()</code> equality.
 	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code>
@@ -4208,5 +4208,4 @@ public final class Interactive {
 	private Interactive() {
 		// utility class
 	}
-
 }
