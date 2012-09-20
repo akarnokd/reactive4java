@@ -98,14 +98,14 @@ public final class Functions {
 		@Override
 		public void run() {
 
-		};
+		}
 	};
 	/** An empty runnable. */
 	public static final Closeable EMPTY_CLOSEABLE = new Closeable() {
 		@Override
 		public void close() {
 
-		};
+		}
 	};
 	/** Function to sum integers in aggregators. */
 	static final Func2<Integer, Integer, Integer> SUM_INTEGER = new Func2<Integer, Integer, Integer>() {
@@ -234,7 +234,7 @@ public final class Functions {
 			@Override
 			public int compare(T o1, T o2) {
 				return func.invoke(o1, o2);
-			};
+			}
 		};
 	}
 	/**
@@ -251,7 +251,7 @@ public final class Functions {
 			public T invoke() {
 				action.invoke();
 				return result;
-			};
+			}
 		};
 	}
 	/**
@@ -269,7 +269,7 @@ public final class Functions {
 			public U invoke(T param1) {
 				action.invoke(param1);
 				return result;
-			};
+			}
 		};
 	}
 	/**
@@ -288,7 +288,7 @@ public final class Functions {
 			public V invoke(T param1, U param2) {
 				action.invoke(param1, param2);
 				return result;
-			};
+			}
 		};
 	}
 	/**
@@ -324,7 +324,7 @@ public final class Functions {
 			@Override
 			public Integer invoke(T param1, T param2) {
 				return comparator.compare(param1, param2);
-			};
+			}
 		};
 	}
 	/**
@@ -410,7 +410,7 @@ public final class Functions {
 					return 0;
 				}
 				return o1.compareTo(o2);
-			};
+			}
 		};
 	}
 	/**
@@ -435,7 +435,7 @@ public final class Functions {
 					return 0;
 				}
 				return o1.compareTo(o2);
-			};
+			}
 		};
 	}
 	/**
@@ -449,7 +449,7 @@ public final class Functions {
 			@Override
 			public int compare(T o1, T o2) {
 				return o2.compareTo(o1);
-			};
+			}
 		};
 	}
 	/**
@@ -466,7 +466,7 @@ public final class Functions {
 			@Override
 			public int compare(T o1, T o2) {
 				return normal.compare(o2, o1);
-			};
+			}
 		};
 	}
 	/**
@@ -482,7 +482,7 @@ public final class Functions {
 			@Override
 			public Result invoke(Param1 param1) {
 				return value;
-			};
+			}
 		};
 	}
 	/**
@@ -497,7 +497,7 @@ public final class Functions {
 			@Override
 			public T invoke() {
 				return value;
-			};
+			}
 		};
 	}
 	/**
@@ -537,7 +537,7 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Returns a function which returns true if its sumbitted parameter
+	 * Returns a function which returns true if its submitted parameter
 	 * value equals to the given constant.
 	 * @param <T> the value type
 	 * @param value the value
@@ -549,7 +549,7 @@ public final class Functions {
 			@Override
 			public Boolean invoke(T param) {
 				return value == param || (value != null && value.equals(param));
-			};
+			}
 		};
 	}
 	/**
@@ -584,7 +584,7 @@ public final class Functions {
 			@Override
 			public Boolean invoke(T param1) {
 				return comparator.compare(param1, value) >= 0;
-			};
+			}
 		};
 	}
 	/**
@@ -620,7 +620,7 @@ public final class Functions {
 			@Override
 			public Boolean invoke(T param1) {
 				return comparator.compare(param1, value) > 0;
-			};
+			}
 		};
 	}
 	/**
@@ -812,7 +812,7 @@ public final class Functions {
 					return param2;
 				}
 				return param1.compareTo(param2) < 0 ? param2 : param1;
-			};
+			}
 		};
 	}
 	/**
@@ -836,7 +836,7 @@ public final class Functions {
 					return param2;
 				}
 				return comparator.compare(param1, param2) < 0 ? param2 : param1;
-			};
+			}
 		};
 	}
 	/**
@@ -858,7 +858,7 @@ public final class Functions {
 					return param2;
 				}
 				return param1.compareTo(param2) > 0 ? param2 : param1;
-			};
+			}
 		};
 	}
 	/**
@@ -882,7 +882,7 @@ public final class Functions {
 					return param2;
 				}
 				return comparator.compare(param1, param2) > 0 ? param2 : param1;
-			};
+			}
 		};
 	}
 	/**
@@ -914,7 +914,7 @@ public final class Functions {
 			@Override
 			public Boolean invoke(T param) {
 				return value != param && (value == null || !value.equals(param));
-			};
+			}
 		};
 	}
 	/**
@@ -985,7 +985,7 @@ public final class Functions {
 		}
 	};
 	/**
-	 * Returns a function which compares its two paramerers by a null-safe
+	 * Returns a function which compares its two parameters by a null-safe
 	 * equals.
 	 * @param <T> the parameter type
 	 * @return the function
@@ -1046,7 +1046,7 @@ public final class Functions {
 			@Override
 			public Boolean invoke(K param1) {
 				return set.contains(param1);
-			};
+			}
 		};
 	}
 	/**
@@ -1673,7 +1673,7 @@ public final class Functions {
 			@Override
 			public V invoke(T param1, U param2) {
 				return value;
-			};
+			}
 		};
 	}
 	/**
@@ -1691,7 +1691,7 @@ public final class Functions {
 			public T invoke() {
 				action.run();
 				return result;
-			};
+			}
 		};
 	}
 	/**
@@ -1710,7 +1710,7 @@ public final class Functions {
 			public U invoke(T param1) {
 				action.run();
 				return result;
-			};
+			}
 		};
 	}
 	/**
@@ -1729,7 +1729,7 @@ public final class Functions {
 			public U invoke(T param1) {
 				action.invoke();
 				return result;
-			};
+			}
 		};
 	}
 	/**

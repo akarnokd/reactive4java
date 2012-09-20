@@ -17,7 +17,6 @@ package hu.akarnokd.reactive4java.base;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.script.Bindings;
@@ -32,8 +31,8 @@ import javax.script.SimpleBindings;
  * <p>Note that scripting performance is typically 10-100 slower than the
  * same JIT compiled Java expression.</p>
  * <p>See the <a href='http://java.sun.com/developer/technicalArticles/J2SE/Desktop/scripting/'>scripting</a>
- * articles about how to script in java.</p> 
- * 
+ * articles about how to script in java.</p>
+ *
  * <p>Note that a script engines might not be thread safe, e.g., you might not run
  * multiple scripts without external synchronization.
  * See also <a href='http://download.oracle.com/javase/6/docs/api/javax/script/ScriptEngineFactory.html#getParameter(java.lang.String)'>THREADING</a>
@@ -42,7 +41,7 @@ import javax.script.SimpleBindings;
  */
 public final class Lambdas {
 	/**
-	 * Returns a parameterless action which invokes the given script on the 
+	 * Returns a parameterless action which invokes the given script on the
 	 * script engine.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>=> expression1; expression;</code>
@@ -52,10 +51,10 @@ public final class Lambdas {
 	 * @param bindings the external resources the script might need
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Action0 action0(
-			@Nonnull String expression, 
-			@Nonnull final ScriptEngine engine, 
+			@Nonnull String expression,
+			@Nonnull final ScriptEngine engine,
 			@Nonnull final Map<String, Object> bindings) {
 		expression = expression.trim();
 		if (expression.startsWith("=>")) {
@@ -77,7 +76,7 @@ public final class Lambdas {
 	/**
 	 * Creates a parameterless action which executes the given script with the
 	 * given script engine. In addition, you may specify extra bindings in the varargs
-	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
+	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression; return result;</code>
 	 * @param expression the lambda expression
@@ -85,10 +84,10 @@ public final class Lambdas {
 	 * @param nameThenObject the String, Object, String, Object, ... sequence of name and value pairs.
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Action0 action0(
-			@Nonnull String expression, 
-			@Nonnull ScriptEngine engine, 
+			@Nonnull String expression,
+			@Nonnull ScriptEngine engine,
 			@Nonnull Object... nameThenObject) {
 		Map<String, Object> bindings = new HashMap<String, Object>();
 		for (int i = 0; i < nameThenObject.length; i += 2) {
@@ -107,9 +106,9 @@ public final class Lambdas {
 	 * @param bindings the external resources the script might need
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Action1<T> action1(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull final ScriptEngine engine,
 			@Nonnull final Map<String, Object> bindings) {
 		int idx = expression.indexOf("=>");
@@ -128,13 +127,13 @@ public final class Lambdas {
 				} catch (ScriptException ex) {
 					throw new RuntimeException(ex);
 				}
-			};
+			}
 		};
 	}
 	/**
 	 * Creates a single parameter action which executes the given script on
 	 * the script engine. In addition, you may specify extra bindings in the varargs
-	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
+	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression; return result;</code>
 	 * @param <T> the parameter type of the action
@@ -144,8 +143,8 @@ public final class Lambdas {
 	 * @return the function
 	 */
 	public static <T> Action1<T> action1(
-			@Nonnull String expression, 
-			@Nonnull ScriptEngine engine, 
+			@Nonnull String expression,
+			@Nonnull ScriptEngine engine,
 			@Nonnull Object... nameThenObject) {
 		Map<String, Object> bindings = new HashMap<String, Object>();
 		for (int i = 0; i < nameThenObject.length; i += 2) {
@@ -161,25 +160,25 @@ public final class Lambdas {
 	 * @param bindings the extra parameter bingings
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Action0 as0(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull Map<String, Object> bindings) {
 		return action0(expression, getEngine("js"), bindings);
 	}
 	/**
 	 * Creates a parameterless action which executes the given script as
 	 * javascript. In addition, you may specify extra bindings in the varargs
-	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
+	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression; return result;</code>
 	 * @param expression the lambda expression
 	 * @param nameThenObject the String, Object, String, Object, ... sequence of name and value pairs.
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static Action0 as0(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull Object... nameThenObject) {
 		return action0(expression, getEngine("js"), nameThenObject);
 	}
@@ -193,14 +192,14 @@ public final class Lambdas {
 	 * @return the function
 	 */
 	public static <T> Action1<T> as1(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull Map<String, Object> bindings) {
 		return action1(expression, getEngine("js"), bindings);
 	}
 	/**
 	 * Creates a single parameter action which executes the given script as JavaScript.
 	 * In addition, you may specify extra bindings in the varargs
-	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
+	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression; return result;</code>
 	 * @param <T> the parameter type of the action
@@ -209,7 +208,7 @@ public final class Lambdas {
 	 * @return the function
 	 */
 	public static <T> Action1<T> as1(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull Object... nameThenObject) {
 		return action1(expression, getEngine("js"), nameThenObject);
 	}
@@ -233,7 +232,7 @@ public final class Lambdas {
 	 * @param expression the lambda expression
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func0<T> js0(@Nonnull String expression) {
 		return script0(expression, getEngine("js"), new HashMap<String, Object>());
 	}
@@ -248,16 +247,16 @@ public final class Lambdas {
 	 * @param bindings the external resources the script might need
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func0<T> js0(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull Map<String, Object> bindings) {
 		return script0(expression, getEngine("js"), bindings);
 	}
 	/**
 	 * Creates a parameterless function which executes the given script as
 	 * javascript. In addition, you may specify extra bindings in the varargs
-	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
+	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression; return result;</code>
 	 * @param <T> the result type
@@ -265,9 +264,9 @@ public final class Lambdas {
 	 * @param nameThenObject the String, Object, String, Object, ... sequence of name and value pairs.
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func0<T> js0(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull Object... nameThenObject) {
 		Map<String, Object> bindings = new HashMap<String, Object>();
 		for (int i = 0; i < nameThenObject.length; i += 2) {
@@ -285,7 +284,7 @@ public final class Lambdas {
 	 * @param expression the lambda expression
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Func1<T, U> js1(
 			@Nonnull String expression) {
 		return script1(expression, getEngine("js"), new HashMap<String, Object>());
@@ -301,16 +300,16 @@ public final class Lambdas {
 	 * @param bindings the external resources the script might need
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Func1<T, U> js1(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull Map<String, Object> bindings) {
 		return script1(expression, getEngine("js"), bindings);
 	}
 	/**
 	 * Creates a single parameter function which executes the given script as
 	 * javascript. In addition, you may specify extra bindings in the varargs
-	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
+	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression; return result;</code>
 	 * @param <T> the result type
@@ -319,9 +318,9 @@ public final class Lambdas {
 	 * @param nameThenObject the String, Object, String, Object, ... sequence of name and value pairs.
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Func1<T, U> js1(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull Object... nameThenObject) {
 		Map<String, Object> bindings = new HashMap<String, Object>();
 		for (int i = 0; i < nameThenObject.length; i += 2) {
@@ -340,7 +339,7 @@ public final class Lambdas {
 	 * @param expression the lambda expression
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U, V> Func2<T, U, V> js2(
 			@Nonnull String expression) {
 		return script2(expression, getEngine("js"), new HashMap<String, Object>());
@@ -357,16 +356,16 @@ public final class Lambdas {
 	 * @param bindings the external resources the script might need
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U, V> Func2<T, U, V> js2(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull Map<String, Object> bindings) {
 		return script2(expression, getEngine("js"), bindings);
 	}
 	/**
 	 * Creates a two parameter function which executes the given script as
 	 * javascript. In addition, you may specify extra bindings in the varargs
-	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
+	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression; return result;</code>
 	 * @param <T> the result type
@@ -376,9 +375,9 @@ public final class Lambdas {
 	 * @param nameThenObject the String, Object, String, Object, ... sequence of name and value pairs.
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U, V> Func2<T, U, V> js2(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull Object... nameThenObject) {
 		Map<String, Object> bindings = new HashMap<String, Object>();
 		for (int i = 0; i < nameThenObject.length; i += 2) {
@@ -392,7 +391,7 @@ public final class Lambdas {
 //	 */
 //	public static void main(String[] args) {
 //		ScriptEngineManager mgr = new ScriptEngineManager();
-//		List<ScriptEngineFactory> factories = 
+//		List<ScriptEngineFactory> factories =
 //			mgr.getEngineFactories();
 //		for (ScriptEngineFactory factory : factories) {
 //			System.out.println("ScriptEngineFactory Info");
@@ -400,19 +399,19 @@ public final class Lambdas {
 //			String engVersion = factory.getEngineVersion();
 //			String langName = factory.getLanguageName();
 //			String langVersion = factory.getLanguageVersion();
-//			System.out.printf("\tScript Engine: %s (%s)\n", 
+//			System.out.printf("\tScript Engine: %s (%s)\n",
 //					engName, engVersion);
 //			List<String> engNames = factory.getNames();
 //			for (String name : engNames) {
 //				System.out.printf("\tEngine Alias: %s\n", name);
 //			}
-//			System.out.printf("\tLanguage: %s (%s)\n", 
+//			System.out.printf("\tLanguage: %s (%s)\n",
 //					langName, langVersion);
 //			System.out.printf("\tThreading: %s%n", factory.getParameter("THREADING"));
-//		} 
+//		}
 //	}
 	/**
-	 * Returns a parameterless function which invokes the given script on the 
+	 * Returns a parameterless function which invokes the given script on the
 	 * script engine and retunrs its value.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>param1, param2 => expression1; expression; return result</code>
@@ -423,10 +422,10 @@ public final class Lambdas {
 	 * @param bindings the external resources the script might need
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func0<T> script0(
-			@Nonnull String expression, 
-			@Nonnull final ScriptEngine engine, 
+			@Nonnull String expression,
+			@Nonnull final ScriptEngine engine,
 			@Nonnull final Map<String, Object> bindings) {
 		expression = expression.trim();
 		if (expression.startsWith("=>")) {
@@ -450,7 +449,7 @@ public final class Lambdas {
 	/**
 	 * Creates a parameterless function which executes the given script as
 	 * javascript. In addition, you may specify extra bindings in the varargs
-	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
+	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression; return result;</code>
 	 * @param <T> the result type
@@ -459,10 +458,10 @@ public final class Lambdas {
 	 * @param nameThenObject the String, Object, String, Object, ... sequence of name and value pairs.
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Func0<T> script0(
-			@Nonnull String expression, 
-			@Nonnull ScriptEngine engine, 
+			@Nonnull String expression,
+			@Nonnull ScriptEngine engine,
 			@Nonnull Object... nameThenObject) {
 		Map<String, Object> bindings = new HashMap<String, Object>();
 		for (int i = 0; i < nameThenObject.length; i += 2) {
@@ -482,9 +481,9 @@ public final class Lambdas {
 	 * @param bindings the external resources the script might need
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> Func1<U, T> script1(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull final ScriptEngine engine,
 			@Nonnull final Map<String, Object> bindings) {
 		int idx = expression.indexOf("=>");
@@ -505,13 +504,13 @@ public final class Lambdas {
 				} catch (ScriptException ex) {
 					throw new RuntimeException(ex);
 				}
-			};
+			}
 		};
 	}
 	/**
 	 * Creates a single parameter function which executes the given script as
 	 * javascript. In addition, you may specify extra bindings in the varargs
-	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
+	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression; return result;</code>
 	 * @param <T> the result type
@@ -522,8 +521,8 @@ public final class Lambdas {
 	 * @return the function
 	 */
 	public static <T, U> Func1<T, U> script1(
-			@Nonnull String expression, 
-			@Nonnull ScriptEngine engine, 
+			@Nonnull String expression,
+			@Nonnull ScriptEngine engine,
 			@Nonnull Object... nameThenObject) {
 		Map<String, Object> bindings = new HashMap<String, Object>();
 		for (int i = 0; i < nameThenObject.length; i += 2) {
@@ -544,9 +543,9 @@ public final class Lambdas {
 	 * @param bindings the external resources the script might need
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U, V> Func2<U, V, T> script2(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull final ScriptEngine engine,
 			@Nonnull final Map<String, Object> bindings) {
 		int idx = expression.indexOf("=>");
@@ -567,18 +566,18 @@ public final class Lambdas {
 				b.put(paramList[1], param2);
 				try {
 					@SuppressWarnings("unchecked")
-					T result = (T)engine.eval(body, b); 
+					T result = (T)engine.eval(body, b);
 					return result;
 				} catch (ScriptException ex) {
 					throw new RuntimeException(ex);
 				}
-			};
+			}
 		};
 	}
 	/**
 	 * Creates a two parameter function which executes the given script as
 	 * javascript. In addition, you may specify extra bindings in the varargs
-	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>. 
+	 * parameters as [String(name), Object(value)] type, e.g., <code>"ref1", 1, "ref2", 2.0</code>.
 	 * <p>The syntax of the expression follows the generic lambda format used throughout this utility class:</p>
 	 * <code>paramName => expression1; expression; return result;</code>
 	 * @param <T> the result type
@@ -589,9 +588,9 @@ public final class Lambdas {
 	 * @param nameThenObject the String, Object, String, Object, ... sequence of name and value pairs.
 	 * @return the function
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U, V> Func2<T, U, V> script2(
-			@Nonnull String expression, 
+			@Nonnull String expression,
 			@Nonnull ScriptEngine engine,
 			@Nonnull Object... nameThenObject) {
 		Map<String, Object> bindings = new HashMap<String, Object>();

@@ -19,7 +19,6 @@ package hu.akarnokd.reactive4java.reactive;
 import java.io.Closeable;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -46,9 +45,9 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 	protected boolean completed;
 	/** Should the observer close() itself on error or finish()? */
 	protected final boolean closeOnTermination;
-	/** 
+	/**
 	 * Constructor. Initializes the class with a fair reentrant lock.
-	 * @param complete should set the completion status on an error or finish? 
+	 * @param complete should set the completion status on an error or finish?
 	 */
 	public DefaultObserver(boolean complete) {
 		this(new ReentrantLock(true), complete);
@@ -56,7 +55,7 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 	/**
 	 * Constructor. Initializes the class with a shared lock instance.
 	 * @param lock the lock instance, nonnul
-	 * @param complete should set the completion status on an error or finish? 
+	 * @param complete should set the completion status on an error or finish?
 	 */
 	public DefaultObserver(@Nonnull final Lock lock, boolean complete) {
 		if (lock == null) {
@@ -78,12 +77,12 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 	protected abstract void onError(@Nonnull Throwable ex);
 	/** The alternative finish() method, which is called by the original finish() method. */
 	protected abstract void onFinish();
-	/** 
+	/**
 	 * Called by close to close down any associated resources with this instance.
-	 * <p>The <code>close()</code> method ensures that the lock is held this code executes.</p> 
+	 * <p>The <code>close()</code> method ensures that the lock is held this code executes.</p>
 	 */
 	protected void onClose() {
-		
+
 	}
 	@Override
 	public final void next(T value) {
@@ -95,10 +94,10 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 		} finally {
 			lock.unlock();
 		}
-	};
+	}
 	@Override
 	public final void close() {
-		lock.lock(); 
+		lock.lock();
 		try {
 			if (!completed) {
 				completed = true;

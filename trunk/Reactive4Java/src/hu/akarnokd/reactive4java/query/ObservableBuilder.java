@@ -20,6 +20,7 @@ import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
+import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.interactive.Interactive;
@@ -29,7 +30,6 @@ import hu.akarnokd.reactive4java.reactive.Observer;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.TimeInterval;
 import hu.akarnokd.reactive4java.reactive.Timestamped;
-
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -40,13 +40,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nonnull;
 
 /**
- * Wrapper object arount an {@code Observable} which
+ * Wrapper object around an {@code Observable} which
  * lets the user chain some Reactive operators.
- * <p>This builder is the dual of the 
+ * <p>This builder is the dual of the
  * {@link hu.akarnokd.reactive4java.query.IterableBuilder} class.</p>
  * @author akarnokd, Jan 25, 2012
  * @param <T> the element type
@@ -59,7 +58,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param observableFactory the factory which is responsivle to create a source observable.
 	 * @return the result observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> defer(
 			@Nonnull final Func0<? extends Observable<? extends T>> observableFactory) {
 		return from(Reactive.defer(observableFactory));
@@ -70,7 +69,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param action the action to invoke
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<Void> from(
 			@Nonnull final Action0 action) {
 		return from(Reactive.start(action));
@@ -82,9 +81,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the pool where the action should run
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<Void> from(
-			@Nonnull final Action0 action, 
+			@Nonnull final Action0 action,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.start(action, pool));
 	}
@@ -95,7 +94,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param call the callable
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> from(
 			@Nonnull final Callable<? extends T> call) {
 		return from(Reactive.invokeAsync(call));
@@ -108,9 +107,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the thread pool
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> from(
-			@Nonnull final Callable<? extends T> call, 
+			@Nonnull final Callable<? extends T> call,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.invokeAsync(call, pool));
 	}
@@ -122,7 +121,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param func the function
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> from(
 			@Nonnull final Func0<? extends T> func) {
 		return from(Reactive.start(func));
@@ -136,9 +135,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the pool where the action should run
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> from(
-			@Nonnull final Func0<? extends T> func, 
+			@Nonnull final Func0<? extends T> func,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.start(func, pool));
 	}
@@ -204,7 +203,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param run the runnable
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> from(
 			@Nonnull final Runnable run) {
 		return from(Reactive.<T>invokeAsync(run));
@@ -217,9 +216,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the thread pool
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> from(
-			@Nonnull final Runnable run, 
+			@Nonnull final Runnable run,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.<T>invokeAsync(run, pool));
 	}
@@ -231,7 +230,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param defaultValue the value to return when the Runnable completes
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> from(
 			@Nonnull final Runnable run,
 			final T defaultValue) {
@@ -246,9 +245,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param defaultValue the value to return by default
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> from(
-			@Nonnull final Runnable run, 
+			@Nonnull final Runnable run,
 			final T defaultValue,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.invokeAsync(run, defaultValue, pool));
@@ -285,11 +284,11 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param selector the selector which turns Ts into Us.
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> ObservableBuilder<U> generate(
-			final T initial, 
-			@Nonnull final Func1<? super T, Boolean> condition, 
-			@Nonnull final Func1<? super T, ? extends T> next, 
+			final T initial,
+			@Nonnull final Func1<? super T, Boolean> condition,
+			@Nonnull final Func1<? super T, ? extends T> next,
 			@Nonnull final Func1<? super T, ? extends U> selector) {
 		return from(Reactive.generate(initial, condition, next, selector));
 	}
@@ -305,12 +304,12 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the thread pool where the generation loop should run.
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> ObservableBuilder<U> generate(
-			final T initial, 
-			@Nonnull final Func1<? super T, Boolean> condition, 
-			@Nonnull final Func1<? super T, ? extends T> next, 
-			@Nonnull final Func1<? super T, ? extends U> selector, 
+			final T initial,
+			@Nonnull final Func1<? super T, Boolean> condition,
+			@Nonnull final Func1<? super T, ? extends T> next,
+			@Nonnull final Func1<? super T, ? extends U> selector,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.generate(initial, condition, next, selector, pool));
 	}
@@ -326,12 +325,12 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param delay the selector which tells how much to wait before releasing the next U
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> ObservableBuilder<Timestamped<U>> generateTimed(
-			final T initial, 
-			@Nonnull final Func1<? super T, Boolean> condition, 
-			@Nonnull final Func1<? super T, ? extends T> next, 
-			@Nonnull final Func1<? super T, ? extends U> selector, 
+			final T initial,
+			@Nonnull final Func1<? super T, Boolean> condition,
+			@Nonnull final Func1<? super T, ? extends T> next,
+			@Nonnull final Func1<? super T, ? extends U> selector,
 			@Nonnull final Func1<? super T, Long> delay) {
 		return from(Reactive.generateTimed(initial, condition, next, selector, delay));
 	}
@@ -348,31 +347,31 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the scheduled pool where the generation loop should run.
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T, U> ObservableBuilder<Timestamped<U>> generateTimed(
-			final T initial, 
-			@Nonnull final Func1<? super T, Boolean> condition, 
-			@Nonnull final Func1<? super T, ? extends T> next, 
-			@Nonnull final Func1<? super T, ? extends U> selector, 
-			@Nonnull final Func1<? super T, Long> delay, 
+			final T initial,
+			@Nonnull final Func1<? super T, Boolean> condition,
+			@Nonnull final Func1<? super T, ? extends T> next,
+			@Nonnull final Func1<? super T, ? extends U> selector,
+			@Nonnull final Func1<? super T, Long> delay,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.generateTimed(initial, condition, next, selector, delay));
 	}
-	/** 
+	/**
 	 * Creates an observable which generates numbers from start.
 	 * @param start the start value.
 	 * @param count the count
 	 * @param step the stepping
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<BigDecimal> range(
-			@Nonnull final BigDecimal start, 
-			final int count, 
+			@Nonnull final BigDecimal start,
+			final int count,
 			@Nonnull final BigDecimal step) {
 		return from(Reactive.range(start, count, step));
 	}
-	/** 
+	/**
 	 * Creates an observable which generates BigDecimal numbers from start.
 	 * @param start the start value.
 	 * @param count the count
@@ -380,54 +379,54 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the execution thread pool.
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<BigDecimal> range(
-			@Nonnull final BigDecimal start, 
-			final int count, 
-			@Nonnull final BigDecimal step, 
+			@Nonnull final BigDecimal start,
+			final int count,
+			@Nonnull final BigDecimal step,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.range(start, count, step, pool));
 	}
-	/** 
+	/**
 	 * Creates an observable which generates numbers from start.
 	 * @param start the start value.
 	 * @param count the count
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<BigInteger> range(
 			@Nonnull final BigInteger start,
 			@Nonnull final BigInteger count) {
 		return from(Reactive.range(start, count));
 	}
-	/** 
+	/**
 	 * Creates an observable which generates BigInteger numbers from start.
 	 * @param start the start value.
 	 * @param count the count
 	 * @param pool the execution thread pool.
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<BigInteger> range(
-			@Nonnull final BigInteger start, 
-			@Nonnull final BigInteger count, 
+			@Nonnull final BigInteger start,
+			@Nonnull final BigInteger count,
 			final Scheduler pool) {
 		return from(Reactive.range(start, count, pool));
 	}
-	/** 
+	/**
 	 * Creates an observable which generates numbers from start.
 	 * @param start the start value.
 	 * @param count the count
 	 * @param step the stepping
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<Double> range(
-			final double start, 
-			final int count, 
+			final double start,
+			final int count,
 			final double step) {
 		return from(Reactive.range(start, count, step));
-	}	
+	}
 	/**
 	 * Creates an observable which produces Double values from <code>start</code> in <code>count</code>
 	 * amount and each subsequent element has a difference of <code>step</code>.
@@ -438,9 +437,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the observable of float
 	 */
 	public static ObservableBuilder<Double> range(
-			final double start, 
-			final int count, 
-			final double step, 
+			final double start,
+			final int count,
+			final double step,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.range(start, count, step, pool));
 	}
@@ -451,7 +450,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param func the function which generates elements
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> repeat(
 			@Nonnull final Func0<? extends T> func) {
 		return from(Reactive.repeat(func));
@@ -464,9 +463,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param count the numer of times to repeat the value
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> repeat(
-			@Nonnull final Func0<? extends T> func, 
+			@Nonnull final Func0<? extends T> func,
 			final int count) {
 		return from(Reactive.repeat(func, count));
 	}
@@ -479,10 +478,10 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the pool where the loop should be executed
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> repeat(
-			@Nonnull final Func0<? extends T> func, 
-			final int count, 
+			@Nonnull final Func0<? extends T> func,
+			final int count,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.repeat(func, count, pool));
 	}
@@ -495,7 +494,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the observable
 	 */
 	public static <T> ObservableBuilder<T> repeat(
-			@Nonnull final Func0<? extends T> func, 
+			@Nonnull final Func0<? extends T> func,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.repeat(func, pool));
 	}
@@ -507,7 +506,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param value the value to repeat
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> repeat(final T value) {
 		return from(Reactive.repeat(value));
 	}
@@ -518,7 +517,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param ex the exception to throw
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> throwException(
 			@Nonnull final Throwable ex) {
 		return from(Reactive.<T>throwException(ex));
@@ -531,9 +530,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the pool from where to send the values
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> ObservableBuilder<T> throwException(
-			@Nonnull final Throwable ex, 
+			@Nonnull final Throwable ex,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.<T>throwException(ex, pool));
 	}
@@ -546,11 +545,11 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param unit the time unit of the delay
 	 * @return the observer
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<Long> tick(
-			final long start, 
-			final long end, 
-			final long delay, 
+			final long start,
+			final long end,
+			final long delay,
 			@Nonnull final TimeUnit unit) {
 		return from(Reactive.tick(start, end, delay, unit));
 	}
@@ -563,12 +562,12 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the scheduler pool for the wait
 	 * @return the observer
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<Long> tick(
-			final long start, 
-			final long end, 
-			final long delay, 
-			@Nonnull final TimeUnit unit, 
+			final long start,
+			final long end,
+			final long delay,
+			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.tick(start, end, delay, unit, pool));
 	}
@@ -579,9 +578,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param unit the time unit of the delay
 	 * @return the observer
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<Long> tick(
-			@Nonnull final long delay, 
+			@Nonnull final long delay,
 			@Nonnull final TimeUnit unit) {
 		return from(Reactive.tick(delay, unit));
 	}
@@ -602,7 +601,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * The first element contains the time elapsed since the registration occurred.
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<TimeInterval<T>> addTimeInterval() {
 		return from(Reactive.addTimeInterval(o));
 	}
@@ -611,7 +610,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * the System.currentTimeMillis() value.
 	 * @return the raw observables of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<Timestamped<T>> addTimestamped() {
 		return from(Reactive.addTimestamped(o));
 	}
@@ -620,7 +619,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param accumulator the accumulator function where the first parameter is the current accumulated value and the second is the now received value.
 	 * @return the observable for the result of the accumulation
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> aggregate(
 			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
 		return from(Reactive.aggregate(o, accumulator));
@@ -634,9 +633,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param divide the function which perform the final division based on the number of elements
 	 * @return the observable for the average value
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U, V> ObservableBuilder<V> aggregate(
-			@Nonnull final Func2<? super U, ? super T, ? extends U> sum, 
+			@Nonnull final Func2<? super U, ? super T, ? extends U> sum,
 			@Nonnull final Func2<? super U, ? super Integer, ? extends V> divide) {
 		return from(Reactive.aggregate(o, sum, divide));
 	}
@@ -647,9 +646,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param accumulator the accumulator function where the first parameter is the current accumulated value and the second is the now received value.
 	 * @return the observable for the result of the accumulation
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U> ObservableBuilder<U> aggregate(
-			final U seed, 
+			final U seed,
 			@Nonnull final Func2<? super U, ? super T, ? extends U> accumulator) {
 		return from(Reactive.aggregate(o, seed, accumulator));
 	}
@@ -660,7 +659,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param predicate the predicate to setisfy
 	 * @return the observable resulting in a single result
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<Boolean> all(
 			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return from(Reactive.all(o, predicate));
@@ -671,13 +670,13 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param others the iterable sequence of the other observables
 	 * @return the observable channeling the first reacting values
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> amb(
 			@Nonnull final Iterable<? extends Observable<? extends T>> others) {
 		return from(Reactive.amb(Interactive.startWith(others, o)));
 	}
 	/**
-	 * Channels the values from the first observable (this or other) who fires firts. 
+	 * Channels the values from the first observable (this or other) who fires firts.
 	 * @param other the other observable
 	 * @return the observable channeling the first reacting observable
 	 */
@@ -687,20 +686,20 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	}
 	/**
 	 * Signals a single true if the source observable contains any element.
-	 * It might return early for a non-empty source but waits for the entire observable to return false. 
+	 * It might return early for a non-empty source but waits for the entire observable to return false.
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<Boolean> any() {
 		return from(Reactive.any(o));
 	}
 	/**
 	 * Signals a single TRUE if the source signals any next() and the value matches the predicate before it signals a finish().
-	 * It signals a false otherwise. 
+	 * It signals a false otherwise.
 	 * @param predicate the predicate to test the values
 	 * @return the observable.
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<Boolean> any(
 			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return from(Reactive.any(o, predicate));
@@ -724,7 +723,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * method is guaranteed to throw ClassCastException.</p>
 	 * @return the observable for the average value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<BigDecimal> averageBigInteger() {
 		return from(Reactive.averageBigInteger((Observable<BigInteger>)o));
@@ -734,7 +733,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * The source may not send nulls.
 	 * @return the observable for the average value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<Double> averageDouble() {
 		return from(Reactive.averageDouble((Observable<Double>)o));
@@ -744,7 +743,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * The source may not send nulls.
 	 * @return the observable for the average value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<Float> averageFloat() {
 		return from(Reactive.averageFloat((Observable<Float>)o));
@@ -755,7 +754,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * The intermediate aggregation used double values.
 	 * @return the observable for the average value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<Double> averageInt() {
 		return from(Reactive.averageInt((Observable<Integer>)o));
@@ -767,7 +766,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * The intermediate aggregation used double values.
 	 * @return the observable for the average value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<Double> averageLong() {
 		return from(Reactive.averageLong((Observable<Long>)o));
@@ -778,7 +777,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param bufferSize the target buffer size
 	 * @return the observable of the list
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<List<T>> buffer(
 			final int bufferSize) {
 		return from(Reactive.buffer(o, bufferSize));
@@ -792,10 +791,10 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param unit the time unit
 	 * @return the observable of list of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<List<T>> buffer(
-			final int bufferSize, 
-			final long time, 
+			final int bufferSize,
+			final long time,
 			@Nonnull final TimeUnit unit) {
 		return from(Reactive.buffer(o, bufferSize, time, unit));
 	}
@@ -808,11 +807,11 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the pool where to schedule the buffer splits
 	 * @return the observable of list of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<List<T>> buffer(
-			final int bufferSize, 
-			final long time, 
-			@Nonnull final TimeUnit unit, 
+			final int bufferSize,
+			final long time,
+			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.buffer(o, bufferSize, time, unit, pool));
 	}
@@ -826,9 +825,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param unit the time unit of the time
 	 * @return the observable of list of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<List<T>> buffer(
-			final long time, 
+			final long time,
 			@Nonnull final TimeUnit unit) {
 		return from(Reactive.buffer(o, time, unit));
 	}
@@ -842,10 +841,10 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the scheduled execution pool to use
 	 * @return the observable of list of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<List<T>> buffer(
-			final long time, 
-			@Nonnull final TimeUnit unit, 
+			final long time,
+			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.buffer(o, time, unit, pool));
 	}
@@ -900,7 +899,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * both streams whenever one sends a new value.
 	 * <p><b>Exception semantics:</b> if any stream throws an exception, the output stream
 	 * throws an exception and all subscriptions are terminated.</p>
-	 * <p><b>Completion semantics:</b> The output stream terminates 
+	 * <p><b>Completion semantics:</b> The output stream terminates
 	 * after both streams terminate.</p>
 	 * <p>Note that at the beginning, when the left or right fires first, the selector function
 	 * will receive (value, null) or (null, value). If you want to react only in cases when both have sent
@@ -922,7 +921,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * both streams whenever one sends a new value, but only after both sent a value.
 	 * <p><b>Exception semantics:</b> if any stream throws an exception, the output stream
 	 * throws an exception and all subscriptions are terminated.</p>
-	 * <p><b>Completion semantics:</b> The output stream terminates 
+	 * <p><b>Completion semantics:</b> The output stream terminates
 	 * after both streams terminate.</p>
 	 * <p>The function will start combining the values only when both sides have already sent
 	 * a value.</p>
@@ -944,7 +943,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param sources the source list of subsequent observables
 	 * @return the concatenated observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> concat(
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
 		return from(Reactive.concat(Interactive.startWith(sources, o)));
@@ -955,7 +954,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param second the second observable
 	 * @return the concatenated observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> concat(
 			@Nonnull Observable<? extends T> second) {
 		return from(Reactive.concat(o, second));
@@ -979,7 +978,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param value the value to look for
 	 * @return the observer for contains
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<Boolean> contains(
 			final T value) {
 		return from(Reactive.contains(o, value));
@@ -988,7 +987,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Counts the number of elements in the observable source.
 	 * @return the count signal
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<Integer> count() {
 		return from(Reactive.count(o));
 	}
@@ -996,16 +995,16 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Counts the number of elements in the observable source as a long.
 	 * @return the count signal
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<Long> countLong() {
 		return from(Reactive.countLong(o));
 	}
 	/**
-	 * Constructs an observer which logs errors in case next(), finish() or error() is called 
+	 * Constructs an observer which logs errors in case next(), finish() or error() is called
 	 * and the observer is not in running state anymore due an earlier finish() or error() call.
 	 * @return the augmented observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> debugState() {
 		return from(Reactive.debugState(o));
 	}
@@ -1017,9 +1016,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param unit the time unit
 	 * @return the delayed observable of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> delay(
-			final long time, 
+			final long time,
 			@Nonnull final TimeUnit unit) {
 		return from(Reactive.delay(o, time, unit));
 	}
@@ -1031,10 +1030,10 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the pool to use for scheduling
 	 * @return the delayed observable of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> delay(
-			final long time, 
-			@Nonnull final TimeUnit unit, 
+			final long time,
+			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.delay(o, time, unit, pool));
 	}
@@ -1046,7 +1045,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the new observable
 	 * @see #materialize(Observable)
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<T> dematerialize() {
 		return from(Reactive.dematerialize((Observable<Option<T>>)o));
@@ -1056,7 +1055,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * in terms of Object.equals().
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> distinct() {
 		return from(Reactive.distinct(o));
 	}
@@ -1066,7 +1065,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param keyExtractor the etractor for the keys
 	 * @return the new filtered observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U> ObservableBuilder<T> distinct(
 			@Nonnull final Func1<T, U> keyExtractor) {
 		return from(Reactive.distinct(o, keyExtractor));
@@ -1076,7 +1075,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pump the pump that drains the queue
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<Void> drain(
 			@Nonnull final Func1<? super T, ? extends Observable<Void>> pump) {
 		return from(Reactive.drain(o, pump));
@@ -1087,9 +1086,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the pool for the drain
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<Void> drain(
-			@Nonnull final Func1<? super T, ? extends Observable<Void>> pump, 
+			@Nonnull final Func1<? super T, ? extends Observable<Void>> pump,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.drain(o, pump, pool));
 	}
@@ -1097,16 +1096,16 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Returns an empty observable, which fires only finish().
 	 * @return Returns an empty observable which signals only finish() on the default observer pool.
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> empty() {
 		return from(Reactive.<T>empty());
-	};
+	}
 	/**
 	 * Returns an empty observable which signals only finish() on the given pool.
 	 * @param pool the pool to invoke the the finish()
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> empty(
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.<T>empty(pool));
@@ -1116,7 +1115,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param action the action to invoke on finish() or error()
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> finish(
 			@Nonnull final Action0 action) {
 		return from(Reactive.finish(o, action));
@@ -1133,9 +1132,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	/**
 	 * Runs the observables in parallel and joins their last values whenever one fires.
 	 * @param sources the list of sources
-	 * @return the observable 
+	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<List<T>> forkJoin(
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
 		return from(Reactive.forkJoin(Interactive.startWith(sources, o)));
@@ -1149,13 +1148,13 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param keyExtractor the key extractor which creates Keys from Ts
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public <Key> ObservableBuilder<GroupedObservable<Key, T>> groupBy(
 			@Nonnull final Func1<? super T, ? extends Key> keyExtractor) {
 		return from(Reactive.groupBy(o, keyExtractor));
-	};
+	}
 	/**
-	 * Group the specified source accoring to the keys provided by the extractor function.
+	 * Group the specified source according to the keys provided by the extractor function.
 	 * The resulting observable gets notified once a new group is encountered.
 	 * Each previously encountered group by itself receives updates along the way.
 	 * If the source finish(), all encountered group will finish().
@@ -1165,9 +1164,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param valueExtractor the extractor which makes Us from Ts
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U, Key> ObservableBuilder<GroupedObservable<Key, U>> groupBy(
-			@Nonnull final Func1<? super T, ? extends Key> keyExtractor, 
+			@Nonnull final Func1<? super T, ? extends Key> keyExtractor,
 			@Nonnull final Func1<? super T, ? extends U> valueExtractor) {
 		return from(Reactive.groupBy(o, keyExtractor, valueExtractor));
 	}
@@ -1291,7 +1290,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param action the action to invoke on every T
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> invoke(
 			@Nonnull final Action1<? super T> action) {
 		return from(Reactive.invoke(o, action));
@@ -1302,7 +1301,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param observer the observer to invoke before any registered observers are called
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> invoke(
 			@Nonnull final Observer<? super T> observer) {
 		return from(Reactive.invoke(o, observer));
@@ -1412,7 +1411,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the new observable
 	 * @see #dematerialize(Observable)
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<Option<T>> materialize() {
 		return from(Reactive.materialize(o));
 	}
@@ -1421,7 +1420,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param <U> the element type which must be comparable to itself
 	 * @return the the maximum value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public <U extends Comparable<? super U>> ObservableBuilder<U> max() {
 		return from(Reactive.max((Observable<U>)o));
@@ -1432,7 +1431,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the the maximum value
 	 * @see Functions#asComparator(Func2)
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> max(
 			@Nonnull final Comparator<T> comparator) {
 		return from(Reactive.max(o, comparator));
@@ -1445,7 +1444,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param keyExtractor the key extractor to produce <code>Key</code>s from <code>T</code>s.
 	 * @return the observable for the maximum keyed Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public <Key extends Comparable<? super Key>> ObservableBuilder<List<T>> maxBy(
 			@Nonnull final Func1<? super T, ? extends Key> keyExtractor) {
 		return from(Reactive.maxBy(o, keyExtractor));
@@ -1459,9 +1458,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param keyComparator the comparator for the keys
 	 * @return the observable for the maximum keyed Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public <Key> ObservableBuilder<List<T>> maxBy(
-			@Nonnull final Func1<? super T, ? extends Key> keyExtractor, 
+			@Nonnull final Func1<? super T, ? extends Key> keyExtractor,
 			@Nonnull final Comparator<? super Key> keyComparator) {
 		return from(Reactive.maxBy(o, keyExtractor, keyComparator));
 	}
@@ -1470,7 +1469,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param sources the list of sources
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> merge(
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
 		return from(Reactive.merge(Interactive.startWith(sources, o)));
@@ -1480,7 +1479,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param second the second observable
 	 * @return the merged observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> merge(
 			@Nonnull Observable<? extends T> second) {
 		return from(Reactive.merge(o, second));
@@ -1501,7 +1500,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param <U> the self comparable element type
 	 * @return the the minimum value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public <U extends Comparable<? super U>> ObservableBuilder<U> min() {
 		return from(Reactive.min((Observable<U>)o));
@@ -1512,7 +1511,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the the minimum value
 	 * @see Functions#asComparator(Func2)
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> min(
 			@Nonnull final Comparator<? super T> comparator) {
 		return from(Reactive.min(o, comparator));
@@ -1525,7 +1524,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param keyExtractor the key extractor to produce <code>Key</code>s from <code>T</code>s.
 	 * @return the observable for the minimum keyed Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public <Key extends Comparable<? super Key>> ObservableBuilder<List<T>> minBy(
 			@Nonnull final Func1<? super T, ? extends Key> keyExtractor) {
 		return from(Reactive.minBy(o, keyExtractor));
@@ -1540,9 +1539,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the observable for the minimum keyed Ts
 	 * @see Functions#asComparator(Func2)
 	 */
-	@Nonnull 
+	@Nonnull
 	public <Key> ObservableBuilder<List<T>> minBy(
-			@Nonnull final Func1<T, Key> keyExtractor, 
+			@Nonnull final Func1<T, Key> keyExtractor,
 			@Nonnull final Comparator<Key> keyComparator) {
 		return from(Reactive.minBy(o, keyExtractor, keyComparator));
 	}
@@ -1576,7 +1575,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Returns an observable which never fires.
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> never() {
 		return from(Reactive.<T>never());
 	}
@@ -1601,7 +1600,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the target observable
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> observeOn(
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.observeOn(o, pool));
@@ -1810,17 +1809,17 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	) {
 		return from(Reactive.publish(o, initialValue, scheduler));
 	}
-	/** 
+	/**
 	 * Creates an observable which generates numbers from start.
 	 * @param start the start value.
 	 * @param count the count
 	 * @param step the stepping
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<Float> range(
-			final float start, 
-			final int count, 
+			final float start,
+			final int count,
 			final float step) {
 		return from(Reactive.range(start, count, step));
 	}
@@ -1833,27 +1832,27 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the pool where to emit the values
 	 * @return the observable of float
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<Float> range(
-			final float start, 
-			final int count, 
-			final float step, 
+			final float start,
+			final int count,
+			final float step,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.range(start, count, step, pool));
 	}
-	/** 
+	/**
 	 * Creates an observable which generates numbers from start.
 	 * @param start the start value.
 	 * @param count the count
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public static ObservableBuilder<Integer> range(
-			final int start, 
+			final int start,
 			final int count) {
 		return from(Reactive.range(start, count));
 	}
-	/** 
+	/**
 	 * Creates an observable which generates numbers from start.
 	 * @param start the start value.
 	 * @param count the count
@@ -1861,8 +1860,8 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the observable
 	 */
 	public static ObservableBuilder<Integer> range(
-			final int start, 
-			final int count, 
+			final int start,
+			final int count,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.range(start, count, pool));
 	}
@@ -1872,11 +1871,11 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	}
 	/**
 	 * Wrap the given observable into an new Observable instance, which calls the original register() method
-	 * on the supplied pool. 
+	 * on the supplied pool.
 	 * @param pool the pool to perform the original subscribe() call
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> registerOn(
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.registerOn(o, pool));
@@ -1887,7 +1886,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param condition the condition that must be false to relay Ts
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> relayUntil(
 			@Nonnull final Func0<Boolean> condition) {
 		return from(Reactive.relayUntil(o, condition));
@@ -1897,7 +1896,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param condition the condition that must hold to relay Ts
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> relayWhile(
 			@Nonnull final Func0<Boolean> condition) {
 		return from(Reactive.relayWhile(o, condition));
@@ -1906,7 +1905,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Unwrap the values within a timeinterval observable to its normal value.
 	 * @return the raw observables of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<T> removeTimeInterval() {
 		return from(Reactive.removeTimeInterval((Observable<TimeInterval<T>>)o));
@@ -1915,7 +1914,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Unwrap the values within a timestamped observable to its normal value.
 	 * @return the raw observables of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<T> removeTimestamped() {
 		return from(Reactive.removeTimestamped((Observable<Timestamped<T>>)o));
@@ -1927,7 +1926,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param count the number of times to repeat
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> repeat(
 		int count) {
 		return from(Reactive.repeat(o, count));
@@ -1939,9 +1938,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param count the numer of times to repeat the value
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> repeat(
-			final T value, 
+			final T value,
 			final int count) {
 		return from(Reactive.repeat(value, count));
 	}
@@ -1953,10 +1952,10 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the pool where the loop should be executed
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> repeat(
-			final T value, 
-			final int count, 
+			final T value,
+			final int count,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.repeat(value, count, pool));
 	}
@@ -1969,7 +1968,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the observable
 	 */
 	public ObservableBuilder<T> repeat(
-			final T value, 
+			final T value,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.repeat(value, pool));
 	}
@@ -2197,7 +2196,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param sources the list of observables
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> resumeAlways(
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
 		return from(Reactive.resumeAlways(Interactive.startWith(sources, o)));
@@ -2210,7 +2209,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param sources the available source observables.
 	 * @return the failover observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> resumeOnError(
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
 		return from(Reactive.resumeOnError(Interactive.startWith(sources, o)));
@@ -2219,7 +2218,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Restarts the observation until the source observable terminates normally.
 	 * @return the repeating observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> retry() {
 		return from(Reactive.retry(o));
 	}
@@ -2228,7 +2227,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param count the retry count
 	 * @return the repeating observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> retry(
 			final int count) {
 		return from(Reactive.retry(o, count));
@@ -2268,9 +2267,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param unit the time unit
 	 * @return the sampled observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> sample(
-			final long time, 
+			final long time,
 			@Nonnull final TimeUnit unit) {
 		return from(Reactive.sample(o, time, unit));
 	}
@@ -2282,10 +2281,10 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the scheduler pool where the periodic submission should happen.
 	 * @return the sampled observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> sample(
-			final long time, 
-			@Nonnull final TimeUnit unit, 
+			final long time,
+			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.sample(o, time, unit, pool));
 	}
@@ -2294,11 +2293,11 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Example:<br>
 	 * <code>range(0, 5).accumulate((x, y) => x + y)</code> produces a sequence of [0, 1, 3, 6, 10];<br>
 	 * basically the first event (0) is just relayed and then every pair of values are simply added together and relayed
-	 * @param accumulator the accumulator which takest the current accumulation value and the current observed value 
+	 * @param accumulator the accumulator which takest the current accumulation value and the current observed value
 	 * and returns a new accumulated value
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> scan(
 			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
 		return from(Reactive.scan(o, accumulator));
@@ -2307,15 +2306,15 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Creates an observable which accumultates the given source and submits each intermediate results to its subscribers.
 	 * Example:<br>
 	 * <code>range(0, 5).accumulate(1, (x, y) => x + y)</code> produces a sequence of [1, 2, 4, 7, 11];<br>
-	 * basically the accumulation starts from zero and the first value (0) that comes in is simply added 
+	 * basically the accumulation starts from zero and the first value (0) that comes in is simply added
 	 * @param seed the initial value of the accumulation
-	 * @param accumulator the accumulator which takest the current accumulation value and the current observed value 
+	 * @param accumulator the accumulator which takest the current accumulation value and the current observed value
 	 * and returns a new accumulated value
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> scan(
-			final T seed, 
+			final T seed,
 			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
 		return from(Reactive.scan(o, seed, accumulator));
 	}
@@ -2323,15 +2322,15 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Creates an observable which accumultates the given source and submits each intermediate results to its subscribers.
 	 * Example:<br>
 	 * <code>range(1, 5).accumulate0(1, (x, y) => x + y)</code> produces a sequence of [1, 2, 4, 7, 11, 16];<br>
-	 * basically, it submits the seed value (1) and computes the current aggregate with the current value(1). 
+	 * basically, it submits the seed value (1) and computes the current aggregate with the current value(1).
 	 * @param seed the initial value of the accumulation
-	 * @param accumulator the accumulator which takest the current accumulation value and the current observed value 
+	 * @param accumulator the accumulator which takest the current accumulation value and the current observed value
 	 * and returns a new accumulated value
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> scan0(
-			final T seed, 
+			final T seed,
 			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
 		return from(Reactive.scan0(o, seed, accumulator));
 	}
@@ -2341,12 +2340,12 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param mapper the mapper from Ts to Us
 	 * @return the observable on Us
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U> ObservableBuilder<U> select(
 			@Nonnull final Func1<? super T, ? extends U> mapper) {
 		return from(Reactive.select(o, mapper));
 	}
-	
+
 	/**
 	 * Transforms the elements of the source observable into Us by using a selector which receives an index indicating
 	 * how many elements have been transformed this far.
@@ -2359,14 +2358,14 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return from(Reactive.select(o, selector));
 	}
 	/**
-	 * Transform the given source of Ts into Us in a way that the 
+	 * Transform the given source of Ts into Us in a way that the
 	 * selector might return an observable ofUs for a single T.
 	 * The observable is fully channelled to the output observable.
 	 * @param <U> the output element type
-	 * @param selector the selector to return an Iterable of Us 
-	 * @return the 
+	 * @param selector the selector to return an Iterable of Us
+	 * @return the
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U> ObservableBuilder<U> selectMany(
 			@Nonnull final Func1<? super T, ? extends Observable<? extends U>> selector) {
 		return from(Reactive.selectMany(o, selector));
@@ -2381,21 +2380,21 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param resultSelector the selector which gives an U for a T and V
 	 * @return the observable of Us
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U, V> ObservableBuilder<V> selectMany(
-			@Nonnull final Func1<? super T, ? extends Observable<? extends U>> collectionSelector, 
+			@Nonnull final Func1<? super T, ? extends Observable<? extends U>> collectionSelector,
 			@Nonnull final Func2<? super T, ? super U, ? extends V> resultSelector) {
 		return from(Reactive.selectMany(o, collectionSelector, resultSelector));
 	}
 	/**
-	 * Creates an observable of Us in a way when a source T arrives, the observable of 
+	 * Creates an observable of Us in a way when a source T arrives, the observable of
 	 * Us is completely drained into the output. This is done again and again for
 	 * each arriving Ts.
 	 * @param <U> the output type
 	 * @param provider the source of Us
 	 * @return the observable for Us
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U> ObservableBuilder<U> selectMany(
 			@Nonnull Observable<? extends U> provider) {
 		return from(Reactive.selectMany(o, provider));
@@ -2404,10 +2403,10 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Transform the given source of Ts into Us in a way that the selector might return zero to multiple elements of Us for a single T.
 	 * The iterable is flattened and submitted to the output
 	 * @param <U> the output element type
-	 * @param selector the selector to return an Iterable of Us 
-	 * @return the 
+	 * @param selector the selector to return an Iterable of Us
+	 * @return the
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U> ObservableBuilder<U> selectManyIterable(
 			@Nonnull final Func1<? super T, ? extends Iterable<? extends U>> selector) {
 		return from(Reactive.selectManyIterable(o, selector));
@@ -2446,7 +2445,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * If the source has more than one element, a TooManyElementsException is thrown.
 	 * @return the single element
 	 */
-	@Nonnull 
+	@Nonnull
 	public T single() {
 		return Reactive.single(o);
 	}
@@ -2456,7 +2455,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param count the number of messages to skip
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> skip(
 			final int count) {
 		return from(Reactive.skip(o, count));
@@ -2466,7 +2465,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param count the number of elements to skip at the end
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> skipLast(
 			final int count) {
 		return from(Reactive.skipLast(o, count));
@@ -2477,20 +2476,20 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param signaller the source of Us
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U> ObservableBuilder<T> skipUntil(
 			@Nonnull final Observable<? extends U> signaller) {
 		return from(Reactive.skipUntil(o, signaller));
 	}
 	/**
 	 * Skips the Ts from source while the specified condition returns true.
-	 * If the condition returns false, all subsequent Ts are relayed, 
+	 * If the condition returns false, all subsequent Ts are relayed,
 	 * ignoring the condition further on. Errors and completion
 	 * is relayed regardless of the condition.
 	 * @param condition the condition that must turn false in order to start relaying
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> skipWhile(
 			@Nonnull final Func1<? super T, Boolean> condition) {
 		return from(Reactive.skipWhile(o, condition));
@@ -2501,7 +2500,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param values the values to start with
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> startWith(
 			@Nonnull Iterable<? extends T> values) {
 		return from(Reactive.startWith(o, values));
@@ -2513,13 +2512,13 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the pool where the iterable values should be emitted
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> startWith(
-			@Nonnull Iterable<? extends T> values, 
+			@Nonnull Iterable<? extends T> values,
 			@Nonnull Scheduler pool) {
 		return from(Reactive.startWith(o, values, pool));
 	}
-	
+
 	/**
 	 * Start with the given iterable of values before relaying the Ts from the
 	 * source. The iterable values are emmitted on the default pool.
@@ -2527,7 +2526,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param values the values to start with
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> startWith(
 			@Nonnull Scheduler pool,
 			@Nonnull T... values) {
@@ -2539,7 +2538,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param values the values to start with
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> startWith(
 			@Nonnull T... values) {
 		return from(Reactive.startWith(o, Interactive.toIterable(values)));
@@ -2550,7 +2549,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param value the single value to start with
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> startWith(
 			T value) {
 		return from(Reactive.startWith(o, value));
@@ -2562,9 +2561,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the pool where the iterable values should be emitted
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> startWith(
-			T value, 
+			T value,
 			@Nonnull Scheduler pool) {
 		return from(Reactive.startWith(o, value, pool));
 	}
@@ -2573,17 +2572,17 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * The source may not send nulls.
 	 * @return the observable for the sum value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<BigDecimal> sumBigDecimal() {
 		return from(Reactive.sumBigDecimal((Observable<BigDecimal>)o));
-	}	
+	}
 	/**
 	 * Computes and signals the sum of the values of the BigInteger source.
 	 * The source may not send nulls.
 	 * @return the observable for the sum value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<BigInteger> sumBigInteger() {
 		return from(Reactive.sumBigInteger((Observable<BigInteger>)o));
@@ -2593,7 +2592,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * The source may not send nulls.
 	 * @return the observable for the sum value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<Double> sumDouble() {
 		return from(Reactive.sumDouble((Observable<Double>)o));
@@ -2603,7 +2602,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * The source may not send nulls.
 	 * @return the observable for the sum value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<Float> sumFloat() {
 		return from(Reactive.sumFloat((Observable<Float>)o));
@@ -2613,7 +2612,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * The source may not send nulls. An empty source produces an empty sum
 	 * @return the observable for the sum value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<Integer> sumInt() {
 		return from(Reactive.sumInt((Observable<Integer>)o));
@@ -2624,7 +2623,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * The source may not send nulls. An empty source produces an empty sum
 	 * @return the observable for the sum value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<Double> sumIntAsDouble() {
 		return from(Reactive.sumIntAsDouble((Observable<Integer>)o));
@@ -2634,7 +2633,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * The source may not send nulls.
 	 * @return the observable for the sum value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<Long> sumLong() {
 		return from(Reactive.sumLong((Observable<Long>)o));
@@ -2645,7 +2644,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * The source may not send nulls.
 	 * @return the observable for the sum value
 	 */
-	@Nonnull 
+	@Nonnull
 	@SuppressWarnings("unchecked")
 	public ObservableBuilder<Double> sumLongAsDouble() {
 		return from(Reactive.sumLongAsDouble((Observable<Long>)o));
@@ -2666,7 +2665,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param count the number of elements to relay
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> take(
 			final int count) {
 		return from(Reactive.take(o, count));
@@ -2689,7 +2688,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param signaller the source of Us
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U> ObservableBuilder<T> takeUntil(
 			@Nonnull final Observable<U> signaller) {
 		return from(Reactive.takeUntil(o, signaller));
@@ -2700,7 +2699,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param predicate the predicate
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> takeWhile(
 			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return from(Reactive.takeWhile(o, predicate));
@@ -2714,9 +2713,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param unit the delay time unit
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> throttle(
-			final long delay, 
+			final long delay,
 			@Nonnull final TimeUnit unit) {
 		return from(Reactive.throttle(o, delay, unit));
 	}
@@ -2730,10 +2729,10 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the pool where the delay-watcher should operate
 	 * @return the observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> throttle(
-			final long delay, 
-			@Nonnull final TimeUnit unit, 
+			final long delay,
+			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.throttle(o, delay, unit, pool));
 	}
@@ -2745,9 +2744,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param unit the time unit
 	 * @return the observer.
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> timeout(
-			final long time, 
+			final long time,
 			@Nonnull final TimeUnit unit) {
 		return from(Reactive.timeout(o, time, unit));
 	}
@@ -2760,9 +2759,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param other the other observable to continue with in case a timeout occurs
 	 * @return the observer.
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> timeout(
-			final long time, 
+			final long time,
 			@Nonnull final TimeUnit unit,
 			@Nonnull final Observable<? extends T> other) {
 		return from(Reactive.timeout(o, time, unit, other));
@@ -2777,9 +2776,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the scheduler pool for the timeout evaluation
 	 * @return the observer.
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> timeout(
-			final long time, 
+			final long time,
 			@Nonnull final TimeUnit unit,
 			@Nonnull final Observable<? extends T> other,
 			@Nonnull final Scheduler pool) {
@@ -2794,10 +2793,10 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param pool the scheduler pool for the timeout evaluation
 	 * @return the observer.
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> timeout(
-			final long time, 
-			@Nonnull final TimeUnit unit, 
+			final long time,
+			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.timeout(o, time, unit, pool));
 	}
@@ -2891,7 +2890,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	}
 	/**
 	 * Maps the given source of Ts by using the key extractor and
-	 * returns a single Map of them. 
+	 * returns a single Map of them.
 	 * <p><b>Exception semantics:</b> if the source throws an exception, that exception
 	 * is forwarded (e.g., no partial map is created).</p>
 	 * @param <K> the key type
@@ -2989,7 +2988,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param token the token to test agains the elements
 	 * @return the observable containing Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> typedAs(
 			@Nonnull final Class<T> token) {
 		return from(Reactive.typedAs(o, token));
@@ -3002,7 +3001,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param clauseFactory the filter clause, the first parameter receives the current index, the second receives the current element
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> where(
 			@Nonnull final Func0<Func2<Integer, ? super T, Boolean>> clauseFactory) {
 		return from(Reactive.where(o, clauseFactory));
@@ -3012,7 +3011,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param clause the filter clause
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> where(
 			@Nonnull final Func1<? super T, Boolean> clause) {
 		return from(Reactive.where(o, clause));
@@ -3023,7 +3022,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param clause the filter clause, the first parameter receives the current index, the second receives the current element
 	 * @return the new observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public ObservableBuilder<T> where(
 			@Nonnull final Func2<Integer, ? super T, Boolean> clause) {
 		return from(Reactive.where(o, clause));
@@ -3035,7 +3034,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param windowClosing the source of the window splitting events
 	 * @return the observable on sequences of observables of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U> ObservableBuilder<Observable<T>> window(
 			@Nonnull final Func0<? extends Observable<U>> windowClosing) {
 		return from(Reactive.window(o, windowClosing));
@@ -3049,9 +3048,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * the registration
 	 * @return the observable on sequences of observables of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U> ObservableBuilder<Observable<T>> window(
-			@Nonnull final Func0<? extends Observable<U>> windowClosing, 
+			@Nonnull final Func0<? extends Observable<U>> windowClosing,
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.window(o, windowClosing, pool));
 	}
@@ -3084,7 +3083,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * and skip some initial values.
 	 * @param count the count of elements
 	 * @param skip the elements to skip
-	 * @param scheduler the scheduler 
+	 * @param scheduler the scheduler
 	 * @return the new observable
 	 */
 	public ObservableBuilder<Observable<T>> window(
@@ -3130,7 +3129,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Project the source elements into observable windows of size <code>count</code>
 	 * and skip some initial values.
 	 * @param count the count of elements
-	 * @param scheduler the scheduler 
+	 * @param scheduler the scheduler
 	 * @return the new observable
 	 */
 	public ObservableBuilder<Observable<T>> window(
@@ -3208,9 +3207,9 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param windowClosing the source of the window splitting events
 	 * @return the observable on sequences of observables of Ts
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U, V> ObservableBuilder<Observable<T>> window(
-			@Nonnull final Observable<? extends U> windowOpening, 
+			@Nonnull final Observable<? extends U> windowOpening,
 			@Nonnull final Func1<? super U, ? extends Observable<V>> windowClosing) {
 		return from(Reactive.window(o, windowOpening, windowClosing));
 	}
@@ -3219,17 +3218,17 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * and combines it with the next available value from the right iterable,
 	 * applies the selector function and emits the resulting T.
 	 * The error() and finish() signals are relayed to the output.
-	 * The result is finished if the right iterator runs out of 
-	 * values before the left iterator. 
+	 * The result is finished if the right iterator runs out of
+	 * values before the left iterator.
 	 * @param <U> the value type streamed on the left observable
 	 * @param <V> the value type streamed on the right iterable
 	 * @param right the right iterable of Vs
 	 * @param selector the selector taking the left Us and right Vs.
-	 * @return the resulting observable 
+	 * @return the resulting observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U, V> ObservableBuilder<V> zip(
-			@Nonnull final Iterable<? extends U> right, 
+			@Nonnull final Iterable<? extends U> right,
 			@Nonnull final Func2<? super T, ? super U, ? extends V> selector) {
 		return from(Reactive.zip(o, right, selector));
 	}
@@ -3238,17 +3237,17 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * and combines it with the next available value from the right observable,
 	 * applies the selector function and emits the resulting T.
 	 * Basically it emmits a T when both an U and V is available.
-	 * The output stream throws error or terminates if any of the streams 
+	 * The output stream throws error or terminates if any of the streams
 	 * throws or terminates.
 	 * @param <U> the value type streamed on the right iterable
 	 * @param <V> the result type
 	 * @param right the right iterable of Vs
 	 * @param selector the selector taking the left Us and right Vs.
-	 * @return the resulting observable 
+	 * @return the resulting observable
 	 */
-	@Nonnull 
+	@Nonnull
 	public <U, V> ObservableBuilder<V> zip(
-			@Nonnull final Observable<? extends U> right, 
+			@Nonnull final Observable<? extends U> right,
 			@Nonnull final Func2<T, U, V> selector) {
 		return from(Reactive.zip(o, right, selector));
 	}
