@@ -24,7 +24,7 @@ import javax.annotation.Nonnull;
  * @author akarnokd, 2011.01.29.
  * @param <T> the contained type
  */
-public final class Timestamped<T> {
+public final class Timestamped<T> implements Comparable<Timestamped<T>> {
 	/** The value. */
 	private final T value;
 	/** The timestamp. */
@@ -53,7 +53,7 @@ public final class Timestamped<T> {
 	 * @param timestamp the timestamp
 	 * @return the timestamped object
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Timestamped<T> of(T value, long timestamp) {
 		return new Timestamped<T>(value, timestamp);
 	}
@@ -65,9 +65,9 @@ public final class Timestamped<T> {
 	 * @param timestamp the timestamp
 	 * @return the timestamped object
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Timestamped<T> of(
-			@Nonnull Timestamped<T> value, 
+			@Nonnull Timestamped<T> value,
 			long timestamp) {
 		return new Timestamped<T>(value.value(), timestamp);
 	}
@@ -78,7 +78,7 @@ public final class Timestamped<T> {
 	 * @param value the value
 	 * @return the timestamped object
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Timestamped<T> of(T value) {
 		return of(value, System.currentTimeMillis());
 	}
@@ -109,5 +109,11 @@ public final class Timestamped<T> {
 	@Override
 	public int hashCode() {
 		return (17 + (value != null ? value.hashCode() : 0)) * 31 + (int)((timestamp >> 32) ^ (timestamp & 0xFFFFFFFFL));
+	}
+	@Override
+	public int compareTo(Timestamped<T> that) {
+		long t1 = this.timestamp();
+		long t2 = that.timestamp();
+		return t1 < t2 ? -1 : (t1 == t2) ? 0 : 1;
 	}
 }
