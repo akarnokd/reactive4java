@@ -39,7 +39,7 @@ public abstract class Option<T> {
 	public static final class None<T> extends Option<T> {
 		/** Single instance! */
 		private None() {
-			
+
 		}
 		@Override
 		public T value() {
@@ -48,6 +48,14 @@ public abstract class Option<T> {
 		@Override
 		public String toString() {
 			return "None";
+		}
+		@Override
+		public boolean equals(Object obj) {
+			return obj == NONE;
+		}
+		@Override
+		public int hashCode() {
+			return super.hashCode();
 		}
 	}
 	/**
@@ -73,6 +81,34 @@ public abstract class Option<T> {
 		@Override
 		public String toString() {
 			return "Some with " + value;
+		}
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((value == null) ? 0 : value.hashCode());
+			return result;
+		}
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (getClass() != obj.getClass()) {
+				return false;
+			}
+			Some<?> other = (Some<?>)obj;
+			if (value == null) {
+				if (other.value != null) {
+					return false;
+				}
+			} else if (!value.equals(other.value)) {
+				return false;
+			}
+			return true;
 		}
 	}
 	/**
@@ -107,6 +143,34 @@ public abstract class Option<T> {
 		public Throwable error() {
 			return ex;
 		}
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((ex == null) ? 0 : ex.hashCode());
+			return result;
+		}
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (getClass() != obj.getClass()) {
+				return false;
+			}
+			Error<?> other = (Error<?>)obj;
+			if (ex == null) {
+				if (other.ex != null) {
+					return false;
+				}
+			} else if (!ex.equals(other.ex)) {
+				return false;
+			}
+			return true;
+		}
 	}
 	/** The single instance of the nothingness. */
 	private static final None<Void> NONE = new None<Void>();
@@ -116,7 +180,7 @@ public abstract class Option<T> {
 	 * @return the None of T
 	 */
 	@SuppressWarnings("unchecked")
-	@Nonnull 
+	@Nonnull
 	public static <T> None<T> none() {
 		return (None<T>)NONE;
 	}
@@ -126,7 +190,7 @@ public abstract class Option<T> {
 	 * @param value the initial value
 	 * @return the some object
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Some<T> some(T value) {
 		return new Some<T>(value);
 	}
@@ -136,7 +200,7 @@ public abstract class Option<T> {
 	 * @param t the throwable
 	 * @return the error instance
 	 */
-	@Nonnull 
+	@Nonnull
 	public static <T> Error<T> error(@Nonnull Throwable t) {
 		return new Error<T>(t);
 	}
@@ -176,5 +240,5 @@ public abstract class Option<T> {
 		}
 		throw new IllegalArgumentException("o is not an error");
 	}
-	
+
 }

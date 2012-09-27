@@ -27,7 +27,7 @@ import org.junit.Test;
 
 /**
  * Test the interactive operators.
- * @author Harmath Denes, 2012.07.13.
+ * @author Denes Harmath, 2012.07.13.
  */
 public class TestInteractive {
 	/**
