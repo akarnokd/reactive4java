@@ -1,0 +1,2 @@
+serviceClass: hu.akarnokd.reactive4gwt.client.GreetingService
+path: BFDF6EB2BE24DE27B28E7E5CAAF843B1.gwt.rpc
