@@ -49,21 +49,21 @@ public class ThrottleDemo extends JFrame {
 	public ThrottleDemo() {
 		super("Throttle demo");
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-		
+
 		Container c = getContentPane();
 
 		GroupLayout gl = new GroupLayout(c);
 		c.setLayout(gl);
 		gl.setAutoCreateContainerGaps(true);
 		gl.setAutoCreateGaps(true);
-		
+
 		JLabel typeHereLabel = new JLabel("Type here:");
 		JLabel resultsHereLabel = new JLabel("Results will show up here:");
-		
+
 		final JTextField textField = new JTextField();
-		final JList<String> resultsHere = new JList<String>();
+		final JList resultsHere = new JList();
 		JScrollPane sp = new JScrollPane(resultsHere);
-		
+
 		gl.setHorizontalGroup(
 			gl.createParallelGroup()
 			.addGroup(
@@ -74,7 +74,7 @@ public class ThrottleDemo extends JFrame {
 			.addComponent(resultsHereLabel)
 			.addComponent(sp)
 		);
-		
+
 		gl.setVerticalGroup(
 			gl.createSequentialGroup()
 			.addGroup(
@@ -85,11 +85,11 @@ public class ThrottleDemo extends JFrame {
 			.addComponent(resultsHereLabel)
 			.addComponent(sp)
 		);
-		
-		ObservableDocumentListener dl = ObservableDocumentListener.register(textField.getDocument()); 
+
+		ObservableDocumentListener dl = ObservableDocumentListener.register(textField.getDocument());
 //		dl.register(Observables.println("DL: "));
-		
-		Observable<String> extract = Reactive.select(dl, 
+
+		Observable<String> extract = Reactive.select(dl,
 				new Func1<DocumentEvent, String>() {
 			@Override
 			public String invoke(DocumentEvent param1) {
@@ -100,20 +100,20 @@ public class ThrottleDemo extends JFrame {
 
 		Observable<String> distinct = Reactive.distinct(extract);
 		distinct.register(Reactive.println("DISTINCT: "));
-		
+
 		Observable<String> throttle = Reactive.throttle(distinct, 500, TimeUnit.MILLISECONDS);
 		throttle.register(Reactive.println("THROTTLE: "));
-		
+
 //		Observable<String> takeuntil = Observables.takeUntil(throttle, dl);
 //		takeuntil.register(Observables.println("TAKEUNTIL: "));
-		
+
 		Observable<String> result = SwingObservables.observeOnEdt(throttle);
 		result.register(Reactive.println("RESULT: "));
-			
+
 		result.register(Reactive.toObserver(new Action1<String>() {
 			@Override
 			public void invoke(String value) {
-				DefaultListModel<String> model = new DefaultListModel<String>();
+				DefaultListModel model = new DefaultListModel();
 				for (int i = 0; i < 20; i++) {
 					model.addElement(value + " " + i);
 				}
