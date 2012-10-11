@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>hu.akarnokd</groupId>
 	<artifactId>reactive4java</artifactId>
-	<version>0.96.4-SNAPSHOT</version>
+	<version>0.96.4.RC1</version>
 	<name>Reactive4Java</name>
 	<description>A generic reactive- and interactive programming framework for Java and GWT</description>
 	<build>
