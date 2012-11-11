@@ -15,13 +15,14 @@
  */
 package hu.akarnokd.reactive4java.test;
 
+import static hu.akarnokd.reactive4java.base.Closeables.close0;
 import static hu.akarnokd.reactive4java.base.Option.getError;
 import static hu.akarnokd.reactive4java.base.Option.isError;
+import static hu.akarnokd.reactive4java.base.Option.isNone;
 import static hu.akarnokd.reactive4java.base.Option.isSome;
 import static java.util.Collections.sort;
 import static java.util.Collections.unmodifiableList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import hu.akarnokd.reactive4java.base.Closeables;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Scheduler;
@@ -71,7 +72,6 @@ public class TestScheduler implements Scheduler {
 		tasks.add(task);
 		sort(tasks);
 		return new Closeable() {
-
 			@Override
 			public void close() throws IOException {
 				tasks.remove(task);
@@ -162,7 +162,7 @@ public class TestScheduler implements Scheduler {
 						observable.next(event.value());
 					} else if (isError(event)) {
 						observable.error(getError(event));
-					} else if (Option.isNone(event)) {
+					} else if (isNone(event)) {
 						observable.finish();
 					}
 				}
@@ -327,7 +327,7 @@ public class TestScheduler implements Scheduler {
 		schedule(new Runnable() {
 			@Override
 			public void run() {
-				Closeables.close0(closeable.get());
+				close0(closeable.get());
 			}
 		}, disposal, unit);
 		start();
