@@ -16,23 +16,21 @@
 package hu.akarnokd.reactive4java.swing;
 
 import hu.akarnokd.reactive4java.base.Scheduler;
-
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 /**
  * The default Event Dispatch Thread scheduler implementation.
- * Which ensures that all tasks submittet to it
+ * Which ensures that all tasks submitted to it
  * will run on the EDT.
  * <p>Use with the <code>Reactive.subscribeOn</code> and <code>Reactive.observeOn</code>
- * operators to ensure your code interacts with Swing objects on the EDT.</p> 
+ * operators to ensure your code interacts with Swing objects on the EDT.</p>
  * @author akarnokd, 2011.02.02.
  * @see hu.akarnokd.reactive4java.reactive.Reactive#observeOn(hu.akarnokd.reactive4java.reactive.Observable, Scheduler)
  * @see hu.akarnokd.reactive4java.reactive.Reactive#registerOn(hu.akarnokd.reactive4java.reactive.Observable, Scheduler)

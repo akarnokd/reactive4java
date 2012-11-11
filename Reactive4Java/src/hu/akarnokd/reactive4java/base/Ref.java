@@ -17,7 +17,7 @@
 package hu.akarnokd.reactive4java.base;
 
 /**
- * A simple reference object holding something that can be changed. Not threadsafe and not ment to be.
+ * A simple reference object holding something that can be changed. Not thread-safe and not meant to be.
  * @author akarnokd
  * @param <T> the type of the contained object
  */
@@ -28,7 +28,7 @@ public final class Ref<T> {
 	 * Initializes a null element.
 	 */
 	public Ref() {
-		
+
 	}
 	/**
 	 * Initializes the ref with the given value.
@@ -70,7 +70,7 @@ public final class Ref<T> {
 	/**
 	 * Construct a new reference in empty mode.
 	 * @param <U> the type of the contents
-	 * @return the reference 
+	 * @return the reference
 	 */
 	public static <U> Ref<U> of() {
 		return new Ref<U>();

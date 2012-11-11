@@ -16,7 +16,6 @@
 
 package hu.akarnokd.reactive4java.reactive;
 
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
@@ -26,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * An observable + observer implementation which keeps track of the registered observers and
- * common methods which dispach events to all registered observers.
+ * common methods which dispatch events to all registered observers.
  * <p>The implementation is thread safe: all default methods may be invoked from any thread.
  * Could be used as a default implementation to convert between Observable and other event-listener type pattern.</p>
  * <p>The observer keeps track of the registered observer count and when
@@ -126,7 +125,7 @@ public class DefaultObservable<T> implements Observable<T>, Observer<T>, Closeab
 		// no operation
 	}
 	/**
-	 * @return Returns the current observer count. 
+	 * @return Returns the current observer count.
 	 */
 	public int getObserverCount() {
 		return count.get();

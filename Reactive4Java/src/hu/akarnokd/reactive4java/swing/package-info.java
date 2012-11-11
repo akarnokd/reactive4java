@@ -16,7 +16,7 @@
 
 /**
  * This package contains helper methods to interface the Swing's event notification
- * mechanisms (e.g., various Listener interfaces) with the reactive programming's Observable based
- * approach. 
+ * mechanisms (e.g. various Listener interfaces) with the reactive programming's Observable based
+ * approach.
  */
 package hu.akarnokd.reactive4java.swing;
