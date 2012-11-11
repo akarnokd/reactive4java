@@ -15,7 +15,7 @@
  */
 
 /**
- * This package contain utility classes for various {@code Scheduler} implementations
- * and two minimalist utility classes that work with {@code Func1} and {@code Action1} classes.
+ * This package contains utility classes for various {@code Scheduler} implementations
+ * and the functional representation of {@link java.lang.Iterable} and {@link hu.akarnokd.reactive4java.reactive.Observable}.
  */
 package hu.akarnokd.reactive4java.util;

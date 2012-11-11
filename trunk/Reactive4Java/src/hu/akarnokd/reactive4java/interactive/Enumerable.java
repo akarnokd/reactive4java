@@ -20,16 +20,16 @@ import javax.annotation.Nonnull;
 /**
  * The base interface for an Enumerable-Enumerator
  * pair of iteration method where the
- * enumerator has <code>next()</code> to 
+ * enumerator has <code>next()</code> to
  * advance the iteration and <code>current()</code>
  * to return the current element. An example
  * from normal Java for such
- * kind of iteratio is the <code>java.sql.ResultSet</code>.
+ * kind of iteration is the <code>java.sql.ResultSet</code>.
  * @param <T> the element type
  * @author akarnokd, 2011.02.04.
  */
 public interface Enumerable<T> {
 	/** @return the enumerator. */
-	@Nonnull 
+	@Nonnull
 	Enumerator<T> enumerator();
 }

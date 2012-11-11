@@ -25,7 +25,7 @@ import hu.akarnokd.reactive4java.base.Ref;
 
 
 /**
- * The functional observable helper class with the anamorphism, bind and catamorpism basic operators.
+ * The functional observable helper class with the anamorphism, bind and catamorphism basic operators.
  * Inspired by http://blogs.bartdesmet.net/blogs/bart/archive/2010/01/01/the-essence-of-linq-minlinq.aspx
  * @author akarnokd
  */
@@ -71,7 +71,7 @@ public final class ActionObservable {
 	 * @return the action to action that receives option of R
 	 */
 	public static <T, R> Action1<Action1<Option<R>>> bind(
-			final Action1<Action1<Option<T>>> source, 
+			final Action1<Action1<Option<T>>> source,
 			final Func1<T, Action1<Action1<Option<R>>>> selector) {
 		return new Action1<Action1<Option<R>>>() {
 			@Override
@@ -98,16 +98,16 @@ public final class ActionObservable {
 	}
 	/**
 	 * Anamorphism that creates Ts starting from the seed value until the condition holds.
-	 * Its equivalent is a for loop: for (int i = 0; i &lt; 10; i++) 
+	 * Its equivalent is a for loop: for (int i = 0; i &lt; 10; i++)
 	 * @param <T> the type of the values to generate
 	 * @param seed the initial value
 	 * @param condition the condition until the Ts should be produced
 	 * @param next the way of compute the next T
-	 * @return the function of founction of option of T
+	 * @return the function of function of option of T
 	 */
 	public static <T> Action1<Action1<Option<T>>> ana(
-			final T seed, 
-			final Func1<T, Boolean> condition, 
+			final T seed,
+			final Func1<T, Boolean> condition,
 			final Func1<T, T> next) {
 		return new Action1<Action1<Option<T>>>() {
 			@Override
@@ -159,8 +159,8 @@ public final class ActionObservable {
 	 * @return the aggregation result
 	 */
 	public static <T, R> R cata(
-			Action1<Action1<Option<T>>> source, 
-			R seed, 
+			Action1<Action1<Option<T>>> source,
+			R seed,
 			final Func2<R, T, R> aggregator) {
 		final Ref<R> result = Ref.of(seed);
 		source.invoke(new Action1<Option<T>>() {

@@ -16,7 +16,6 @@
 package hu.akarnokd.reactive4java.util;
 
 import hu.akarnokd.reactive4java.base.Scheduler;
-
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +23,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nonnull;
 
 /**
@@ -33,7 +31,7 @@ import javax.annotation.Nonnull;
  * @author akarnokd, 2011.02.02.
  */
 public class DefaultScheduler implements Scheduler {
-	/** The defalt scheduler pool for delayed observable actions. */
+	/** The default scheduler pool for delayed observable actions. */
 	final ScheduledExecutorService pool;
 	/**
 	 * Creates a scheduler with a ScheduledThreadPoolExecutor. The
@@ -51,20 +49,20 @@ public class DefaultScheduler implements Scheduler {
 		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(Runtime.getRuntime().availableProcessors());
 		scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
 		scheduler.allowCoreThreadTimeOut(true);
-		
-		/* 
+
+		/*
 		 * the setRemoveOnCancelPolicy() was introduced in Java 7 to
 		 * allow the option to remove tasks from work queue if its initial delay hasn't
-		 * elapsed -> therfore, if no other tasks are present, the scheduler might go idle earlier
+		 * elapsed -> therefore, if no other tasks are present, the scheduler might go idle earlier
 		 * instead of waiting for the initial delay to pass to discover there is nothing to do.
-		 * Because the library is currenlty aimed at Java 6, we use a reflection to set this policy
-		 * on a Java 7 runtime. 
+		 * Because the library is currently aimed at Java 6, we use a reflection to set this policy
+		 * on a Java 7 runtime.
 		 */
 		try {
 			java.lang.reflect.Method m = scheduler.getClass().getMethod("setRemoveOnCancelPolicy", Boolean.TYPE);
 			m.invoke(scheduler, true);
 		} catch (java.lang.reflect.InvocationTargetException ex) {
-			
+
 		} catch (NoSuchMethodException e) {
 		} catch (SecurityException e) {
 		} catch (IllegalAccessException e) {
@@ -91,7 +89,7 @@ public class DefaultScheduler implements Scheduler {
 		/** The wrapped future. */
 		final Future<?> future;
 		/**
-		 * Constructor. 
+		 * Constructor.
 		 * @param future the future to close
 		 */
 		FutureCloser(Future<?> future) {

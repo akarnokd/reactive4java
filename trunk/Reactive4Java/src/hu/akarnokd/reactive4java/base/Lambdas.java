@@ -36,7 +36,7 @@ import javax.script.SimpleBindings;
  * <p>Note that a script engines might not be thread safe, e.g., you might not run
  * multiple scripts without external synchronization.
  * See also <a href='http://download.oracle.com/javase/6/docs/api/javax/script/ScriptEngineFactory.html#getParameter(java.lang.String)'>THREADING</a>
- * for furhter details.<p>
+ * for further details.<p>
  * @author akarnokd, 2011.02.19.
  */
 public final class Lambdas {
