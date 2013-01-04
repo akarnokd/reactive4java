@@ -13,23 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package hu.akarnokd.reactive4java.test;
-
-import hu.akarnokd.reactive4java.base.Option;
-import hu.akarnokd.reactive4java.reactive.Observer;
-import hu.akarnokd.reactive4java.reactive.Timestamped;
-import java.util.List;
 
 /**
- * An {@link Observer} that records timestamped events for testing purposes.
- * @param <T> the type of the notification values
- * @author Denes Harmath, 2012.09.22.
+ * This package contains classes and builders for instance-based query operations 
+ * (in contrast to static methods of Interactive and Reactive).
  */
-public interface TestableObserver<T> extends Observer<T> {
-
-	/**
-	 * @return the recorded timestamped events
-	 */
-	List<Timestamped<? extends Option<T>>> getEvents();
-
-}
+package hu.akarnokd.reactive4java.query;

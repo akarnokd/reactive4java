@@ -42,9 +42,11 @@ import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
 import hu.akarnokd.reactive4java.query.ObservableBuilder;
 import hu.akarnokd.reactive4java.reactive.Observable;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
+
 import org.junit.Test;
 
 /**
@@ -306,6 +308,7 @@ public class TestReactive {
 		final int b1 = 3;
 		ObservableBuilder<Integer> a = from(a0, a1, 0);
 		ObservableBuilder<Integer> b = from(b0, b1);
+		@SuppressWarnings("unchecked")
 		ObservableBuilder<Pair<Integer, Integer>> expected = from(Pair.of(a0, b0), Pair.of(a1, b1));
 		assertEqual(expected, zip(a, b, pairUp()));
 	}
@@ -318,6 +321,7 @@ public class TestReactive {
 		final int a1 = 1;
 		final int value = 3;
 		ObservableBuilder<Integer> a = from(a0, a1);
+		@SuppressWarnings("unchecked")
 		ObservableBuilder<List<Integer>> expected = from(asList(a0, value), asList(a1, value));
 		assertEqual(expected, combine(a, value));
 	}
@@ -332,7 +336,11 @@ public class TestReactive {
 		final int b1 = 3;
 		ObservableBuilder<Integer> a = from(a0, a1, 0);
 		ObservableBuilder<Integer> b = from(b0, b1);
+		@SuppressWarnings("unchecked")
 		ObservableBuilder<List<Integer>> expected = from(asList(a0, b0), asList(a1, b1));
-		assertEqual(expected, combine(asList(a, b)));
+		@SuppressWarnings("unchecked")
+		List<ObservableBuilder<Integer>> asList = asList(a, b);
+		assertEqual(expected, combine(asList));
 	}
 }
+
