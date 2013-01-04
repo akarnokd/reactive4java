@@ -656,14 +656,6 @@ public final class Interactive {
 	@Nonnull
 	public static <T> Iterable<T> concat(
 			@Nonnull final Iterable<? extends Iterable<? extends T>> sources) {
-		/*
-		 * for (I<T> ii : sources) {
-		 *     for (T t : ii) {
-		 *         yield t;
-		 *     }
-		 * }
-		 */
-
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
@@ -672,37 +664,35 @@ public final class Interactive {
 					return new Iterator<T>() {
 						/** The current iterable. */
 						Iterator<? extends T> iter = si.next().iterator();
+						/** Save the last iterator since hasNext might run forward into other iterators. */
+						Iterator<? extends T> iterForRemove;
 						@Override
 						public boolean hasNext() {
-							// we have more elements in the current iterator
-							if (iter.hasNext()) {
-								return true;
+							while (!iter.hasNext()) {
+								if (!si.hasNext()) {
+									return false;
+								}
+								iter = si.next().iterator();
 							}
-							// do we have any more iterables?
-							if (si.hasNext()) {
-								return true;
-							}
-							return false;
+							return true;
 						}
 
 						@Override
 						public T next() {
-							do {
-								if (iter.hasNext()) {
-									return iter.next();
-								}
-								if (si.hasNext()) {
-									iter = si.next().iterator();
-								} else {
-									break;
-								}
-							} while (true);
-							throw new NoSuchElementException();
+							if (!hasNext()) {
+								throw new NoSuchElementException();
+							}
+							iterForRemove = iter;
+							return iter.next();
 						}
 
 						@Override
 						public void remove() {
-							iter.remove();
+							if (iterForRemove == null) {
+								throw new IllegalStateException();
+							}
+							iterForRemove.remove();
+							iterForRemove = null;
 						}
 					};
 				}
