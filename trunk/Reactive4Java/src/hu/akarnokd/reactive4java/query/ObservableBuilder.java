@@ -17,6 +17,8 @@ package hu.akarnokd.reactive4java.query;
 
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
+import hu.akarnokd.reactive4java.base.CloseableIterator;
+import hu.akarnokd.reactive4java.base.Closeables;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
@@ -30,6 +32,7 @@ import hu.akarnokd.reactive4java.reactive.Observer;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.TimeInterval;
 import hu.akarnokd.reactive4java.reactive.Timestamped;
+
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -40,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -3272,5 +3276,23 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		} catch (InterruptedException ex) {
 			ex.printStackTrace();
 		}
+	}
+	/**
+	 * Add the elements of the sequence into the supplied collection.
+	 * @param <U> a collection type
+	 * @param out the output collection
+	 * @return the same out value
+	 * @since 0.97
+	 */
+	public <U extends Collection<? super T>> U into(@Nonnull final U out) {
+		CloseableIterator<T> it = Reactive.toIterable(o).iterator();
+		try {
+			while (it.hasNext()) {
+				out.add(it.next());
+			}
+		} finally {
+			Closeables.close0(it);
+		}
+		return out;
 	}
 }

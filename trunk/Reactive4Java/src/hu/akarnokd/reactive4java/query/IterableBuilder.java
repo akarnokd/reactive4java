@@ -966,7 +966,7 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	/**
 	 * Creates an iterable which is a transforms the source
 	 * elements by using the selector function.
-	 * The function receives the current index and the current element.
+	 * The function receives the current element.
 	 * @param <U> the output element type
 	 * @param selector the selector function
 	 * @return the new iterable
@@ -1358,7 +1358,7 @@ public final class IterableBuilder<T> implements Iterable<T> {
 				.select(IterableBuilder.<T>toBuilder());
 	}
 	/**
-	 * @param <T> the elmeent type
+	 * @param <T> the element type
 	 * @return a function which wraps its iterable parameter into an iterablebuilder instance
 	 * @since 0.96.1
 	 */
@@ -1369,5 +1369,18 @@ public final class IterableBuilder<T> implements Iterable<T> {
 				return from(param1);
 			}
 		};
+	}
+	/**
+	 * Add the elements of the sequence into the supplied collection.
+	 * @param <U> a collection type
+	 * @param out the output collection
+	 * @return the same out value
+	 * @since 0.97
+	 */
+	public <U extends Collection<? super T>> U into(@Nonnull U out) {
+		for (T t : it) {
+			out.add(t);
+		}
+		return out;
 	}
 }
