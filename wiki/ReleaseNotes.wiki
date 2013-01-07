@@ -6,11 +6,17 @@
 = 0.97 =
   * *NOT YET RELEASED, IN PROGRESS*
   * Fixed Interactive's concat, resumeAlways, resumeOnError not properly forwarning their remove() methods.
-  * Added IterableBuilder.into() to consume the stream and store it in the given collection.
+  * Added IterableBuilder.into() to consume the stream and store it in the given collection. Added ObservableBuilder.into() with the same purpose.
   * Added IterableBuilder.removeAll() to consume the stream and remove all of its elements.
   * Added Interactive.newIterable and Interactive.newIterator methods to let the programmer create iterables and iterators by specifying their methods as functions (lambdas).
   * Added Interactive.newCloseableIterable and Interactive.newCloseableIterator that wraps an iterable and lets the user specify a close action.
   * Modified all Interactive operators that consume their stream to consider if that stream's Iterator implements Closeable and calls its close() method.
+  * Modified a few {{{while (true)}}} loops to check for the interrupt flag.
+  * Many refactorings:
+    * Moved TestXXX classes into the separate test directory.
+    * Moved SingleContainer, Enumeration, Enumerator into base package.
+    * Moved ActionObservable and FunctionIterable to test package.
+  * Added CompositeDisposable for better registration-lifecycle management.
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
