@@ -19,7 +19,11 @@ import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Actions;
 import hu.akarnokd.reactive4java.base.CircularBuffer;
+import hu.akarnokd.reactive4java.base.CloseableIterable;
+import hu.akarnokd.reactive4java.base.CloseableIterator;
 import hu.akarnokd.reactive4java.base.Closeables;
+import hu.akarnokd.reactive4java.base.Enumerable;
+import hu.akarnokd.reactive4java.base.Enumerator;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
@@ -27,9 +31,12 @@ import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.base.Scheduler;
+import hu.akarnokd.reactive4java.base.SingleContainer;
 import hu.akarnokd.reactive4java.interactive.Interactive.LinkedBuffer.N;
 import hu.akarnokd.reactive4java.util.DefaultScheduler;
+
 import java.io.Closeable;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -48,6 +55,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -160,9 +168,13 @@ public final class Interactive {
 								try {
 									U intermediate = null;
 									int count = 0;
-									while (it.hasNext()) {
-										intermediate = sum.invoke(intermediate, it.next());
-										count++;
+									try {
+										while (it.hasNext()) {
+											intermediate = sum.invoke(intermediate, it.next());
+											count++;
+										}
+									} finally {
+										Closeables.closeSilently(it);
 									}
 									if (count > 0) {
 										result.add(Option.some(divide.invoke(intermediate, count)));
@@ -235,6 +247,8 @@ public final class Interactive {
 							} catch (Throwable t) {
 								peek.add(Option.<Boolean>error(t));
 								done = true;
+							} finally {
+								Closeables.closeSilently(it);
 							}
 						}
 						return !peek.isEmpty();
@@ -498,21 +512,25 @@ public final class Interactive {
 					@Override
 					public boolean hasNext() {
 						if (peek.isEmpty() && !done) {
-							if (it.hasNext()) {
-								try {
-									List<T> buffer = new ArrayList<T>();
-									while (it.hasNext() && buffer.size() < bufferSize) {
-										buffer.add(it.next());
+							try {
+								if (it.hasNext()) {
+									try {
+										List<T> buffer = new ArrayList<T>();
+										while (it.hasNext() && buffer.size() < bufferSize) {
+											buffer.add(it.next());
+										}
+										if (buffer.size() > 0) {
+											peek.add(Option.some(buffer));
+										}
+									} catch (Throwable t) {
+										done = true;
+										peek.add(Option.<List<T>>error(t));
 									}
-									if (buffer.size() > 0) {
-										peek.add(Option.some(buffer));
-									}
-								} catch (Throwable t) {
+								} else {
 									done = true;
-									peek.add(Option.<List<T>>error(t));
 								}
-							} else {
-								done = true;
+							} finally {
+								Closeables.closeSilently(it);
 							}
 						}
 						return !peek.isEmpty();
@@ -606,14 +624,17 @@ public final class Interactive {
 				return new Iterator<T>() {
 					/** The current iterator. */
 					Iterator<? extends T> it = source.iterator();
+					/** The last iterator used by next(). */
+					Iterator<? extends T> itForRemove;
 					/** The peek ahead container. */
 					final SingleContainer<T> peek = new SingleContainer<T>();
 					@Override
 					public boolean hasNext() {
 						if (peek.isEmpty()) {
-							while (true) {
+							while (!Thread.currentThread().isInterrupted()) {
 								try {
 									if (it.hasNext()) {
+										itForRemove = it;
 										peek.add(it.next());
 									}
 									break;
@@ -635,7 +656,11 @@ public final class Interactive {
 
 					@Override
 					public void remove() {
-						it.remove();
+						if (itForRemove == null) {
+							throw new IllegalStateException();
+						}
+						itForRemove.remove();
+						itForRemove = null;
 					}
 
 				};
@@ -665,7 +690,7 @@ public final class Interactive {
 						/** The current iterable. */
 						Iterator<? extends T> iter = si.next().iterator();
 						/** Save the last iterator since hasNext might run forward into other iterators. */
-						Iterator<? extends T> iterForRemove;
+						Iterator<? extends T> itForRemove;
 						@Override
 						public boolean hasNext() {
 							while (!iter.hasNext()) {
@@ -682,17 +707,17 @@ public final class Interactive {
 							if (!hasNext()) {
 								throw new NoSuchElementException();
 							}
-							iterForRemove = iter;
+							itForRemove = iter;
 							return iter.next();
 						}
 
 						@Override
 						public void remove() {
-							if (iterForRemove == null) {
+							if (itForRemove == null) {
 								throw new IllegalStateException();
 							}
-							iterForRemove.remove();
-							iterForRemove = null;
+							itForRemove.remove();
+							itForRemove = null;
 						}
 					};
 				}
@@ -775,6 +800,7 @@ public final class Interactive {
 									peek.add(Option.<Integer>error(t));
 								} finally {
 									done = true;
+									Closeables.closeSilently(it);
 								}
 							}
 						}
@@ -833,6 +859,7 @@ public final class Interactive {
 									peek.add(Option.<Long>error(t));
 								} finally {
 									done = true;
+									Closeables.closeSilently(it);
 								}
 							}
 						}
@@ -1115,17 +1142,35 @@ public final class Interactive {
 			@Nonnull Iterable<?> iterable2) {
 		Iterator<?> iterator1 = iterable1.iterator();
 		Iterator<?> iterator2 = iterable2.iterator();
-		while (iterator1.hasNext()) {
-			if (!iterator2.hasNext()) {
-				return false;
+		return elementsEqual(iterator1, iterator2);
+	}
+	/**
+	 * Compares two iterators wether they contain the same element in terms of numbers
+	 * and nullsafe Object.equals().
+	 * @param iterator1 the first iterator
+	 * @param iterator2 the second interator
+	 * @return true if they are equal
+	 * @since 0.97
+	 */
+	public static boolean elementsEqual(
+			@Nonnull Iterator<?> iterator1,
+			@Nonnull Iterator<?> iterator2) {
+		try {
+			while (iterator1.hasNext()) {
+				if (!iterator2.hasNext()) {
+					return false;
+				}
+				Object o1 = iterator1.next();
+				Object o2 = iterator2.next();
+				if (!equal(o1, o2)) {
+					return false;
+				}
 			}
-			Object o1 = iterator1.next();
-			Object o2 = iterator2.next();
-			if (!equal(o1, o2)) {
-				return false;
-			}
+			return !iterator2.hasNext();
+		} finally {
+			Closeables.closeSilently(iterator1);
+			Closeables.closeSilently(iterator2);
 		}
-		return !iterator2.hasNext();
 	}
 	/**
 	 * Compare two object in a null-safe manner.
@@ -1410,16 +1455,20 @@ public final class Interactive {
 					public GroupedIterable<V, U> next() {
 						if (hasNext()) {
 							if (groupIt == null) {
-								while (it.hasNext()) {
-									T t = it.next();
-									V v = keySelector.invoke(t);
-									U u = valueSelector.invoke(t);
-									DefaultGroupedIterable<V, U> g = groups.get(v);
-									if (g == null) {
-										g = new DefaultGroupedIterable<V, U>(v);
-										groups.put(v, g);
+								try {
+									while (it.hasNext()) {
+										T t = it.next();
+										V v = keySelector.invoke(t);
+										U u = valueSelector.invoke(t);
+										DefaultGroupedIterable<V, U> g = groups.get(v);
+										if (g == null) {
+											g = new DefaultGroupedIterable<V, U>(v);
+											groups.put(v, g);
+										}
+										g.add(u);
 									}
-									g.add(u);
+								} finally {
+									Closeables.closeSilently(it);
 								}
 								groupIt = groups.values().iterator();
 							}
@@ -1641,12 +1690,16 @@ public final class Interactive {
 	public static <T> T last(
 			@Nonnull final Iterable<? extends T> source) {
 		Iterator<? extends T> it = source.iterator();
-		if (it.hasNext()) {
-			T t = null;
-			while (it.hasNext()) {
-				t = it.next();
+		try {
+			if (it.hasNext()) {
+				T t = null;
+				while (it.hasNext()) {
+					t = it.next();
+				}
+				return t;
 			}
-			return t;
+		} finally {
+			Closeables.closeSilently(it);
 		}
 		throw new NoSuchElementException();
 	}
@@ -1951,10 +2004,16 @@ public final class Interactive {
 						@Override
 						public void run() {
 							try {
-								for (T t : iter) {
-									if (!Thread.currentThread().isInterrupted()) {
-										queue.add(Option.some(t));
+								final Iterator<? extends T> fiter = iter.iterator();
+								try {
+									while (fiter.hasNext()) {
+										T t = fiter.next();
+										if (!Thread.currentThread().isInterrupted()) {
+											queue.add(Option.some(t));
+										}
 									}
+								} finally {
+									Closeables.closeSilently(fiter);
 								}
 								if (wip.decrementAndGet() == 0) {
 									if (!Thread.currentThread().isInterrupted()) {
@@ -2168,24 +2227,28 @@ public final class Interactive {
 								try {
 									List<T> intermediate = null;
 									U lastKey = null;
-									while (it.hasNext()) {
-										T value = it.next();
-										U key = keySelector.invoke(value);
-										if (lastKey == null) {
-											intermediate = new ArrayList<T>();
-											lastKey = key;
-											intermediate.add(value);
-										} else {
-											int c = keyComparator.compare(lastKey, key);
-											if ((c < 0 && max) || (c > 0 && !max)) {
+									try {
+										while (it.hasNext()) {
+											T value = it.next();
+											U key = keySelector.invoke(value);
+											if (lastKey == null) {
 												intermediate = new ArrayList<T>();
 												lastKey = key;
-												c = 0;
-											}
-											if (c == 0) {
 												intermediate.add(value);
+											} else {
+												int c = keyComparator.compare(lastKey, key);
+												if ((c < 0 && max) || (c > 0 && !max)) {
+													intermediate = new ArrayList<T>();
+													lastKey = key;
+													c = 0;
+												}
+												if (c == 0) {
+													intermediate.add(value);
+												}
 											}
 										}
+									} finally {
+										Closeables.closeSilently(it);
 									}
 									if (intermediate != null) {
 										result.add(Option.some(intermediate));
@@ -2290,15 +2353,19 @@ public final class Interactive {
 					/** The buffer. */
 					List<T> buffer;
 					/** The source iterator. */
-					Iterator<? extends T> it = source.iterator();
+					final Iterator<? extends T> it = source.iterator();
 					/** The buffer iterator. */
 					Iterator<T> bufIterator;
 					@Override
 					public boolean hasNext() {
 						if (buffer == null) {
 							buffer = new ArrayList<T>();
-							while (it.hasNext()) {
-								buffer.add(it.next());
+							try {
+								while (it.hasNext()) {
+									buffer.add(it.next());
+								}
+							} finally {
+								Closeables.closeSilently(it);
 							}
 							Collections.sort(buffer, new Comparator<T>() {
 								@Override
@@ -2631,12 +2698,14 @@ public final class Interactive {
 					return new Iterator<T>() {
 						/** The current iterator. */
 						Iterator<? extends T> it = iter0.next().iterator();
+						/** The memorized iterator for the remove call. */
+						Iterator<? extends T> itForRemove = null;
 						/** The peek ahead container. */
 						final SingleContainer<Option<? extends T>> peek = new SingleContainer<Option<? extends T>>();
 						@Override
 						public boolean hasNext() {
 							if (peek.isEmpty()) {
-								while (true) {
+								while (!Thread.currentThread().isInterrupted()) {
 									try {
 										if (it.hasNext()) {
 											peek.add(Option.some(it.next()));
@@ -2664,6 +2733,7 @@ public final class Interactive {
 						@Override
 						public T next() {
 							if (hasNext()) {
+								itForRemove = it;
 								return peek.take().value();
 							}
 							throw new NoSuchElementException();
@@ -2671,7 +2741,11 @@ public final class Interactive {
 
 						@Override
 						public void remove() {
-							it.remove();
+							if (itForRemove == null) {
+								throw new IllegalStateException();
+							}
+							itForRemove.remove();
+							itForRemove = null;
 						}
 					};
 				}
@@ -2714,12 +2788,14 @@ public final class Interactive {
 					return new Iterator<T>() {
 						/** The current iterator. */
 						Iterator<? extends T> it = iter0.next().iterator();
+						/** The memorized iterator for the remove call. */
+						Iterator<? extends T> itForRemove = null;
 						/** The peek ahead container. */
 						final SingleContainer<Option<? extends T>> peek = new SingleContainer<Option<? extends T>>();
 						@Override
 						public boolean hasNext() {
 							if (peek.isEmpty()) {
-								while (true) {
+								while (!Thread.currentThread().isInterrupted()) {
 									try {
 										if (it.hasNext()) {
 											peek.add(Option.some(it.next()));
@@ -2741,6 +2817,7 @@ public final class Interactive {
 						@Override
 						public T next() {
 							if (hasNext()) {
+								itForRemove = it;
 								return peek.take().value();
 							}
 							throw new NoSuchElementException();
@@ -2748,7 +2825,11 @@ public final class Interactive {
 
 						@Override
 						public void remove() {
-							it.remove();
+							if (itForRemove == null) {
+								throw new IllegalStateException();
+							}
+							itForRemove.remove();
+							itForRemove = null;
 						}
 					};
 				}
@@ -2859,8 +2940,14 @@ public final class Interactive {
 	public static <T> void run(
 			@Nonnull final Iterable<? extends T> source,
 			@Nonnull Action1<? super T> action) {
-		for (T t : source) {
-			action.invoke(t);
+		Iterator<? extends T> iter = source.iterator();
+		try {
+			while (iter.hasNext()) {
+				T t = iter.next();
+				action.invoke(t);
+			}
+		} finally {
+			Closeables.closeSilently(iter);
 		}
 	}
 	/**
@@ -2970,7 +3057,7 @@ public final class Interactive {
 	@Nonnull
 	public static <T, U> Iterable<U> select(
 			@Nonnull final Iterable<? extends T> source,
-			@Nonnull final Func2<Integer, ? super T, ? extends U> selector) {
+			@Nonnull final Func2<? super Integer, ? super T, ? extends U> selector) {
 		return new Iterable<U>() {
 			@Override
 			public Iterator<U> iterator() {
@@ -3012,13 +3099,6 @@ public final class Interactive {
 	public static <T, U> Iterable<U> selectMany(
 			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, ? extends Iterable<? extends U>> selector) {
-		/*
-		 * for (T t : source) {
-		 *     for (U u : selector(t)) {
-		 *         yield u;
-		 *     }
-		 * }
-		 */
 		return new Iterable<U>() {
 			@Override
 			public Iterator<U> iterator() {
@@ -3029,7 +3109,7 @@ public final class Interactive {
 					@Override
 					public boolean hasNext() {
 						if (sel == null || !sel.hasNext()) {
-							while (true) {
+							while (!Thread.currentThread().isInterrupted()) {
 								if (it.hasNext()) {
 									sel = selector.invoke(it.next()).iterator();
 									if (sel.hasNext()) {
@@ -3160,6 +3240,8 @@ public final class Interactive {
 							}
 						} catch (Throwable t) {
 							buffer.add(Option.<T>error(t));
+						} finally {
+							Closeables.closeSilently(it);
 						}
 						return buffer.size() == num && it.hasNext();
 					}
@@ -3375,6 +3457,8 @@ public final class Interactive {
 							}
 						} catch (Throwable t) {
 							buffer.add(Option.<T>error(t));
+						} finally {
+							Closeables.closeSilently(it);
 						}
 						return !buffer.isEmpty();
 					}
@@ -3625,21 +3709,11 @@ public final class Interactive {
 	@Nonnull
 	public static <T> Iterable<T> where(
 			@Nonnull final Iterable<? extends T> source,
-			@Nonnull final Func0<? extends Func2<Integer, ? super T, Boolean>> predicateFactory) {
-		/*
-		 * int i = 0;
-		 * for (T t : source) {
-		 *     if (predicate(i, t) {
-		 *         yield t;
-		 *     }
-		 *     i++;
-		 * }
-		 */
-
+			@Nonnull final Func0<? extends Func2<? super Integer, ? super T, Boolean>> predicateFactory) {
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
-				final Func2<Integer, ? super T, Boolean> predicate = predicateFactory.invoke();
+				final Func2<? super Integer, ? super T, Boolean> predicate = predicateFactory.invoke();
 				final Iterator<? extends T> it = source.iterator();
 				return new Iterator<T>() {
 					/** The current element count. */
@@ -3712,7 +3786,7 @@ public final class Interactive {
 	@Nonnull
 	public static <T> Iterable<T> where(
 			@Nonnull final Iterable<? extends T> source,
-			@Nonnull final Func2<Integer, ? super T, Boolean> predicate) {
+			@Nonnull final Func2<? super Integer, ? super T, Boolean> predicate) {
 		return where(source, Functions.constant0(predicate));
 	}
 	/**
@@ -3880,16 +3954,22 @@ public final class Interactive {
 		T arg = null;
 		V max = null;
 		boolean hasElement = false;
-		for (T item : source) {
-			V itemValue = valueSelector.invoke(item);
-			if (!hasElement || valueComparator.compare(max, itemValue) < 0) {
-				arg = item;
-				max = itemValue;
+		Iterator<? extends T> it = source.iterator();
+		try {
+			while (it.hasNext()) {
+				T item = it.next();
+				V itemValue = valueSelector.invoke(item);
+				if (!hasElement || valueComparator.compare(max, itemValue) < 0) {
+					arg = item;
+					max = itemValue;
+				}
+				hasElement = true;
 			}
-			hasElement = true;
-		}
-		if (hasElement) {
-			return Pair.of(arg, max);
+			if (hasElement) {
+				return Pair.of(arg, max);
+			}
+		} finally {
+			Closeables.closeSilently(it);
 		}
 		return null;
 	}
@@ -4165,9 +4245,13 @@ public final class Interactive {
 				final LinkedList<T> ll = new LinkedList<T>();
 				final Iterator<? extends T> it = source.iterator();
 				int cnt = 0;
-				while (it.hasNext() && cnt < count - 1) {
-					ll.add(it.next());
-					cnt++;
+				try {
+					while (it.hasNext() && cnt < count - 1) {
+						ll.add(it.next());
+						cnt++;
+					}
+				} finally {
+					Closeables.closeSilently(it);
 				}
 				if (cnt < count - 1) {
 					return Interactive.<Iterable<T>>empty().iterator();
@@ -4192,6 +4276,250 @@ public final class Interactive {
 					}
 				};
 			}
+		};
+	}
+	/**
+	 * Creates a new iterable sequence by wrapping the given function to
+	 * provide the iterator.
+	 * @param <T> the element type
+	 * @param <U> the iterator type
+	 * @param body the body function returning an iterator
+	 * @return the iterable sequence
+	 * @since 0.97
+	 */
+	public static <T, U extends Iterator<T>> Iterable<T> newIterable(
+			@Nonnull final Func0<U> body) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return body.invoke();
+			}
+		};
+	}
+	/**
+	 * A functional way of creating a new iterator from the supplied 
+	 * hasNext and next callbacks.
+	 * <p>The returned iterator throws a <code>UnsupportedOperationException</code>
+	 * in its remove method.</p>
+	 * @param <T> the element type
+	 * @param hasNext function that returns true if more elements are available.
+	 * @param next function that returns the next element
+	 * @return the created iterator
+	 * @since 0.97
+	 */
+	public static <T> Iterator<T> newIterator(
+			@Nonnull final Func0<Boolean> hasNext, 
+			@Nonnull final Func0<? extends T> next) {
+		return new Iterator<T>() {
+			@Override
+			public boolean hasNext() {
+				return hasNext.invoke();
+			}
+			@Override
+			public T next() {
+				return next.invoke();
+			}
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException();
+			}
+		};
+	}
+	/**
+	 * Constructs an iterator instance by wrapping the supplied functions
+	 * into the same-named iterator methods.
+	 * @param <T> the element type
+	 * @param hasNext function that returns true if more elements are available.
+	 * @param next function that returns the next element
+	 * @param remove function to remove the current element
+	 * @return the created iterator
+	 * @since 0.97
+	 */
+	public static <T> Iterator<T> newIterator(
+			@Nonnull final Func0<Boolean> hasNext, 
+			@Nonnull final Func0<? extends T> next,
+			@Nonnull final Action0 remove
+			) {
+		return new Iterator<T>() {
+			@Override
+			public boolean hasNext() {
+				return hasNext();
+			}
+			@Override
+			public T next() {
+				return next.invoke();
+			}
+			@Override
+			public void remove() {
+				remove.invoke();
+			}
+		};
+	}
+	/**
+	 * Wraps the given source sequence into a CloseableIterable instance
+	 * where the inner CloseableIterator.close() method calls the supplied action.
+	 * @param <T> the element type
+	 * @param src the source sequence
+	 * @param close the close action.
+	 * @return the new closeable iterable
+	 * @since 0.97
+	 */
+	public static <T> CloseableIterable<T> newCloseableIterable(
+			@Nonnull final Iterable<? extends T> src,
+			@Nonnull final Action1<? super Iterator<? extends T>> close
+	) {
+		return new CloseableIterable<T>() {
+			@Override
+			public CloseableIterator<T> iterator() {
+				return newCloseableIterator(src.iterator(), close);
+			}
+		};
+	}
+	/**
+	 * Wraps the given source sequence into a CloseableIterable instance
+	 * where the inner CloseableIterator.close() method calls the supplied action.
+	 * @param <T> the element type
+	 * @param src the source sequence
+	 * @param close the close action.
+	 * @return the new closeable iterable
+	 * @since 0.97
+	 */
+	public static <T> CloseableIterable<T> newCloseableIterable(
+			@Nonnull final Iterable<? extends T> src,
+			@Nonnull final Action0 close
+	) {
+		return new CloseableIterable<T>() {
+			@Override
+			public CloseableIterator<T> iterator() {
+				return newCloseableIterator(src.iterator(), close);
+			}
+		};
+	}
+	/**
+	 * Wraps the given source sequence into a CloseableIterable instance
+	 * where the inner CloseableIterator.close() method calls the supplied closeable object.
+	 * @param <T> the element type
+	 * @param src the source sequence
+	 * @param close the closeable object.
+	 * @return the new closeable iterable
+	 * @since 0.97
+	 */
+	public static <T> CloseableIterable<T> newCloseableIterable(
+			@Nonnull final Iterable<? extends T> src,
+			@Nonnull final Closeable close
+	) {
+		return new CloseableIterable<T>() {
+			@Override
+			public CloseableIterator<T> iterator() {
+				return newCloseableIterator(src.iterator(), close);
+			}
+		};
+	}
+	/**
+	 * Wraps the supplied iterator into a CloseableIterator which calls the supplied
+	 * close action.
+	 * @param <T> the element type
+	 * @param src the source iterator
+	 * @param close the close action
+	 * @return the new closeable iterator
+	 * @since 0.97
+	 */
+	public static <T> CloseableIterator<T> newCloseableIterator(
+			@Nonnull final Iterator<? extends T> src,
+			@Nonnull final Action0 close
+	) {
+		return new CloseableIterator<T>() {
+			@Override
+			public boolean hasNext() {
+				return src.hasNext();
+			}
+
+			@Override
+			public T next() {
+				return src.next();
+			}
+
+			@Override
+			public void remove() {
+				src.remove();
+			}
+
+			@Override
+			public void close() throws IOException {
+				close.invoke();
+			}
+			
+		};
+	}
+	/**
+	 * Wraps the supplied iterator into a CloseableIterator which calls the supplied
+	 * closeable instance.
+	 * @param <T> the element type
+	 * @param src the source iterator
+	 * @param close the closeable instance
+	 * @return the new closeable iterator
+	 * @since 0.97
+	 */
+	public static <T> CloseableIterator<T> newCloseableIterator(
+			@Nonnull final Iterator<? extends T> src,
+			@Nonnull final Closeable close
+	) {
+		return new CloseableIterator<T>() {
+			@Override
+			public boolean hasNext() {
+				return src.hasNext();
+			}
+
+			@Override
+			public T next() {
+				return src.next();
+			}
+
+			@Override
+			public void remove() {
+				src.remove();
+			}
+
+			@Override
+			public void close() throws IOException {
+				close.close();
+			}
+			
+		};
+	}
+	/**
+	 * Wraps the supplied iterator into a CloseableIterator which calls the supplied
+	 * close action with the given source iterator object.
+	 * @param <T> the element type
+	 * @param src the source iterator
+	 * @param close the close action
+	 * @return the new closeable iterator
+	 */
+	public static <T> CloseableIterator<T> newCloseableIterator(
+			@Nonnull final Iterator<? extends T> src,
+			@Nonnull final Action1<? super Iterator<? extends T>> close
+	) {
+		return new CloseableIterator<T>() {
+			@Override
+			public boolean hasNext() {
+				return src.hasNext();
+			}
+
+			@Override
+			public T next() {
+				return src.next();
+			}
+
+			@Override
+			public void remove() {
+				src.remove();
+			}
+
+			@Override
+			public void close() throws IOException {
+				close.invoke(src);
+			}
+			
 		};
 	}
 	/** Utility class. */

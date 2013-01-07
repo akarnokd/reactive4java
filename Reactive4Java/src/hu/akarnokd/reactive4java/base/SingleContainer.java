@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java.interactive;
+package hu.akarnokd.reactive4java.base;
 
 /**
  * Helper class that stores a single element.

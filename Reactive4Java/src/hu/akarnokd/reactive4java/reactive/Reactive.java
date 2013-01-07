@@ -31,10 +31,11 @@ import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.base.Scheduler;
+import hu.akarnokd.reactive4java.base.SingleContainer;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
-import hu.akarnokd.reactive4java.interactive.SingleContainer;
 import hu.akarnokd.reactive4java.util.DefaultScheduler;
 import hu.akarnokd.reactive4java.util.SingleLaneExecutor;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -71,6 +72,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package hu.akarnokd.reactive4java.interactive;
+package hu.akarnokd.reactive4java.base;
 
 /**
  * The base interface for an Enumerable-Enumerator
