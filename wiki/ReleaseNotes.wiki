@@ -3,6 +3,14 @@
 
 <wiki:toc max_depth="1" />
 
+= 0.97 =
+  * *NOT YET RELEASED, IN PROGRESS*
+  * Fixed Interactive's concat, resumeAlways, resumeOnError not properly forwarning their remove() methods.
+  * Added IterableBuilder.into() to consume the stream and store it in the given collection.
+  * Added IterableBuilder.removeAll() to consume the stream and remove all of its elements.
+  * Added Interactive.newIterable and Interactive.newIterator methods to let the programmer create iterables and iterators by specifying their methods as functions (lambdas).
+  * Added Interactive.newCloseableIterable and Interactive.newCloseableIterator that wraps an iterable and lets the user specify a close action.
+
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
   * Fixed maxBy and minBy operators
