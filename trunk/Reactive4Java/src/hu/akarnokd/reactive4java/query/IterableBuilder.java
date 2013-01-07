@@ -17,6 +17,7 @@ package hu.akarnokd.reactive4java.query;
 
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
+import hu.akarnokd.reactive4java.base.Closeables;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
@@ -1163,9 +1164,7 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	@Nonnull
 	public List<T> toList() {
 		List<T> result = new ArrayList<T>();
-		for (T t : it) {
-			result.add(t);
-		}
+		into(result);
 		return result;
 	}
 	/**
@@ -1255,10 +1254,16 @@ public final class IterableBuilder<T> implements Iterable<T> {
 			Func1<? super T, ? extends V> valueSelector,
 			Func0<? extends Map<K, V>> mapProvider) {
 		Map<K, V> map = mapProvider.invoke();
-		for (T t : it) {
-			K key = keySelector.invoke(t);
-			V value = valueSelector.invoke(t);
-			map.put(key, value);
+		Iterator<T> it = iterator();
+		try {
+			while (it.hasNext()) {
+				T t = it.next();
+				K key = keySelector.invoke(t);
+				V value = valueSelector.invoke(t);
+				map.put(key, value);
+			}
+		} finally {
+			Closeables.closeSilently(it);
 		}
 		return map;
 	}
@@ -1298,16 +1303,22 @@ public final class IterableBuilder<T> implements Iterable<T> {
 			Func0<? extends Map<K, C>> mapProvider,
 			Func0<? extends C> collectionProvider) {
 		Map<K, C> result = mapProvider.invoke();
-		for (T t : it) {
-			K key = keySelector.invoke(t);
-			V value = valueSelector.invoke(t);
-			
-			C coll = result.get(key);
-			if (coll == null) {
-				coll = collectionProvider.invoke();
-				result.put(key, coll);
+		Iterator<T> it = iterator();
+		try {
+			while (it.hasNext()) {
+				T t = it.next();
+				K key = keySelector.invoke(t);
+				V value = valueSelector.invoke(t);
+				
+				C coll = result.get(key);
+				if (coll == null) {
+					coll = collectionProvider.invoke();
+					result.put(key, coll);
+				}
+				coll.add(value);
 			}
-			coll.add(value);
+		} finally {
+			Closeables.closeSilently(it);
 		}
 		return result;
 	}
@@ -1378,9 +1389,29 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 * @since 0.97
 	 */
 	public <U extends Collection<? super T>> U into(@Nonnull U out) {
-		for (T t : it) {
-			out.add(t);
+		Iterator<T> it = iterator();
+		try {
+			while (it.hasNext()) {
+				out.add(it.next());
+			}
+		} finally {
+			Closeables.closeSilently(it);
 		}
 		return out;
+	}
+	/**
+	 * Consumes the sequence and removes all items via the Iterator.remove().
+	 * @since 0.97
+	 */
+	public void removeAll() {
+		Iterator<T> it = iterator();
+		try {
+			while (it.hasNext()) {
+				it.next();
+				it.remove();
+			}
+		} finally {
+			Closeables.closeSilently(it);
+		}
 	}
 }

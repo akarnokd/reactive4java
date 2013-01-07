@@ -19,6 +19,7 @@ import java.io.Closeable;
 import java.io.IOException;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Utility methods for various closeable objects.
@@ -112,5 +113,18 @@ public final class Closeables {
 			}
 		};
 	}
-
+	/**
+	 * Closes the given object if it implements the Closeable interface.
+	 * @param o an object
+	 * @since 0.97
+	 */
+	public static void closeSilently(@Nullable Object o) {
+		if (o instanceof Closeable) {
+			try {
+				((Closeable)o).close();
+			} catch (IOException ex) {
+				// ignored
+			}
+		}
+	}
 }

@@ -23,7 +23,6 @@ import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.Observer;
-import hu.akarnokd.reactive4java.util.FunctionIterable;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
