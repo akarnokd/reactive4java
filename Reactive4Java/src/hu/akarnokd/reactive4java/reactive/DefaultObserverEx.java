@@ -18,7 +18,6 @@ package hu.akarnokd.reactive4java.reactive;
 import hu.akarnokd.reactive4java.base.Closeables;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -57,17 +56,23 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	}
 	/**
 	 * Add a new closeable with a token to the sub-observer list.
+	 * If this observer is already in completed state, the handler is closed immediately.
 	 * @param token the reference token
 	 * @param handler the closeable handler
 	 */
 	public void add(Object token, Closeable handler) {
+		boolean shouldClose = false;
 		lock.lock();
 		try {
+			shouldClose = completed;
 			if (!completed) {
 				subObservers.put(token, handler);
 			}
 		} finally {
 			lock.unlock();
+		}
+		if (shouldClose) {
+			Closeables.closeSilently(handler);
 		}
 	}
 	/**
@@ -95,11 +100,13 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	}
 	/**
 	 * While holding the global lock, executes the onRegister method then 
-	 * registers this instance with the supplied source observable.
+	 * registers this instance with the supplied source observable with the <code>this</code> token.
+	 * If the this token is already registered, the previous handle is closed.
 	 * @param source the source observable
-	 * @return the registration closeable
+	 * @return this
 	 */
 	public Closeable registerWith(Observable<? extends T> source) {
+		Closeable closePrevious = null;
 		lock.lock();
 		try {
 			if (!completed) {
@@ -107,15 +114,24 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 				if (!completed) {
 					Closeable c = source.register(this);
 					if (!completed) {
-						subObservers.put(this, c);
+						closePrevious = subObservers.put(this, c);
 					}
 				}
-				return this;
 			}
-			return Closeables.emptyCloseable();
 		} finally {
 			lock.unlock();
 		}
+		Closeables.closeSilently(closePrevious);
+		return this;
+	}
+	/**
+	 * Removes and closes the handler associated with the token.
+	 * The call should be called with the <code>lock</code> being held.
+	 * @param token the token to remove
+	 */
+	protected void removeInner(Object token) {
+		Closeable c = subObservers.remove(token);
+		Closeables.closeSilently(c);
 	}
 	/**
 	 * Removes and closes the close handler associated with the token.
@@ -124,36 +140,41 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	public void remove(Object token) {
 		lock.lock();
 		try {
-			Closeable c = subObservers.remove(token);
-			if (c != null) {
-				try { c.close(); } catch (IOException ex) { }
-			}
+			removeInner(token);
 		} finally {
 			lock.unlock();
 		}
 	}
 	/**
 	 * Replaces (atomically) an old token with a new token and closeable handler.
-	 * Basically, it is a convenience method for <code>remove(oldToken); add(newToken, newHandler</code>
-	 * with a lock spanning over both methods. 
+	 * If the observer is in finished state, the new handler is immediately closed. 
 	 * @param oldToken the old token
 	 * @param newToken the new token
 	 * @param newHandler the new closeable handler
 	 */
 	public void replace(Object oldToken, Object newToken, Closeable newHandler) {
+		Closeable oldHandler = null;
+		boolean shouldCloseNew = false;
 		lock.lock();
 		try {
-			remove(oldToken);
-			add(newToken, newHandler);
+			shouldCloseNew = completed;
+			if (!completed) {
+				oldHandler = subObservers.get(oldToken);
+				subObservers.put(newToken, newHandler);
+			}
 		} finally {
 			lock.unlock();
+		}
+		Closeables.closeSilently(oldHandler);
+		if (shouldCloseNew) {
+			Closeables.closeSilently(newHandler);
 		}
 	}
 	@Override
 	protected void onClose() {
 		List<Object> cs = new ArrayList<Object>(subObservers.keySet());
 		for (Object c : cs) {
-			remove(c);
+			removeInner(c);
 		}
 	}
 }

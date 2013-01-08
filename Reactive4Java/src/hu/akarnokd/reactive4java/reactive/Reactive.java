@@ -16,7 +16,6 @@
 
 package hu.akarnokd.reactive4java.reactive;
 
-import static hu.akarnokd.reactive4java.base.Functions.and;
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Actions;
@@ -33,6 +32,7 @@ import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.base.SingleContainer;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
+import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.util.DefaultScheduler;
 import hu.akarnokd.reactive4java.util.SingleLaneExecutor;
 
@@ -169,7 +169,10 @@ public final class Reactive {
 		return select(source, Reactive.<T>wrapTimestamped());
 	}
 	/**
-	 * Apply an accumulator function over the observable source and submit the accumulated value to the returned observable.
+	 * Apply an accumulator function over the observable source 
+	 * and submit the accumulated value to the returned observable at each incoming value.
+	 * <p>If the source observable terminates before sending a single value,
+	 * the output observable terminates as well. The first incoming value is relayed as-is.</p>
 	 * @param <T> the element type
 	 * @param source the source observable
 	 * @param accumulator the accumulator function where the first parameter is the current accumulated value and the second is the now received value.
@@ -193,7 +196,7 @@ public final class Reactive {
 					}
 					@Override
 					public void finish() {
-						if (phase >= 1) { // FIXME not sure about this
+						if (phase >= 1) {
 							observer.next(result);
 						}
 						observer.finish();
@@ -344,11 +347,28 @@ public final class Reactive {
 		};
 	}
 	/**
+	 * Channels the values of either left or right depending on who fired its first value.
+	 * @param <T> the observed value type
+	 * @param left the left observable
+	 * @param right the right observable
+	 * @return the observable that will stream one of the sources.
+	 * @since 0.97
+	 */
+	public static <T> Observable<T> amb(
+			@Nonnull final Observable<? extends T> left,
+			@Nonnull final Observable<? extends T> right
+			) {
+		List<Observable<? extends T>> sources = new ArrayList<Observable<? extends T>>();
+		sources.add(left);
+		sources.add(right);
+		return amb(sources);
+	}
+	/**
 	 * Channels the values of the first observable who fires first from the given set of observables.
 	 * E.g., <code>O3 = Amb(O1, O2)</code> if O1 starts to submit events first, O3 will relay these events and events of O2 will be completely ignored
 	 * @param <T> the type of the observed element
 	 * @param sources the iterable list of source observables.
-	 * @return the observable which reacted first
+	 * @return the observable of which reacted first
 	 */
 	@Nonnull
 	public static <T> Observable<T> amb(
@@ -356,16 +376,18 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final List<DefaultObserver<T>> observers = new ArrayList<DefaultObserver<T>>();
-
+				final CompositeCloseable result = new CompositeCloseable();
+				
+				final List<DefaultObserverEx<T>> observers = new ArrayList<DefaultObserverEx<T>>();
 				List<Observable<? extends T>> observables = new ArrayList<Observable<? extends T>>();
 
 				final AtomicReference<Object> first = new AtomicReference<Object>();
+
 				int i = 0;
 				for (final Observable<? extends T> os : sources) {
 					observables.add(os);
 					final int thisIndex = i;
-					DefaultObserver<T> obs = new DefaultObserver<T>(true) {
+					DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 						/** We won the race. */
 						boolean weWon;
 						/** Cancel everyone else. */
@@ -410,17 +432,15 @@ public final class Reactive {
 						}
 					};
 					observers.add(obs);
+					result.add(obs);
 				}
 				i = 0;
-				List<Closeable> closers = new ArrayList<Closeable>(observables.size() * 2 + 1);
 				for (final Observable<? extends T> os : observables) {
-					DefaultObserver<T> dob = observers.get(i);
-					closers.add(dob);
-					closers.add(os.register(dob)); // FIXME deregister?!
-
+					DefaultObserverEx<T> observerEx = observers.get(i);
+					observerEx.registerWith(os);
 					i++;
 				}
-				return Closeables.closeAll(closers);
+				return result;
 			}
 		};
 	}
@@ -437,8 +457,9 @@ public final class Reactive {
 		return any(source, Functions.alwaysTrue1());
 	}
 	/**
-	 * Signals a single TRUE if the source ever signals next() and any of the values matches the predicate before it signals a finish().
-	 * It signals a false otherwise.
+	 * Signals a single TRUE if the source ever signals next() and any of 
+	 * the values matches the predicate before it signals a finish(), and deregisters
+	 * from the source. It signals a false at the end of stream otherwise.
 	 * @param <T> the source element type.
 	 * @param source the source observable
 	 * @param predicate the predicate to test the values
@@ -451,7 +472,7 @@ public final class Reactive {
 		return new Observable<Boolean>() {
 			@Override
 			public Closeable register(final Observer<? super Boolean> observer) {
-				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
+				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					@Override
 					public void onError(Throwable ex) {
 						observer.error(ex);
@@ -475,7 +496,7 @@ public final class Reactive {
 					}
 
 				};
-				return Closeables.close(obs, source.register(obs));
+				return obs.registerWith(source);
 			}
 		};
 	}
@@ -795,7 +816,7 @@ public final class Reactive {
 					Closeable timer = pool.schedule(r, time, time, unit);
 					@Override
 					protected void onClose() {
-						Closeables.close0(timer);
+						Closeables.closeSilently(timer);
 					}
 
 					@Override
@@ -825,7 +846,7 @@ public final class Reactive {
 						}
 					}
 				};
-				return Closeables.close(s, source.register(s));
+				return Closeables.newCloseable(s, source.register(s));
 			}
 		};
 
@@ -886,7 +907,7 @@ public final class Reactive {
 					Closeable timer = pool.schedule(r, time, time, unit);
 					@Override
 					protected void onClose() {
-						Closeables.close0(timer);
+						Closeables.closeSilently(timer);
 					}
 
 					@Override
@@ -906,7 +927,7 @@ public final class Reactive {
 						buffer.add(value);
 					}
 				};
-				return Closeables.close(o, source.register(o));
+				return Closeables.newCloseable(o, source.register(o));
 			}
 		};
 	}
@@ -937,7 +958,8 @@ public final class Reactive {
 			@Override
 			public Closeable register(final Observer<? super V> observer) {
 				final Lock lock = new ReentrantLock(true);
-				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
+				final CompositeCloseable closeBoth = new CompositeCloseable();
+				
 				final AtomicReference<T> leftRef = new AtomicReference<T>();
 				final AtomicReference<U> rightRef = new AtomicReference<U>();
 				final AtomicInteger wip = new AtomicInteger(2);
@@ -946,7 +968,7 @@ public final class Reactive {
 					@Override
 					protected void onError(Throwable ex) {
 						observer.error(ex);
-						Closeables.close0(closeBoth.get());
+						Closeables.closeSilently(closeBoth);
 					}
 
 					@Override
@@ -969,7 +991,7 @@ public final class Reactive {
 					@Override
 					protected void onError(Throwable ex) {
 						observer.error(ex);
-						Closeables.close0(closeBoth.get());
+						Closeables.closeSilently(closeBoth);
 					}
 
 					@Override
@@ -987,10 +1009,11 @@ public final class Reactive {
 					}
 
 				};
-				closeBoth.set(Closeables.close(obs1, obs2));
+				closeBoth.add(obs1);
+				closeBoth.add(obs2);
 				obs1.add(new Object(), left);
 				obs2.add(new Object(), right);
-				return closeBoth.get();
+				return closeBoth;
 			}
 		};
 	}
@@ -1020,7 +1043,7 @@ public final class Reactive {
 			@Override
 			public Closeable register(final Observer<? super V> observer) {
 				final Lock lock = new ReentrantLock(true);
-				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
+				final CompositeCloseable closeBoth = new CompositeCloseable();
 				final AtomicReference<T> leftRef = new AtomicReference<T>();
 				final AtomicBoolean leftFirst = new AtomicBoolean();
 				final AtomicReference<U> rightRef = new AtomicReference<U>();
@@ -1031,7 +1054,7 @@ public final class Reactive {
 					@Override
 					protected void onError(Throwable ex) {
 						observer.error(ex);
-						Closeables.close0(closeBoth.get());
+						Closeables.closeSilently(closeBoth);
 					}
 
 					@Override
@@ -1057,7 +1080,7 @@ public final class Reactive {
 					@Override
 					protected void onError(Throwable ex) {
 						observer.error(ex);
-						Closeables.close0(closeBoth.get());
+						Closeables.closeSilently(closeBoth);
 					}
 
 					@Override
@@ -1078,17 +1101,20 @@ public final class Reactive {
 					}
 
 				};
-				closeBoth.set(Closeables.close(obs1, obs2));
+				closeBoth.add(obs1);
+				closeBoth.add(obs2);
 				obs1.add(new Object(), left);
 				obs2.add(new Object(), right);
-				return closeBoth.get();
+				return closeBoth;
 			}
 		};
 	}
 	/**
 	 * Concatenates the source observables in a way that when the first finish(), the
 	 * second gets registered and continued, and so on.
-	 * FIXME not sure how it should handle closability
+	 * <p>If the sources sequence is empty, a no-op observable is returned.</p>
+	 * <p>Note that the source iterable is not consumed up front but as the individual observables
+	 * complete, therefore the Iterator methods might be called from any thread.</p>
 	 * @param <T> the type of the values to observe
 	 * @param sources the source list of subsequent observables
 	 * @return the concatenated observable
@@ -1101,23 +1127,7 @@ public final class Reactive {
 			public Closeable register(final Observer<? super T> observer) {
 				final Iterator<? extends Observable<? extends T>> it = sources.iterator();
 				if (it.hasNext()) {
-					DefaultObserver<T> obs = new DefaultObserver<T>(false) {
-						/** The current registration. */
-						@GuardedBy("lock")
-						Closeable current;
-						{
-							lock.lock();
-							try {
-								current = it.next().register(this);
-							} finally {
-								lock.unlock();
-							}
-						}
-						@Override
-						protected void onClose() {
-							Closeables.close0(current);
-						}
-
+					DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 						@Override
 						public void onError(Throwable ex) {
 							observer.error(ex);
@@ -1127,8 +1137,8 @@ public final class Reactive {
 						@Override
 						public void onFinish() {
 							if (it.hasNext()) {
-								Closeables.close0(current);
-								current = it.next().register(this);
+								remove(this);
+								registerWith(it.next());
 							} else {
 								observer.finish();
 								close();
@@ -1139,9 +1149,10 @@ public final class Reactive {
 							observer.next(value);
 						}
 					};
-					return obs;
+					
+					return obs.registerWith(it.next());
 				}
-				return Reactive.<T>empty().register(observer);
+				return Closeables.emptyCloseable();
 			}
 		};
 	}
@@ -1154,20 +1165,17 @@ public final class Reactive {
 	 * @return the new observable
 	 */
 	public static <T> Observable<T> concat(
-			final Observable<? extends Observable<T>> sources
+			final Observable<? extends Observable<? extends T>> sources
 	) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final LinkedBlockingQueue<Observable<T>> sourceQueue = new LinkedBlockingQueue<Observable<T>>();
+				final LinkedBlockingQueue<Observable<? extends T>> sourceQueue = new LinkedBlockingQueue<Observable<? extends T>>();
 				final AtomicInteger wip = new AtomicInteger(1);
-				DefaultObserverEx<Observable<T>> o = new DefaultObserverEx<Observable<T>>(true) {
+				DefaultObserverEx<Observable<? extends T>> o = new DefaultObserverEx<Observable<? extends T>>(true) {
 					/** The first value arrived? */
 					@GuardedBy("lock")
 					boolean first;
-					{
-						add("sources", sources);
-					}
 					/**
 					 * The inner exception to forward.
 					 * @param ex the exception
@@ -1186,7 +1194,7 @@ public final class Reactive {
 						}
 					}
 					@Override
-					protected void onNext(Observable<T> value) {
+					protected void onNext(Observable<? extends T> value) {
 						if (!first) {
 							first = true;
 							registerOn(value);
@@ -1195,7 +1203,7 @@ public final class Reactive {
 						}
 					}
 
-					void registerOn(Observable<T> value) {
+					void registerOn(Observable<? extends T> value) {
 						wip.incrementAndGet();
 						replace("source", "source", value.register(new DefaultObserver<T>(lock, true) {
 							@Override
@@ -1205,7 +1213,7 @@ public final class Reactive {
 
 							@Override
 							public void onFinish() {
-								Observable<T> nextO = sourceQueue.poll();
+								Observable<? extends T> nextO = sourceQueue.poll();
 								if (nextO != null) {
 									registerOn(nextO);
 								} else {
@@ -1225,8 +1233,9 @@ public final class Reactive {
 
 						}));
 					}
-
+					
 				};
+				o.registerWith(sources);
 				return o;
 			}
 		};
@@ -1280,7 +1289,6 @@ public final class Reactive {
 		return new Observable<Integer>() {
 			@Override
 			public Closeable register(final Observer<? super Integer> observer) {
-				//FIXME sequence guarantees?
 				return source.register(new Observer<T>() {
 					/** The counter. */
 					int count;
@@ -1316,7 +1324,6 @@ public final class Reactive {
 		return new Observable<Long>() {
 			@Override
 			public Closeable register(final Observer<? super Long> observer) {
-				//FIXME sequence guarantees?
 				return source.register(new Observer<T>() {
 					/** The counter. */
 					long count;
@@ -1486,7 +1493,7 @@ public final class Reactive {
 						List<Closeable> list = new LinkedList<Closeable>();
 						outstanding.drainTo(list);
 						for (Closeable c : list) {
-							Closeables.close0(c);
+							Closeables.closeSilently(c);
 						}
 						super.close();
 					}
@@ -1676,7 +1683,7 @@ public final class Reactive {
 	}
 	/**
 	 * Maintains a queue of Ts which is then drained by the pump. Uses the default pool.
-	 * FIXME not sure what this method should do and how.
+	 * FIX ME not sure what this method should do and how.
 	 * @param <T> the type of the values
 	 * @param source the source of Ts
 	 * @param pump the pump that drains the queue
@@ -1690,7 +1697,7 @@ public final class Reactive {
 	}
 	/**
 	 * Maintains a queue of Ts which is then drained by the pump.
-	 * FIXME not sure what this method should do and how.
+	 * FIX ME not sure what this method should do and how.
 	 * @param <T> the type of the values
 	 * @param source the source of Ts
 	 * @param pump the pump that drains the queue
@@ -1706,7 +1713,7 @@ public final class Reactive {
 			@Override
 			public Closeable register(final Observer<? super Void> observer) {
 				// keep track of the forked observers so the last should invoke finish() on the observer
-				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
+				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					/** The work in progress counter. */
 					final AtomicInteger wip = new AtomicInteger(1);
 					/** The executor which ensures the sequence. */
@@ -1745,7 +1752,7 @@ public final class Reactive {
 					});
 					@Override
 					public void onClose() {
-//						exec.close(); FIXME should not cancel the pool?!
+//						exec.close(); FIX ME should not cancel the pool?!
 					}
 
 					@Override
@@ -1766,7 +1773,7 @@ public final class Reactive {
 						exec.add(value);
 					}
 				};
-				return Closeables.close(obs, source.register(obs));
+				return obs.registerWith(source);
 			}
 		};
 	}
@@ -1852,7 +1859,7 @@ public final class Reactive {
 			}
 			throw new NoSuchElementException();
 		} finally {
-			Closeables.close0(it);
+			Closeables.closeSilently(it);
 		}
 	}
 	/**
@@ -1917,14 +1924,14 @@ public final class Reactive {
 
 					});
 				}
-				List<Closeable> closeables = new ArrayList<Closeable>();
+				CompositeCloseable closeables = new CompositeCloseable();
 				i = 0;
 				for (Observable<? extends T> o : observableList) {
 					closeables.add(o.register(observers.get(i)));
 					i++;
 				}
 				runIfComplete(observer, lastValues, wip);
-				return Closeables.closeAll(closeables);
+				return closeables;
 			}
 			/**
 			 * Runs the completion sequence once the WIP drops to zero.
@@ -2027,9 +2034,65 @@ public final class Reactive {
 		return generateTimed(initial, condition, next, selector, delay, DEFAULT_SCHEDULER.get());
 	}
 	/**
-	 * Generates a stream of Us by using a value T stream.
+	 * Generates a dynamically timed stream of Us by using a value T stream.
 	 * If T = int and U is double, this would be seen as <code>for (int i = 0; i &lt; 10; i++) { sleep(time); yield return i / 2.0; }</code>
-	 * FIXME timeunit for the delay function!
+	 * @param <T> the type of the generator values
+	 * @param <U> the type of the observed values
+	 * @param initial the initial generator value
+	 * @param condition the condition that must hold to continue generating Ts
+	 * @param next the function that computes the next value of T
+	 * @param selector the selector which turns Ts into Us.
+	 * @param delay the selector which returns a pair of time and timeunit that 
+	 * tells how much time to wait before releasing the next U
+	 * @param pool the scheduled pool where the generation loop should run.
+	 * @return the observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, U> Observable<Timestamped<U>> generateTimedWithUnit(
+			final T initial,
+			@Nonnull final Func1<? super T, Boolean> condition,
+			@Nonnull final Func1<? super T, ? extends T> next,
+			@Nonnull final Func1<? super T, ? extends U> selector,
+			@Nonnull final Func1<? super T, Pair<Long, TimeUnit>> delay,
+			@Nonnull final Scheduler pool) {
+		return new Observable<Timestamped<U>>() {
+			@Override
+			public Closeable register(final Observer<? super Timestamped<U>> observer) {
+				// the cancellation indicator
+
+				DefaultRunnable s = new DefaultRunnable() {
+					T current = initial;
+					@Override
+					public void onRun() {
+						U invoke = selector.invoke(current);
+						Timestamped<U> of = Timestamped.of(invoke, System.currentTimeMillis());
+						observer.next(of);
+						final T tn = next.invoke(current);
+						current = tn;
+						if (condition.invoke(tn) && !cancelled()) {
+							Pair<Long, TimeUnit> toWait = delay.invoke(tn);
+							pool.schedule(this, toWait.first, toWait.second);
+						} else {
+							if (!cancelled()) {
+								observer.finish();
+							}
+						}
+
+					}
+				};
+
+				if (condition.invoke(initial)) {
+					Pair<Long, TimeUnit> toWait = delay.invoke(initial);
+					return pool.schedule(s, toWait.first, toWait.second);
+				}
+				return Functions.EMPTY_CLOSEABLE;
+			}
+		};
+	}
+	/**
+	 * Generates a dynamically timed stream of Us by using a value T stream.
+	 * If T = int and U is double, this would be seen as <code>for (int i = 0; i &lt; 10; i++) { sleep(time); yield return i / 2.0; }</code>
 	 * @param <T> the type of the generator values
 	 * @param <U> the type of the observed values
 	 * @param initial the initial generator value
@@ -2048,37 +2111,12 @@ public final class Reactive {
 			@Nonnull final Func1<? super T, ? extends U> selector,
 			@Nonnull final Func1<? super T, Long> delay,
 			@Nonnull final Scheduler pool) {
-		return new Observable<Timestamped<U>>() {
+		return generateTimedWithUnit(initial, condition, next, selector, new Func1<T, Pair<Long, TimeUnit>>() {
 			@Override
-			public Closeable register(final Observer<? super Timestamped<U>> observer) {
-				// the cancellation indicator
-
-				DefaultRunnable s = new DefaultRunnable() {
-					T current = initial;
-					@Override
-					public void onRun() {
-						U invoke = selector.invoke(current);
-						Timestamped<U> of = Timestamped.of(invoke, System.currentTimeMillis());
-						observer.next(of);
-						final T tn = next.invoke(current);
-						current = tn;
-						if (condition.invoke(tn) && !cancelled()) {
-							pool.schedule(this, delay.invoke(tn), TimeUnit.MILLISECONDS);
-						} else {
-							if (!cancelled()) {
-								observer.finish();
-							}
-						}
-
-					}
-				};
-
-				if (condition.invoke(initial)) {
-					return pool.schedule(s, delay.invoke(initial), TimeUnit.MILLISECONDS);
-				}
-				return Functions.EMPTY_CLOSEABLE;
+			public Pair<Long, TimeUnit> invoke(T param1) {
+				return Pair.of(delay.invoke(param1), TimeUnit.MILLISECONDS);
 			}
-		};
+		}, pool);
 	}
 	/**
 	 * @return the current default pool used by the Observables methods
@@ -2092,7 +2130,6 @@ public final class Reactive {
 	 * The resulting observable gets notified once a new group is encountered.
 	 * Each previously encountered group by itself receives updates along the way.
 	 * If the source finish(), all encountered group will finish().
-	 * FIXME not sure how this should work.
 	 * @param <T> the type of the source element
 	 * @param <Key> the key type of the group
 	 * @param source the source of Ts
@@ -2110,7 +2147,8 @@ public final class Reactive {
 	 * The resulting observable gets notified once a new group is encountered.
 	 * Each previously encountered group by itself receives updates along the way.
 	 * If the source finish(), all encountered group will finish().
-	 * FIXME not sure how this should work
+	 * <p>Exception semantics: if the source sends an exception, the group observable and the individual groups'
+	 * observables receive this error.</p>
 	 * @param <T> the type of the source element
 	 * @param <U> the type of the output element
 	 * @param <Key> the key type of the group
@@ -2132,12 +2170,15 @@ public final class Reactive {
 				return source.register(new Observer<T>() {
 					@Override
 					public void error(Throwable ex) {
+						for (Observer<U> group : knownGroups.values()) {
+							group.error(ex);
+						}
 						observer.error(ex);
 					}
 
 					@Override
 					public void finish() {
-						for (GroupedRegisteringObservable<Key, U> group : knownGroups.values()) {
+						for (Observer<U> group : knownGroups.values()) {
 							group.finish();
 						}
 						observer.finish();
@@ -2237,9 +2278,6 @@ public final class Reactive {
 				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
 					/** The active groups. */
 					final Map<K, GroupedRegisteringObservable<K, V>> groups = new HashMap<K, GroupedRegisteringObservable<K, V>>();
-					{
-						add("source", source);
-					}
 					@Override
 					protected void onError(Throwable ex) {
 						for (Observer<V> o : groups.values()) {
@@ -2295,6 +2333,7 @@ public final class Reactive {
 					}
 
 				};
+				o.registerWith(source);
 				return o;
 			}
 		};
@@ -2353,9 +2392,6 @@ public final class Reactive {
 					}
 					/** The active groups. */
 					final Map<Key, GroupedRegisteringObservable<K, V>> groups = new HashMap<Key, GroupedRegisteringObservable<K, V>>();
-					{
-						add("source", source);
-					}
 					@Override
 					protected void onError(Throwable ex) {
 						for (Observer<V> o : groups.values()) {
@@ -2412,6 +2448,7 @@ public final class Reactive {
 					}
 
 				};
+				o.registerWith(source);
 				return o;
 			}
 		};
@@ -2448,7 +2485,7 @@ public final class Reactive {
 				final HashSet<Right> rightActive = new HashSet<Right>();
 				final Map<Right, DefaultObservable<Right>> rightGroups = new IdentityHashMap<Right, DefaultObservable<Right>>();
 
-				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
+				final CompositeCloseable closeBoth = new CompositeCloseable();
 
 				DefaultObserverEx<Left> o1 = new DefaultObserverEx<Left>(lock, true) {
 					/** Relay the inner error to the outer. */
@@ -2458,7 +2495,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						super.onClose();
-						Closeables.close0(closeBoth.get());
+						Closeables.closeSilently(closeBoth);
 					}
 
 					@Override
@@ -2494,7 +2531,7 @@ public final class Reactive {
 							}
 							@Override
 							protected void onNext(LeftDuration value) {
-								// NO OP?
+								// FIXME NO OP?
 							}
 						}));
 						for (Right r : rightActive) {
@@ -2510,7 +2547,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						super.onClose();
-						Closeables.close0(closeBoth.get());
+						Closeables.closeSilently(closeBoth);
 					}
 					@Override
 					protected void onError(Throwable ex) {
@@ -2549,7 +2586,7 @@ public final class Reactive {
 							}
 							@Override
 							protected void onNext(RightDuration value) {
-								// NO OP?!
+								// FIXME NO OP?!
 							}
 						}));
 						DefaultObservable<Right> r = rightGroups.get(value);
@@ -2563,11 +2600,11 @@ public final class Reactive {
 						r.next(value);
 					}
 				};
-				Closeable c = Closeables.close(o1, o2);
-				closeBoth.set(c);
-				o1.add(new Object(), left);
-				o2.add(new Object(), right);
-				return c;
+				closeBoth.add(o1);
+				closeBoth.add(o2);
+				o1.registerWith(left);
+				o2.registerWith(right);
+				return closeBoth;
 			}
 		};
 	}
@@ -2651,7 +2688,7 @@ public final class Reactive {
 
 				});
 
-				return Closeables.close(s1, s2);
+				return Closeables.newCloseable(s1, s2);
 			}
 		};
 	}
@@ -2967,7 +3004,7 @@ public final class Reactive {
 				final HashSet<Left> leftActive = new HashSet<Left>();
 				final HashSet<Right> rightActive = new HashSet<Right>();
 
-				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
+				final CompositeCloseable closeBoth = new CompositeCloseable();
 
 				DefaultObserverEx<Left> o1 = new DefaultObserverEx<Left>(lock, true) {
 					/** Relay the inner error to the outer. */
@@ -2977,7 +3014,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						super.onClose();
-						Closeables.close0(closeBoth.get());
+						Closeables.closeSilently(closeBoth);
 					}
 
 					@Override
@@ -3029,7 +3066,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						super.onClose();
-						Closeables.close0(closeBoth.get());
+						Closeables.closeSilently(closeBoth);
 					}
 					@Override
 					protected void onError(Throwable ex) {
@@ -3072,17 +3109,18 @@ public final class Reactive {
 						}
 					}
 				};
-				Closeable c = Closeables.close(o1, o2);
-				closeBoth.set(c);
-				o1.add(new Object(), left);
-				o2.add(new Object(), right);
-				return c;
+				closeBoth.add(o1, o2);
+				o1.registerWith(left);
+				o2.registerWith(right);
+				return closeBoth;
 			}
 		};
 	}
 	/**
 	 * Returns the last element of the source observable or throws
 	 * NoSuchElementException if the source is empty.
+	 * <p>Exception semantics: the exceptions thrown by the source are ignored and treated
+	 * as termination signals.</p>
 	 * @param <T> the type of the elements
 	 * @param source the source of Ts
 	 * @return the last element
@@ -3332,15 +3370,57 @@ public final class Reactive {
 	}
 	/**
 	 * Returns an observable which converts all messages to an <code>Option</code> value.
-	 * The returned observable does not itself signal error or finish.
+	 * The returned observable terminates once error or finish is received.
 	 * Its dual is the <code>dematerialize</code> method.
+	 * <p>Note, before 0.97, this materialize sequence never terminated, but
+	 * consulting with Rx, I changed its behavior to terminating. For
+	 * unterminating version (usable for testing), use the materializeForever method.
 	 * @param <T> the source element type
 	 * @param source the source of Ts
 	 * @return the new observable
+	 * @see #materializeForever(Observable)
 	 * @see #dematerialize(Observable)
 	 */
 	@Nonnull
 	public static <T> Observable<Option<T>> materialize(
+			@Nonnull final Observable<? extends T> source) {
+		return new Observable<Option<T>>() {
+			@Override
+			public Closeable register(final Observer<? super Option<T>> observer) {
+				return source.register(new Observer<T>() {
+					@Override
+					public void error(Throwable ex) {
+						observer.next(Option.<T>error(ex));
+						observer.finish();
+					}
+
+					@Override
+					public void finish() {
+						observer.next(Option.<T>none());
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						observer.next(Option.some(value));
+					}
+				});
+			}
+		};
+	}
+	/**
+	 * Returns an observable which converts all messages to an <code>Option</code> value.
+	 * The returned observable never terminates on its own, providing an infinte stream of events.
+	 * Its dual is the <code>dematerialize</code> method.
+	 * <p>For terminating version, see the materialize method.</p>
+	 * @param <T> the source element type
+	 * @param source the source of Ts
+	 * @return the new observable
+	 * @see #materialize(Observable)
+	 * @see #dematerialize(Observable)
+	 */
+	@Nonnull
+	public static <T> Observable<Option<T>> materializeForever(
 			@Nonnull final Observable<? extends T> source) {
 		return new Observable<Option<T>>() {
 			@Override
@@ -3425,7 +3505,8 @@ public final class Reactive {
 		return minMax(source, keyExtractor, keyComparator, true);
 	}
 	/**
-	 * Combines the notifications of all sources. The resulting stream of Ts might come from any of the sources.
+	 * Combines the notifications of all sources. 
+	 * The resulting stream of Ts might come from any of the sources.
 	 * @param <T> the type of the values
 	 * @param sources the list of sources
 	 * @return the observable
@@ -3436,17 +3517,18 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final List<Closeable> disposables = new ArrayList<Closeable>();
+				final CompositeCloseable closeables = new CompositeCloseable();
+				
 				List<Observable<? extends T>> sourcesList = new ArrayList<Observable<? extends T>>();
 				for (Observable<? extends T> os : sources) {
 					sourcesList.add(os);
 				}
 				final AtomicInteger wip = new AtomicInteger(sourcesList.size() + 1);
-				final List<DefaultObserver<T>> observers = new ArrayList<DefaultObserver<T>>();
+				final List<DefaultObserverEx<T>> observers = new ArrayList<DefaultObserverEx<T>>();
 				final Lock lock = new ReentrantLock();
 				for (int i = 0; i < sourcesList.size(); i++) {
 					final int j = i;
-					DefaultObserver<T> obs = new DefaultObserver<T>(lock, true) {
+					DefaultObserverEx<T> obs = new DefaultObserverEx<T>(lock, true) {
 						@Override
 						public void onError(Throwable ex) {
 							observer.error(ex);
@@ -3470,15 +3552,17 @@ public final class Reactive {
 						}
 					};
 					observers.add(obs);
-					disposables.add(obs);
+					closeables.add(obs);
 				}
 				for (int i = 0; i < observers.size(); i++) {
-					disposables.add(sourcesList.get(i).register(observers.get(i)));
+					DefaultObserverEx<T> obs = observers.get(i);
+					Observable<? extends T> ov = sourcesList.get(i);
+					obs.registerWith(ov);
 				}
 				if (wip.decrementAndGet() == 0) {
 					observer.finish();
 				}
-				return Closeables.closeAll(disposables);
+				return closeables;
 			}
 		};
 	}
@@ -3491,12 +3575,12 @@ public final class Reactive {
 	 * @return the new observable
 	 */
 	public static <T> Observable<T> merge(
-			final Observable<? extends Observable<T>> sources) {
+			final Observable<? extends Observable<? extends T>> sources) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
 				final AtomicInteger wip = new AtomicInteger(1);
-				DefaultObserverEx<Observable<T>> obs = new DefaultObserverEx<Observable<T>>(false) {
+				DefaultObserverEx<Observable<? extends T>> obs = new DefaultObserverEx<Observable<? extends T>>(false) {
 					/**
 					 * The inner exception to forward.
 					 * @param ex the exception
@@ -3521,7 +3605,7 @@ public final class Reactive {
 					}
 
 					@Override
-					protected void onNext(Observable<T> value) {
+					protected void onNext(Observable<? extends T> value) {
 						final Object token = new Object();
 						wip.incrementAndGet();
 						add(token, value.register(new DefaultObserver<T>(lock, true) {
@@ -3545,8 +3629,7 @@ public final class Reactive {
 					}
 
 				};
-				obs.add("sources", sources);
-				return obs;
+				return obs.registerWith(sources);
 			}
 		};
 	}
@@ -3728,7 +3811,7 @@ public final class Reactive {
 				return new Iterator<T>() {
 					@Override
 					protected void finalize() throws Throwable {
-						Closeables.close0(c);
+						Closeables.closeSilently(c);
 						super.finalize();
 					}
 
@@ -3785,7 +3868,7 @@ public final class Reactive {
 					public void close() throws IOException {
 						inner.close();
 						if (wip.decrementAndGet() == 0) {
-							Closeables.close0(outer);
+							Closeables.closeSilently(outer);
 						}
 					}
 				};
@@ -3862,7 +3945,7 @@ public final class Reactive {
 									peek.add(Option.<T>error(ex));
 								}
 								done = true;
-								Closeables.close0(c);
+								Closeables.closeSilently(c);
 							}
 						}
 						return !peek.isEmpty() && !done;
@@ -3908,10 +3991,6 @@ public final class Reactive {
 							}
 						}
 					);
-					{
-						add("source", source);
-					}
-
 					@Override
 					public void onError(final Throwable ex) {
 						run.add(new Runnable() {
@@ -3942,7 +4021,7 @@ public final class Reactive {
 						});
 					}
 				};
-				return obs;
+				return obs.registerWith(source);
 			}
 		};
 	}
@@ -4621,7 +4700,7 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
+				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					@Override
 					public void onError(Throwable ex) {
 						observer.error(ex);
@@ -4630,6 +4709,7 @@ public final class Reactive {
 					@Override
 					public void onFinish() {
 						observer.finish();
+						close();
 					}
 
 					@Override
@@ -4642,7 +4722,7 @@ public final class Reactive {
 					}
 
 				};
-				return Closeables.close(obs, source.register(obs));
+				return obs.registerWith(source);
 			}
 		};
 	}
@@ -5030,8 +5110,8 @@ public final class Reactive {
 			Set<SingleLaneExecutor<Pair<Integer, CircularBuffer<Option<T>>>>> listeners = new HashSet<SingleLaneExecutor<Pair<Integer, CircularBuffer<Option<T>>>>>();
 			@Override
 			protected void finalize() throws Throwable {
-				Closeables.close0(timerClose);
-				Closeables.close0(sourceClose);
+				Closeables.closeSilently(timerClose);
+				Closeables.closeSilently(sourceClose);
 				super.finalize();
 			}
 			@Override
@@ -5128,7 +5208,7 @@ public final class Reactive {
 						} finally {
 							writeLock.unlock();
 						}
-						Closeables.close0(playback);
+						Closeables.closeSilently(playback);
 					}
 				};
 				return c;
@@ -5167,7 +5247,7 @@ public final class Reactive {
 			Set<SingleLaneExecutor<Integer>> listeners = new HashSet<SingleLaneExecutor<Integer>>();
 			@Override
 			protected void finalize() throws Throwable {
-				Closeables.close0(sourceClose);
+				Closeables.closeSilently(sourceClose);
 				super.finalize();
 			}
 			@Override
@@ -5245,7 +5325,7 @@ public final class Reactive {
 						} finally {
 							writeLock.unlock();
 						}
-						Closeables.close0(playback);
+						Closeables.closeSilently(playback);
 					}
 				};
 				return c;
@@ -5305,8 +5385,8 @@ public final class Reactive {
 			Set<SingleLaneExecutor<Pair<Integer, List<Option<T>>>>> listeners = new HashSet<SingleLaneExecutor<Pair<Integer, List<Option<T>>>>>();
 			@Override
 			protected void finalize() throws Throwable {
-				Closeables.close0(timerClose);
-				Closeables.close0(sourceClose);
+				Closeables.closeSilently(timerClose);
+				Closeables.closeSilently(sourceClose);
 				super.finalize();
 			}
 			@Override
@@ -5402,7 +5482,7 @@ public final class Reactive {
 						} finally {
 							writeLock.unlock();
 						}
-						Closeables.close0(playback);
+						Closeables.closeSilently(playback);
 					}
 				};
 				return c;
@@ -5439,7 +5519,7 @@ public final class Reactive {
 			Set<SingleLaneExecutor<Integer>> listeners = new HashSet<SingleLaneExecutor<Integer>>();
 			@Override
 			protected void finalize() throws Throwable {
-				Closeables.close0(sourceClose);
+				Closeables.closeSilently(sourceClose);
 				super.finalize();
 			}
 			@Override
@@ -5516,7 +5596,7 @@ public final class Reactive {
 						} finally {
 							writeLock.unlock();
 						}
-						Closeables.close0(playback);
+						Closeables.closeSilently(playback);
 					}
 				};
 				return c;
@@ -5568,7 +5648,6 @@ public final class Reactive {
 	 * Returns an observable which listens to elements from a source until it signals an error()
 	 * or finish() and continues with the next observable. The registration happens only when the
 	 * previous observables finished in any way.
-	 * FIXME not sure how to close previous registrations
 	 * @param <T> the type of the elements
 	 * @param sources the list of observables
 	 * @return the observable
@@ -5581,26 +5660,12 @@ public final class Reactive {
 			public Closeable register(final Observer<? super T> observer) {
 				final Iterator<? extends Observable<? extends T>> it = sources.iterator();
 				if (it.hasNext()) {
-					DefaultObserver<T> obs = new DefaultObserver<T>(false) {
-						Closeable c;
-						{
-							lock.lock();
-							try {
-								c = it.next().register(this);
-							} finally {
-								lock.unlock();
-							}
-						}
-						@Override
-						protected void onClose() {
-							Closeables.close0(c);
-						}
-
+					DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 						@Override
 						public void onError(Throwable ex) {
-							Closeables.close0(c);
+							remove(this);
 							if (it.hasNext()) {
-								c = it.next().register(this);
+								registerWith(it.next());
 							} else {
 								observer.finish();
 								close();
@@ -5609,9 +5674,9 @@ public final class Reactive {
 
 						@Override
 						public void onFinish() {
-							Closeables.close0(c);
+							remove(this);
 							if (it.hasNext()) {
-								c = it.next().register(this);
+								registerWith(it.next());
 							} else {
 								observer.finish();
 								close();
@@ -5622,9 +5687,9 @@ public final class Reactive {
 							observer.next(value);
 						}
 					};
-					return obs;
+					return obs.registerWith(it.next());
 				}
-				return Reactive.<T>empty().register(observer);
+				return Closeables.emptyCloseable();
 			}
 		};
 	}
@@ -5633,7 +5698,6 @@ public final class Reactive {
 	 * the next observable within source is used further on. Basically a failover between the Observables.
 	 * If the current source finish() then the result observable calls finish().
 	 * If the last of the sources calls error() the result observable calls error()
-	 * FIXME not sure how to close previous registrations
 	 * @param <T> the type of the values
 	 * @param sources the available source observables.
 	 * @return the failover observable
@@ -5646,35 +5710,19 @@ public final class Reactive {
 			public Closeable register(final Observer<? super T> observer) {
 				final Iterator<? extends Observable<? extends T>> it = sources.iterator();
 				if (it.hasNext()) {
-					DefaultObserver<T> obs = new DefaultObserver<T>(false) {
-						Closeable c;
-						{
-							lock.lock();
-							try {
-								c = it.next().register(this);
-							} finally {
-								lock.unlock();
-							}
-						}
-						@Override
-						protected void onClose() {
-							Closeables.close0(c);
-						}
-
+					DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 						@Override
 						public void onError(Throwable ex) {
-							Closeables.close0(c);
 							if (it.hasNext()) {
-								c = it.next().register(this);
+								registerWith(it.next());
 							} else {
-								observer.finish();
+								observer.error(ex);
 								close();
 							}
 						}
 
 						@Override
 						public void onFinish() {
-							Closeables.close0(c);
 							observer.finish();
 							close();
 						}
@@ -5683,9 +5731,9 @@ public final class Reactive {
 							observer.next(value);
 						}
 					};
-					return obs;
+					return obs.registerWith(it.next());
 				}
-				return Reactive.<T>empty().register(observer);
+				return Closeables.emptyCloseable();
 			}
 		};
 	}
@@ -5701,26 +5749,10 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultObserver<T> obs = new DefaultObserver<T>(false) {
-					/** The registration. */
-					Closeable c;
-					{
-						lock.lock();
-						try {
-							c = source.register(this);
-						} finally {
-							lock.unlock();
-						}
-					}
-					@Override
-					protected void onClose() {
-						Closeables.close0(c);
-					}
-
+				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 					@Override
 					public void onError(Throwable ex) {
-						Closeables.close0(c);
-						c = source.register(this);
+						registerWith(source);
 					}
 
 					@Override
@@ -5733,13 +5765,13 @@ public final class Reactive {
 						observer.next(value);
 					}
 				};
-				return obs;
+				return obs.registerWith(source);
 			}
 		};
 	}
 	/**
-	 * Restarts the observation until the source observable terminates normally or the <code>count</code> retry count was used up.
-	 * FIXME if the retry count is zero and yet another error comes, what should happen? finish or this time submit the error?
+	 * Restarts the observation until the source observable terminates normally 
+	 * or the <code>count</code> retry count was used up.
 	 * @param <T> the type of elements
 	 * @param source the source observable
 	 * @param count the retry count
@@ -5752,24 +5784,13 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultObserver<T> obs = new DefaultObserver<T>(false) {
+				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 					/** The remaining retry count. */
 					int remainingCount = count;
-					/** The registration. */
-					Closeable c;
-					{
-						lock.lock();
-						try {
-							c = source.register(this);
-						} finally {
-							lock.unlock();
-						}
-					}
 					@Override
 					public void onError(Throwable ex) {
-						Closeables.close0(c);
 						if (remainingCount-- > 0) {
-							c = source.register(this);
+							registerWith(source);
 						} else {
 							observer.error(ex);
 							close();
@@ -5788,7 +5809,7 @@ public final class Reactive {
 					}
 
 				};
-				return obs;
+				return obs.registerWith(source);
 			}
 		};
 	}
@@ -5824,7 +5845,7 @@ public final class Reactive {
 		try {
 			latch.await();
 		} finally {
-			Closeables.close0(c);
+			Closeables.closeSilently(c);
 		}
 	}
 	/**
@@ -5867,7 +5888,7 @@ public final class Reactive {
 		try {
 			latch.await();
 		} finally {
-			Closeables.close0(c);
+			Closeables.closeSilently(c);
 		}
 	}
 	/**
@@ -5899,12 +5920,12 @@ public final class Reactive {
 		try {
 			latch.await();
 		} finally {
-			Closeables.close0(c);
+			Closeables.closeSilently(c);
 		}
 	}
 	/**
-	 * Blocks until the observable calls finish() or error() or the specified amount of time elapses. Values are ignored.
-	 * FIXME might be infeasible due the potential side effects along the event stream
+	 * Blocks until the observable calls finish() or error() or 
+	 * the specified amount of time elapses. Values and exceptions are ignored.
 	 * @param source the source observable
 	 * @param time the time value
 	 * @param unit the time unit
@@ -5937,13 +5958,12 @@ public final class Reactive {
 		try {
 			return latch.await(time, unit);
 		} finally {
-			Closeables.close0(c);
+			Closeables.closeSilently(c);
 		}
 	}
 	/**
 	 * Periodically sample the given source observable, which means tracking the last value of
 	 * the observable and periodically submitting it to the output observable.
-	 * FIXME the error() and finish() are instantly propagated
 	 * @param <T> the type of elements to watch
 	 * @param source the source of elements
 	 * @param time the time value to wait
@@ -5958,9 +5978,9 @@ public final class Reactive {
 		return sample(source, time, unit, DEFAULT_SCHEDULER.get());
 	}
 	/**
-	 * Periodically sample the given source observable, which means tracking the last value of
+	 * Periodically sample the given source observable, which means tracking 
+	 * the last value of
 	 * the observable and periodically submitting it to the output observable.
-	 * FIXME the error() and finish() are instantly propagated
 	 * @param <T> the type of elements to watch
 	 * @param source the source of elements
 	 * @param time the time value to wait
@@ -5977,25 +5997,10 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				final DefaultObserver<T> obs = new DefaultObserver<T>(true) {
-					/** Are we waiting for the first event? */
-					@GuardedBy("lock")
-					boolean first = true;
-					/** The current value. */
-					@GuardedBy("lock")
-					T current;
-					final Closeable c = pool.schedule(new DefaultRunnable(lock) {
-						@Override
-						protected void onRun() {
-							if (!first) {
-								observer.next(current);
-							}
-						}
-					}, time, time, unit);
-					@Override
-					protected void onClose() {
-						Closeables.close0(c);
-					}
+				final AtomicReference<T> current = new AtomicReference<T>();
+				final AtomicBoolean first = new AtomicBoolean(true);
+				
+				final DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					@Override
 					public void onError(Throwable ex) {
 						observer.error(ex);
@@ -6007,18 +6012,26 @@ public final class Reactive {
 					}
 					@Override
 					public void onNext(T value) {
-						first = false;
-						current = value;
+						first.set(false);
+						current.set(value);
 					}
 				};
-				return Closeables.close(obs, source.register(obs));
+				obs.add("timer", pool.schedule(new DefaultRunnable() {
+						@Override
+						protected void onRun() {
+							if (!first.get()) {
+								observer.next(current.get());
+							}
+						}
+					}, time, time, unit));
+				return obs.registerWith(source);
 			}
 		};
 	}
 	/**
 	 * Creates an observable which accumultates the given source and submits each intermediate results to its subscribers.
 	 * Example:<br>
-	 * <code>range(0, 5).accumulate((x, y) => x + y)</code> produces a sequence of [0, 1, 3, 6, 10];<br>
+	 * <code>range(0, 5).accumulate((x, y) -> x + y)</code> produces a sequence of [0, 1, 3, 6, 10];<br>
 	 * basically the first event (0) is just relayed and then every pair of values are simply added together and relayed
 	 * @param <T> the element type to accumulate
 	 * @param source the source of the accumulation
@@ -6225,7 +6238,6 @@ public final class Reactive {
 	 * Transform the given source of Ts into Us in a way that the
 	 * selector might return an observable ofUs for a single T.
 	 * The observable is fully channelled to the output observable.
-	 * FIXME not sure how to do it
 	 * @param <T> the input element type
 	 * @param <U> the output element type
 	 * @param source the source of Ts
@@ -6247,7 +6259,6 @@ public final class Reactive {
 	 * Creates an observable in which for each of Ts an observable of Vs are
 	 * requested which in turn will be transformed by the resultSelector for each
 	 * pair of T and V giving an U.
-	 * FIXME concurrency related questions
 	 * @param <T> the source element type
 	 * @param <U> the intermediate element type
 	 * @param <V> the output element type
@@ -6264,7 +6275,7 @@ public final class Reactive {
 		return new Observable<V>() {
 			@Override
 			public Closeable register(final Observer<? super V> observer) {
-				DefaultObserver<T> obs = new DefaultObserver<T>(false) {
+				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 					/** The work in progress counter. */
 					final AtomicInteger wip = new AtomicInteger(1);
 					/** The active observers. */
@@ -6272,7 +6283,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						for (Closeable c : active.values()) {
-							Closeables.close0(c);
+							Closeables.closeSilently(c);
 						}
 					}
 
@@ -6328,7 +6339,7 @@ public final class Reactive {
 						active.put(o, sub.register(o));
 					}
 				};
-				return Closeables.close(obs, source.register(obs));
+				return obs.registerWith(source);
 			}
 		};
 	}
@@ -6402,12 +6413,24 @@ public final class Reactive {
 	public static <T> Observable<Boolean> sequenceEqual(
 			final Observable<? extends T> first,
 			final Observable<? extends T> second) {
-		return sequenceEqual(first, second, new Func2<T, T, Boolean>() {
-			@Override
-			public Boolean invoke(T param1, T param2) {
-				return param1 == param2 || (param1 != null && param1.equals(param2));
-			}
-		});
+		return sequenceEqual(first, second, Functions.equals());
+	}
+	/**
+	 * Compares two sequences and returns whether they are produce the same
+	 * elements in terms of the null-safe object equality.
+	 * <p>The equality only stands if the two sequence produces the same
+	 * amount of values and those values are pairwise equal. If one of the sequences
+	 * terminates before the other, the equality test will return false.</p>
+	 * @param <T> the common element type
+	 * @param first the first source of Ts
+	 * @param second the second source of Ts
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public static <T> Observable<Boolean> sequenceEqual(
+			final Iterable<? extends T> first,
+			final Observable<? extends T> second) {
+		return sequenceEqual(first, second, Functions.equals());
 	}
 	/**
 	 * Compares two sequences and returns whether they are produce the same
@@ -6425,9 +6448,62 @@ public final class Reactive {
 			final Observable<? extends T> first,
 			final Observable<? extends T> second,
 			final Func2<? super T, ? super T, Boolean> comparer) {
-			Observable<Boolean> pairwiseEqual = all(zip(first, second, comparer), Functions.<Boolean>identity());
-			Observable<Boolean> sameSize = combineLatestSent(count(first), count(second), Functions.equals());
-			return combineLatestSent(pairwiseEqual, sameSize, and());
+		return select(
+				any(
+					zip(
+							materialize(first), 
+							materialize(second), 
+							newOptionComparer(comparer)
+					), 
+					Functions.alwaysFalse1()
+				), 
+			Functions.negate());
+	}
+	/**
+	 * Compares two sequences and returns whether they are produce the same
+	 * elements in terms of the comparer function.
+	 * <p>The equality only stands if the two sequence produces the same
+	 * amount of values and those values are pairwise equal. If one of the sequences
+	 * terminates before the other, the equality test will return false.</p>
+	 * @param <T> the common element type
+	 * @param first the first source of Ts
+	 * @param second the second source of Ts
+	 * @param comparer the equality comparison function
+	 * @return the new observable
+	 */
+	public static <T> Observable<Boolean> sequenceEqual(
+			final Iterable<? extends T> first,
+			final Observable<? extends T> second,
+			final Func2<? super T, ? super T, Boolean> comparer) {
+		return select(
+				any(
+					zip(
+							Interactive.materialize(first), 
+							materialize(second), 
+							newOptionComparer(comparer)
+					), 
+					Functions.alwaysFalse1()
+				), 
+			Functions.negate());
+	}
+	/**
+	 * Creates a new nullsafe equality comparison function where if two Option.Some&lt;T>
+	 * meet, their values are compared by using the supplied objectComparer.
+	 * @param <T> the element type
+	 * @param objectComparer the objectComparer.
+	 * @return the new comparison function
+	 */
+	protected static <T> Func2<? super Option<T>, ? super Option<T>, Boolean> newOptionComparer(
+			@Nonnull final Func2<? super T, ? super T, Boolean> objectComparer) {
+		return new Func2<Option<T>, Option<T>, Boolean>() {
+			@Override
+			public Boolean invoke(Option<T> param1, Option<T> param2) {
+				if (Option.isSome(param1) && Option.isSome(param2)) {
+					return objectComparer.invoke(param1.value(), param2.value());
+				}
+				return param1 == param2 || (param1 != null && param1.equals(param2));
+			}
+		};
 	}
 	/**
 	 * Returns the single element of the given observable source.
@@ -6451,7 +6527,7 @@ public final class Reactive {
 			}
 			throw new NoSuchElementException();
 		} finally {
-			Closeables.close0(it);
+			Closeables.closeSilently(it);
 		}
 	}
 	/**
@@ -6567,8 +6643,9 @@ public final class Reactive {
 	}
 	/**
 	 * Skip the source elements until the signaller sends its first element.
-	 * FIXME: If the signaller sends an error or only finish(), the relaying is never enabled?
-	 * FIXME: once the singaller fires, it gets deregistered
+	 * <p>Once the signaller sends its first value, it gets deregistered.</p>
+	 * <p>Exception semantics: exceptions thrown by source or singaller is immediately forwarded to
+	 * the output and the stream is terminated.</p>
 	 * @param <T> the element type of the source
 	 * @param <U> the element type of the signaller, irrelevant
 	 * @param source the source of Ts
@@ -6578,54 +6655,18 @@ public final class Reactive {
 	@Nonnull
 	public static <T, U> Observable<T> skipUntil(
 			@Nonnull final Observable<? extends T> source,
-			@Nonnull final Observable<? extends U> signaller) {
+			@Nonnull final Observable<U> signaller) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
-					/** The signaller observer. */
-					final DefaultObserver<U> signal;
-					/** The signal closeable. */
-					final Closeable c;
-					/** The skip gate. */
-					boolean gate;
-					{
-						signal = new DefaultObserver<U>(lock, true) {
-							@Override
-							public void onError(Throwable ex) {
-								innerError(ex);
-							}
-
-							@Override
-							public void onFinish() {
-								if (!gate) {
-									innerFinish(); // signaller will never turn the gate on
-								}
-							}
-
-							@Override
-							public void onNext(U value) {
-								gate = true;
-							}
-						};
-						c = signaller.register(signal);
-					}
-					/**
-					 * The callback for the inner error.
-					 * @param ex the inner exception
-					 */
-					void innerError(Throwable ex) {
-						error(ex);
-					}
-					/** The callback for an inner finish. */
-					void innerFinish() {
-						finish();
-					}
+				final CompositeCloseable closeables = new CompositeCloseable();
+				final AtomicBoolean gate = new AtomicBoolean();
+				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					@Override
 					protected void onClose() {
-						Closeables.close0(c);
+						super.onClose();
+						closeables.closeSilently();
 					}
-
 					@Override
 					public void onError(Throwable ex) {
 						observer.error(ex);
@@ -6633,16 +6674,38 @@ public final class Reactive {
 
 					@Override
 					public void onFinish() {
-						observer.finish();
+						if (gate.get()) {
+							observer.finish();
+						}
 					}
 					@Override
 					public void onNext(T value) {
-						if (gate) {
+						if (gate.get()) {
 							observer.next(value);
 						}
 					}
 				};
-				return Closeables.close(obs, source.register(obs));
+				DefaultObserverEx<U> so = new DefaultObserverEx<U>(true) {
+					@Override
+					public void onError(Throwable ex) {
+						observer.error(ex);
+					}
+					@Override
+					public void onNext(U value) {
+						gate.set(true);
+						close();
+					}
+					@Override
+					protected void onFinish() {
+						// ignored
+					}
+				};
+				
+				closeables.add(obs, so);
+				obs.registerWith(source);
+				so.registerWith(signaller);
+				
+				return closeables;
 			}
 		};
 	}
@@ -7033,7 +7096,7 @@ public final class Reactive {
 					}
 					@Override
 					protected void onClose() {
-						Closeables.close0(inner);
+						Closeables.closeSilently(inner);
 					}
 
 					@Override
@@ -7048,7 +7111,7 @@ public final class Reactive {
 					}
 					@Override
 					protected void onNext(Observable<? extends T> value) {
-						Closeables.close0(inner);
+						Closeables.closeSilently(inner);
 						inner = value.register(innerObserver);
 					}
 				};
@@ -7293,7 +7356,7 @@ public final class Reactive {
 					};
 					@Override
 					protected void onClose() {
-						Closeables.close0(c);
+						Closeables.closeSilently(c);
 					}
 					@Override
 					public void onError(Throwable ex) {
@@ -7307,11 +7370,11 @@ public final class Reactive {
 					@Override
 					public void onNext(T value) {
 						last = value;
-						Closeables.close0(c);
+						Closeables.closeSilently(c);
 						c = pool.schedule(r, delay, unit);
 					}
 				};
-				return Closeables.close(obs, source.register(obs));
+				return Closeables.newCloseable(obs, source.register(obs));
 			}
 		};
 	}
@@ -7326,6 +7389,21 @@ public final class Reactive {
 	public static <T> Observable<T> throwException(
 			@Nonnull final Throwable ex) {
 		return throwException(ex, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Creates an observable which instantly sends the exception 
+	 * returned by the supplier function to
+	 * its subscribers while running on the default pool.
+	 * @param <T> the element type, irrelevant
+	 * @param <E> the exception type
+	 * @param supplier the exception supplier
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, E extends Throwable> Observable<T> throwException(
+			@Nonnull final Func0<E> supplier) {
+		return throwException(supplier, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Creates an observable which instantly sends the exception to
@@ -7351,6 +7429,34 @@ public final class Reactive {
 			}
 		};
 	}
+	/**
+	 * Creates an observable which instantly sends the exception 
+	 * returned by the function to
+	 * its subscribers while running on the given pool.
+	 * @param <T> the element type, irrelevant
+	 * @param <E> the exception type
+	 * @param supplier the function that supplies the exception
+	 * @param pool the pool from where to send the values
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, E extends Throwable> Observable<T> throwException(
+			@Nonnull final Func0<E> supplier,
+			@Nonnull final Scheduler pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return pool.schedule(new Runnable() {
+					@Override
+					public void run() {
+						observer.error(supplier.invoke());
+					}
+				});
+			}
+		};
+	}
+	
 	/**
 	 * Returns an observable which produces an ordered sequence of numbers with the specified delay.
 	 * It uses the default scheduler pool.
@@ -7503,8 +7609,8 @@ public final class Reactive {
 					}
 					@Override
 					protected void onClose() {
-						Closeables.close0(timer);
-						Closeables.close0(src);
+						Closeables.closeSilently(timer);
+						Closeables.closeSilently(src);
 					}
 					@Override
 					protected void onError(Throwable ex) {
@@ -7519,7 +7625,7 @@ public final class Reactive {
 					@Override
 					protected void onNext(T value) {
 						if (timer != null) {
-							Closeables.close0(timer);
+							Closeables.closeSilently(timer);
 							timer = null;
 						}
 						observer.next(value);
@@ -7534,7 +7640,7 @@ public final class Reactive {
 							@Override
 							public void onRun() {
 								if (!cancelled()) {
-									Closeables.close0(src);
+									Closeables.closeSilently(src);
 									timer = null;
 									src = other.register(observer);
 								}
@@ -8287,7 +8393,7 @@ public final class Reactive {
 						try {
 							observer.error(ex);
 						} finally {
-							Closeables.close0(resource);
+							Closeables.closeSilently(resource);
 						}
 					}
 
@@ -8296,7 +8402,7 @@ public final class Reactive {
 						try {
 							observer.finish();
 						} finally {
-							Closeables.close0(resource);
+							Closeables.closeSilently(resource);
 						}
 
 					}
@@ -8522,8 +8628,8 @@ public final class Reactive {
 					}
 					@Override
 					public void onClose() {
-						Closeables.close0(woc);
-						Closeables.close0(openWindow);
+						Closeables.closeSilently(woc);
+						Closeables.closeSilently(openWindow);
 					}
 
 					@Override
@@ -8545,7 +8651,7 @@ public final class Reactive {
 						current.next(value);
 					}
 				};
-				return Closeables.close(obs, source.register(obs));
+				return Closeables.newCloseable(obs, source.register(obs));
 			}
 		};
 	}
@@ -8948,13 +9054,13 @@ public final class Reactive {
 			public Closeable register(final Observer<? super Observable<T>> observer) {
 				final Lock lock = new ReentrantLock(true);
 				final Map<U, DefaultObservable<T>> openWindows = new IdentityHashMap<U, DefaultObservable<T>>();
-				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
+				final CompositeCloseable closeBoth = new CompositeCloseable();
 				// relay Ts to open windows
 				DefaultObserverEx<T> o1 = new DefaultObserverEx<T>(lock, true) {
 					@Override
 					protected void onClose() {
 						super.onClose();
-						Closeables.close0(closeBoth.get());
+						Closeables.closeSilently(closeBoth);
 					}
 
 					@Override
@@ -8984,7 +9090,7 @@ public final class Reactive {
 					@Override
 					protected void onClose() {
 						super.onClose();
-						Closeables.close0(closeBoth.get());
+						Closeables.closeSilently(closeBoth);
 					}
 
 					@Override
@@ -9023,10 +9129,10 @@ public final class Reactive {
 					}
 				};
 
-				closeBoth.set(Closeables.close(o1, o2));
-				o1.add(new Object(), source);
-				o2.add(new Object(), windowOpening);
-				return closeBoth.get();
+				closeBoth.add(o1, o2);
+				o1.registerWith(source);
+				o2.registerWith(windowOpening);
+				return closeBoth;
 			}
 		};
 	}
@@ -9053,6 +9159,59 @@ public final class Reactive {
 	 * The result is finished if the right iterator runs out of
 	 * values before the left iterator.
 	 * @param <T> the resulting element type
+	 * @param <U> the value type streamed on the right iterable
+	 * @param <V> the value type streamed on the left observable
+	 * @param left the left iterable of Us
+	 * @param right the right observable of Vs
+	 * @param selector the selector taking the left Us and right Vs.
+	 * @return the resulting observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, U, V> Observable<V> zip(
+			@Nonnull final Iterable<? extends T> left,
+			@Nonnull final Observable<? extends U> right,
+			@Nonnull final Func2<? super T, ? super U, ? extends V> selector) {
+		return new Observable<V>() {
+			@Override
+			public Closeable register(final Observer<? super V> observer) {
+
+				DefaultObserverEx<U> obs = new DefaultObserverEx<U>(true) {
+					/** The second source. */
+					final Iterator<? extends T> it = left.iterator();
+
+					@Override
+					public void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void onFinish() {
+						observer.finish();
+					}
+					@Override
+					public void onNext(U u) {
+						if (it.hasNext()) {
+							T t = it.next();
+							observer.next(selector.invoke(t, u));
+						} else {
+							observer.finish();
+							close();
+						}
+					}
+				};
+				return obs.registerWith(right);
+			}
+		};
+	}
+	/**
+	 * Creates an observable which waits for events from left
+	 * and combines it with the next available value from the right iterable,
+	 * applies the selector function and emits the resulting T.
+	 * The error() and finish() signals are relayed to the output.
+	 * The result is finished if the right iterator runs out of
+	 * values before the left iterator.
+	 * @param <T> the resulting element type
 	 * @param <U> the value type streamed on the left observable
 	 * @param <V> the value type streamed on the right iterable
 	 * @param left the left observables of Us
@@ -9069,23 +9228,9 @@ public final class Reactive {
 			@Override
 			public Closeable register(final Observer<? super V> observer) {
 
-				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
+				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					/** The second source. */
 					final Iterator<? extends U> it = right.iterator();
-					/** The registration handler. */
-					final Closeable c;
-					{
-						lock.lock();
-						try {
-							c = left.register(this);
-						} finally {
-							lock.unlock();
-						}
-					}
-					@Override
-					protected void onClose() {
-						Closeables.close0(c);
-					}
 
 					@Override
 					public void onError(Throwable ex) {
@@ -9107,7 +9252,7 @@ public final class Reactive {
 						}
 					}
 				};
-				return obs;
+				return obs.registerWith(left);
 			}
 		};
 	}
@@ -9137,104 +9282,70 @@ public final class Reactive {
 			public Closeable register(final Observer<? super T> observer) {
 				final LinkedBlockingQueue<U> queueU = new LinkedBlockingQueue<U>();
 				final LinkedBlockingQueue<V> queueV = new LinkedBlockingQueue<V>();
-				final AtomicReference<Closeable> closeBoth = new AtomicReference<Closeable>();
+				final CompositeCloseable closeBoth = new CompositeCloseable();
 				final AtomicInteger wip = new AtomicInteger(2);
 				final Lock lockBoth = new ReentrantLock(true);
 
-				lockBoth.lock();
-				try {
-					final DefaultObserver<U> oU = new DefaultObserver<U>(lockBoth, false) {
-						/** The source handler. */
-						final Closeable c;
-						{
-							lock.lock();
-							try {
-								c = left.register(this);
-							} finally {
-								lock.unlock();
-							}
-						}
-						@Override
-						protected void onClose() {
-							Closeables.close0(c);
-						}
+				DefaultObserverEx<U> oU = new DefaultObserverEx<U>(lockBoth, false) {
+					@Override
+					public void onError(Throwable ex) {
+						observer.error(ex);
+						Closeables.closeSilently(closeBoth);
+					}
 
-						@Override
-						public void onError(Throwable ex) {
-							observer.error(ex);
-							Closeables.close0(closeBoth.get());
+					@Override
+					public void onFinish() {
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+							Closeables.closeSilently(closeBoth);
 						}
-
-						@Override
-						public void onFinish() {
-							if (wip.decrementAndGet() == 0) {
-								observer.finish();
-								Closeables.close0(closeBoth.get());
-							}
-						}
-						@Override
-						public void onNext(U u) {
-							V v = queueV.poll();
-							if (v != null) {
-								observer.next(selector.invoke(u, v));
+					}
+					@Override
+					public void onNext(U u) {
+						V v = queueV.poll();
+						if (v != null) {
+							observer.next(selector.invoke(u, v));
+						} else {
+							if (wip.get() == 2) {
+								queueU.add(u);
 							} else {
-								if (wip.get() == 2) {
-									queueU.add(u);
-								} else {
-									this.finish();
-								}
+								this.finish();
 							}
 						}
-					};
-					final DefaultObserver<V> oV = new DefaultObserver<V>(lockBoth, false) {
-						/** The source handler. */
-						final Closeable c;
-						{
-							lock.lock();
-							try {
-								c = right.register(this);
-							} finally {
-								lock.unlock();
-							}
-						}
-						@Override
-						protected void onClose() {
-							Closeables.close0(c);
-						}
+					}
+				};
+				DefaultObserverEx<V> oV = new DefaultObserverEx<V>(lockBoth, false) {
+					@Override
+					public void onError(Throwable ex) {
+						observer.error(ex);
+						Closeables.closeSilently(closeBoth);
+					}
 
-						@Override
-						public void onError(Throwable ex) {
-							observer.error(ex);
-							Closeables.close0(closeBoth.get());
+					@Override
+					public void onFinish() {
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+							Closeables.closeSilently(closeBoth);
 						}
-
-						@Override
-						public void onFinish() {
-							if (wip.decrementAndGet() == 0) {
-								observer.finish();
-								Closeables.close0(closeBoth.get());
-							}
-						}
-						@Override
-						public void onNext(V v) {
-							U u = queueU.poll();
-							if (u != null) {
-								observer.next(selector.invoke(u, v));
+					}
+					@Override
+					public void onNext(V v) {
+						U u = queueU.poll();
+						if (u != null) {
+							observer.next(selector.invoke(u, v));
+						} else {
+							if (wip.get() == 2) {
+								queueV.add(v);
 							} else {
-								if (wip.get() == 2) {
-									queueV.add(v);
-								} else {
-									this.finish();
-								}
+								this.finish();
 							}
 						}
-					};
-					Closeable c = Closeables.close(oU, oV);
-					closeBoth.set(c);
-				} finally {
-					lockBoth.unlock();
-				}
-				return closeBoth.get();
+					}
+				};
+				closeBoth.add(oU, oV);
+				oU.registerWith(left);
+				oV.registerWith(right);
+				return closeBoth;
 			}
 		};
 	}

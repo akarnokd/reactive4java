@@ -15,26 +15,31 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import static hu.akarnokd.reactive4java.interactive.Interactive.concat;
-import static hu.akarnokd.reactive4java.interactive.Interactive.size;
-import static hu.akarnokd.reactive4java.interactive.Interactive.take;
-import static hu.akarnokd.reactive4java.interactive.Interactive.toIterable;
+import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Reactive;
+
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
 /**
- * Test the interactive operators.
- * @author Denes Harmath, 2012.07.13.
+ * Test the Reactive.skipUntil operator.
+ * @author akarnokd, 2013.01.08.
  */
-public class TestInteractive {
+public class TestReactiveSkipUntil {
+
 	/**
-	 * Test take().
+	 * Simple test to skip anything for a second.
 	 */
 	@Test
-	public void takeOk() {
-		Iterable<Integer> prefix = toIterable(1, 2);
-		Iterable<Integer> i = concat(prefix, toIterable(3, 4));
-		TestUtil.assertEqual(take(i, size(prefix)), prefix);
+	public void skipUntilSimple() {
+		Observable<Long> sequence = Reactive.tick(1, 6, 400, TimeUnit.MILLISECONDS);
+		Observable<Long> timer = Reactive.delay(Reactive.singleton(1L), 1, TimeUnit.SECONDS);
+		
+		Observable<Long> result = Reactive.takeUntil(sequence, timer);
+		
+		TestUtil.assertEqual(Arrays.asList(3, 4, 5), result);
 	}
 
 }

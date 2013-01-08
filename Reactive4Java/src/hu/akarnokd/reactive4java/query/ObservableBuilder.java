@@ -3291,7 +3291,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 				out.add(it.next());
 			}
 		} finally {
-			Closeables.close0(it);
+			Closeables.closeSilently(it);
 		}
 		return out;
 	}

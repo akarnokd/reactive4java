@@ -1824,6 +1824,17 @@ public final class Functions {
 			}
 		};
 	}
+	/**
+	 * @return Returns a function that negates the incoming boolean value.
+	 */
+	public static Func1<Boolean, Boolean> negate() {
+		return new Func1<Boolean, Boolean>() {
+			@Override
+			public Boolean invoke(Boolean param1) {
+				return param1 == Boolean.TRUE ? Boolean.FALSE : Boolean.TRUE;
+			}
+		};
+	}
 	/** Utility class. */
 	private Functions() {
 	}

@@ -14,26 +14,40 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java.test;
+package hu.akarnokd.reactive4java.test.old;
 
-import hu.akarnokd.reactive4java.base.Func1;
-import hu.akarnokd.reactive4java.base.Pred1;
+import hu.akarnokd.reactive4java.base.Action0;
+import hu.akarnokd.reactive4java.base.Lambdas;
 import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 
 /**
- * Test Reactive operators, B.
+ * Test various Interactive operators, 1.
  * @author akarnokd
  */
-public final class TestE {
+public final class TestLambdas {
 
 	/**
 	 * Utility class.
 	 */
-	private TestE() {
+	private TestLambdas() {
 		// utility class
+	}
+	/** 
+	 * Run the Iterable with a print attached. 
+	 * @param source the iterable source
+	 * waiting on the observable completion
+	 */
+	static void run(Iterable<?> source) {
+		try {
+			Interactive.run(source, Interactive.print());
+			System.out.println();
+		} catch (Throwable t) {
+			System.err.print(", ");
+			t.printStackTrace();
+		}
 	}
 	/** 
 	 * Run the observable with a print attached. 
@@ -49,42 +63,26 @@ public final class TestE {
 	 * @param args no arguments
 	 * @throws Exception on error
 	 */
-	public static void main(String[] args)
-	throws Exception {
+	public static void main(String[] args) throws Exception {
 		
-		// Issue #1
+		run(Reactive.where(
+				Reactive.range(0, 10), 
+				Lambdas.<Integer, Boolean>js1("o => o % 2 == 0")));
 		
-		Iterable<Integer> i1 = Interactive.toIterable(1, 3, 5);
-		Interactive.run(i1, Interactive.print());
-		System.out.println();
+		long t = 0;
 		
-		Iterable<Integer> i2 = Interactive.generate(1, new Pred1<Integer>() {
-			@Override
-			public Boolean invoke(Integer param1) {
-				return param1 < 1 + 3 * 2;
-			}
-		}, new Func1<Integer, Integer>() {
-			@Override
-			public Integer invoke(Integer param1) {
-				return param1 + 2;
-			}
-		});
-		Interactive.run(i2, Interactive.print());
-		System.out.println();
+		t = System.nanoTime();
+		Action0 a = Lambdas.as0("=> var sum = 0; for (var i = 0; i < 10000000; i++) { sum += i; }");
+		a.invoke();
+		System.out.printf("Script: %d ns%n", (System.nanoTime() - t));
+	
+		t = System.nanoTime();
+		long sum = 0;
+		for (long i = 0; i < 10000000L; i++) {
+			sum += i;
+		}
+		System.out.printf("Direct: %d ns with sum of %d%n", (System.nanoTime() - t), sum);
 		
-		// Issue #2
-		System.out.println();
-		
-		Iterable<Integer> i3 = Interactive.toIterable(1, 2);
-		Interactive.run(i3, Interactive.print());
-		System.out.println();
-		Iterable<Integer> i4 = Interactive.concat(i3, Interactive.toIterable(3, 4));
-		Interactive.run(i4, Interactive.print());
-		System.out.println();
-		
-		Iterable<Integer> i5 = Interactive.take(i4, 2);
-		Interactive.run(i5, Interactive.print());
-		System.out.println();
 		
 		
 		System.out.printf("%nMain finished%n");

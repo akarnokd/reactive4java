@@ -17,6 +17,7 @@ package hu.akarnokd.reactive4java.base;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Arrays;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -52,9 +53,10 @@ public final class Closeables {
 	 * @param c1 the second closeable
 	 * @param closeables the rest of the closeables
 	 * @return the composite closeable
+	 * @since 0.97
 	 */
 	@Nonnull 
-	public static Closeable close(
+	public static Closeable newCloseable(
 			@Nonnull final Closeable c0, 
 			@Nonnull final Closeable c1, 
 			@Nonnull final Closeable... closeables) {
@@ -85,13 +87,14 @@ public final class Closeables {
 	 * Invoke the <code>close()</code> method on the closeable instance
 	 * and throw away any <code>IOException</code> it might raise.
 	 * @param c the closeable instance, <code>null</code>s are simply ignored
+	 * @since 0.97
 	 */
-	public static void close0(Closeable c) {
+	public static void closeSilently(Closeable c) {
 		if (c != null) {
 			try {
 				c.close();
 			} catch (IOException ex) {
-				
+				// ignored
 			}
 		}
 	}
@@ -102,13 +105,13 @@ public final class Closeables {
 	 * @return the composite closeable
 	 */
 	@Nonnull 
-	public static Closeable closeAll(
+	public static Closeable newCloseable(
 			@Nonnull final Iterable<? extends Closeable> closeables) {
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
 				for (Closeable c : closeables) {
-					close0(c);
+					closeSilently(c);
 				}
 			}
 		};
@@ -120,11 +123,35 @@ public final class Closeables {
 	 */
 	public static void closeSilently(@Nullable Object o) {
 		if (o instanceof Closeable) {
+			closeSilently((Closeable)o);
+		}
+	}
+	/**
+	 * Closes the given array of closeables and returns a MultiIOException
+	 * of the thrown exceptions.
+	 * @param closeables the array of closeables
+	 * @throws MultiIOException if one or more close() calls threw 
+	 */
+	public static void close(Closeable... closeables) throws MultiIOException {
+		close(Arrays.asList(closeables));
+	}
+	/**
+	 * Closes the given sequence of closeables and returns a MultiIOException
+	 * of the thrown exceptions.
+	 * @param closeables the sequence of closeables
+	 * @throws MultiIOException if one or more close() calls threw 
+	 */
+	public static void close(Iterable<? extends Closeable> closeables) throws MultiIOException {
+		MultiIOException xout = null;
+		for (Closeable c : closeables) {
 			try {
-				((Closeable)o).close();
+				c.close();
 			} catch (IOException ex) {
-				// ignored
+				xout = MultiIOException.createOrAdd(xout, ex);
 			}
+		}
+		if (xout != null) {
+			throw xout;
 		}
 	}
 }

@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java.test;
+package hu.akarnokd.reactive4java.test.old;
 
-import hu.akarnokd.reactive4java.base.Func2;
-import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
@@ -25,15 +23,15 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * Test Reactive operators, A.
+ * Test Reactive operators, 8.
  * @author akarnokd
  */
-public final class TestA {
+public final class Test8 {
 
 	/**
 	 * Utility class.
 	 */
-	private TestA() {
+	private Test8() {
 		// utility class
 	}
 	/** 
@@ -51,46 +49,24 @@ public final class TestA {
 	 * @throws Exception on error
 	 */
 	public static void main(String[] args) throws Exception {
-		run(
-			Reactive.timeout(
-				Reactive.tick(200, TimeUnit.SECONDS), 5, TimeUnit.SECONDS)
-		);
-		
-		run(
-				Reactive.timeout(
-					Reactive.tick(200, TimeUnit.SECONDS), 
-					2, 
-					TimeUnit.SECONDS,
-					Reactive.tick(0, 5, 1, TimeUnit.SECONDS)
-				)
+		Observable<Long> cc = Reactive.concat(
+				Reactive.tick(0, 10, 200, TimeUnit.MILLISECONDS),
+				Reactive.tick(10, 15, 1, TimeUnit.SECONDS)
 			);
 		
+		run(cc);
+		run(cc);
+		
 		run(
-			Reactive.zip(
-				Reactive.tick(0, 5, 1, TimeUnit.SECONDS), 
-				Interactive.range(0, 3),
-				new Func2<Long, Integer, Long>() {
-					@Override
-					public Long invoke(Long param1, Integer param2) {
-						return param1 * 10 + param2;
-					}
-				}
+			Reactive.addTimestamped(
+				Reactive.throttle(
+					cc,
+				500, TimeUnit.MILLISECONDS)
 			)
 		);
-
-		run(
-			Reactive.zip(
-				Reactive.tick(0, 5, 1, TimeUnit.SECONDS), 
-				Reactive.tick(0, 3, 100, TimeUnit.MILLISECONDS), 
-				new Func2<Long, Long, Long>() {
-					@Override
-					public Long invoke(Long param1, Long param2) {
-						return param1 * 10 + param2;
-					}
-				}
-			)
-		);
-
+		
+		run(Reactive.addTimeInterval(cc));
+		
 		System.out.printf("%nMain finished%n");
 	}
 
