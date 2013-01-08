@@ -17,6 +17,18 @@
     * Moved SingleContainer, Enumeration, Enumerator into base package.
     * Moved ActionObservable and FunctionIterable to test package.
   * Added CompositeDisposable for better registration-lifecycle management.
+  * Renamed methods in {{{Closeables}}}
+    * close0 to closeSilently
+    * close to newCloseable
+  * Created base.MultiIOException to collect any exception from closing Closeables
+  * Added close methods that collect the exceptions and throw a MultiIOException for multiple simultaneously closed Closeables.
+  * Fixed {{{concat(Observable<Observable<T>>)}}} signature with {{{? extends T}}}
+  * Removed the Reactive.drain operators due lack of clue how they should work and I can't find them in Rx now.
+  * Added Reactive.generateTimedWithUnit that accepts a delay function which returns a time value and its unit.
+  * Resolved many cases where the registration and deregistration were wrong and prone to race or premature completion.
+  * Rewised Reactive.sequenceEqual to traverse the source sequences only once.
+    * Added overload to work with an Iterable pair
+
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
