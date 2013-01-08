@@ -27,7 +27,8 @@
   * Resolved many cases where the registration and deregistration were wrong and prone to race or premature completion.
   * Rewised Reactive.sequenceEqual to traverse the source sequences only once.
     * Added overload to work with an Iterable pair
-    * Added exception supplier based overload to Reactive.throwException.
+  * Added exception supplier based overload to Reactive.throwException.
+  * Modified the Reactive.materialize to terminate after a finish or error call. The original, infinite stream version is renamed to materializeForever.
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
