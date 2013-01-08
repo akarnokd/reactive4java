@@ -16,7 +16,6 @@
 package hu.akarnokd.reactive4java.test;
 
 import static hu.akarnokd.reactive4java.query.IterableBuilder.from;
-import static hu.akarnokd.reactive4java.test.TestInteractive.assertEqual;
 import static hu.akarnokd.reactive4java.test.TestScheduler.onNext;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import hu.akarnokd.reactive4java.base.Closeables;
@@ -60,20 +59,20 @@ public class TestTestScheduler {
 			}
 		}, subscription2, MILLISECONDS);
 		scheduler.start();
-		Closeables.close0(closeable1);
-		Closeables.close0(closeable2);
+		Closeables.closeSilently(closeable1);
+		Closeables.closeSilently(closeable2);
 
 		List<?> expected = from(
 				onNext(value, subscription1 + event1), 
 				TestScheduler.<Integer>onFinish(subscription1 + event2)).toList();
 		List<?> actual = observer1.getEvents();
 		
-		assertEqual(expected, actual);
+		TestUtil.assertEqual(expected, actual);
 		
 		expected = from(onNext(value, subscription2 + event1), TestScheduler.<Integer>onFinish(subscription2 + event2)).toList();
 		actual = observer2.getEvents();
 		
-		assertEqual(expected, actual);
+		TestUtil.assertEqual(expected, actual);
 	}
 
 }

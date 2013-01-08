@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java.test;
+package hu.akarnokd.reactive4java.test.old;
 
-import hu.akarnokd.reactive4java.base.Functions;
+import hu.akarnokd.reactive4java.base.Func2;
+import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
@@ -24,15 +25,15 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * Test Reactive operators, 7.
+ * Test Reactive operators, A.
  * @author akarnokd
  */
-public final class Test7 {
+public final class TestA {
 
 	/**
 	 * Utility class.
 	 */
-	private Test7() {
+	private TestA() {
 		// utility class
 	}
 	/** 
@@ -51,36 +52,45 @@ public final class Test7 {
 	 */
 	public static void main(String[] args) throws Exception {
 		run(
-			Reactive.takeUntil(
-				Reactive.tick(1, TimeUnit.SECONDS),
-				Reactive.tick(5, TimeUnit.SECONDS)
-			)
+			Reactive.timeout(
+				Reactive.tick(200, TimeUnit.SECONDS), 5, TimeUnit.SECONDS)
 		);
-
-		Observable<Long> o = Reactive.take(
-				Reactive.tick(1, TimeUnit.SECONDS),
-				10
-			);
-
-		run(o);
-		run(o);
-		
-		
-		
-		run(Reactive.takeWhile(Reactive.tick(1, TimeUnit.SECONDS), Functions.lessThan(5L)));
-		
 		
 		run(
-			Reactive.addTimestamped(
-				Reactive.throttle(
-					Reactive.concat(
-						Reactive.tick(0, 10, 200, TimeUnit.MILLISECONDS),
-						Reactive.tick(10, 15, 1, TimeUnit.SECONDS)
-					),
-				500, TimeUnit.MILLISECONDS)
+				Reactive.timeout(
+					Reactive.tick(200, TimeUnit.SECONDS), 
+					2, 
+					TimeUnit.SECONDS,
+					Reactive.tick(0, 5, 1, TimeUnit.SECONDS)
+				)
+			);
+		
+		run(
+			Reactive.zip(
+				Reactive.tick(0, 5, 1, TimeUnit.SECONDS), 
+				Interactive.range(0, 3),
+				new Func2<Long, Integer, Long>() {
+					@Override
+					public Long invoke(Long param1, Integer param2) {
+						return param1 * 10 + param2;
+					}
+				}
 			)
 		);
-		
+
+		run(
+			Reactive.zip(
+				Reactive.tick(0, 5, 1, TimeUnit.SECONDS), 
+				Reactive.tick(0, 3, 100, TimeUnit.MILLISECONDS), 
+				new Func2<Long, Long, Long>() {
+					@Override
+					public Long invoke(Long param1, Long param2) {
+						return param1 * 10 + param2;
+					}
+				}
+			)
+		);
+
 		System.out.printf("%nMain finished%n");
 	}
 

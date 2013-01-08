@@ -50,20 +50,7 @@ public class TestInteractiveConcat {
 		for (Integer i : concat) {
 			result.add(i);
 		}
-		Assert.assertEquals(Arrays.asList(1, 1), result);
-	}
-	/**
-	 * Creates a new ArrayList from the elements.
-	 * @param <T> the element type
-	 * @param elements the elements
-	 * @return the list
-	 */
-	static <T> List<T> newList(T... elements) {
-		List<T> result = new ArrayList<T>();
-		for (T t : elements) {
-			result.add(t);
-		}
-		return result;
+		TestUtil.assertEqual(Arrays.asList(1, 1), result);
 	}
 	/**
 	 * Test if concat item removal works when one of the input sequences is empty.
@@ -72,8 +59,8 @@ public class TestInteractiveConcat {
 	public void testConcatRemove() {
 		List<List<Integer>> iterables = new ArrayList<List<Integer>>();
 		
-		List<Integer> list1 = newList(1);
-		List<Integer> list2 = newList(1);
+		List<Integer> list1 = TestUtil.newList(1);
+		List<Integer> list2 = TestUtil.newList(1);
 		iterables.add(list1);
 		iterables.add(Collections.<Integer>emptyList());
 		iterables.add(list2);

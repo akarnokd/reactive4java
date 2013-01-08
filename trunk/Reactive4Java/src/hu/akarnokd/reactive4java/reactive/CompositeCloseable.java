@@ -85,7 +85,7 @@ public class CompositeCloseable implements Closeable {
 			lock.unlock();
 		}
 		if (closeOnce) {
-			Closeables.closeAll(itemsOnce);
+			Closeables.close(itemsOnce);
 		}
 	}
 	/**
@@ -99,6 +99,7 @@ public class CompositeCloseable implements Closeable {
 	/**
 	 * Adds new closeables to this composite object.
 	 * If the composite is already closed, the closeables are immediately closed.
+	 * Close exceptions are silently ignored.
 	 * @param closeables the sequence of closeables
 	 */
 	public void add(Iterable<? extends Closeable> closeables) {
@@ -115,7 +116,7 @@ public class CompositeCloseable implements Closeable {
 			lock.unlock();
 		}
 		if (isDone) {
-			Closeables.closeAll(closeables);
+			Closeables.closeSilently(closeables);
 		}
 	}
 	/** @return test if this closeable is already closed. */
@@ -185,7 +186,7 @@ public class CompositeCloseable implements Closeable {
 		} finally {
 			lock.unlock();
 		}
-		Closeables.closeAll(itemsOnce);
+		Closeables.close(itemsOnce);
 	}
 	/**
 	 * Returns true if the given closeable is in this composite.
@@ -199,5 +200,11 @@ public class CompositeCloseable implements Closeable {
 		} finally {
 			lock.unlock();
 		}
+	}
+	/**
+	 * Close this composite and ignore any IOExceptions.
+	 */
+	public void closeSilently() {
+		Closeables.closeSilently(this);
 	}
 }

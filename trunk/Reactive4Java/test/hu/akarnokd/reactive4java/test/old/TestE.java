@@ -14,24 +14,25 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java.test;
+package hu.akarnokd.reactive4java.test.old;
 
+import hu.akarnokd.reactive4java.base.Func1;
+import hu.akarnokd.reactive4java.base.Pred1;
+import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
-import java.util.concurrent.TimeUnit;
-
 
 /**
- * Test Reactive operators, 8.
+ * Test Reactive operators, B.
  * @author akarnokd
  */
-public final class Test8 {
+public final class TestE {
 
 	/**
 	 * Utility class.
 	 */
-	private Test8() {
+	private TestE() {
 		// utility class
 	}
 	/** 
@@ -48,24 +49,43 @@ public final class Test8 {
 	 * @param args no arguments
 	 * @throws Exception on error
 	 */
-	public static void main(String[] args) throws Exception {
-		Observable<Long> cc = Reactive.concat(
-				Reactive.tick(0, 10, 200, TimeUnit.MILLISECONDS),
-				Reactive.tick(10, 15, 1, TimeUnit.SECONDS)
-			);
+	public static void main(String[] args)
+	throws Exception {
 		
-		run(cc);
-		run(cc);
+		// Issue #1
 		
-		run(
-			Reactive.addTimestamped(
-				Reactive.throttle(
-					cc,
-				500, TimeUnit.MILLISECONDS)
-			)
-		);
+		Iterable<Integer> i1 = Interactive.toIterable(1, 3, 5);
+		Interactive.run(i1, Interactive.print());
+		System.out.println();
 		
-		run(Reactive.addTimeInterval(cc));
+		Iterable<Integer> i2 = Interactive.generate(1, new Pred1<Integer>() {
+			@Override
+			public Boolean invoke(Integer param1) {
+				return param1 < 1 + 3 * 2;
+			}
+		}, new Func1<Integer, Integer>() {
+			@Override
+			public Integer invoke(Integer param1) {
+				return param1 + 2;
+			}
+		});
+		Interactive.run(i2, Interactive.print());
+		System.out.println();
+		
+		// Issue #2
+		System.out.println();
+		
+		Iterable<Integer> i3 = Interactive.toIterable(1, 2);
+		Interactive.run(i3, Interactive.print());
+		System.out.println();
+		Iterable<Integer> i4 = Interactive.concat(i3, Interactive.toIterable(3, 4));
+		Interactive.run(i4, Interactive.print());
+		System.out.println();
+		
+		Iterable<Integer> i5 = Interactive.take(i4, 2);
+		Interactive.run(i5, Interactive.print());
+		System.out.println();
+		
 		
 		System.out.printf("%nMain finished%n");
 	}

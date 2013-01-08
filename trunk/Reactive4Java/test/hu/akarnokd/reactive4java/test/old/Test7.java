@@ -14,40 +14,26 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java.test;
+package hu.akarnokd.reactive4java.test.old;
 
-import hu.akarnokd.reactive4java.base.Action0;
-import hu.akarnokd.reactive4java.base.Lambdas;
-import hu.akarnokd.reactive4java.interactive.Interactive;
+import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
+import java.util.concurrent.TimeUnit;
+
 
 /**
- * Test various Interactive operators, 1.
+ * Test Reactive operators, 7.
  * @author akarnokd
  */
-public final class TestLambdas {
+public final class Test7 {
 
 	/**
 	 * Utility class.
 	 */
-	private TestLambdas() {
+	private Test7() {
 		// utility class
-	}
-	/** 
-	 * Run the Iterable with a print attached. 
-	 * @param source the iterable source
-	 * waiting on the observable completion
-	 */
-	static void run(Iterable<?> source) {
-		try {
-			Interactive.run(source, Interactive.print());
-			System.out.println();
-		} catch (Throwable t) {
-			System.err.print(", ");
-			t.printStackTrace();
-		}
 	}
 	/** 
 	 * Run the observable with a print attached. 
@@ -64,26 +50,36 @@ public final class TestLambdas {
 	 * @throws Exception on error
 	 */
 	public static void main(String[] args) throws Exception {
-		
-		run(Reactive.where(
-				Reactive.range(0, 10), 
-				Lambdas.<Integer, Boolean>js1("o => o % 2 == 0")));
-		
-		long t = 0;
-		
-		t = System.nanoTime();
-		Action0 a = Lambdas.as0("=> var sum = 0; for (var i = 0; i < 10000000; i++) { sum += i; }");
-		a.invoke();
-		System.out.printf("Script: %d ns%n", (System.nanoTime() - t));
-	
-		t = System.nanoTime();
-		long sum = 0;
-		for (long i = 0; i < 10000000L; i++) {
-			sum += i;
-		}
-		System.out.printf("Direct: %d ns with sum of %d%n", (System.nanoTime() - t), sum);
+		run(
+			Reactive.takeUntil(
+				Reactive.tick(1, TimeUnit.SECONDS),
+				Reactive.tick(5, TimeUnit.SECONDS)
+			)
+		);
+
+		Observable<Long> o = Reactive.take(
+				Reactive.tick(1, TimeUnit.SECONDS),
+				10
+			);
+
+		run(o);
+		run(o);
 		
 		
+		
+		run(Reactive.takeWhile(Reactive.tick(1, TimeUnit.SECONDS), Functions.lessThan(5L)));
+		
+		
+		run(
+			Reactive.addTimestamped(
+				Reactive.throttle(
+					Reactive.concat(
+						Reactive.tick(0, 10, 200, TimeUnit.MILLISECONDS),
+						Reactive.tick(10, 15, 1, TimeUnit.SECONDS)
+					),
+				500, TimeUnit.MILLISECONDS)
+			)
+		);
 		
 		System.out.printf("%nMain finished%n");
 	}

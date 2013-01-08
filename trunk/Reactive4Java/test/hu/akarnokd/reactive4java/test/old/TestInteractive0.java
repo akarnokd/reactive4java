@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java.test;
+package hu.akarnokd.reactive4java.test.old;
 
 import static hu.akarnokd.reactive4java.base.Functions.identity;
 import static hu.akarnokd.reactive4java.base.Functions.incrementInt;

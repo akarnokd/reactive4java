@@ -2063,7 +2063,7 @@ public final class Interactive {
 								return peek.take().value();
 							} catch (RuntimeException ex) {
 								for (Closeable h : handlers) {
-									Closeables.close0(h);
+									Closeables.closeSilently(h);
 								}
 								throw ex;
 							}
@@ -3671,7 +3671,7 @@ public final class Interactive {
 						}
 						if (once) {
 							once = false;
-							Closeables.close0(c);
+							Closeables.closeSilently(c);
 						}
 						return false;
 					}

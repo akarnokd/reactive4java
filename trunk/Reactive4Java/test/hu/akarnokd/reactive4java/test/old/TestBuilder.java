@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package hu.akarnokd.reactive4java.test;
+package hu.akarnokd.reactive4java.test.old;
 
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Lambdas;

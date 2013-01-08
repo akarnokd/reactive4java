@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java.test;
+package hu.akarnokd.reactive4java.test.old;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;

@@ -15,26 +15,31 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import static hu.akarnokd.reactive4java.interactive.Interactive.concat;
-import static hu.akarnokd.reactive4java.interactive.Interactive.size;
-import static hu.akarnokd.reactive4java.interactive.Interactive.take;
-import static hu.akarnokd.reactive4java.interactive.Interactive.toIterable;
+import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Reactive;
+
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.Test;
 
 /**
- * Test the interactive operators.
- * @author Denes Harmath, 2012.07.13.
+ * Test the Reactive.concat methods.
+ * @author akarnokd, 2013.01.08.
  */
-public class TestInteractive {
+public class TestReactiveConcat {
 	/**
-	 * Test take().
+	 * Tests a simple concatenation with two static singleton values.
+	 * @throws Exception on error
 	 */
 	@Test
-	public void takeOk() {
-		Iterable<Integer> prefix = toIterable(1, 2);
-		Iterable<Integer> i = concat(prefix, toIterable(3, 4));
-		TestUtil.assertEqual(take(i, size(prefix)), prefix);
+	public void testSimple() throws Exception {
+		Observable<Integer> value = Reactive.singleton(1);
+		Observable<Integer> cat = Reactive.concat(value, value);
+		
+		final List<Integer> result = TestUtil.waitForAll(cat);
+
+		TestUtil.assertEqual(Arrays.asList(1, 1), result);
 	}
 
 }

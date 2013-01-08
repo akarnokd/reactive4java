@@ -32,11 +32,9 @@ import static hu.akarnokd.reactive4java.reactive.Reactive.skipWhile;
 import static hu.akarnokd.reactive4java.reactive.Reactive.take;
 import static hu.akarnokd.reactive4java.reactive.Reactive.takeLast;
 import static hu.akarnokd.reactive4java.reactive.Reactive.takeWhile;
-import static hu.akarnokd.reactive4java.reactive.Reactive.toIterable;
 import static hu.akarnokd.reactive4java.reactive.Reactive.zip;
 import static java.util.Arrays.asList;
 import static java.util.Collections.nCopies;
-import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
@@ -55,54 +53,6 @@ import org.junit.Test;
  */
 public class TestReactive {
 	/**
-	 * Returns a user-friendly textual representation of the given sequence.
-	 * @param source the source sequence
-	 * @return the output text
-	 */
-	public static String makeString(Observable<?> source) {
-		return TestInteractive.makeString(toIterable(source));
-	}
-	/**
-	 * Compare two sequences and assert their equivalence.
-	 * @param <T> the element type
-	 * @param expected the expected sequence
-	 * @param actual the actual sequence
-	 * @param eq should they equal?
-	 */
-	public static <T> void assertCompare(Observable<? extends T> expected, Observable<? extends T> actual, boolean eq) {
-		String message = "expected: " + makeString(expected) + "; actual: " + makeString(actual);
-		boolean condition = single(sequenceEqual(expected, actual));
-		assertTrue(message, eq ? condition : !condition);
-	}
-	/**
-	 * Assert the equivalence of two sequences.
-	 * @param <T> the element type
-	 * @param expected the expected sequence
-	 * @param actual the actual sequence
-	 */
-	public static <T> void assertEqual(Observable<? extends T> expected, Observable<? extends T> actual) {
-		assertCompare(expected, actual, true);
-	}
-	/**
-	 * Assert the inequivalence of two sequences.
-	 * @param <T> the element type
-	 * @param expected the expected sequence
-	 * @param actual the actual sequence
-	 */
-	public static <T> void assertNotEqual(Observable<? extends T> expected, Observable<? extends T> actual) {
-		assertCompare(expected, actual, false);
-	}
-	/**
-	 * Assert if the sequence contains only the given item.
-	 * @param <T> the element type
-	 * @param expected the expected value
-	 * @param actual the actual sequence
-	 */
-	public static <T> void assertSingle(T expected, Observable<? extends T> actual) {
-		String message = "expected: " + expected + "; actual: " + makeString(actual);
-		assertEquals(message, expected, single(actual));
-	}
-	/**
 	 * Tests take().
 	 */
 	@Test
@@ -111,7 +61,7 @@ public class TestReactive {
 		Observable<Integer> postfix = from(3, 4);
 		Observable<Integer> o = concat(prefix, postfix);
 		Integer count = single(count(prefix));
-		assertEqual(prefix, take(o, count));
+		TestUtil.assertEqual(prefix, take(o, count));
 	}
 	/**
 	 * Tests skip().
@@ -122,7 +72,7 @@ public class TestReactive {
 		Observable<Integer> postfix = from(3, 4);
 		Observable<Integer> o = concat(prefix, postfix);
 		Integer count = single(count(prefix));
-		assertEqual(postfix, skip(o, count));
+		TestUtil.assertEqual(postfix, skip(o, count));
 	}
 	/**
 	 * Tests takeLast().
@@ -133,7 +83,7 @@ public class TestReactive {
 		Observable<Integer> postfix = from(3, 4);
 		Observable<Integer> o = concat(prefix, postfix);
 		Integer count = single(count(postfix));
-		assertEqual(postfix, takeLast(o, count));
+		TestUtil.assertEqual(postfix, takeLast(o, count));
 	}
 	/**
 	 * Tests skipLast().
@@ -144,7 +94,7 @@ public class TestReactive {
 		Observable<Integer> postfix = from(3, 4);
 		Observable<Integer> o = concat(prefix, postfix);
 		Integer count = single(count(postfix));
-		assertEqual(prefix, skipLast(o, count));
+		TestUtil.assertEqual(prefix, skipLast(o, count));
 	}
 	/**
 	 * Tests takeWhile() with some elements taken.
@@ -155,7 +105,7 @@ public class TestReactive {
 		Observable<Integer> prefix = from(value, value);
 		Observable<Integer> postfix = from(0, value);
 		Observable<Integer> o = concat(prefix, postfix);
-		assertEqual(prefix, takeWhile(o, equal(value)));
+		TestUtil.assertEqual(prefix, takeWhile(o, equal(value)));
 	}
 	/**
 	 * Tests takeWhile() with all elements taken.
@@ -164,7 +114,7 @@ public class TestReactive {
 	public void takeWhileAll() {
 		Integer value = 42;
 		Observable<Integer> o = from(value, value);
-		assertEqual(o, takeWhile(o, equal(value)));
+		TestUtil.assertEqual(o, takeWhile(o, equal(value)));
 	}
 	/**
 	 * Tests takeWhile() with no elements taken.
@@ -172,7 +122,7 @@ public class TestReactive {
 	@Test
 	public void takeWhileNone() {
 		Integer value = 42;
-		assertEqual(empty(), takeWhile(from(0, value), equal(value)));
+		TestUtil.assertEqual(empty(), takeWhile(from(0, value), equal(value)));
 	}
 	/**
 	 * Tests skipWhile() with some elements skipped.
@@ -183,7 +133,7 @@ public class TestReactive {
 		Observable<Integer> prefix = from(value, value);
 		Observable<Integer> postfix = from(0, value);
 		Observable<Integer> o = concat(prefix, postfix);
-		assertEqual(postfix, skipWhile(o, equal(value)));
+		TestUtil.assertEqual(postfix, skipWhile(o, equal(value)));
 	}
 	/**
 	 * Tests skipWhile() with all elements skipped.
@@ -191,7 +141,7 @@ public class TestReactive {
 	@Test
 	public void skipWhileAll() {
 		Integer value = 42;
-		assertEqual(empty(), skipWhile(from(value, value), equal(value)));
+		TestUtil.assertEqual(empty(), skipWhile(from(value, value), equal(value)));
 	}
 	/**
 	 * Tests skipWhile() with no elements skipped.
@@ -200,7 +150,7 @@ public class TestReactive {
 	public void skipWhileNone() {
 		Integer value = 42;
 		ObservableBuilder<Integer> o = from(0, value);
-		assertEqual(o, skipWhile(o, equal(value)));
+		TestUtil.assertEqual(o, skipWhile(o, equal(value)));
 	}
 	/**
 	 * Tests sequenceEqual() in case of equal sequences.
@@ -208,7 +158,7 @@ public class TestReactive {
 	@Test
 	public void sequenceEqualOk() {
 		Observable<Integer> o = from(1, 2);
-		assertEqual(o, o);
+		TestUtil.assertEqual(o, o);
 	}
 	/**
 	 * Tests sequenceEqual() in case of different sequences.
@@ -217,14 +167,14 @@ public class TestReactive {
 	public void sequenceEqualNotBecauseJustPrefix() {
 		Observable<Integer> prefix = from(1, 2);
 		Observable<Integer> o = concat(prefix, from(3, 4));
-		assertNotEqual(o, prefix);
+		TestUtil.assertNotEqual(o, prefix);
 	}
 	/**
 	 * Tests sequenceEqual() in case of an empty and non-empty sequence.
 	 */
 	@Test
 	public void sequenceEqualNotBecauseEmpty() {
-		assertNotEqual(from(1, 2), empty());
+		TestUtil.assertNotEqual(from(1, 2), empty());
 	}
 	/**
 	 * Tests the commutativity of sequenceEqual().
@@ -233,7 +183,7 @@ public class TestReactive {
 	public void sequenceEqualCommutative() {
 		Observable<Integer> prefix = from(1, 2);
 		Observable<Integer> o = concat(prefix, from(3, 4));
-		assertEqual(sequenceEqual(prefix, o), sequenceEqual(o, prefix));
+		TestUtil.assertEqual(sequenceEqual(prefix, o), sequenceEqual(o, prefix));
 	}
 	/**
 	 * Tests single() in case of 1 element.
@@ -264,7 +214,7 @@ public class TestReactive {
 	@Test
 	public void allTrue() {
 		int value = 42;
-		assertSingle(true, all(from(value, value, value), equal(value)));
+		TestUtil.assertSingle(true, all(from(value, value, value), equal(value)));
 	}
 	/**
 	 * Tests all() properly returning <code>false</code>.
@@ -272,7 +222,7 @@ public class TestReactive {
 	@Test
 	public void allFalse() {
 		int value = 42;
-		assertSingle(false, all(from(value, 0, value), equal(value)));
+		TestUtil.assertSingle(false, all(from(value, 0, value), equal(value)));
 	}
 	/**
 	 * Tests any() properly returning <code>true</code>.
@@ -280,14 +230,14 @@ public class TestReactive {
 	@Test
 	public void anyTrue() {
 		int value = 42;
-		assertSingle(true, any(from(0, value, 0), equal(value)));
+		TestUtil.assertSingle(true, any(from(0, value, 0), equal(value)));
 	}
 	/**
 	 * Tests any() properly returning <code>false</code>.
 	 */
 	@Test
 	public void anyFalse() {
-		assertSingle(false, any(from(0, 0, 0), equal(1)));
+		TestUtil.assertSingle(false, any(from(0, 0, 0), equal(1)));
 	}
 	/**
 	 * Tests count().
@@ -295,7 +245,7 @@ public class TestReactive {
 	@Test
 	public void countOk() {
 		Collection<Integer> i = nCopies(3, 0);
-		assertSingle(i.size(), count(from(i)));
+		TestUtil.assertSingle(i.size(), count(from(i)));
 	}
 	/**
 	 * Tests zip().
@@ -310,7 +260,7 @@ public class TestReactive {
 		ObservableBuilder<Integer> b = from(b0, b1);
 		@SuppressWarnings("unchecked")
 		ObservableBuilder<Pair<Integer, Integer>> expected = from(Pair.of(a0, b0), Pair.of(a1, b1));
-		assertEqual(expected, zip(a, b, pairUp()));
+		TestUtil.assertEqual(expected, zip(a, b, pairUp()));
 	}
 	/**
 	 * Tests combine() with value.
@@ -323,7 +273,7 @@ public class TestReactive {
 		ObservableBuilder<Integer> a = from(a0, a1);
 		@SuppressWarnings("unchecked")
 		ObservableBuilder<List<Integer>> expected = from(asList(a0, value), asList(a1, value));
-		assertEqual(expected, combine(a, value));
+		TestUtil.assertEqual(expected, combine(a, value));
 	}
 	/**
 	 * Tests combine() with observables.
@@ -340,7 +290,7 @@ public class TestReactive {
 		ObservableBuilder<List<Integer>> expected = from(asList(a0, b0), asList(a1, b1));
 		@SuppressWarnings("unchecked")
 		List<ObservableBuilder<Integer>> asList = asList(a, b);
-		assertEqual(expected, combine(asList));
+		TestUtil.assertEqual(expected, combine(asList));
 	}
 }
 

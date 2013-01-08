@@ -15,7 +15,7 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import static hu.akarnokd.reactive4java.base.Closeables.close0;
+import static hu.akarnokd.reactive4java.base.Closeables.closeSilently;
 import static hu.akarnokd.reactive4java.base.Option.getError;
 import static hu.akarnokd.reactive4java.base.Option.isError;
 import static hu.akarnokd.reactive4java.base.Option.isNone;
@@ -327,7 +327,7 @@ public class TestScheduler implements Scheduler {
 		schedule(new Runnable() {
 			@Override
 			public void run() {
-				close0(closeable.get());
+				closeSilently(closeable.get());
 			}
 		}, disposal, unit);
 		start();
