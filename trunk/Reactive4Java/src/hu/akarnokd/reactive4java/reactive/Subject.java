@@ -15,21 +15,14 @@
  */
 package hu.akarnokd.reactive4java.reactive;
 
-import java.io.Closeable;
-
 /**
- * An observable which can be connected, reconnected or disconnected to a source observable. 
- * @author akarnokd, 2011.03.21.
- * @param <T> the element type
+ * Represents an object that can observe values of T and produce values of U by
+ * combining the Observer and Observable interfaces.
+ * @author akarnokd, 2013.01.09.
+ * @since 0.97
+ * @param <T> the value type this object can observe
+ * @param <U> the value type this object can produce
  */
-public interface ConnectableObservable<T> extends Observable<T> {
-	/**
-	 * Connects the wrapper to its source. All registered observers
-	 * will receive values while this connection is active. Closing
-	 * the connection will stop the observers from receiving events,
-	 * but they won't be deregistered.
-	 * Connecting to an already connected source is a no-op.
-	 * @return the handler to close the connection
-	 */
-	Closeable connect();
+public interface Subject<T, U> extends Observer<T>, Observable<U> {
+
 }

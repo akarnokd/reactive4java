@@ -16,42 +16,113 @@
 package hu.akarnokd.reactive4java.reactive;
 
 import java.io.Closeable;
+import java.io.IOException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
 
 /**
- * The default implementation for a connectable observable.
- * This class can be used to make a cold observable (e.g., the one which computes when a registration occurs)
- * into a hot observable (which is alive without any observers).
- * @author akarnokd, 2011.03.21.
- * @param <T> the element type to observe
+ * Default implementation of the connectable observable which can be disconnected
+ * from its source independently from the registered observers.
+ * @author akarnokd, 2013.01.09.
+ * @param <T> the type of values observed from the source
+ * @param <U> the type of values emmitted to registered observers
+ * @since 0.97
  */
-public class DefaultConnectableObservable<T> implements
-		ConnectableObservable<T> {
+public class DefaultConnectableObservable<T, U> implements
+		ConnectableObservable<U> {
+	/** The subject that is connected to the source. */
+	@Nonnull 
+	protected final Subject<? super T, ? extends U> subject;
 	/** The source observable. */
-	private final Observable<? extends T> source;
-	/** The mediator observable. */
-	private final Observable<? extends T> observable;
-	/** The mediator observer. */
-	private final Observer<? super T> observer;
+	@Nonnull 
+	protected final Observable<? extends T> source;
+	/** The lock. */
+	@Nonnull 
+	protected final Lock lock;
+	/** The active connection's close reference. */
+	@GuardedBy("lock")
+	@Nullable
+	protected Closeable connection;
 	/**
-	 * Construct a connectable observable. 
-	 * @param source the source observable
-	 * @param observable the mediator observable, this is usually the same object as the observer
-	 * @param observer the mediator observer, this is usually the same object as the observable
+	 * Creates an observable which can be connected and disconnected from the source.
+	 * <p>Uses fair ReentrantLock.</p>
+	 * @param source the underlying observable source of Ts
+	 * @param subject the observer that receives values from the source in case it is connected
 	 */
-	public DefaultConnectableObservable(Observable<? extends T> source, 
-			Observable<? extends T> observable, Observer<? super T> observer) {
+	public DefaultConnectableObservable(
+			@Nonnull Observable<? extends T> source, 
+			@Nonnull Subject<? super T, ? extends U> subject) {
+		this(source, subject, new ReentrantLock(true));
+	}
+	/**
+	 * Creates an observable which can be connected and disconnected from the source.
+	 * @param source the underlying observable source of Ts
+	 * @param subject the observer that receives values from the source in case it is connected
+	 * @param lock the lock to use
+	 */
+	public DefaultConnectableObservable(
+			@Nonnull Observable<? extends T> source, 
+			@Nonnull Subject<? super T, ? extends U> subject, 
+			@Nonnull Lock lock) {
+		this.subject = subject;
 		this.source = source;
-		this.observable = observable;
-		this.observer = observer;
+		this.lock = lock;
+		
 	}
-	@Override
-	public Closeable register(Observer<? super T> observer) {
-		return observable.register(observer);
-	}
-
 	@Override
 	public Closeable connect() {
-		return source.register(observer);
+		lock.lock();
+		try {
+			if (connection == null) {
+				final Closeable c = source.register(subject);
+				connection = new InnerConnection(c);
+			}
+			return connection;
+		} finally {
+			lock.unlock();
+		}
 	}
-
+	@Override
+	@Nonnull
+	public Closeable register(@Nonnull Observer<? super U> observer) {
+		return subject.register(observer);
+	}
+	/**
+	 * The inner connection that nulls out the 
+	 * parent class' connection and deregisters the subject, but only once.
+	 * @author akarnokd, 2013.01.09.
+	 */
+	protected class InnerConnection implements Closeable {
+		/** The subject's close handler. */
+		@Nonnull 
+		protected Closeable c;
+		/**
+		 * Constructor. Stores the subject's close handler.
+		 * @param c the closeable
+		 */
+		public InnerConnection(@Nonnull Closeable c) {
+			this.c = c;
+		}
+		@Override
+		public void close() throws IOException {
+			Closeable toClose = null;
+			lock.lock();
+			try {
+				if (c != null) {
+					toClose = c;
+					c = null;
+					connection = null;
+				}
+			} finally {
+				lock.unlock();
+			}
+			if (toClose != null) {
+				toClose.close();
+			}
+		}
+	}
 }

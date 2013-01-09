@@ -30,6 +30,7 @@ import hu.akarnokd.reactive4java.reactive.GroupedObservable;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Observer;
 import hu.akarnokd.reactive4java.reactive.Reactive;
+import hu.akarnokd.reactive4java.reactive.Subjects;
 import hu.akarnokd.reactive4java.reactive.TimeInterval;
 import hu.akarnokd.reactive4java.reactive.Timestamped;
 
@@ -1609,7 +1610,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 */
 	public <U> ObservableBuilder<U> multicast(
 			final Observer<? super T> observer, final Observable<? extends U> observable) {
-		return from(Reactive.multicast(o, observer, observable));
+		return from(Reactive.multicast(o, Subjects.newSubject(observer, observable)));
 	}
 	/**
 	 * Returns an observable which never fires.
@@ -3511,6 +3512,62 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @since 0.97
 	 */
 	public ObservableBuilder<T> lastAsync(@Nonnull Func0<? extends T> defaultSupplier) {
+		return from(Reactive.lastAsync(o, defaultSupplier));
+	}
+	/**
+	 * Returns the single element of the given observable source,
+	 * returns the default if the source is empty or throws a 
+	 * TooManyElementsException in case the source has more than one item.
+	 * @param defaultValue the value to return if the source is empty
+	 * @return the single element
+	 * @see #first(Observable, Object)
+	 * @since 0.97
+	 */
+	public T single(T defaultValue) {
+		return Reactive.last(o, defaultValue);
+	}
+	/**
+	 * Returns the single element of the given observable source,
+	 * returns the supplier's value if the source is empty or throws a 
+	 * TooManyElementsException in case the source has more than one item.
+	 * @param defaultSupplier the function that produces the default value
+	 * @return the single element
+	 * @see #first(Observable, Func0)
+	 * @since 0.97
+	 */
+	public T single(@Nonnull Func0<? extends T> defaultSupplier) {
+		return Reactive.last(o, defaultSupplier);
+	}
+	/**
+	 * Returns the only element of the source or throws
+	 * NoSuchElementException if the source is empty or TooManyElementsException if
+	 * it contains more than one elements.
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> singleAsync() {
+		return from(Reactive.lastAsync(o));
+	}
+	/**
+	 * Returns the only element of the source, 
+	 * returns the default value if the source is empty or TooManyElementsException if
+	 * it contains more than one elements.
+	 * @param defaultValue the default value to return in case the source is empty
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> singleAsync(T defaultValue) {
+		return from(Reactive.lastAsync(o, defaultValue));
+	}
+	/**
+	 * Returns the only element of the source, 
+	 * returns the supplier's value if the source is empty or TooManyElementsException if
+	 * it contains more than one elements.
+	 * @param defaultSupplier the function that produces
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> singleAsync(@Nonnull Func0<? extends T> defaultSupplier) {
 		return from(Reactive.lastAsync(o, defaultSupplier));
 	}
 }

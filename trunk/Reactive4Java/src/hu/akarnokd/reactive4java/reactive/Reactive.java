@@ -3967,37 +3967,45 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Returns an observable which remains connected to the <code>source</code>
-	 * observable as long as there is at least one registration to this output observable.
-	 * <p>The <code>observer</code> and <code>observable</code> parameters should denote
-	 * the same object which implements both Observable and Observer interfaces.</p>
+	 * Multicasts the source sequence through the supplied subject by allowing
+	 * connection and disconnection from the source without the need to reconnect
+	 * any observers to the returned observable.
+	 * <p>Scenario: having a continuous source, the event sequence can be interrupted
+	 * and reestablished at any time, during the time the registered observers won't
+	 * receive any events.</p>
 	 * @param <T> the source element type
-	 * @param <U> the result element type
-	 * @param source the source elements
-	 * @param observer the observer that listens for Ts. Should be the same object as observable.
-	 * @param observable the observable that will produce Us. Should be the same object as observable.
-	 * @return the new observable
+	 * @param <U> the type of the elements the observers will receive
+	 * @param source the source observable
+	 * @param subject the observer that receives the Ts and at the same time, the Observable that registers
+	 * observers for the Us.
+	 * @return the new connectable observable
 	 */
-	public static <T, U> Observable<U> multicast(final Observable<? extends T> source,
-			final Observer<? super T> observer, final Observable<? extends U> observable) {
-		final Closeable outer = source.register(observer);
-		final AtomicInteger wip = new AtomicInteger();
-		return new Observable<U>() {
-			@Override
-			public Closeable register(Observer<? super U> o) {
-				wip.incrementAndGet();
-				final Closeable inner = observable.register(o);
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						inner.close();
-						if (wip.decrementAndGet() == 0) {
-							Closeables.closeSilently(outer);
-						}
-					}
-				};
-			}
-		};
+	@Nonnull
+	public static <T, U> ConnectableObservable<U> multicast(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Subject<? super T, ? extends U> subject) {
+		return new DefaultConnectableObservable<T, U>(source, subject);
+	}
+	/**
+	 * Multicasts the source events through the subject instantiated via
+	 * the subjectSelector. Each subscription to this sequence
+	 * causes a separate multicast invocation.
+	 * @param <T> the element type of the source
+	 * @param <U> the element type of the intermediate subject's output
+	 * @param <V> the result type 
+	 * @param source the source sequence to be multicasted
+	 * @param subjectSelector the factory function to create an intermediate
+	 * subject which through the source values will be multicasted.
+	 * @param selector the factory method to use the multicasted subject and enforce some policies on it
+	 * @return the observable sequence that contains all elements of the multicasted functions
+	 */
+	@Nonnull
+	public static <T, U, V> Observable<V> multicast(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func0<? extends Subject<? super T, ? extends U>> subjectSelector,
+			@Nonnull final Func1<? super Observable<? extends U>, ? extends Observable<? extends V>> selector
+			) {
+		throw new UnsupportedOperationException("TODO");
 	}
 	/**
 	 * Returns an observable which never fires.
@@ -9525,6 +9533,7 @@ public final class Reactive {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T, U, V> Observable<V> aggregate(
 			@Nonnull final Observable<? extends T> source,
 			final U seed,
@@ -9543,6 +9552,7 @@ public final class Reactive {
 	 * @return the observable which returns the element at index or an exception
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> Observable<T> elementAt(
 			@Nonnull final Observable<? extends T> source,
 			final int index
@@ -9588,6 +9598,7 @@ public final class Reactive {
 	 * @return the observable which returns the element at index or the default value
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> Observable<T> elementAt(
 			@Nonnull final Observable<? extends T> source,
 			int index,
@@ -9606,6 +9617,7 @@ public final class Reactive {
 	 * @return the observable which returns the element at index or the default value supplied
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> Observable<T> elementAt(
 			@Nonnull final Observable<? extends T> source,
 			final int index,
@@ -9687,6 +9699,7 @@ public final class Reactive {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> Observable<T> firstAsync(
 			@Nonnull final Observable<? extends T> source) {
 		return new Observable<T>() {
@@ -9725,6 +9738,7 @@ public final class Reactive {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> Observable<T> firstAsync(
 			@Nonnull final Observable<? extends T> source,
 			final T defaultValue) {
@@ -9740,6 +9754,7 @@ public final class Reactive {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> Observable<T> firstAsync(
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Func0<? extends T> defaultSupplier) {
@@ -9851,6 +9866,7 @@ public final class Reactive {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> Observable<T> lastAsync(@Nonnull final Observable<? extends T> source) {
 		return new Observable<T>() {
 			@Override
@@ -9911,6 +9927,7 @@ public final class Reactive {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> Observable<T> lastAsync(
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Func0<? extends T> defaultSupplier) {
@@ -9947,6 +9964,171 @@ public final class Reactive {
 				});
 			}
 		};
+	}
+	/**
+	 * Returns the only element of the source or throws
+	 * NoSuchElementException if the source is empty or TooManyElementsException if
+	 * it contains more than one elements.
+	 * @param <T> the element type
+	 * @param source the source sequence of Ts
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> singleAsync(
+			@Nonnull final Observable<? extends T> source) {
+		return new Observable<T>() {
+			@Override
+			@Nonnull
+			public Closeable register(final Observer<? super T> observer) {
+				return (new DefaultObserverEx<T>() {
+					/** True if the first element received. */
+					boolean firstReceived;
+					/** The first element encountered. */
+					T first;
+					@Override
+					protected void onNext(T value) {
+						if (!firstReceived) {
+							first = value;
+							firstReceived = true;
+						} else {
+							error(new TooManyElementsException());
+						}
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						if (firstReceived) {
+							observer.next(first);
+							observer.finish();
+						} else {
+							observer.error(new NoSuchElementException());
+						}
+					}
+					
+				}).registerWith(source);
+			}
+		};
+	}
+	/**
+	 * Returns the only element of the source, 
+	 * returns the default value if the source is empty or TooManyElementsException if
+	 * it contains more than one elements.
+	 * @param <T> the element type
+	 * @param source the source sequence of Ts
+	 * @param defaultValue the default value to return in case the source is empty
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> singleAsync(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull T defaultValue) {
+		return singleAsync(source, Functions.constant0(defaultValue));
+	}
+	/**
+	 * Returns the only element of the source, 
+	 * returns the supplier's value if the source is empty or TooManyElementsException if
+	 * it contains more than one elements.
+	 * @param <T> the element type
+	 * @param source the source sequence of Ts
+	 * @param defaultSupplier the function that produces
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> singleAsync(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func0<? extends T> defaultSupplier) {
+		return new Observable<T>() {
+			@Override
+			@Nonnull
+			public Closeable register(final Observer<? super T> observer) {
+				return (new DefaultObserverEx<T>() {
+					/** True if the first element received. */
+					boolean firstReceived;
+					/** The first element encountered. */
+					T first;
+					@Override
+					protected void onNext(T value) {
+						if (!firstReceived) {
+							first = value;
+							firstReceived = true;
+						} else {
+							error(new TooManyElementsException());
+						}
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						if (firstReceived) {
+							observer.next(first);
+							observer.finish();
+						} else {
+							observer.next(defaultSupplier.invoke());
+							observer.finish();
+						}
+					}
+					
+				}).registerWith(source);
+			}
+		};
+	}
+	/**
+	 * Returns the single element of the given observable source,
+	 * returns the default if the source is empty or throws a 
+	 * TooManyElementsException in case the source has more than one item.
+	 * @param <T> the type of the element
+	 * @param source the source of Ts
+	 * @param defaultValue the value to return if the source is empty
+	 * @return the single element
+	 * @see #first(Observable, Object)
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> T single(
+			@Nonnull Observable<? extends T> source,
+			T defaultValue) {
+		return single(source, Functions.constant0(defaultValue));
+	}
+	/**
+	 * Returns the single element of the given observable source,
+	 * returns the supplier's value if the source is empty or throws a 
+	 * TooManyElementsException in case the source has more than one item.
+	 * @param <T> the type of the element
+	 * @param source the source of Ts
+	 * @param defaultSupplier the function that produces the default value
+	 * @return the single element
+	 * @see #first(Observable, Func0)
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> T single(
+			@Nonnull Observable<? extends T> source,
+			@Nonnull Func0<? extends T> defaultSupplier) {
+		CloseableIterator<T> it = toIterable(source).iterator();
+		try {
+			if (it.hasNext()) {
+				T one = it.next();
+				if (!it.hasNext()) {
+					return one;
+				}
+				throw new TooManyElementsException();
+			}
+		} finally {
+			Closeables.closeSilently(it);
+		}
+		return defaultSupplier.invoke();
 	}
 	/** Utility class. */
 	private Reactive() {
