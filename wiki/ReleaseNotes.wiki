@@ -44,6 +44,10 @@
   * Added new {{{Reactive.firstAsync}}} operator + 2 overloads.
   * Added new {{{Reactive.lastAsync}}} operator + 2 overloads.
   * Added 2 overloads to the {{{Reactive.first}}} and {{{Reactive.last}}} operators: one with default value, the other with a supplier function.
+  * Added 2 overloads to the {{{Reactive.single}}} operator.
+  * Added new {{{Reactive.singleAsync}}} operator + 2 overloads.
+  * Reworked the DefaultConnectableObservable behavior.
+  * Reworked Reactive.multicast behavior + 1 overloads added.
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
