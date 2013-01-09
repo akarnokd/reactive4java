@@ -26,9 +26,17 @@
   * Added Reactive.generateTimedWithUnit that accepts a delay function which returns a time value and its unit.
   * Resolved many cases where the registration and deregistration were wrong and prone to race or premature completion.
   * Rewised Reactive.sequenceEqual to traverse the source sequences only once.
-    * Added overload to work with an Iterable pair
+    * Added overload to work with an Iterable pair.
   * Added exception supplier based overload to Reactive.throwException.
-  * Modified the Reactive.materialize to terminate after a finish or error call. The original, infinite stream version is renamed to materializeForever.
+  * Modified the {{{Reactive.materialize}}} to terminate after a finish or error call. The original, infinite stream version is renamed to materializeForever.
+  * Moved the example Action-observable methods from Reactive to !ActionObservable class (asAction, asFObservable, asObservable, asObserver).
+  * Renamed Reactive.combineLatest to Reactive.combineLatest0 and Reactive.combineLatestSent to the former.
+  * Created CloseableObserver, LockedObserver and SynchronizedObserver which can wrap an observer instance and provide certain guarantees.
+  * Moved RunOnce to base package.
+  * Renamed {{{Actions.close0}}} to {{{Actions.closeSilently}}}.
+  * Added {{{Reactive.singleton}}} overload which takes a {{{Func0}}} to produce the value.
+  * Added {{{Reactive.combine}}} with a function to supply the pair's first value.
+
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
