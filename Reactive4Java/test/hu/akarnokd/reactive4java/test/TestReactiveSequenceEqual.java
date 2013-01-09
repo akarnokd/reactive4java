@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,10 @@
  */
 package hu.akarnokd.reactive4java.test;
 
+import static hu.akarnokd.reactive4java.query.ObservableBuilder.from;
+import static hu.akarnokd.reactive4java.reactive.Reactive.concat;
+import static hu.akarnokd.reactive4java.reactive.Reactive.empty;
+import static hu.akarnokd.reactive4java.reactive.Reactive.sequenceEqual;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
@@ -26,6 +30,7 @@ import org.junit.Test;
 /**
  * Test for Reactive.sequenceEqual operator.
  * @author akarnokd, 2013.01.08.
+ * @since 0.97
  */
 public class TestReactiveSequenceEqual {
 
@@ -57,7 +62,7 @@ public class TestReactiveSequenceEqual {
 		
 		List<Boolean> values = TestUtil.waitForAll(result);
 		
-		TestUtil.assertNotEqual(Arrays.asList(false), values);
+		TestUtil.assertEqual(Arrays.asList(false), values);
 	}
 	/**
 	 * Test if equality is properly detected in case of empty sources.
@@ -95,7 +100,7 @@ public class TestReactiveSequenceEqual {
 	 * Test if difference is properly detected.
 	 * @throws Exception on error
 	 */
-	@Test(timeout = 2000)
+	@Test
 	public void testMixedEqual() throws Exception {
 		RuntimeException ex = new RuntimeException();
 		
@@ -106,7 +111,40 @@ public class TestReactiveSequenceEqual {
 		
 		List<Boolean> values = TestUtil.waitForAll(result);
 		
-		TestUtil.assertEqual(Arrays.asList(true), values);
+		TestUtil.assertEqual(Arrays.asList(false), values);
+	}
+	/**
+	 * Tests the commutativity of sequenceEqual().
+	 */
+	@Test
+	public void sequenceEqualCommutative() {
+		Observable<Integer> prefix = from(1, 2);
+		Observable<Integer> o = concat(prefix, from(3, 4));
+		TestUtil.assertEqual(sequenceEqual(prefix, o), sequenceEqual(o, prefix));
+	}
+	/**
+	 * Tests sequenceEqual() in case of an empty and non-empty sequence.
+	 */
+	@Test
+	public void sequenceEqualNotBecauseEmpty() {
+		TestUtil.assertNotEqual(from(1, 2), empty());
+	}
+	/**
+	 * Tests sequenceEqual() in case of different sequences.
+	 */
+	@Test
+	public void sequenceEqualNotBecauseJustPrefix() {
+		Observable<Integer> prefix = from(1, 2);
+		Observable<Integer> o = concat(prefix, from(3, 4));
+		TestUtil.assertNotEqual(o, prefix);
+	}
+	/**
+	 * Tests sequenceEqual() in case of equal sequences.
+	 */
+	@Test
+	public void sequenceEqualOk() {
+		Observable<Integer> o = from(1, 2);
+		TestUtil.assertEqual(o, o);
 	}
 
 }

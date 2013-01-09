@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -152,6 +152,17 @@ public final class Closeables {
 		}
 		if (xout != null) {
 			throw xout;
+		}
+	}
+	/**
+	 * If the target object implements Closeable, this method calls
+	 * it, otherwise its a no-op.
+	 * @param o the object to close
+	 * @throws IOException the exception thrown by the close() method
+	 */
+	public static void close(Object o) throws IOException {
+		if (o instanceof Closeable) {
+			((Closeable)o).close();
 		}
 	}
 }

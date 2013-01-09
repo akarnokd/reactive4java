@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import org.junit.Test;
 
 /**
  * @author akarnokd, 2013.01.04.
+ * @since 0.97
  */
 public class TestInteractiveConcat {
 	/**

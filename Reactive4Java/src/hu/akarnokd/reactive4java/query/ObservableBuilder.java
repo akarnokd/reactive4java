@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -907,18 +907,18 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * after both streams terminate.</p>
 	 * <p>Note that at the beginning, when the left or right fires first, the selector function
 	 * will receive (value, null) or (null, value). If you want to react only in cases when both have sent
-	 * a value, use the {@link #combineLatestSent(Observable, Observable, Func2)} method.</p>
+	 * a value, use the {@link #combineLatest(Observable, Observable, Func2)} method.</p>
 	 * @param <U> the right element type
 	 * @param <V> the result element type
 	 * @param right the right stream
 	 * @param selector the function which combines values from both streams and returns a new value
 	 * @return the new observable.
 	 */
-	public <U, V> ObservableBuilder<V> combineLatest(
+	public <U, V> ObservableBuilder<V> combineLatest0(
 			final Observable<? extends U> right,
 			final Func2<? super T, ? super U, ? extends V> selector
 	) {
-		return from(Reactive.combineLatest(o, right, selector));
+		return from(Reactive.combineLatest0(o, right, selector));
 	}
 	/**
 	 * Returns an observable which combines the latest values of
@@ -935,11 +935,11 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param selector the function which combines values from both streams and returns a new value
 	 * @return the new observable.
 	 */
-	public <U, V> ObservableBuilder<V> combineLatestSent(
+	public <U, V> ObservableBuilder<V> combineLatest(
 			final Observable<? extends U> right,
 			final Func2<? super T, ? super U, ? extends V> selector
 	) {
-		return from(Reactive.combineLatestSent(o, right, selector));
+		return from(Reactive.combineLatest(o, right, selector));
 	}
 	/**
 	 * Concatenates the source observables in a way that when the first finish(), the
@@ -971,7 +971,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the new observable
 	 */
 	public ObservableBuilder<T> concatAll(
-			final Observable<? extends Observable<T>> sources
+			final Observable<? extends Observable<? extends T>> sources
 	) {
 		return from(Reactive.concat(Reactive.concat(Reactive.singleton(o), sources)));
 	}
@@ -988,6 +988,21 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return from(Reactive.contains(o, value));
 	}
 	/**
+	 * Signals a single TRUE if the source observable signals a value equals() 
+	 * with the supplied value.
+	 * Both the source and the test value might be null. 
+	 * The signal goes after the first encounter of
+	 * the given value.
+	 * @param supplier the supplier for the comparison value
+	 * @return the observer for contains
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<Boolean> contains(
+			final Func0<? extends T> supplier) {
+		return from(Reactive.contains(o, supplier));
+	}
+	/**
 	 * Counts the number of elements in the observable source.
 	 * @return the count signal
 	 */
@@ -996,12 +1011,32 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return from(Reactive.count(o));
 	}
 	/**
+	 * Counts the number of elements where the predicate returns true.
+	 * @param predicate the predicate function
+	 * @return the count signal
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<Integer> count(@Nonnull Func1<? super T, Boolean> predicate) {
+		return from(Reactive.count(o, predicate));
+	}
+	/**
 	 * Counts the number of elements in the observable source as a long.
 	 * @return the count signal
 	 */
 	@Nonnull
 	public ObservableBuilder<Long> countLong() {
 		return from(Reactive.countLong(o));
+	}
+	/**
+	 * Counts the number of elements where the predicate returns true as long.
+	 * @param predicate the predicate function
+	 * @return the count signal
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<Integer> countLong(@Nonnull Func1<? super T, Boolean> predicate) {
+		return from(Reactive.count(o, predicate));
 	}
 	/**
 	 * Constructs an observer which logs errors in case next(), finish() or error() is called
@@ -1125,9 +1160,10 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return from(Reactive.finish(o, action));
 	}
 	/**
-	 * Blocks until the first element of the observable becomes availabel and returns that element.
+	 * Blocks until the first element of the observable becomes available 
+	 * and returns that element.
 	 * Might block forever.
-	 * Might throw a NoSuchElementException when the observable doesn't produce any more elements
+	 * Might throw a NoSuchElementException when the observable doesn't produce any more elements.
 	 * @return the first element
 	 */
 	public T first() {
@@ -3294,5 +3330,187 @@ public final class ObservableBuilder<T> implements Observable<T> {
 			Closeables.closeSilently(it);
 		}
 		return out;
+	}
+	/**
+	 * Aggregates the sequence via the accumulator function
+	 * and transforms the result value with the selector.
+	 * @param <U> the aggregation intermediate type
+	 * @param <V> the result type
+	 * @param seed the initial value for the aggregation
+	 * @param accumulator the accumulation function
+	 * @param resultSelector the result selector
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public <U, V> ObservableBuilder<V> aggregate(
+			U seed, 
+			Func2<? super U, ? super T, ? extends U> accumulator, 
+			Func1<? super U, ? extends V> resultSelector) {
+		return from(Reactive.aggregate(o, seed, accumulator, resultSelector));
+	}
+	/**
+	 * Computes an aggregated value of the source Ts by 
+	 * using the initial seed, applying an 
+	 * accumulator function and applying the divide function when the source
+	 * finishes, sending the result to the output.
+	 * @param <U> the type of the intermediate sum value
+	 * @param <V> the type of the final average value
+	 * @param seed the initieal value for the aggregation
+	 * @param accumulator the function which sums the input Ts. The first received T will be accompanied by a null U.
+	 * @param divider the function which perform the final division based on the number of elements
+	 * @return the observable for the average value
+	 * @since 0.97
+	 */
+	public <U, V> ObservableBuilder<V> aggregate(
+			U seed, 
+			Func2<? super U, ? super T, ? extends U> accumulator, 
+			Func2<? super U, ? super Integer, ? extends V> divider) {
+		return from(Reactive.aggregate(o, seed, accumulator, divider));
+	}
+	/**
+	 * Returns a single element from the sequence at the index or throws	
+	 * a NoSuchElementException if the sequence terminates before this index.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param index the index to look at
+	 * @return the observable which returns the element at index or an exception
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> elementAt(int index) {
+		return from(Reactive.elementAt(o, index));
+	}
+	/**
+	 * Returns a single element from the sequence at the index or the 
+	 * default value if the sequence terminates before this index.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param index the index to look at
+	 * @param defaultValue the value to return if the sequence is sorter than index
+	 * @return the observable which returns the element at index or the default value
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> elementAt(int index, T defaultValue) {
+		return from(Reactive.elementAt(o, index, defaultValue));
+	}
+	/**
+	 * Returns a single element from the sequence at the index or the 
+	 * default value supplied if the sequence terminates before this index.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param index the index to look at
+	 * @param defaultSupplier the function that will supply the default value 
+	 * @return the observable which returns the element at index or the default value supplied
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> elementAt(int index, 
+			@Nonnull Func0<? extends T> defaultSupplier) {
+		return from(Reactive.elementAt(o, index, defaultSupplier));
+	}
+	/**
+	 * Blocks until the first element of the observable becomes available 
+	 * and returns that element or returns the default value if the observable is empty.
+	 * Might block forever.
+	 * @param defaultValue the default value in case the observable is empty
+	 * @return the first element or the default value
+	 * @since 0.97
+	 */
+	public T first(T defaultValue) {
+		return Reactive.first(o, defaultValue);
+	}
+	/**
+	 * Blocks until the first element of the observable becomes available 
+	 * and returns that element or returns the supplier's value if the observable is empty.
+	 * Might block forever.
+	 * @param defaultSupplier the supplier of default value in case the source is empty
+	 * @return the first element or the supplier's value
+	 * @since 0.97
+	 */
+	public T first(@Nonnull Func0<? extends T> defaultSupplier) {
+		return Reactive.first(o, defaultSupplier);
+	}
+	/**
+	 * Returns an observable which takes the first value from the source observable
+	 * as a single element or throws NoSuchElementException if the source is empty.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> firstAsync() {
+		return from(Reactive.firstAsync(o));
+	}
+	/**
+	 * Returns an observable which takes the first value from the source observable
+	 * as a single element or the default value if the source is empty.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param defaultValue the default value to return
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> firstAsync(T defaultValue) {
+		return from(Reactive.firstAsync(o, defaultValue));
+	}
+	/**
+	 * Returns an observable which takes the first value from the source observable
+	 * as a single element or the supplier's value if the source is empty.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param defaultSupplier the default value supplier
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> firstAsync(@Nonnull Func0<? extends T> defaultSupplier) {
+		return from(Reactive.firstAsync(o, defaultSupplier));
+	}
+	/**
+	 * Returns the last element of the source observable or the
+	 * default value if the source is empty.
+	 * <p>Exception semantics: the exceptions thrown by the source are ignored and treated
+	 * as termination signals.</p>
+	 * @param defaultValue the value to provide if the source is empty
+	 * @return the last element
+	 * @since 0.97
+	 */
+	public T last(T defaultValue) {
+		return Reactive.last(o, defaultValue);
+	}
+	/**
+	 * Returns the last element of the source observable or the
+	 * supplier's value if the source is empty.
+	 * <p>Exception semantics: the exceptions thrown by the source are ignored and treated
+	 * as termination signals.</p>
+	 * @param defaultSupplier the function to provide the default value
+	 * @return the last element
+	 * @since 0.97
+	 */
+	public T last(@Nonnull Func0<? extends T> defaultSupplier) {
+		return Reactive.last(o, defaultSupplier);
+	}
+	/**
+	 * Returns an observable which relays the last element of the source observable
+	 * or throws a NoSuchElementException() if the source is empty.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> lastAsync() {
+		return from(Reactive.lastAsync(o));
+	}
+	/**
+	 * Returns an observable which relays the last element of the source observable
+	 * or the default value if the source is empty.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param defaultValue the default value to return in case the source is empty
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> lastAsync(T defaultValue) {
+		return from(Reactive.lastAsync(o, defaultValue));
+	}
+	/**
+	 * Returns an observable which relays the last element of the source observable
+	 * or the supplier's value if the source is empty.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param defaultSupplier the supplier to produce a value to return in case the source is empty
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> lastAsync(@Nonnull Func0<? extends T> defaultSupplier) {
+		return from(Reactive.lastAsync(o, defaultSupplier));
 	}
 }

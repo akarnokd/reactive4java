@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,13 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	/** The sub-observer registration holder. The key is a use-site created object. */
 	@GuardedBy("lock")
 	protected final Map<Object, Closeable> subObservers = new IdentityHashMap<Object, Closeable>();
+	/**
+	 * Constructor. Sets up the observer to complete once the error or finish
+	 * messages are received.
+	 */
+	public DefaultObserverEx() {
+		super(true);
+	}
 	/**
 	 * Constructor.
 	 * @param complete should the observer close its sub-resources automatically on error/finish?

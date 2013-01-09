@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -301,22 +301,16 @@ public final class Actions {
 		};
 	}
 	/**
-	 * Wraps the closeable into action and supresses any close exception.
+	 * Wraps the closeable into action and suppresses any close exception.
 	 * @param c the closeable
 	 * @return the action
 	 * @since 0.96
 	 */
-	public static Action0 close0(final Closeable c) {
+	public static Action0 closeSilently(final Closeable c) {
 		return new Action0() {
 			@Override
 			public void invoke() {
-				if (c != null) {
-					try {
-						c.close();
-					} catch (IOException ex) {
-						// ignored
-					}
-				}
+				Closeables.closeSilently(c);
 			}
 		};
 	}

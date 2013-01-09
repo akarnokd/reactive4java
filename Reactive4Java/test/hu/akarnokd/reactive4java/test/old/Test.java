@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,8 @@ import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.Observer;
-import hu.akarnokd.reactive4java.test.FunctionIterable;
+import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -71,7 +70,7 @@ public final class Test {
 		}
 		
 		final CountDownLatch latch = new CountDownLatch(1); 
-		Action1<Action1<Option<Integer>>> oxs = Reactive.asFObservable(Reactive.range(20, 10));
+		Action1<Action1<Option<Integer>>> oxs = ActionObservable.asFObservable(Reactive.range(20, 10));
 		
 		oxs.invoke(new Action1<Option<Integer>>() {
 			@Override
@@ -86,7 +85,7 @@ public final class Test {
 		
 		latch.await();
 		
-		Observable<Integer> oys = Reactive.asObservable(oxs);
+		Observable<Integer> oys = ActionObservable.asObservable(oxs);
 		oys.register(new Observer<Integer>() {
 			@Override
 			public void finish() {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package hu.akarnokd.reactive4java.reactive;
 
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
-import hu.akarnokd.reactive4java.base.Actions;
 import hu.akarnokd.reactive4java.base.CircularBuffer;
 import hu.akarnokd.reactive4java.base.CloseableIterable;
 import hu.akarnokd.reactive4java.base.CloseableIterator;
@@ -121,7 +120,7 @@ public final class Reactive {
 	 * Returns an observable which provides a TimeInterval of Ts which
 	 * records the elapsed time between successive elements.
 	 * The time interval is evaluated using the System.nanoTime() differences
-	 * as nanoseconds
+	 * as nanoseconds.
 	 * The first element contains the time elapsed since the registration occurred.
 	 * @param <T> the time source
 	 * @param source the source of Ts
@@ -222,14 +221,14 @@ public final class Reactive {
 	 * @param <U> the type of the intermediate sum value
 	 * @param <V> the type of the final average value
 	 * @param source the source of BigDecimals to aggregate.
-	 * @param sum the function which sums the input Ts. The first received T will be accompanied by a null U.
+	 * @param accumulator the function which accumulates the input Ts. The first received T will be accompanied by a null U.
 	 * @param divide the function which perform the final division based on the number of elements
 	 * @return the observable for the average value
 	 */
 	@Nonnull
 	public static <T, U, V> Observable<V> aggregate(
 			@Nonnull final Observable<? extends T> source,
-			@Nonnull final Func2<? super U, ? super T, ? extends U> sum,
+			@Nonnull final Func2<? super U, ? super T, ? extends U> accumulator,
 			@Nonnull final Func2<? super U, ? super Integer, ? extends V> divide) {
 		return new Observable<V>() {
 			@Override
@@ -254,7 +253,58 @@ public final class Reactive {
 
 					@Override
 					public void next(T value) {
-						temp = sum.invoke(temp, value);
+						temp = accumulator.invoke(temp, value);
+						count++;
+					}
+
+				});
+			}
+		};
+	}
+	/**
+	 * Computes an aggregated value of the source Ts by applying a 
+	 * sum function and applying the divide function when the source
+	 * finishes, sending the result to the output.
+	 * @param <T> the type of the values
+	 * @param <U> the type of the intermediate sum value
+	 * @param <V> the type of the final average value
+	 * @param source the source of BigDecimals to aggregate.
+	 * @param seed the initieal value for the aggregation
+	 * @param accumulator the function which accumulates the input Ts. The first received T will be accompanied by a null U.
+	 * @param divide the function which perform the final division based on the number of elements
+	 * @return the observable for the average value
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, U, V> Observable<V> aggregate(
+			@Nonnull final Observable<? extends T> source,
+			final U seed,
+			@Nonnull final Func2<? super U, ? super T, ? extends U> accumulator,
+			@Nonnull final Func2<? super U, ? super Integer, ? extends V> divide) {
+		return new Observable<V>() {
+			@Override
+			public Closeable register(final Observer<? super V> observer) {
+				return source.register(new Observer<T>() {
+					/** The number of values. */
+					int count;
+					/** The sum of the values thus far. */
+					U temp = seed;
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (count > 0) {
+							observer.next(divide.invoke(temp, count));
+						}
+						observer.finish();
+					}
+
+					@Override
+					public void next(T value) {
+						temp = accumulator.invoke(temp, value);
 						count++;
 					}
 
@@ -347,23 +397,6 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Channels the values of either left or right depending on who fired its first value.
-	 * @param <T> the observed value type
-	 * @param left the left observable
-	 * @param right the right observable
-	 * @return the observable that will stream one of the sources.
-	 * @since 0.97
-	 */
-	public static <T> Observable<T> amb(
-			@Nonnull final Observable<? extends T> left,
-			@Nonnull final Observable<? extends T> right
-			) {
-		List<Observable<? extends T>> sources = new ArrayList<Observable<? extends T>>();
-		sources.add(left);
-		sources.add(right);
-		return amb(sources);
-	}
-	/**
 	 * Channels the values of the first observable who fires first from the given set of observables.
 	 * E.g., <code>O3 = Amb(O1, O2)</code> if O1 starts to submit events first, O3 will relay these events and events of O2 will be completely ignored
 	 * @param <T> the type of the observed element
@@ -445,6 +478,23 @@ public final class Reactive {
 		};
 	}
 	/**
+	 * Channels the values of either left or right depending on who fired its first value.
+	 * @param <T> the observed value type
+	 * @param left the left observable
+	 * @param right the right observable
+	 * @return the observable that will stream one of the sources.
+	 * @since 0.97
+	 */
+	public static <T> Observable<T> amb(
+			@Nonnull final Observable<? extends T> left,
+			@Nonnull final Observable<? extends T> right
+			) {
+		List<Observable<? extends T>> sources = new ArrayList<Observable<? extends T>>();
+		sources.add(left);
+		sources.add(right);
+		return amb(sources);
+	}
+	/**
 	 * Signals a single true if the source observable contains any element.
 	 * It might return early for a non-empty source but waits for the entire observable to return false.
 	 * @param <T> the element type
@@ -498,85 +548,6 @@ public final class Reactive {
 				};
 				return obs.registerWith(source);
 			}
-		};
-	}
-	/**
-	 * Wraps the given observer into an action object which then dispatches
-	 * various incoming Option values to next(), finish() and error().
-	 * @param <T> the element type
-	 * @param observer the observer to wrap
-	 * @return the wrapper action
-	 */
-	@Nonnull
-	public static <T> Action1<Option<T>> asAction(
-			@Nonnull final Observer<? super T> observer) {
-		return new Action1<Option<T>>() {
-			@Override
-			public void invoke(Option<T> value) {
-				dispatch(observer, value);
-			}
-		};
-	}
-	/**
-	 * Convert the Observable instance into a functional-observable object.
-	 * @param <T> the type of the elements
-	 * @param source the source observable
-	 * @return the action to action to option of T
-	 */
-	@Nonnull
-	public static <T> Action1<Action1<Option<T>>> asFObservable(
-			@Nonnull final Observable<? extends T> source) {
-		return new Action1<Action1<Option<T>>>() {
-			@Override
-			public void invoke(final Action1<Option<T>> o) {
-				source.register(asObserver(o));
-			}
-		};
-	}
-	/**
-	 * Convert the functional observable into a normal observable object.
-	 * @param <T> the type of the elements to observe.
-	 * @param source the source of the functional-observable elements
-	 * @return the observable object
-	 */
-	@Nonnull
-	public static <T> Observable<T> asObservable(
-			@Nonnull final Action1<Action1<Option<T>>> source) {
-		return create(new Func1<Observer<? super T>, Action0>() {
-			@Override
-			public Action0 invoke(final Observer<? super T> o) {
-				source.invoke(asAction(o));
-				return Actions.noAction0();
-			}
-		});
-	}
-	/**
-	 * Transform the given action to an observer.
-	 * The wrapper observer converts its next() messages to Option.some(),
-	 * the finish() to Option.none() and error() to Option.error().
-	 * @param <T> the element type to observe
-	 * @param action the action to wrap
-	 * @return the observer
-	 */
-	@Nonnull
-	public static <T> Observer<T> asObserver(
-			@Nonnull final Action1<? super Option<T>> action) {
-		return new Observer<T>() {
-			@Override
-			public void error(Throwable ex) {
-				action.invoke(Option.<T>error(ex));
-			}
-
-			@Override
-			public void finish() {
-				action.invoke(Option.<T>none());
-			}
-
-			@Override
-			public void next(T value) {
-				action.invoke(Option.some(value));
-			}
-
 		};
 	}
 	/**
@@ -932,90 +903,108 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Returns an observable which combines the latest values of
-	 * both streams whenever one sends a new value.
-	 * <p><b>Exception semantics:</b> if any stream throws an exception, the output stream
-	 * throws an exception and all subscriptions are terminated.</p>
-	 * <p><b>Completion semantics:</b> The output stream terminates
-	 * after both streams terminate.</p>
-	 * <p>Note that at the beginning, when the left or right fires first, the selector function
-	 * will receive (value, null) or (null, value). If you want to react only in cases when both have sent
-	 * a value, use the {@link #combineLatestSent(Observable, Observable, Func2)} method.</p>
-	 * @param <T> the left element type
-	 * @param <U> the right element type
-	 * @param <V> the result element type
-	 * @param left the left stream
-	 * @param right the right stream
-	 * @param selector the function which combines values from both streams and returns a new value
-	 * @return the new observable.
+	 * Combine a value supplied by the function with a stream of Ts whenever the src fires.
+	 * The observed sequence contains the supplied value as first, the src value as second.
+	 * @param <T> the element type
+	 * @param supplier the function that returns a value
+	 * @param src the source of Ts
+	 * @return the new observer
+	 * @since 0.97
 	 */
-	public static <T, U, V> Observable<V> combineLatest(
-			final Observable<? extends T> left,
-			final Observable<? extends U> right,
-			final Func2<? super T, ? super U, ? extends V> selector
-	) {
-		return new Observable<V>() {
+	public static <T> Observable<List<T>> combine(final Func0<? extends T> supplier, Observable<? extends T> src) {
+		return select(src, new Func1<T, List<T>>() {
 			@Override
-			public Closeable register(final Observer<? super V> observer) {
-				final Lock lock = new ReentrantLock(true);
-				final CompositeCloseable closeBoth = new CompositeCloseable();
-				
-				final AtomicReference<T> leftRef = new AtomicReference<T>();
-				final AtomicReference<U> rightRef = new AtomicReference<U>();
-				final AtomicInteger wip = new AtomicInteger(2);
-				DefaultObserverEx<T> obs1 = new DefaultObserverEx<T>(lock, false) {
-
+			public List<T> invoke(T param1) {
+				List<T> result = new ArrayList<T>();
+				result.add(supplier.invoke());
+				result.add(param1);
+				return result;
+			}
+		});
+	}
+	/**
+	 * Combine the incoming Ts of the various observables into a single list of Ts like
+	 * using zip() on more than two sources.
+	 * @param <T> the element type
+	 * @param srcs the iterable of observable sources.
+	 * @return the new observable
+	 */
+	public static <T> Observable<List<T>> combine(final List<? extends Observable<? extends T>> srcs) {
+		if (srcs.size() < 1) {
+			return never();
+		} else
+		if (srcs.size() == 1) {
+			return select(srcs.get(0), new Func1<T, List<T>>() {
+				@Override
+				public List<T> invoke(T param1) {
+					List<T> result = new ArrayList<T>(1);
+					result.add(param1);
+					return result;
+				}
+			});
+		}
+		return new Observable<List<T>>() {
+			@Override
+			public Closeable register(Observer<? super List<T>> observer) {
+				Observable<List<T>> res0 = zip(srcs.get(0), srcs.get(1), new Func2<T, T, List<T>>() {
 					@Override
-					protected void onError(Throwable ex) {
-						observer.error(ex);
-						Closeables.closeSilently(closeBoth);
+					public List<T> invoke(T param1, T param2) {
+						List<T> result = new ArrayList<T>();
+						result.add(param1);
+						result.add(param2);
+						return result;
 					}
-
-					@Override
-					protected void onFinish() {
-						if (wip.decrementAndGet() == 0) {
-							observer.finish();
+				});
+				for (int i = 2; i < srcs.size(); i++) {
+					res0 = zip(res0, srcs.get(i), new Func2<List<T>, T, List<T>>() {
+						@Override
+						public List<T> invoke(List<T> param1, T param2) {
+							param1.add(param2);
+							return param1;
 						}
-						close();
-					}
-
-					@Override
-					protected void onNext(T value) {
-						leftRef.set(value);
-						observer.next(selector.invoke(value, rightRef.get()));
-					}
-
-				};
-				DefaultObserverEx<U> obs2 = new DefaultObserverEx<U>(lock, false) {
-
-					@Override
-					protected void onError(Throwable ex) {
-						observer.error(ex);
-						Closeables.closeSilently(closeBoth);
-					}
-
-					@Override
-					protected void onFinish() {
-						if (wip.decrementAndGet() == 0) {
-							observer.finish();
-						}
-						close();
-					}
-
-					@Override
-					protected void onNext(U value) {
-						rightRef.set(value);
-						observer.next(selector.invoke(leftRef.get(), value));
-					}
-
-				};
-				closeBoth.add(obs1);
-				closeBoth.add(obs2);
-				obs1.add(new Object(), left);
-				obs2.add(new Object(), right);
-				return closeBoth;
+					});
+				}
+				return res0.register(observer);
 			}
 		};
+	}
+	/**
+	 * Combine a stream of Ts with a constant T whenever the src fires.
+	 * The observed list contains the values of src as the first value, constant as the second.
+	 * @param <T> the element type
+	 * @param src the source of Ts
+	 * @param constant the constant T to combine with
+	 * @return the new observer
+	 */
+	public static <T> Observable<List<T>> combine(Observable<? extends T> src, final T constant) {
+		return select(src, new Func1<T, List<T>>() {
+			@Override
+			public List<T> invoke(T param1) {
+				List<T> result = new ArrayList<T>();
+				result.add(param1);
+				result.add(constant);
+				return result;
+			}
+		});
+	}
+	/**
+	 * Combine a constant T with a stream of Ts whenever the src fires.
+	 * The observed sequence contains the constant as first, the src value as second.
+	 * @param <T> the element type
+	 * @param constant the constant T to combine with
+	 * @param src the source of Ts
+	 * @return the new observer
+	 */
+	public static <T> Observable<List<T>> combine(final T constant, Observable<? extends T> src) {
+		return select(src, new Func1<T, List<T>>() {
+			@Override
+			public List<T> invoke(T param1) {
+				List<T> result = new ArrayList<T>();
+				result.add(constant);
+				result.add(param1);
+				return result;
+			}
+		});
 	}
 	/**
 	 * Returns an observable which combines the latest values of
@@ -1034,7 +1023,7 @@ public final class Reactive {
 	 * @param selector the function which combines values from both streams and returns a new value
 	 * @return the new observable.
 	 */
-	public static <T, U, V> Observable<V> combineLatestSent(
+	public static <T, U, V> Observable<V> combineLatest(
 			final Observable<? extends T> left,
 			final Observable<? extends U> right,
 			final Func2<? super T, ? super U, ? extends V> selector
@@ -1098,6 +1087,92 @@ public final class Reactive {
 						if (leftFirst.get()) {
 							observer.next(selector.invoke(leftRef.get(), value));
 						}
+					}
+
+				};
+				closeBoth.add(obs1);
+				closeBoth.add(obs2);
+				obs1.add(new Object(), left);
+				obs2.add(new Object(), right);
+				return closeBoth;
+			}
+		};
+	}
+	/**
+	 * Returns an observable which combines the latest values of
+	 * both streams whenever one sends a new value.
+	 * <p><b>Exception semantics:</b> if any stream throws an exception, the output stream
+	 * throws an exception and all subscriptions are terminated.</p>
+	 * <p><b>Completion semantics:</b> The output stream terminates
+	 * after both streams terminate.</p>
+	 * <p>Note that at the beginning, when the left or right fires first, the selector function
+	 * will receive (value, null) or (null, value). If you want to react only in cases when both have sent
+	 * a value, use the {@link #combineLatest(Observable, Observable, Func2)} method.</p>
+	 * @param <T> the left element type
+	 * @param <U> the right element type
+	 * @param <V> the result element type
+	 * @param left the left stream
+	 * @param right the right stream
+	 * @param selector the function which combines values from both streams and returns a new value
+	 * @return the new observable.
+	 */
+	public static <T, U, V> Observable<V> combineLatest0(
+			final Observable<? extends T> left,
+			final Observable<? extends U> right,
+			final Func2<? super T, ? super U, ? extends V> selector
+	) {
+		return new Observable<V>() {
+			@Override
+			public Closeable register(final Observer<? super V> observer) {
+				final Lock lock = new ReentrantLock(true);
+				final CompositeCloseable closeBoth = new CompositeCloseable();
+				
+				final AtomicReference<T> leftRef = new AtomicReference<T>();
+				final AtomicReference<U> rightRef = new AtomicReference<U>();
+				final AtomicInteger wip = new AtomicInteger(2);
+				DefaultObserverEx<T> obs1 = new DefaultObserverEx<T>(lock, false) {
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+						Closeables.closeSilently(closeBoth);
+					}
+
+					@Override
+					protected void onFinish() {
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+						}
+						close();
+					}
+
+					@Override
+					protected void onNext(T value) {
+						leftRef.set(value);
+						observer.next(selector.invoke(value, rightRef.get()));
+					}
+
+				};
+				DefaultObserverEx<U> obs2 = new DefaultObserverEx<U>(lock, false) {
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+						Closeables.closeSilently(closeBoth);
+					}
+
+					@Override
+					protected void onFinish() {
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+						}
+						close();
+					}
+
+					@Override
+					protected void onNext(U value) {
+						rightRef.set(value);
+						observer.next(selector.invoke(leftRef.get(), value));
 					}
 
 				};
@@ -1278,6 +1353,29 @@ public final class Reactive {
 		});
 	}
 	/**
+	 * Signals a single TRUE if the source observable signals a value equals() with 
+	 * the supplied value.
+	 * Both the source and the test value might be null. The signal goes after the first encounter of
+	 * the given value.
+	 * @param <T> the type of the observed values
+	 * @param source the source observable
+	 * @param supplier the supplier for the value containment test
+	 * @return the observer for contains
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<Boolean> contains(
+			@Nonnull final Observable<? extends T> source,
+			final Func0<? extends T> supplier) {
+		return any(source, new Func1<T, Boolean>() {
+			@Override
+			public Boolean invoke(T param1) {
+				T value = supplier.invoke();
+				return param1 == value || (param1 != null && param1.equals(value));
+			}
+		});
+	}
+	/**
 	 * Counts the number of elements in the observable source.
 	 * @param <T> the element type
 	 * @param source the source observable
@@ -1311,6 +1409,19 @@ public final class Reactive {
 				});
 			}
 		};
+	}
+	/**
+	 * Counts the number of elements where the predicate returns true.
+	 * @param <T> the element type
+	 * @param source the source sequence of Ts
+	 * @param predicate the predicate function 
+	 * @return  the observable with a single value
+	 * @since 0.97
+	 */
+	public static <T> Observable<Integer> count(
+			Observable<? extends T> source, 
+			Func1<? super T, Boolean> predicate) {
+		return count(where(source, predicate));
 	}
 	/**
 	 * Counts the number of elements in the observable source as a long.
@@ -1348,19 +1459,32 @@ public final class Reactive {
 		};
 	}
 	/**
+	 * Counts the number of elements where the predicate returns true as long.
+	 * @param <T> the element type
+	 * @param source the source sequence of Ts
+	 * @param predicate the predicate function 
+	 * @return  the observable with a single value
+	 * @since 0.97
+	 */
+	public static <T> Observable<Long> countLong(
+			Observable<? extends T> source, 
+			Func1<? super T, Boolean> predicate) {
+		return countLong(where(source, predicate));
+	}
+	/**
 	 * Create an observable instance by submitting a function which takes responsibility
 	 * for registering observers.
 	 * @param <T> the type of the value to observe
-	 * @param subscribe the function to manage new subscriptions
+	 * @param register the function to manage new subscriptions
 	 * @return the observable instance
 	 */
 	@Nonnull
 	public static <T> Observable<T> create(
-			@Nonnull final Func1<Observer<? super T>, ? extends Action0> subscribe) {
+			@Nonnull final Func1<Observer<? super T>, ? extends Action0> register) {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(Observer<? super T> observer) {
-				final Action0 a = subscribe.invoke(observer);
+				final Action0 a = register.invoke(observer);
 				return new Closeable() {
 					@Override
 					public void close() {
@@ -2042,6 +2166,34 @@ public final class Reactive {
 	 * @param condition the condition that must hold to continue generating Ts
 	 * @param next the function that computes the next value of T
 	 * @param selector the selector which turns Ts into Us.
+	 * @param delay the selector which tells how much to wait (in milliseconds) before releasing the next U
+	 * @param pool the scheduled pool where the generation loop should run.
+	 * @return the observable
+	 */
+	@Nonnull
+	public static <T, U> Observable<Timestamped<U>> generateTimed(
+			final T initial,
+			@Nonnull final Func1<? super T, Boolean> condition,
+			@Nonnull final Func1<? super T, ? extends T> next,
+			@Nonnull final Func1<? super T, ? extends U> selector,
+			@Nonnull final Func1<? super T, Long> delay,
+			@Nonnull final Scheduler pool) {
+		return generateTimedWithUnit(initial, condition, next, selector, new Func1<T, Pair<Long, TimeUnit>>() {
+			@Override
+			public Pair<Long, TimeUnit> invoke(T param1) {
+				return Pair.of(delay.invoke(param1), TimeUnit.MILLISECONDS);
+			}
+		}, pool);
+	}
+	/**
+	 * Generates a dynamically timed stream of Us by using a value T stream.
+	 * If T = int and U is double, this would be seen as <code>for (int i = 0; i &lt; 10; i++) { sleep(time); yield return i / 2.0; }</code>
+	 * @param <T> the type of the generator values
+	 * @param <U> the type of the observed values
+	 * @param initial the initial generator value
+	 * @param condition the condition that must hold to continue generating Ts
+	 * @param next the function that computes the next value of T
+	 * @param selector the selector which turns Ts into Us.
 	 * @param delay the selector which returns a pair of time and timeunit that 
 	 * tells how much time to wait before releasing the next U
 	 * @param pool the scheduled pool where the generation loop should run.
@@ -2089,34 +2241,6 @@ public final class Reactive {
 				return Functions.EMPTY_CLOSEABLE;
 			}
 		};
-	}
-	/**
-	 * Generates a dynamically timed stream of Us by using a value T stream.
-	 * If T = int and U is double, this would be seen as <code>for (int i = 0; i &lt; 10; i++) { sleep(time); yield return i / 2.0; }</code>
-	 * @param <T> the type of the generator values
-	 * @param <U> the type of the observed values
-	 * @param initial the initial generator value
-	 * @param condition the condition that must hold to continue generating Ts
-	 * @param next the function that computes the next value of T
-	 * @param selector the selector which turns Ts into Us.
-	 * @param delay the selector which tells how much to wait (in milliseconds) before releasing the next U
-	 * @param pool the scheduled pool where the generation loop should run.
-	 * @return the observable
-	 */
-	@Nonnull
-	public static <T, U> Observable<Timestamped<U>> generateTimed(
-			final T initial,
-			@Nonnull final Func1<? super T, Boolean> condition,
-			@Nonnull final Func1<? super T, ? extends T> next,
-			@Nonnull final Func1<? super T, ? extends U> selector,
-			@Nonnull final Func1<? super T, Long> delay,
-			@Nonnull final Scheduler pool) {
-		return generateTimedWithUnit(initial, condition, next, selector, new Func1<T, Pair<Long, TimeUnit>>() {
-			@Override
-			public Pair<Long, TimeUnit> invoke(T param1) {
-				return Pair.of(delay.invoke(param1), TimeUnit.MILLISECONDS);
-			}
-		}, pool);
 	}
 	/**
 	 * @return the current default pool used by the Observables methods
@@ -3266,22 +3390,31 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Uses the selector function on the given source observable to extract a single
-	 * value and send this value to the registered observer.
-	 * It is sometimes called the comonadic bind operator and compared to the ContinueWith
-	 * semantics.
-	 * The default scheduler is used to emit the output value
-	 * FIXME not sure what it should do
+	 * For each of the source elements, creates a view of the source starting with the given
+	 * element and calls the selector function. The function's return observable is then merged
+	 * into a single observable sequence.<p>
+	 * For example, a source sequence of (1, 2, 3) will create three function calls with (1, 2, 3), (2, 3) and (3) as a content.
 	 * @param <T> the source element type
 	 * @param <U> the result element type
 	 * @param source the source of Ts
-	 * @param selector the selector that extracts an U from the series of Ts.
-	 * @return the new observable.
+	 * @param selector the selector function
+	 * @return the new observable
 	 */
-	public static <T, U> Observable<U> manySelect0(
+	public static <T, U> Observable<U> manySelect(
 			final Observable<? extends T> source,
-			final Func1<? super Observable<T>, ? extends U> selector) {
-		return manySelect(source, selector, DEFAULT_SCHEDULER.get());
+			final Func1<? super Observable<T>, ? extends Observable<U>> selector
+	) {
+		return merge(select(source, new Func1<T, Observable<U>>() {
+			/** The skip position. */
+			int counter;
+
+			@Override
+			public Observable<U> invoke(T param1) {
+				int i = counter++;
+				return selector.invoke(skip(source, i));
+			}
+
+		}));
 	}
 	/**
 	 * For each value of the source observable, it creates a view starting from that value into the source
@@ -3308,6 +3441,19 @@ public final class Reactive {
 					/** The skip position. */
 					int counter;
 					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+						close();
+					}
+
+					@Override
+					protected void onFinish() {
+						if (wip.decrementAndGet() == 0) {
+							observer.finish();
+						}
+					}
+
+					@Override
 					protected void onNext(T value) {
 						final Observable<T> ot = skip(source, counter);
 						wip.incrementAndGet();
@@ -3323,50 +3469,28 @@ public final class Reactive {
 						counter++;
 					}
 
-					@Override
-					protected void onError(Throwable ex) {
-						observer.error(ex);
-						close();
-					}
-
-					@Override
-					protected void onFinish() {
-						if (wip.decrementAndGet() == 0) {
-							observer.finish();
-						}
-					}
-
 				});
 				return c;
 			}
 		};
 	}
 	/**
-	 * For each of the source elements, creates a view of the source starting with the given
-	 * element and calls the selector function. The function's return observable is then merged
-	 * into a single observable sequence.<p>
-	 * For example, a source sequence of (1, 2, 3) will create three function calls with (1, 2, 3), (2, 3) and (3) as a content.
+	 * Uses the selector function on the given source observable to extract a single
+	 * value and send this value to the registered observer.
+	 * It is sometimes called the comonadic bind operator and compared to the ContinueWith
+	 * semantics.
+	 * The default scheduler is used to emit the output value
+	 * FIXME not sure what it should do
 	 * @param <T> the source element type
 	 * @param <U> the result element type
 	 * @param source the source of Ts
-	 * @param selector the selector function
-	 * @return the new observable
+	 * @param selector the selector that extracts an U from the series of Ts.
+	 * @return the new observable.
 	 */
-	public static <T, U> Observable<U> manySelect(
+	public static <T, U> Observable<U> manySelect0(
 			final Observable<? extends T> source,
-			final Func1<? super Observable<T>, ? extends Observable<U>> selector
-	) {
-		return merge(select(source, new Func1<T, Observable<U>>() {
-			/** The skip position. */
-			int counter;
-
-			@Override
-			public Observable<U> invoke(T param1) {
-				int i = counter++;
-				return selector.invoke(skip(source, i));
-			}
-
-		}));
+			final Func1<? super Observable<T>, ? extends U> selector) {
+		return manySelect(source, selector, DEFAULT_SCHEDULER.get());
 	}
 	/**
 	 * Returns an observable which converts all messages to an <code>Option</code> value.
@@ -3581,19 +3705,19 @@ public final class Reactive {
 			public Closeable register(final Observer<? super T> observer) {
 				final AtomicInteger wip = new AtomicInteger(1);
 				DefaultObserverEx<Observable<? extends T>> obs = new DefaultObserverEx<Observable<? extends T>>(false) {
-					/**
-					 * The inner exception to forward.
-					 * @param ex the exception
-					 */
-					void innerError(Throwable ex) {
-						error(ex);
-					}
 					/** Signal finish if the sources and inner observables have all finished. */
 					void ifDoneFinish() {
 						if (wip.decrementAndGet() == 0) {
 							observer.finish();
 							close();
 						}
+					}
+					/**
+					 * The inner exception to forward.
+					 * @param ex the exception
+					 */
+					void innerError(Throwable ex) {
+						error(ex);
 					}
 					@Override
 					protected void onError(Throwable ex) {
@@ -3886,6 +4010,25 @@ public final class Reactive {
 			@Override
 			public Closeable register(Observer<? super T> observer) {
 				return Functions.EMPTY_CLOSEABLE;
+			}
+		};
+	}
+	/**
+	 * Creates a new nullsafe equality comparison function where if two Option.Some&lt;T>
+	 * meet, their values are compared by using the supplied objectComparer.
+	 * @param <T> the element type
+	 * @param objectComparer the objectComparer.
+	 * @return the new comparison function
+	 */
+	protected static <T> Func2<? super Option<T>, ? super Option<T>, Boolean> newOptionComparer(
+			@Nonnull final Func2<? super T, ? super T, Boolean> objectComparer) {
+		return new Func2<Option<T>, Option<T>, Boolean>() {
+			@Override
+			public Boolean invoke(Option<T> param1, Option<T> param2) {
+				if (Option.isSome(param1) && Option.isSome(param2)) {
+					return objectComparer.invoke(param1.value(), param2.value());
+				}
+				return param1 == param2 || (param1 != null && param1.equals(param2));
 			}
 		};
 	}
@@ -4669,6 +4812,50 @@ public final class Reactive {
 					}
 				};
 				return pool.schedule(s);
+			}
+		};
+	}
+	/**
+	 * Wrap the given observable into an new Observable instance, which calls the original register() method
+	 * on the supplied pool.
+	 * @param <T> the type of the objects to observe
+	 * @param observable the original observable
+	 * @param pool the pool to perform the original subscribe() call
+	 * @return the new observable
+	 */
+	@Nonnull
+	public static <T> Observable<T> registerOn(
+			@Nonnull final Observable<T> observable,
+			@Nonnull final Scheduler pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				// start the registration asynchronously
+				final BlockingQueue<Closeable> cq = new LinkedBlockingQueue<Closeable>();
+				pool.schedule(new Runnable() {
+					@Override
+					public void run() {
+						cq.add(observable.register(observer));
+					}
+				});
+				// use the disposable future when the deregistration is required
+				return new Closeable() {
+					@Override
+					public void close() {
+						pool.schedule(new Runnable() {
+							@Override
+							public void run() {
+								try {
+									cq.take().close(); // wait until the dispose becomes available then call it
+								} catch (InterruptedException e) {
+									throw new RuntimeException();
+								} catch (IOException e) {
+									throw new RuntimeException();
+								}
+							}
+						});
+					}
+				};
 			}
 		};
 	}
@@ -6409,55 +6596,12 @@ public final class Reactive {
 	 * @param first the first source of Ts
 	 * @param second the second source of Ts
 	 * @return the new observable
-	 */
-	public static <T> Observable<Boolean> sequenceEqual(
-			final Observable<? extends T> first,
-			final Observable<? extends T> second) {
-		return sequenceEqual(first, second, Functions.equals());
-	}
-	/**
-	 * Compares two sequences and returns whether they are produce the same
-	 * elements in terms of the null-safe object equality.
-	 * <p>The equality only stands if the two sequence produces the same
-	 * amount of values and those values are pairwise equal. If one of the sequences
-	 * terminates before the other, the equality test will return false.</p>
-	 * @param <T> the common element type
-	 * @param first the first source of Ts
-	 * @param second the second source of Ts
-	 * @return the new observable
 	 * @since 0.97
 	 */
 	public static <T> Observable<Boolean> sequenceEqual(
 			final Iterable<? extends T> first,
 			final Observable<? extends T> second) {
 		return sequenceEqual(first, second, Functions.equals());
-	}
-	/**
-	 * Compares two sequences and returns whether they are produce the same
-	 * elements in terms of the comparer function.
-	 * <p>The equality only stands if the two sequence produces the same
-	 * amount of values and those values are pairwise equal. If one of the sequences
-	 * terminates before the other, the equality test will return false.</p>
-	 * @param <T> the common element type
-	 * @param first the first source of Ts
-	 * @param second the second source of Ts
-	 * @param comparer the equality comparison function
-	 * @return the new observable
-	 */
-	public static <T> Observable<Boolean> sequenceEqual(
-			final Observable<? extends T> first,
-			final Observable<? extends T> second,
-			final Func2<? super T, ? super T, Boolean> comparer) {
-		return select(
-				any(
-					zip(
-							materialize(first), 
-							materialize(second), 
-							newOptionComparer(comparer)
-					), 
-					Functions.alwaysFalse1()
-				), 
-			Functions.negate());
 	}
 	/**
 	 * Compares two sequences and returns whether they are produce the same
@@ -6487,23 +6631,47 @@ public final class Reactive {
 			Functions.negate());
 	}
 	/**
-	 * Creates a new nullsafe equality comparison function where if two Option.Some&lt;T>
-	 * meet, their values are compared by using the supplied objectComparer.
-	 * @param <T> the element type
-	 * @param objectComparer the objectComparer.
-	 * @return the new comparison function
+	 * Compares two sequences and returns whether they are produce the same
+	 * elements in terms of the null-safe object equality.
+	 * <p>The equality only stands if the two sequence produces the same
+	 * amount of values and those values are pairwise equal. If one of the sequences
+	 * terminates before the other, the equality test will return false.</p>
+	 * @param <T> the common element type
+	 * @param first the first source of Ts
+	 * @param second the second source of Ts
+	 * @return the new observable
 	 */
-	protected static <T> Func2<? super Option<T>, ? super Option<T>, Boolean> newOptionComparer(
-			@Nonnull final Func2<? super T, ? super T, Boolean> objectComparer) {
-		return new Func2<Option<T>, Option<T>, Boolean>() {
-			@Override
-			public Boolean invoke(Option<T> param1, Option<T> param2) {
-				if (Option.isSome(param1) && Option.isSome(param2)) {
-					return objectComparer.invoke(param1.value(), param2.value());
-				}
-				return param1 == param2 || (param1 != null && param1.equals(param2));
-			}
-		};
+	public static <T> Observable<Boolean> sequenceEqual(
+			final Observable<? extends T> first,
+			final Observable<? extends T> second) {
+		return sequenceEqual(first, second, Functions.equals());
+	}
+	/**
+	 * Compares two sequences and returns whether they are produce the same
+	 * elements in terms of the comparer function.
+	 * <p>The equality only stands if the two sequence produces the same
+	 * amount of values and those values are pairwise equal. If one of the sequences
+	 * terminates before the other, the equality test will return false.</p>
+	 * @param <T> the common element type
+	 * @param first the first source of Ts
+	 * @param second the second source of Ts
+	 * @param comparer the equality comparison function
+	 * @return the new observable
+	 */
+	public static <T> Observable<Boolean> sequenceEqual(
+			final Observable<? extends T> first,
+			final Observable<? extends T> second,
+			final Func2<? super T, ? super T, Boolean> comparer) {
+		return select(
+				any(
+					zip(
+							materialize(first), 
+							materialize(second), 
+							newOptionComparer(comparer)
+					), 
+					Functions.negate()
+				), 
+			Functions.negate());
 	}
 	/**
 	 * Returns the single element of the given observable source.
@@ -6531,7 +6699,46 @@ public final class Reactive {
 		}
 	}
 	/**
-	 * Returns the single value in the observables.
+	 * Returns the single value produced by the supplier callback function
+	 * on the default scheduler.
+	 * @param <T> the value type
+	 * @param supplier the value supplier
+	 * @return the observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> singleton(
+			final Func0<? extends T> supplier) {
+		return singleton(supplier, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Returns the single value produced by the supplier callback function
+	 * on the supplied scheduler.
+	 * @param <T> the value type
+	 * @param supplier the value supplier
+	 * @param pool the pool where to submit the value to the observers
+	 * @return the observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> singleton(
+			final Func0<? extends T> supplier,
+			@Nonnull final Scheduler pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return pool.schedule(new Runnable() {
+					@Override
+					public void run() {
+						observer.next(supplier.invoke());
+						observer.finish();
+					}
+				});
+			}
+		};
+	}
+	/**
+	 * Returns the single value in the observables by using the default scheduler pool.
 	 * @param <T> the value type
 	 * @param value the value
 	 * @return the observable
@@ -6565,6 +6772,7 @@ public final class Reactive {
 			}
 		};
 	}
+
 	/**
 	 * Skips the given amount of next() messages from source and relays
 	 * the rest.
@@ -6691,13 +6899,13 @@ public final class Reactive {
 						observer.error(ex);
 					}
 					@Override
+					protected void onFinish() {
+						// ignored
+					}
+					@Override
 					public void onNext(U value) {
 						gate.set(true);
 						close();
-					}
-					@Override
-					protected void onFinish() {
-						// ignored
 					}
 				};
 				
@@ -6766,7 +6974,6 @@ public final class Reactive {
 			@Nonnull final Action0 action) {
 		return start(action, DEFAULT_SCHEDULER.get());
 	}
-
 	/**
 	 * Invokes the action asynchronously on the given pool and
 	 * relays its finish() or error() messages.
@@ -6899,50 +7106,7 @@ public final class Reactive {
 			@Nonnull Scheduler pool) {
 		return startWith(source, Collections.singleton(value), pool);
 	}
-	/**
-	 * Wrap the given observable into an new Observable instance, which calls the original register() method
-	 * on the supplied pool.
-	 * @param <T> the type of the objects to observe
-	 * @param observable the original observable
-	 * @param pool the pool to perform the original subscribe() call
-	 * @return the new observable
-	 */
-	@Nonnull
-	public static <T> Observable<T> registerOn(
-			@Nonnull final Observable<T> observable,
-			@Nonnull final Scheduler pool) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				// start the registration asynchronously
-				final BlockingQueue<Closeable> cq = new LinkedBlockingQueue<Closeable>();
-				pool.schedule(new Runnable() {
-					@Override
-					public void run() {
-						cq.add(observable.register(observer));
-					}
-				});
-				// use the disposable future when the deregistration is required
-				return new Closeable() {
-					@Override
-					public void close() {
-						pool.schedule(new Runnable() {
-							@Override
-							public void run() {
-								try {
-									cq.take().close(); // wait until the dispose becomes available then call it
-								} catch (InterruptedException e) {
-									throw new RuntimeException();
-								} catch (IOException e) {
-									throw new RuntimeException();
-								}
-							}
-						});
-					}
-				};
-			}
-		};
-	}
+
 	/**
 	 * Computes and signals the sum of the values of the BigDecimal source.
 	 * The source may not send nulls.
@@ -6987,7 +7151,6 @@ public final class Reactive {
 			@Nonnull final Observable<Float> source) {
 		return aggregate(source, Functions.sumFloat(), Functions.<Float, Integer>identityFirst());
 	}
-
 	/**
 	 * Computes and signals the sum of the values of the Integer source.
 	 * The source may not send nulls. An empty source produces an empty sum
@@ -7139,14 +7302,6 @@ public final class Reactive {
 					/** The countdown. */
 					protected int i = count;
 					@Override
-					protected void onNext(T value) {
-						observer.next(value);
-						if (--i == 0) {
-							finish();
-						}
-					}
-
-					@Override
 					protected void onError(Throwable ex) {
 						observer.error(ex);
 					}
@@ -7154,6 +7309,14 @@ public final class Reactive {
 					@Override
 					protected void onFinish() {
 						observer.finish();
+					}
+
+					@Override
+					protected void onNext(T value) {
+						observer.next(value);
+						if (--i == 0) {
+							finish();
+						}
 					}
 
 				};
@@ -7216,25 +7379,6 @@ public final class Reactive {
 			public Closeable register(final Observer<? super T> observer) {
 				final Lock lock0 = new ReentrantLock(true);
 				DefaultObserverEx<T> o = new DefaultObserverEx<T>(lock0, true) {
-					@Override
-					protected void onRegister() {
-						add("signaller", signaller.register(new Observer<U>() {
-							@Override
-							public void next(U value) {
-								innerFinish();
-							}
-
-							@Override
-							public void error(Throwable ex) {
-								innerError(ex);
-							}
-
-							@Override
-							public void finish() {
-								innerFinish();
-							}
-						}));
-					}
 					/** Error call from the inner. */
 					protected void innerError(Throwable t) {
 						error(t);
@@ -7244,18 +7388,37 @@ public final class Reactive {
 						finish();
 					}
 					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+					@Override
+					protected void onFinish() {
+						observer.finish();
+					}
+
+					@Override
 					protected void onNext(T value) {
 						observer.next(value);
 					}
 
 					@Override
-					protected void onError(Throwable ex) {
-						observer.error(ex);
-					}
+					protected void onRegister() {
+						add("signaller", signaller.register(new Observer<U>() {
+							@Override
+							public void error(Throwable ex) {
+								innerError(ex);
+							}
 
-					@Override
-					protected void onFinish() {
-						observer.finish();
+							@Override
+							public void finish() {
+								innerFinish();
+							}
+
+							@Override
+							public void next(U value) {
+								innerFinish();
+							}
+						}));
 					}
 				};
 				return o.registerWith(source);
@@ -7378,18 +7541,7 @@ public final class Reactive {
 			}
 		};
 	}
-	/**
-	 * Creates an observable which instantly sends the exception to
-	 * its subscribers while running on the default pool.
-	 * @param <T> the element type, irrelevant
-	 * @param ex the exception to throw
-	 * @return the new observable
-	 */
-	@Nonnull
-	public static <T> Observable<T> throwException(
-			@Nonnull final Throwable ex) {
-		return throwException(ex, DEFAULT_SCHEDULER.get());
-	}
+	
 	/**
 	 * Creates an observable which instantly sends the exception 
 	 * returned by the supplier function to
@@ -7404,30 +7556,6 @@ public final class Reactive {
 	public static <T, E extends Throwable> Observable<T> throwException(
 			@Nonnull final Func0<E> supplier) {
 		return throwException(supplier, DEFAULT_SCHEDULER.get());
-	}
-	/**
-	 * Creates an observable which instantly sends the exception to
-	 * its subscribers while running on the given pool.
-	 * @param <T> the element type, irrelevant
-	 * @param ex the exception to throw
-	 * @param pool the pool from where to send the values
-	 * @return the new observable
-	 */
-	@Nonnull
-	public static <T> Observable<T> throwException(
-			@Nonnull final Throwable ex,
-			@Nonnull final Scheduler pool) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				return pool.schedule(new Runnable() {
-					@Override
-					public void run() {
-						observer.error(ex);
-					}
-				});
-			}
-		};
 	}
 	/**
 	 * Creates an observable which instantly sends the exception 
@@ -7456,7 +7584,42 @@ public final class Reactive {
 			}
 		};
 	}
-	
+	/**
+	 * Creates an observable which instantly sends the exception to
+	 * its subscribers while running on the default pool.
+	 * @param <T> the element type, irrelevant
+	 * @param ex the exception to throw
+	 * @return the new observable
+	 */
+	@Nonnull
+	public static <T> Observable<T> throwException(
+			@Nonnull final Throwable ex) {
+		return throwException(ex, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Creates an observable which instantly sends the exception to
+	 * its subscribers while running on the given pool.
+	 * @param <T> the element type, irrelevant
+	 * @param ex the exception to throw
+	 * @param pool the pool from where to send the values
+	 * @return the new observable
+	 */
+	@Nonnull
+	public static <T> Observable<T> throwException(
+			@Nonnull final Throwable ex,
+			@Nonnull final Scheduler pool) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(final Observer<? super T> observer) {
+				return pool.schedule(new Runnable() {
+					@Override
+					public void run() {
+						observer.error(ex);
+					}
+				});
+			}
+		};
+	}
 	/**
 	 * Returns an observable which produces an ordered sequence of numbers with the specified delay.
 	 * It uses the default scheduler pool.
@@ -9350,88 +9513,440 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Combine the incoming Ts of the various observables into a single list of Ts like
-	 * using zip() on more than two sources.
-	 * @param <T> the element type
-	 * @param srcs the iterable of observable sources.
+	 * Aggregates the incoming sequence via the accumulator function
+	 * and transforms the result value with the selector.
+	 * @param <T> the incoming value type
+	 * @param <U> the aggregation intermediate type
+	 * @param <V> the result type
+	 * @param source the source 
+	 * @param seed the initial value for the aggregation
+	 * @param accumulator the accumulation function
+	 * @param resultSelector the result selector
 	 * @return the new observable
+	 * @since 0.97
 	 */
-	public static <T> Observable<List<T>> combine(final List<? extends Observable<? extends T>> srcs) {
-		if (srcs.size() < 1) {
-			return never();
-		} else
-		if (srcs.size() == 1) {
-			return select(srcs.get(0), new Func1<T, List<T>>() {
-				@Override
-				public List<T> invoke(T param1) {
-					List<T> result = new ArrayList<T>(1);
-					result.add(param1);
-					return result;
-				}
-			});
-		}
-		return new Observable<List<T>>() {
+	public static <T, U, V> Observable<V> aggregate(
+			@Nonnull final Observable<? extends T> source,
+			final U seed,
+			@Nonnull final Func2<? super U, ? super T, ? extends U> accumulator,
+			@Nonnull final Func1<? super U, ? extends V> resultSelector
+			) {
+		return select(aggregate(source, seed, accumulator), resultSelector);
+	}
+	/**
+	 * Returns a single element from the sequence at the index or throws	
+	 * a NoSuchElementException if the sequence terminates before this index.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param <T> the element type
+	 * @param source the source sequence of Ts
+	 * @param index the index to look at
+	 * @return the observable which returns the element at index or an exception
+	 * @since 0.97
+	 */
+	public static <T> Observable<T> elementAt(
+			@Nonnull final Observable<? extends T> source,
+			final int index
+			) {
+		return new Observable<T>() {
 			@Override
-			public Closeable register(Observer<? super List<T>> observer) {
-				Observable<List<T>> res0 = zip(srcs.get(0), srcs.get(1), new Func2<T, T, List<T>>() {
+			@Nonnull
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
+				return (new DefaultObserverEx<T>() {
+					int i = index;
 					@Override
-					public List<T> invoke(T param1, T param2) {
-						List<T> result = new ArrayList<T>();
-						result.add(param1);
-						result.add(param2);
-						return result;
-					}
-				});
-				for (int i = 2; i < srcs.size(); i++) {
-					res0 = zip(res0, srcs.get(i), new Func2<List<T>, T, List<T>>() {
-						@Override
-						public List<T> invoke(List<T> param1, T param2) {
-							param1.add(param2);
-							return param1;
+					protected void onNext(T value) {
+						if (i == 0) {
+							observer.next(value);
+							observer.finish();
+							close();
 						}
-					});
-				}
-				return res0.register(observer);
+						i--;
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						observer.error(new NoSuchElementException("index = " + index));
+					}
+					
+				}).registerWith(source);
 			}
 		};
 	}
 	/**
-	 * Combine a stream of Ts with a constant T whenever the src fires.
-	 * The observed list contains the values of src as the first value, constant as the second.
+	 * Returns a single element from the sequence at the index or the 
+	 * default value if the sequence terminates before this index.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
 	 * @param <T> the element type
-	 * @param src the source of Ts
-	 * @param constant the constant T to combine with
-	 * @return the new observer
+	 * @param source the source sequence of Ts
+	 * @param index the index to look at
+	 * @param defaultValue the value to return if the sequence is sorter than index
+	 * @return the observable which returns the element at index or the default value
+	 * @since 0.97
 	 */
-	public static <T> Observable<List<T>> combine(Observable<? extends T> src, final T constant) {
-		return select(src, new Func1<T, List<T>>() {
-			@Override
-			public List<T> invoke(T param1) {
-				List<T> result = new ArrayList<T>();
-				result.add(param1);
-				result.add(constant);
-				return result;
-			}
-		});
+	public static <T> Observable<T> elementAt(
+			@Nonnull final Observable<? extends T> source,
+			int index,
+			T defaultValue
+			) {
+		return elementAt(source, index, Functions.constant0(defaultValue));
 	}
 	/**
-	 * Combine a constant T with a stream of Ts whenever the src fires.
-	 * The observed sequence contains the constant as first, the src value as second.
+	 * Returns a single element from the sequence at the index or the 
+	 * default value supplied if the sequence terminates before this index.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
 	 * @param <T> the element type
-	 * @param constant the constant T to combine with
-	 * @param src the source of Ts
-	 * @return the new observer
+	 * @param source the source sequence of Ts
+	 * @param index the index to look at
+	 * @param defaultSupplier the function that will supply the default value 
+	 * @return the observable which returns the element at index or the default value supplied
+	 * @since 0.97
 	 */
-	public static <T> Observable<List<T>> combine(final T constant, Observable<? extends T> src) {
-		return select(src, new Func1<T, List<T>>() {
+	public static <T> Observable<T> elementAt(
+			@Nonnull final Observable<? extends T> source,
+			final int index,
+			@Nonnull final Func0<? extends T> defaultSupplier
+			) {
+		return new Observable<T>() {
 			@Override
-			public List<T> invoke(T param1) {
-				List<T> result = new ArrayList<T>();
-				result.add(constant);
-				result.add(param1);
-				return result;
+			@Nonnull
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
+				return (new DefaultObserverEx<T>() {
+					int i = index;
+					@Override
+					protected void onNext(T value) {
+						if (i == 0) {
+							observer.next(value);
+							observer.finish();
+							close();
+						}
+						i--;
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						observer.next(defaultSupplier.invoke());
+						observer.finish();
+					}
+					
+				}).registerWith(source);
 			}
+		};
+	}
+	/**
+	 * Returns the first element of the source observable or
+	 * the defaultValue if the source is empty, blocking if necessary.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param defaultValue the value to return if the source is empty
+	 * @return the first element of the observable or the default value
+	 * @since 0.97
+	 */
+	public static <T> T first(
+			@Nonnull final Observable<? extends T> source, 
+			T defaultValue) {
+		return first(source, Functions.constant0(defaultValue));
+	}
+	/**
+	 * Returns the first element of the source observable or
+	 * the supplier's value if the source is empty, blocking if necessary.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param defaultSupplier the value to return if the source is empty
+	 * @return the first element of the observable or the supplier's value
+	 * @since 0.97
+	 */
+	public static <T> T first(
+			@Nonnull final Observable<? extends T> source, 
+			@Nonnull final Func0<? extends T> defaultSupplier) {
+		CloseableIterator<T> it = toIterable(source).iterator();
+		try {
+			if (it.hasNext()) {
+				return it.next();
+			}
+		} finally {
+			Closeables.closeSilently(it);
+		}
+		return defaultSupplier.invoke();
+	}
+	/**
+	 * Returns an observable which takes the first value from the source observable
+	 * as a single element or throws NoSuchElementException if the source is empty.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public static <T> Observable<T> firstAsync(
+			@Nonnull final Observable<? extends T> source) {
+		return new Observable<T>() {
+			@Override
+			@Nonnull
+			public Closeable register(final Observer<? super T> observer) {
+				return (new DefaultObserverEx<T>() {
+					@Override
+					protected void onNext(T value) {
+						observer.next(value);
+						observer.finish();
+						close();
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						error(new NoSuchElementException());
+					} 
+					
+				}).registerWith(source);
+			}
+		};
+	}
+	/**
+	 * Returns an observable which takes the first value from the source observable
+	 * as a single element or the default value if the source is empty.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param defaultValue the default value to return
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public static <T> Observable<T> firstAsync(
+			@Nonnull final Observable<? extends T> source,
+			final T defaultValue) {
+		return firstAsync(source, Functions.constant0(defaultValue));
+	}
+	/**
+	 * Returns an observable which takes the first value from the source observable
+	 * as a single element or the supplier's value if the source is empty.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param defaultSupplier the default value supplier
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public static <T> Observable<T> firstAsync(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func0<? extends T> defaultSupplier) {
+		return new Observable<T>() {
+			@Override
+			@Nonnull
+			public Closeable register(final Observer<? super T> observer) {
+				return (new DefaultObserverEx<T>() {
+					@Override
+					protected void onNext(T value) {
+						observer.next(value);
+						observer.finish();
+						close();
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					protected void onFinish() {
+						observer.next(defaultSupplier.invoke());
+						observer.finish();
+					} 
+					
+				}).registerWith(source);
+			}
+		};
+	}
+	/**
+	 * Returns the last element of the source observable or the
+	 * default value if the source is empty.
+	 * <p>Exception semantics: the exceptions thrown by the source are ignored and treated
+	 * as termination signals.</p>
+	 * @param <T> the type of the elements
+	 * @param source the source of Ts
+	 * @param defaultValue the value to provide if the source is empty
+	 * @return the last element
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> T last(
+			@Nonnull final Observable<? extends T> source,
+			final T defaultValue) {
+		return last(source, Functions.constant0(defaultValue));
+	}
+	/**
+	 * Returns the last element of the source observable or the
+	 * supplier's value if the source is empty.
+	 * <p>Exception semantics: the exceptions thrown by the source are ignored and treated
+	 * as termination signals.</p>
+	 * @param <T> the type of the elements
+	 * @param source the source of Ts
+	 * @param defaultSupplier the function to provide the default value
+	 * @return the last element
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> T last(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func0<? extends T> defaultSupplier) {
+		final LinkedBlockingQueue<Option<T>> queue = new LinkedBlockingQueue<Option<T>>();
+		Closeable c = source.register(new Observer<T>() {
+			/** The current value. */
+			T current;
+			/** Are we the first? */
+			boolean first = true;
+			@Override
+			public void error(Throwable ex) {
+				queue.add(Option.<T>none());
+			}
+
+			@Override
+			public void finish() {
+				if (first) {
+					queue.add(Option.<T>some(defaultSupplier.invoke()));
+				} else {
+					queue.add(Option.some(current));
+				}
+			}
+
+			@Override
+			public void next(T value) {
+				first = false;
+				current = value;
+			}
+
 		});
+		try {
+			Option<T> value = queue.take();
+			c.close();
+			if (value == Option.none()) {
+				throw new NoSuchElementException();
+			}
+			return value.value();
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		} catch (IOException ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+	/**
+	 * Returns an observable which relays the last element of the source observable
+	 * or throws a NoSuchElementException() if the source is empty.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public static <T> Observable<T> lastAsync(@Nonnull final Observable<? extends T> source) {
+		return new Observable<T>() {
+			@Override
+			@Nonnull
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** The first value is pending? */
+					boolean first = true;
+					/** The current value. */
+					T current;
+					@Override
+					public void next(T value) {
+						current = value;
+						first = false;
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (first) {
+							observer.error(new NoSuchElementException());
+						} else {
+							observer.next(current);
+							observer.finish();
+						}
+					}
+					
+				});
+			}
+		};
+	}
+	/**
+	 * Returns an observable which relays the last element of the source observable
+	 * or the default value if the source is empty.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param defaultValue the default value to return in case the source is empty
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public static <T> Observable<T> lastAsync(
+			@Nonnull final Observable<? extends T> source,
+			final T defaultValue) {
+		return lastAsync(source, Functions.constant0(defaultValue));
+	}
+	/**
+	 * Returns an observable which relays the last element of the source observable
+	 * or the supplier's value if the source is empty.
+	 * <p>Exception semantics: errors from source are propagated as-is.</p>
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param defaultSupplier the supplier to produce a value to return in case the source is empty
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public static <T> Observable<T> lastAsync(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func0<? extends T> defaultSupplier) {
+		return new Observable<T>() {
+			@Override
+			@Nonnull
+			public Closeable register(final Observer<? super T> observer) {
+				return source.register(new Observer<T>() {
+					/** The first value is pending? */
+					boolean first = true;
+					/** The current value. */
+					T current;
+					@Override
+					public void next(T value) {
+						current = value;
+						first = false;
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						observer.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						if (first) {
+							observer.next(defaultSupplier.invoke());
+						} else {
+							observer.next(current);
+						}
+						observer.finish();
+					}
+					
+				});
+			}
+		};
 	}
 	/** Utility class. */
 	private Reactive() {

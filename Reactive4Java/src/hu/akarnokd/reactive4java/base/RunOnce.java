@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java.reactive;
+package hu.akarnokd.reactive4java.base;
 
-import hu.akarnokd.reactive4java.base.Action0;
-import hu.akarnokd.reactive4java.base.Action1;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
