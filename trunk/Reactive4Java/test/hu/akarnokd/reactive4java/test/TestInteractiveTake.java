@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@ import static hu.akarnokd.reactive4java.interactive.Interactive.toIterable;
 import org.junit.Test;
 
 /**
- * Test the interactive operators.
+ * Test the Interactive.take operator.
  * @author Denes Harmath, 2012.07.13.
  */
-public class TestInteractive {
+public class TestInteractiveTake {
 	/**
 	 * Test take().
 	 */

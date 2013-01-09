@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2012 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java.test;
+package hu.akarnokd.reactive4java.test.old;
 
+import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
+import hu.akarnokd.reactive4java.base.Actions;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Ref;
+import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observer;
+import hu.akarnokd.reactive4java.reactive.Reactive;
+
+import javax.annotation.Nonnull;
 
 
 /**
@@ -176,6 +183,85 @@ public final class ActionObservable {
 			}
 		});
 		return result.get();
+	}
+	/**
+	 * Convert the Observable instance into a functional-observable object.
+	 * @param <T> the type of the elements
+	 * @param source the source observable
+	 * @return the action to action to option of T
+	 */
+	@Nonnull
+	public static <T> Action1<Action1<Option<T>>> asFObservable(
+			@Nonnull final Observable<? extends T> source) {
+		return new Action1<Action1<Option<T>>>() {
+			@Override
+			public void invoke(final Action1<Option<T>> o) {
+				source.register(asObserver(o));
+			}
+		};
+	}
+	/**
+	 * Convert the functional observable into a normal observable object.
+	 * @param <T> the type of the elements to observe.
+	 * @param source the source of the functional-observable elements
+	 * @return the observable object
+	 */
+	@Nonnull
+	public static <T> Observable<T> asObservable(
+			@Nonnull final Action1<Action1<Option<T>>> source) {
+		return Reactive.create(new Func1<Observer<? super T>, Action0>() {
+			@Override
+			public Action0 invoke(final Observer<? super T> o) {
+				source.invoke(asAction(o));
+				return Actions.noAction0();
+			}
+		});
+	}
+	/**
+	 * Transform the given action to an observer.
+	 * The wrapper observer converts its next() messages to Option.some(),
+	 * the finish() to Option.none() and error() to Option.error().
+	 * @param <T> the element type to observe
+	 * @param action the action to wrap
+	 * @return the observer
+	 */
+	@Nonnull
+	public static <T> Observer<T> asObserver(
+			@Nonnull final Action1<? super Option<T>> action) {
+		return new Observer<T>() {
+			@Override
+			public void error(Throwable ex) {
+				action.invoke(Option.<T>error(ex));
+			}
+
+			@Override
+			public void finish() {
+				action.invoke(Option.<T>none());
+			}
+
+			@Override
+			public void next(T value) {
+				action.invoke(Option.some(value));
+			}
+
+		};
+	}
+	/**
+	 * Wraps the given observer into an action object which then dispatches
+	 * various incoming Option values to next(), finish() and error().
+	 * @param <T> the element type
+	 * @param observer the observer to wrap
+	 * @return the wrapper action
+	 */
+	@Nonnull
+	public static <T> Action1<Option<T>> asAction(
+			@Nonnull final Observer<? super T> observer) {
+		return new Action1<Option<T>>() {
+			@Override
+			public void invoke(Option<T> value) {
+				Reactive.dispatch(observer, value);
+			}
+		};
 	}
 }
 
