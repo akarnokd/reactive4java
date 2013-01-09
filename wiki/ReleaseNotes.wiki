@@ -31,12 +31,19 @@
   * Modified the {{{Reactive.materialize}}} to terminate after a finish or error call. The original, infinite stream version is renamed to materializeForever.
   * Moved the example Action-observable methods from Reactive to !ActionObservable class (asAction, asFObservable, asObservable, asObserver).
   * Renamed Reactive.combineLatest to Reactive.combineLatest0 and Reactive.combineLatestSent to the former.
-  * Created CloseableObserver, LockedObserver and SynchronizedObserver which can wrap an observer instance and provide certain guarantees.
+  * Created {{{CloseableObserver}}}, {{{LockedObserver}}} and {{{SynchronizedObserver}}} which can wrap an observer instance and provide certain guarantees.
   * Moved RunOnce to base package.
   * Renamed {{{Actions.close0}}} to {{{Actions.closeSilently}}}.
   * Added {{{Reactive.singleton}}} overload which takes a {{{Func0}}} to produce the value.
   * Added {{{Reactive.combine}}} with a function to supply the pair's first value.
-
+  * Added two new {{{Reactive.aggregate}}} overload and their ObservableBuilder counterparts.
+    * supports a seed value with the divider version
+    * supports a result selector
+  * Added new overloads to {{{Reactive.contains}}}, {{{Reactive.count}}}, {{{Reactive.countLong}}}.
+  * Added new {{{Reactive.elementAt}}} operator + 2 overloads.
+  * Added new {{{Reactive.firstAsync}}} operator + 2 overloads.
+  * Added new {{{Reactive.lastAsync}}} operator + 2 overloads.
+  * Added 2 overloads to the {{{Reactive.first}}} and {{{Reactive.last}}} operators: one with default value, the other with a supplier function.
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
