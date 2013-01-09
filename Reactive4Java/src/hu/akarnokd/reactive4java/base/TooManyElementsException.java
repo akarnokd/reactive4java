@@ -25,7 +25,7 @@ public class TooManyElementsException extends RuntimeException {
 	/** */
 	private static final long serialVersionUID = 3390531861721818769L;
 	/**
-	 * A message and cause-less constructo.
+	 * A message and cause-less constructor.
 	 */
 	public TooManyElementsException() {
 		super();

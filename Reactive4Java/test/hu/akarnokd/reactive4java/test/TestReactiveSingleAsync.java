@@ -15,18 +15,12 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import static hu.akarnokd.reactive4java.query.ObservableBuilder.from;
-import static hu.akarnokd.reactive4java.reactive.Reactive.empty;
-import static hu.akarnokd.reactive4java.reactive.Reactive.single;
-import static org.junit.Assert.assertEquals;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.NoSuchElementException;
-
-import junit.framework.Assert;
 
 import org.junit.Test;
 
@@ -35,31 +29,43 @@ import org.junit.Test;
  * @author akarnokd, 2013.01.09.
  * @since 0.97
  */
-public class TestReactiveSingle {
+public class TestReactiveSingleAsync {
 
 	/**
-	 * Tests single() in case of 0 element.
+	 * Tests singleAsync() in case of 0 element.
+	 * @throws Exception on error
 	 */
 	@Test(expected = NoSuchElementException.class)
-	public void singleNoSuchElement() {
-		single(empty());
+	public void singleNoSuchElement() throws Exception {
+		Observable<Integer> source = Reactive.empty();
+		
+		Observable<Integer> result = Reactive.singleAsync(source);
+		
+		TestUtil.waitForAll(result);
 	}
 
 	/**
-	 * Tests single() in case of 1 element.
+	 * Tests singleAsync() in case of 1 element.
 	 */
 	@Test
 	public void singleOk() {
-		Integer expected = 42;
-		Observable<Integer> o = from(expected);
-		assertEquals(expected, single(o));
+		Observable<Integer> source = Reactive.singleton(42);
+		
+		Observable<Integer> result = Reactive.singleAsync(source);
+		
+		TestUtil.assertSingle(42, result);
 	}
 	/**
-	 * Tests single() in case of more than 1 elements.
+	 * Tests singleAsync() in case of more than 1 elements.
+	 * @throws Exception on error
 	 */
 	@Test(expected = TooManyElementsException.class)
-	public void singleTooManyElements() {
-		single(from(1, 2));
+	public void singleTooManyElements() throws Exception {
+		Observable<Integer> source = Reactive.range(0, 10);
+		
+		Observable<Integer> result = Reactive.singleAsync(source);
+		
+		TestUtil.waitForAll(result);
 	}
 	/**
 	 * Test for empty source with constant.
@@ -68,9 +74,9 @@ public class TestReactiveSingle {
 	public void singleDefault() {
 		Observable<Integer> source = Reactive.empty();
 		
-		Integer result = Reactive.single(source, 1);
+		Observable<Integer> result = Reactive.singleAsync(source, 1);
 		
-		Assert.assertEquals((Integer)1, result);
+		TestUtil.assertSingle(1, result);
 	}
 	/**
 	 * Test for empty source with default supplier.
@@ -79,8 +85,8 @@ public class TestReactiveSingle {
 	public void singleDefaultFunction() {
 		Observable<Integer> source = Reactive.empty();
 		
-		Integer result = Reactive.single(source, Functions.constant0(1));
+		Observable<Integer> result = Reactive.singleAsync(source, Functions.constant0(1));
 		
-		Assert.assertEquals((Integer)1, result);
+		TestUtil.assertSingle(1, result);
 	}
 }
