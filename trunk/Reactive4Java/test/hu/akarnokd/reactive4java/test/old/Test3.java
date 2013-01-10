@@ -19,8 +19,9 @@ package hu.akarnokd.reactive4java.test.old;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.reactive.GroupedObservable;
 import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.Observer;
+import hu.akarnokd.reactive4java.reactive.Observers;
+import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.Timestamped;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -91,7 +92,7 @@ public final class Test3 {
 		});
 		
 		AtomicBoolean sw = new AtomicBoolean(true);
-		Reactive.ifThen(Functions.asFunc0(sw), tss, tss2).register(Reactive.println());
+		Reactive.ifThen(Functions.asFunc0(sw), tss, tss2).register(Observers.println());
 		Thread.sleep(3000);
 		sw.set(false);
 		

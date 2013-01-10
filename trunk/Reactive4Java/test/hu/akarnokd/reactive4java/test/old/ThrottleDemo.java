@@ -18,6 +18,7 @@ package hu.akarnokd.reactive4java.test.old;
 import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.swing.ObservableDocumentListener;
 import hu.akarnokd.reactive4java.swing.SwingObservables;
@@ -96,21 +97,21 @@ public class ThrottleDemo extends JFrame {
 				return textField.getText();
 			}
 		});
-		extract.register(Reactive.println("EXTRACT: "));
+		extract.register(Observers.println("EXTRACT: "));
 
 		Observable<String> distinct = Reactive.distinct(extract);
-		distinct.register(Reactive.println("DISTINCT: "));
+		distinct.register(Observers.println("DISTINCT: "));
 		
 		Observable<String> throttle = Reactive.throttle(distinct, 500, TimeUnit.MILLISECONDS);
-		throttle.register(Reactive.println("THROTTLE: "));
+		throttle.register(Observers.println("THROTTLE: "));
 		
 //		Observable<String> takeuntil = Observables.takeUntil(throttle, dl);
 //		takeuntil.register(Observables.println("TAKEUNTIL: "));
 		
 		Observable<String> result = SwingObservables.observeOnEdt(throttle);
-		result.register(Reactive.println("RESULT: "));
+		result.register(Observers.println("RESULT: "));
 			
-		result.register(Reactive.toObserver(new Action1<String>() {
+		result.register(Observers.toObserver(new Action1<String>() {
 			@Override
 			public void invoke(String value) {
 				DefaultListModel<String> model = new DefaultListModel<String>();

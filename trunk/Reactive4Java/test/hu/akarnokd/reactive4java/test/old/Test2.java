@@ -20,6 +20,7 @@ import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.reactive.GroupedObservable;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Observer;
+import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.reactive.Timestamped;
 
@@ -52,11 +53,11 @@ public final class Test2 {
 		List<Observable<Integer>> list = new ArrayList<Observable<Integer>>();
 		list.add(Reactive.range(0, 10));
 		list.add(Reactive.range(10, 10));
-		Reactive.concat(list).register(Reactive.println());
+		Reactive.concat(list).register(Observers.println());
 		
-		Reactive.forkJoin(list).register(Reactive.println());
+		Reactive.forkJoin(list).register(Observers.println());
 		
-		Closeable c = Reactive.range(0, Integer.MAX_VALUE).register(Reactive.println());
+		Closeable c = Reactive.range(0, Integer.MAX_VALUE).register(Observers.println());
 		
 		Thread.sleep(1000);
 		
@@ -67,7 +68,7 @@ public final class Test2 {
 				Functions.incrementInt(), 
 				Functions.<Integer>identity(), 
 				Functions.<Integer, Long>constant(1000L)
-		).register(Reactive.println());
+		).register(Observers.println());
 		
 		Observable<Timestamped<Integer>> tss = Reactive.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
 				Functions.<Integer>identity(), Functions.<Integer, Long>constant(1000L));

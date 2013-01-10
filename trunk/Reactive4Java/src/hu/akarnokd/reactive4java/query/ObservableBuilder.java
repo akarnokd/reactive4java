@@ -26,10 +26,13 @@ import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.interactive.Interactive;
+import hu.akarnokd.reactive4java.reactive.ConnectableObservable;
 import hu.akarnokd.reactive4java.reactive.GroupedObservable;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Observer;
+import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
+import hu.akarnokd.reactive4java.reactive.Subject;
 import hu.akarnokd.reactive4java.reactive.Subjects;
 import hu.akarnokd.reactive4java.reactive.TimeInterval;
 import hu.akarnokd.reactive4java.reactive.Timestamped;
@@ -193,12 +196,26 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return from(Reactive.toObservable(source, scheduler));
 	}
 	/**
-	 * Wraps the supplied observable sequence into an observable builder.
+	 * Wraps the supplied observable sequence into an observable builder
+	 * or returns it if the source is also an ObservableBuilder.
 	 * @param <T> the element type
 	 * @param source the source observable
 	 * @return the created observable builder
 	 */
 	public static <T> ObservableBuilder<T> from(@Nonnull Observable<T> source) {
+		if (source instanceof ObservableBuilder) {
+			// do not rewrap a builder again.
+			return (ObservableBuilder<T>)source;
+		}
+		return newBuilder(source);
+	}
+	/**
+	 * Wraps the source observable into a new observable builder instance.
+	 * @param <T> the element type
+	 * @param source the source obbservable
+	 * @return the new observable builder
+	 */
+	public static <T> ObservableBuilder<T> newBuilder(@Nonnull Observable<T> source) {
 		return new ObservableBuilder<T>(source);
 	}
 	/**
@@ -1613,6 +1630,24 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return from(Reactive.multicast(o, Subjects.newSubject(observer, observable)));
 	}
 	/**
+	 * Multicasts the source events through the subject instantiated via
+	 * the subjectSelector. Each subscription to this sequence
+	 * causes a separate multicast invocation.
+	 * @param <U> the element type of the intermediate subject's output
+	 * @param <V> the result type 
+	 * @param subjectSelector the factory function to create an intermediate
+	 * subject which through the source values will be multicasted.
+	 * @param selector the factory method to use the multicasted subject and enforce some policies on it
+	 * @return the observable sequence that contains all elements of the multicasted functions
+	 */
+	@Nonnull
+	public <U, V> Observable<V> multicast(
+			@Nonnull final Func0<? extends Subject<? super T, ? extends U>> subjectSelector,
+			@Nonnull final Func1<? super Observable<? extends U>, ? extends Observable<? extends V>> selector
+			) {
+		return from(Reactive.multicast(o, subjectSelector, selector));
+	}
+	/**
 	 * Returns an observable which never fires.
 	 * @return the observable
 	 */
@@ -1761,76 +1796,58 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	}
 	/**
 	 * Returns an observable which shares a single subscription to the underlying source.
+	 * <p>This is a specialization of the multicast operator with a simple forwarding subject.</p>
 	 * @return the new observable
 	 */
 	public ObservableBuilder<T> publish() {
 		return from(Reactive.publish(o));
 	}
 	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param <U> the result type
-	 * @param selector the selector function for the return stream
-	 * @return the new observable
+	 * Returns an observable sequence which is the result of
+	 * invoking the selector on a connectable observable sequence
+	 * that shares a single subscription with the underlying 
+	 * <code>source</code> observable.
+	 * <p>This is a specialization of the multicast operator with
+	 * a regular subject on U.</p>
+	 * @param <U> the result element type
+	 * @param selector the observable selector that can
+	 * use the source sequence as many times as necessary, without
+	 * multiple registration.
+	 * @return the observable sequence
 	 */
 	public <U> ObservableBuilder<U> publish(
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector
+			final Func1<? super Observable<? extends T>, ? extends Observable<? extends U>> selector
 	) {
 		return from(Reactive.publish(o, selector));
 	}
 	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param <U> the result type
-	 * @param selector the selector function for the return stream
-	 * @param scheduler the scheduler where the values will be replayed
-	 * @return the new observable
+	 * Returns an observable sequence which is the result of
+	 * invoking the selector on a connectable observable sequence
+	 * that shares a single subscription with the underlying 
+	 * <code>source</code> observable and registering parties
+	 * receive the initial value immediately.
+	 * <p>This is a specialization of the multicast operator with
+	 * a regular subject on U.</p>
+	 * @param <U> the result element type
+	 * @param selector the observable selector that can
+	 * use the source sequence as many times as necessary, without
+	 * multiple registration.
+	 * @param initialValue the value received by registering parties immediately.
+	 * @return the observable sequence
 	 */
 	public <U> ObservableBuilder<U> publish(
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
-			final Scheduler scheduler
-	) {
-		return from(Reactive.publish(o, selector, scheduler));
-	}
-	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param <U> the result type
-	 * @param selector the selector function for the return stream
-	 * @param initialValue the initial stream value
-	 * @return the new observable
-	 */
-	public <U> ObservableBuilder<U> publish(
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
-			final U initialValue
+			final Func1<? super Observable<? extends T>, ? extends Observable<? extends U>> selector,
+			final T initialValue
 	) {
 		return from(Reactive.publish(o, selector, initialValue));
 	}
 	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param <U> the result type
-	 * @param selector the selector function for the return stream
-	 * @param initialValue the initial stream value
-	 * @param scheduler the scheduler where the values will be replayed
-	 * @return the new observable
-	 */
-	public <U> ObservableBuilder<U> publish(
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
-			final U initialValue,
-			final Scheduler scheduler
-	) {
-		return from(Reactive.publish(o, selector, initialValue, scheduler));
-	}
-	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param scheduler the scheduler where the values will be replayed
-	 * @return the new observable
-	 */
-	public ObservableBuilder<T> publish(
-			final Scheduler scheduler
-	) {
-		return from(Reactive.publish(o, scheduler));
-	}
-	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param initialValue the initial stream value
+	 * Returns an observable which shares a single subscription to the underlying source
+	 * and starts with with the initial value.
+	 * <p>Registering parties will immediately receive the initial value but the subsequent
+	 * values depend upon wether the observer is connected or not.</p>
+	 * <p>This is a specialization of the multicast operator with a simple forwarding subject.</p>
+	 * @param initialValue the initial value the observers will receive when registering
 	 * @return the new observable
 	 */
 	public ObservableBuilder<T> publish(
@@ -1839,16 +1856,15 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return from(Reactive.publish(o, initialValue));
 	}
 	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param initialValue the initial stream value
-	 * @param scheduler the scheduler where the values will be replayed
-	 * @return the new observable
+	 * Connect this observable if the underlying observable supports
+	 * the ConnectableObservable interface, or throw an UnsupportedOperationException.
+	 * @return the connection handle
 	 */
-	public ObservableBuilder<T> publish(
-			final T initialValue,
-			final Scheduler scheduler
-	) {
-		return from(Reactive.publish(o, initialValue, scheduler));
+	public Closeable connect() {
+		if (o instanceof ConnectableObservable) {
+			return ((ConnectableObservable<T>)o).connect();
+		}
+		throw new UnsupportedOperationException(o.getClass().getName());
 	}
 	/**
 	 * Creates an observable which generates numbers from start.
@@ -3298,7 +3314,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 */
 	public void print() {
 		try {
-			Reactive.run(o, Reactive.print());
+			Reactive.run(o, Observers.print());
 		} catch (InterruptedException ex) {
 			ex.printStackTrace();
 		}
@@ -3309,7 +3325,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 */
 	public void println() {
 		try {
-			Reactive.run(o, Reactive.println());
+			Reactive.run(o, Observers.println());
 		} catch (InterruptedException ex) {
 			ex.printStackTrace();
 		}
@@ -3489,6 +3505,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public ObservableBuilder<T> lastAsync() {
 		return from(Reactive.lastAsync(o));
 	}
@@ -3500,6 +3517,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public ObservableBuilder<T> lastAsync(T defaultValue) {
 		return from(Reactive.lastAsync(o, defaultValue));
 	}
@@ -3511,6 +3529,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public ObservableBuilder<T> lastAsync(@Nonnull Func0<? extends T> defaultSupplier) {
 		return from(Reactive.lastAsync(o, defaultSupplier));
 	}
@@ -3545,6 +3564,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public ObservableBuilder<T> singleAsync() {
 		return from(Reactive.lastAsync(o));
 	}
@@ -3556,6 +3576,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public ObservableBuilder<T> singleAsync(T defaultValue) {
 		return from(Reactive.lastAsync(o, defaultValue));
 	}
@@ -3567,7 +3588,31 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public ObservableBuilder<T> singleAsync(@Nonnull Func0<? extends T> defaultSupplier) {
 		return from(Reactive.lastAsync(o, defaultSupplier));
+	}
+	/**
+	 * Creates an observable which finishes its observers after the specified
+	 * amount of time if no error or finish events appeared till then.
+	 * @param time the time to wait
+	 * @param unit the time unit to wait
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> timeoutFinish(long time, @Nonnull TimeUnit unit) {
+		return from(Reactive.timeoutFinish(o, time, unit));
+	}
+	/**
+	 * Creates an observable which finishes its observers after the specified
+	 * amount of time if no error or finish events appeared till then.
+	 * @param time the time to wait
+	 * @param unit the time unit to wait
+	 * @param scheduler the scheduler used for the wait
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> timeoutFinish(long time, @Nonnull TimeUnit unit, @Nonnull Scheduler scheduler) {
+		return from(Reactive.timeoutFinish(o, time, unit, scheduler));
 	}
 }

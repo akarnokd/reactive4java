@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -183,5 +184,32 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 		for (Object c : cs) {
 			removeInner(c);
 		}
+	}
+	/**
+	 * Wraps the supplied observer into a DefaultObservableEx and
+	 * simply forwards onNext, onError, onFinish events to the raw
+	 * next, error and finish methods.
+	 * @param <T> the observed element type
+	 * @param observer the observer to wrap
+	 * @return the wrapper default observer ex
+	 */
+	public static <T> DefaultObserverEx<T> wrap(@Nonnull final Observer<? super T> observer) {
+		return new DefaultObserverEx<T>() {
+			@Override
+			protected void onNext(T value) {
+				observer.next(value);
+			}
+
+			@Override
+			protected void onError(Throwable ex) {
+				observer.error(ex);
+			}
+
+			@Override
+			protected void onFinish() {
+				observer.finish();
+			}
+			
+		};
 	}
 }

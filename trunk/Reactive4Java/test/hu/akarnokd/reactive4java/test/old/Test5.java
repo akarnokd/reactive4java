@@ -19,6 +19,7 @@ package hu.akarnokd.reactive4java.test.old;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 /**
@@ -46,7 +47,7 @@ public final class Test5 {
 			public Integer invoke(Integer param1, Integer param2) {
 				return param1 + param2;
 			}
-		}), Reactive.print());
+		}), Observers.print());
 		
 		Reactive.run(Reactive.scan(Reactive.range(1, 5), 1,
 				new Func2<Integer, Integer, Integer>() {
@@ -54,7 +55,7 @@ public final class Test5 {
 			public Integer invoke(Integer param1, Integer param2) {
 				return param1 + param2;
 			}
-		}), Reactive.print());
+		}), Observers.print());
 		
 		Reactive.run(Reactive.scan0(Reactive.range(1, 5), 1,
 				new Func2<Integer, Integer, Integer>() {
@@ -62,7 +63,7 @@ public final class Test5 {
 			public Integer invoke(Integer param1, Integer param2) {
 				return param1 + param2;
 			}
-		}), Reactive.print());
+		}), Observers.print());
 		
 		Reactive.run(Reactive.select(Reactive.range(1, 5), 
 				new Func2<Integer, Integer, Double>() {
@@ -70,7 +71,7 @@ public final class Test5 {
 				public Double invoke(Integer param1, Integer param2) {
 					return param1 * 0.5;
 				}
-		}), Reactive.print());
+		}), Observers.print());
 		
 		Reactive.run(Reactive.selectMany(Reactive.range(1, 5), 
 				new Func1<Integer, Observable<Integer>>() {
@@ -79,10 +80,10 @@ public final class Test5 {
 				return Reactive.range(0, param1);
 			}
 			
-		}), Reactive.print());
+		}), Observers.print());
 		
 		Reactive.run(Reactive.selectMany(Reactive.range(1, 5), Reactive.range(5, 5))
-				, Reactive.print());
+				, Observers.print());
 		
 		Reactive.run(Reactive.selectMany(
 		Reactive.range(1, 10), 
@@ -99,10 +100,10 @@ public final class Test5 {
 				return param2 % param1;
 			}
 		}
-		), Reactive.print());
+		), Observers.print());
 		
 		
-		Reactive.run(Reactive.skipLast(Reactive.range(0, 10), 2), Reactive.print());
+		Reactive.run(Reactive.skipLast(Reactive.range(0, 10), 2), Observers.print());
 	}
 
 }

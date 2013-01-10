@@ -17,6 +17,7 @@ package hu.akarnokd.reactive4java.test.old;
 
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 /**
@@ -40,7 +41,7 @@ public final class TestObserveOn {
 		Scheduler exec = Reactive.getDefaultScheduler();
 		Observable<Integer> ys = Reactive.observeOn(xs, exec);
 		
-		ys.register(Reactive.println());
+		ys.register(Observers.println());
 		
 //		exec.shutdown();
 //		exec.awaitTermination(Long.MAX_VALUE, TimeUnit.MICROSECONDS);

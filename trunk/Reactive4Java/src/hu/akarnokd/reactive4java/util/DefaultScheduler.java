@@ -46,7 +46,24 @@ public class DefaultScheduler implements Scheduler {
 	 * </ul>
 	 */
 	public DefaultScheduler() {
-		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(Runtime.getRuntime().availableProcessors());
+		this(Runtime.getRuntime().availableProcessors());
+	}
+	/**
+	 * Creates a scheduler with a ScheduledThreadPoolExecutor. The
+	 * pool will have the following attributes:
+	 * <ul>
+	 * <li><code>parallellism</code> core thread</li>
+	 * <li>1 second idle timeout</li>
+	 * <li>core threads may timeout</li>
+	 * <li>unbounded worker queue</li>
+	 * <li>no rejection handler</li>
+	 * <li>if running on Java 7 or above: remove on cancel policy set to true</li>
+	 * </ul>
+	 * @param poolSize the number of core threads
+	 * @since 0.97
+	 */
+	public DefaultScheduler(int poolSize) {
+		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(poolSize);
 		scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
 		scheduler.allowCoreThreadTimeOut(true);
 
@@ -56,13 +73,12 @@ public class DefaultScheduler implements Scheduler {
 		 * elapsed -> therefore, if no other tasks are present, the scheduler might go idle earlier
 		 * instead of waiting for the initial delay to pass to discover there is nothing to do.
 		 * Because the library is currently aimed at Java 6, we use a reflection to set this policy
-		 * on a Java 7 runtime.
+		 * on a Java 7+ runtime.
 		 */
 		try {
 			java.lang.reflect.Method m = scheduler.getClass().getMethod("setRemoveOnCancelPolicy", Boolean.TYPE);
 			m.invoke(scheduler, true);
 		} catch (java.lang.reflect.InvocationTargetException ex) {
-
 		} catch (NoSuchMethodException e) {
 		} catch (SecurityException e) {
 		} catch (IllegalAccessException e) {
@@ -105,18 +121,27 @@ public class DefaultScheduler implements Scheduler {
 	}
 	@Override
 	public Closeable schedule(Runnable run) {
-		return new FutureCloser(pool.submit(run));
+		return toCloseable(pool.submit(run));
 	}
 
 	@Override
 	public Closeable schedule(Runnable run, long delay, TimeUnit unit) {
-		return new FutureCloser(pool.schedule(run, delay, unit));
+		return toCloseable(pool.schedule(run, delay, unit));
 	}
 
 	@Override
 	public Closeable schedule(Runnable run, long initialDelay, long betweenDelay, TimeUnit unit) {
-		return new FutureCloser(
+		return toCloseable(
 				pool.scheduleAtFixedRate(run, initialDelay, betweenDelay, unit));
+	}
+	/**
+	 * Factory function to turn the future into a closeable instance.
+	 * @param future the future to work with
+	 * @return the closeable instance
+	 * @since 0.97
+	 */
+	protected Closeable toCloseable(Future<?> future) {
+		return new FutureCloser(future);
 	}
 	/**
 	 * Shutdown both pools.

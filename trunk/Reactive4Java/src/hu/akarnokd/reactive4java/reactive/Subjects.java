@@ -15,6 +15,8 @@
  */
 package hu.akarnokd.reactive4java.reactive;
 
+import hu.akarnokd.reactive4java.base.Func1;
+
 import java.io.Closeable;
 
 import javax.annotation.Nonnull;
@@ -23,6 +25,7 @@ import javax.annotation.Nonnull;
  * Utility class to wrap existing pairs of Observers and Observables under the Subject
  * interface.
  * @author akarnokd, 2013.01.09.
+ * @since 0.97
  */
 public final class Subjects {
 	/** Utility class. */
@@ -55,6 +58,48 @@ public final class Subjects {
 				observer.finish();
 			}
 
+			@Override
+			@Nonnull
+			public Closeable register(@Nonnull Observer<? super U> observer) {
+				return observable.register(observer);
+			}
+		};
+	}
+	/**
+	 * Creates a new subject which simply forwards its observed values
+	 * to the registered observers.
+	 * @param <T> the element type
+	 * @return the new subject
+	 */
+	public static <T> Subject<T, T> newSubject() {
+		return new DefaultObservable<T>();
+	}
+	/**
+	 * Creates a new subject which forwards its observed values after
+	 * applying the selector function.
+	 * @param <T> the observed element type
+	 * @param <U> the forwarded element type
+	 * @param selector the selector to use
+	 * @return the new subject
+	 */
+	public static <T, U> Subject<T, U> newSubject(@Nonnull final Func1<? super T, ? extends U> selector) {
+		return new Subject<T, U>() {
+			final DefaultObservable<U> observable = new DefaultObservable<U>();
+
+			@Override
+			public void next(T value) {
+				observable.next(selector.invoke(value));
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				observable.error(ex);
+			}
+
+			@Override
+			public void finish() {
+				observable.finish();
+			}
 			@Override
 			@Nonnull
 			public Closeable register(Observer<? super U> observer) {
