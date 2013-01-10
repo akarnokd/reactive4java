@@ -46,8 +46,16 @@
   * Added 2 overloads to the {{{Reactive.first}}} and {{{Reactive.last}}} operators: one with default value, the other with a supplier function.
   * Added 2 overloads to the {{{Reactive.single}}} operator.
   * Added new {{{Reactive.singleAsync}}} operator + 2 overloads.
-  * Reworked the DefaultConnectableObservable behavior.
-  * Reworked Reactive.multicast behavior + 1 overloads added.
+  * Reworked the {{{DefaultConnectableObservable}}} behavior.
+  * Reworked {{{Reactive.multicast}}} behavior + 1 overloads added.
+  * Added {{{Reactive.invokeAll}}} to synchronously wait for multiple streams to finish and return a list of list of their values.
+  * Added DefaultScheduler.toCloseable that can be overridden to change how Closeable.close() calls Future.cancel(boolean) for example.
+  * Added constructor DefaultScheduler(int) to let the user specify the pool size.
+  * Moved convenience factory methods to create observers from {{{Reactive}}} into the new {{{Observers}}} class.
+  * Moved convenience factory methods to create observables from {{{Reactive}}} to the new {{{Observables}}} class.
+  * Reworked the {{{Reactive.publish}}} methods.
+  * Added {{{Reactive.publishLast}}} methods.
+  * Added {{{AsyncSubject}}} which works similarly to Future, but aimed at registering with an observable and getting its final result.
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
