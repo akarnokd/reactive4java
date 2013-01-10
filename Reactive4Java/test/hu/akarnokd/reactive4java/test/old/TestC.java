@@ -20,6 +20,7 @@ import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Observer;
+import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.concurrent.CountDownLatch;
@@ -45,7 +46,7 @@ public final class TestC {
 	 * waiting on the observable completion
 	 */
 	static void run(Observable<?> observable) throws InterruptedException {
-		Reactive.run(observable, Reactive.print());
+		Reactive.run(observable, Observers.print());
 	}
 	
 	/**
@@ -68,7 +69,7 @@ public final class TestC {
 					}
 				}
 			),
-			Reactive.println()
+			Observers.println()
 		);
 		
 		final CountDownLatch cdl = new CountDownLatch(1);
@@ -81,7 +82,7 @@ public final class TestC {
 			int lane;
 			@Override
 			public void next(Observable<Long> value) {
-				value.register(Reactive.println((lane++) + ":"));
+				value.register(Observers.println((lane++) + ":"));
 			}
 
 			@Override

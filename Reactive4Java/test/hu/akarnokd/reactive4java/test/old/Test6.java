@@ -21,6 +21,7 @@ import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.math.BigDecimal;
@@ -46,7 +47,7 @@ public final class Test6 {
 	 * waiting on the observable completion
 	 */
 	static void run(Observable<?> observable) throws InterruptedException {
-		Reactive.run(observable, Reactive.print());
+		Reactive.run(observable, Observers.print());
 	}
 	
 	/**

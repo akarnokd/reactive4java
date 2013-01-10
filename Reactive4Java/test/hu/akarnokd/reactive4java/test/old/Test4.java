@@ -17,6 +17,7 @@
 package hu.akarnokd.reactive4java.test.old;
 
 import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.io.Closeable;
@@ -43,7 +44,7 @@ public final class Test4 {
 
 		Observable<Long> tick = Reactive.tick(1, TimeUnit.SECONDS);
 		
-		Closeable c = tick.register(Reactive.println());
+		Closeable c = tick.register(Observers.println());
 		
 		Thread.sleep(5500);
 		
@@ -58,7 +59,8 @@ public final class Test4 {
 			Thread.sleep(3000);
 		}
 		
-		c = Reactive.sample(Reactive.tick(1L, TimeUnit.SECONDS), 3L, TimeUnit.SECONDS).register(Reactive.println());
+		c = Reactive.sample(Reactive.tick(1L, TimeUnit.SECONDS), 3L, TimeUnit.SECONDS)
+				.register(Observers.println());
 		
 		Thread.sleep(10000);
 		

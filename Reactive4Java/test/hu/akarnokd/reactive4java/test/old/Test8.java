@@ -17,6 +17,7 @@
 package hu.akarnokd.reactive4java.test.old;
 
 import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.concurrent.TimeUnit;
@@ -41,7 +42,7 @@ public final class Test8 {
 	 * waiting on the observable completion
 	 */
 	static void run(Observable<?> observable) throws InterruptedException {
-		Reactive.run(observable, Reactive.print());
+		Reactive.run(observable, Observers.print());
 	}
 	
 	/**

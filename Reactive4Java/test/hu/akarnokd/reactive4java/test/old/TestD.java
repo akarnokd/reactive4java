@@ -18,6 +18,7 @@ package hu.akarnokd.reactive4java.test.old;
 
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.util.CurrentThreadScheduler;
 
@@ -41,7 +42,7 @@ public final class TestD {
 	 * waiting on the observable completion
 	 */
 	static void run(Observable<?> observable) throws InterruptedException {
-		Reactive.run(observable, Reactive.print());
+		Reactive.run(observable, Observers.print());
 	}
 	
 	/**

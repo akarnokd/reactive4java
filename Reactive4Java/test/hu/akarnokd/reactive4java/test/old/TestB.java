@@ -21,6 +21,7 @@ import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.concurrent.CountDownLatch;
@@ -46,7 +47,7 @@ public final class TestB {
 	 * waiting on the observable completion
 	 */
 	static void run(Observable<?> observable) throws InterruptedException {
-		Reactive.run(observable, Reactive.print());
+		Reactive.run(observable, Observers.print());
 	}
 	
 	/**
@@ -64,7 +65,7 @@ public final class TestB {
 				return Reactive.range(0, param1);
 			}
 			
-		}), Reactive.println());
+		}), Observers.println());
 		
 		
 		run(Reactive.tick(0, 10, 1, TimeUnit.SECONDS));
@@ -75,11 +76,11 @@ public final class TestB {
 		
 		final CountDownLatch cdl = new CountDownLatch(1);
 		
-		window.register(Reactive.toObserver(new Action1<Observable<Long>>() {
+		window.register(Observers.toObserver(new Action1<Observable<Long>>() {
 			@Override
 			public void invoke(Observable<Long> value) {
 				System.out.println("New window");
-				value.register(Reactive.println());
+				value.register(Observers.println());
 			}
 		},
 		new Action1<Throwable>() {

@@ -15,22 +15,26 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import static hu.akarnokd.reactive4java.interactive.Interactive.elementsEqual;
 import static hu.akarnokd.reactive4java.interactive.Interactive.join;
-import static hu.akarnokd.reactive4java.reactive.Reactive.sequenceEqual;
-import static hu.akarnokd.reactive4java.reactive.Reactive.single;
 import static hu.akarnokd.reactive4java.reactive.Reactive.toIterable;
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
 import hu.akarnokd.reactive4java.base.Closeables;
+import hu.akarnokd.reactive4java.base.Scheduler;
+import hu.akarnokd.reactive4java.interactive.Interactive;
+import hu.akarnokd.reactive4java.query.IterableBuilder;
+import hu.akarnokd.reactive4java.query.ObservableBuilder;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Observer;
+import hu.akarnokd.reactive4java.reactive.Reactive;
+import hu.akarnokd.reactive4java.util.DefaultScheduler;
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
+
+import org.junit.Assert;
 
 /**
  * Test utility methods.
@@ -94,18 +98,6 @@ public final class TestUtil {
 		return iterator.hasNext() ? iterator.next() : "";
 	}
 	/**
-	 * Compare two sequences and assert their equivalence.
-	 * @param <T> the element type
-	 * @param expected the expected sequence
-	 * @param actual the actual sequence
-	 * @param eq should they equal?
-	 */
-	public static <T> void assertCompare(Iterable<? extends T> expected, Iterable<? extends T> actual, boolean eq) {
-		String message = "expected: " + makeString(expected) + "; actual: " + makeString(actual);
-		boolean condition = elementsEqual(expected, actual);
-		assertTrue(message, eq ? condition : !condition);
-	}
-	/**
 	 * Assert the equivalence of two sequences.
 	 * @param <T> the element type
 	 * @param expected the expected sequence
@@ -143,30 +135,6 @@ public final class TestUtil {
 	 */
 	public static String makeString(Observable<?> source) {
 		return makeString(toIterable(source));
-	}
-	/**
-	 * Compare two sequences and assert their equivalence.
-	 * @param <T> the element type
-	 * @param expected the expected sequence
-	 * @param actual the actual sequence
-	 * @param eq should they equal?
-	 */
-	public static <T> void assertCompare(Observable<? extends T> expected, Observable<? extends T> actual, boolean eq) {
-		String message = "expected: " + makeString(expected) + "; actual: " + makeString(actual);
-		boolean condition = single(sequenceEqual(expected, actual));
-		assertTrue(message, eq ? condition : !condition);
-	}
-	/**
-	 * Compare two sequences and assert their equivalence.
-	 * @param <T> the element type
-	 * @param expected the expected sequence
-	 * @param actual the actual sequence
-	 * @param eq should they equal?
-	 */
-	public static <T> void assertCompare(Iterable<? extends T> expected, Observable<? extends T> actual, boolean eq) {
-		String message = "expected: " + makeString(expected) + "; actual: " + makeString(actual);
-		boolean condition = single(sequenceEqual(expected, actual));
-		assertTrue(message, eq ? condition : !condition);
 	}
 	/**
 	 * Assert the equivalence of two sequences.
@@ -211,7 +179,76 @@ public final class TestUtil {
 	 * @param actual the actual sequence
 	 */
 	public static <T> void assertSingle(T expected, Observable<? extends T> actual) {
-		String message = "expected: " + expected + "; actual: " + makeString(actual);
-		assertEquals(message, expected, single(actual));
+		assertCompare(Collections.singleton(expected), actual, true);
+	}
+	/**
+	 * Compare two sequences and assert their equivalence.
+	 * @param <T> the element type
+	 * @param expected the expected sequence
+	 * @param actual the actual sequence
+	 * @param eq should they equal?
+	 */
+	public static <T> void assertCompare(Iterable<? extends T> expected, Iterable<? extends T> actual, boolean eq) {
+		List<? extends T> expectedList = IterableBuilder.from(expected).toList();
+		List<? extends T> actualList = IterableBuilder.from(actual).toList();
+		if (eq != expectedList.equals(actualList)) {
+			fail(expectedList, actualList);
+		}
+	}
+	/**
+	 * Calls the Assert.fail with a message that displays the expected and actual values as strings.
+	 * @param expected the expected sequence
+	 * @param actual the actual sequence
+	 */
+	public static void fail(Iterable<?> expected, Iterable<?> actual) {
+		Assert.fail("Sequences mismatch: expected = " + makeString(expected) + ", actual = " + makeString(actual));
+	}
+	/**
+	 * Compare two sequences and assert their equivalence.
+	 * @param <T> the element type
+	 * @param expected the expected sequence
+	 * @param actual the actual sequence
+	 * @param eq should they equal?
+	 */
+	public static <T> void assertCompare(Observable<? extends T> expected, Observable<? extends T> actual, boolean eq) {
+		DefaultScheduler scheduler = new DefaultScheduler(2);
+		assertCompare(expected, actual, eq, scheduler);
+		scheduler.shutdown();
+	}
+	/**
+	 * Compare two sequences and assert their equivalence.
+	 * @param <T> the element type
+	 * @param expected the expected sequence
+	 * @param actual the actual sequence
+	 * @param eq should they equal?
+	 * @param scheduler the scheduler that waits for the individual sequences
+	 */
+	public static <T> void assertCompare(
+			Observable<? extends T> expected, 
+			Observable<? extends T> actual, boolean eq,
+			Scheduler scheduler) {
+		try {
+			List<List<T>> both = Reactive.invokeAll(expected, actual, scheduler);
+			
+			if (eq != both.get(0).equals(both.get(1))) {
+				fail(both.get(0), both.get(1));
+			}
+			
+		} catch (InterruptedException ex) {
+			Assert.fail(ex.toString());
+		}
+	}
+	/**
+	 * Compare two sequences and assert their equivalence.
+	 * @param <T> the element type
+	 * @param expected the expected sequence
+	 * @param actual the actual sequence
+	 * @param eq should they equal?
+	 */
+	public static <T> void assertCompare(Iterable<? extends T> expected, Observable<? extends T> actual, boolean eq) {
+		List<?> actualList = ObservableBuilder.from(actual).into(new ArrayList<Object>());
+		if (eq != Interactive.elementsEqual(expected, actualList)) {
+			fail(expected, actualList);
+		}
 	}
 }

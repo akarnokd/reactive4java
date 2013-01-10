@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author akarnokd, 2011.01.29.
  * @param <T> the element type of the observable.
  */
-public class DefaultObservable<T> implements Observable<T>, Observer<T>, Closeable {
+public class DefaultObservable<T> implements Subject<T, T>, CloseableObservable<T> {
 	/** Atomically keeps track of the registered/deregistered observer count. */
 	private final AtomicInteger count = new AtomicInteger();
 	/** The map of the active observers. */

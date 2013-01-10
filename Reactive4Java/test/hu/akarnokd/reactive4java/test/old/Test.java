@@ -22,6 +22,7 @@ import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Observer;
+import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.Iterator;
@@ -103,14 +104,14 @@ public final class Test {
 			}
 		});
 		
-		Reactive.toObservable(ys).register(Reactive.toObserver(new Action1<Integer>() {
+		Reactive.toObservable(ys).register(Observers.toObserver(new Action1<Integer>() {
 			@Override
 			public void invoke(Integer value) {
 				System.out.printf("%s %d%n", Thread.currentThread(), value);
 			}
 		}));
 		
-		Reactive.delay(Reactive.range(100, 10), 5, TimeUnit.SECONDS).register(Reactive.println());
+		Reactive.delay(Reactive.range(100, 10), 5, TimeUnit.SECONDS).register(Observers.println());
 
 		System.out.println(Reactive.first(Reactive.range(1, 1)));
 		

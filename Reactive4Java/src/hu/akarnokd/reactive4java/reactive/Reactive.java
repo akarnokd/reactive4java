@@ -908,7 +908,7 @@ public final class Reactive {
 	 * @param <T> the element type
 	 * @param supplier the function that returns a value
 	 * @param src the source of Ts
-	 * @return the new observer
+	 * @return the new observable
 	 * @since 0.97
 	 */
 	public static <T> Observable<List<T>> combine(final Func0<? extends T> supplier, Observable<? extends T> src) {
@@ -974,7 +974,7 @@ public final class Reactive {
 	 * @param <T> the element type
 	 * @param src the source of Ts
 	 * @param constant the constant T to combine with
-	 * @return the new observer
+	 * @return the new observable
 	 */
 	public static <T> Observable<List<T>> combine(Observable<? extends T> src, final T constant) {
 		return select(src, new Func1<T, List<T>>() {
@@ -993,7 +993,7 @@ public final class Reactive {
 	 * @param <T> the element type
 	 * @param constant the constant T to combine with
 	 * @param src the source of Ts
-	 * @return the new observer
+	 * @return the new observable
 	 */
 	public static <T> Observable<List<T>> combine(final T constant, Observable<? extends T> src) {
 		return select(src, new Func1<T, List<T>>() {
@@ -3998,6 +3998,7 @@ public final class Reactive {
 	 * subject which through the source values will be multicasted.
 	 * @param selector the factory method to use the multicasted subject and enforce some policies on it
 	 * @return the observable sequence that contains all elements of the multicasted functions
+	 * @since 0.97
 	 */
 	@Nonnull
 	public static <T, U, V> Observable<V> multicast(
@@ -4005,7 +4006,20 @@ public final class Reactive {
 			@Nonnull final Func0<? extends Subject<? super T, ? extends U>> subjectSelector,
 			@Nonnull final Func1<? super Observable<? extends U>, ? extends Observable<? extends V>> selector
 			) {
-		throw new UnsupportedOperationException("TODO");
+		return new Observable<V>() {
+			@Override
+			@Nonnull
+			public Closeable register(Observer<? super V> observer) {
+				Subject<? super T, ? extends U> subject = subjectSelector.invoke();
+				ConnectableObservable<U> connectable = new DefaultConnectableObservable<T, U>(source, subject);
+				Observable<? extends V> observable = selector.invoke(connectable);
+				
+				Closeable c = DefaultObserverEx.wrap(observer).registerWith(observable);
+				Closeable conn = connectable.connect();
+				
+				return new CompositeCloseable(c, conn);
+			}
+		};
 	}
 	/**
 	 * Returns an observable which never fires.
@@ -4283,122 +4297,6 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Creates an observer with debugging purposes.
-	 * It prints the submitted values to STDOUT separated by commas and line-broken by 80 characters, the exceptions to STDERR
-	 * and prints an empty newline when it receives a finish().
-	 * @param <T> the value type
-	 * @return the observer
-	 */
-	@Nonnull
-	public static <T> Observer<T> print() {
-		return print(", ", 80);
-	}
-	/**
-	 * Creates an observer with debugging purposes.
-	 * It prints the submitted values to STDOUT, the exceptions to STDERR
-	 * and prints an empty newline when it receives a finish().
-	 * @param <T> the value type
-	 * @param separator the separator to use between subsequent values
-	 * @param maxLineLength how many characters to print into each line
-	 * @return the observer
-	 */
-	@Nonnull
-	public static <T> Observer<T> print(
-			final String separator,
-			final int maxLineLength) {
-		return new Observer<T>() {
-			/** Indicator for the first element. */
-			boolean first = true;
-			/** The current line length. */
-			int len;
-			@Override
-			public void error(Throwable ex) {
-				ex.printStackTrace();
-			}
-			@Override
-			public void finish() {
-				System.out.println();
-			}
-			@Override
-			public void next(T value) {
-				String s = String.valueOf(value);
-				if (first) {
-					first = false;
-					System.out.print(s);
-					len = s.length();
-				} else {
-					if (len + separator.length() + s.length() > maxLineLength) {
-						if (len == 0) {
-							System.out.print(separator);
-							System.out.print(s);
-							len = s.length() + separator.length();
-						} else {
-							System.out.println(separator);
-							System.out.print(s);
-							len = s.length();
-						}
-					} else {
-						System.out.print(separator);
-						System.out.print(s);
-						len += s.length() + separator.length();
-					}
-				}
-			}
-		};
-	}
-	/**
-	 * Creates an observer with debugging purposes.
-	 * It prints the submitted values to STDOUT with a line break, the exceptions to STDERR
-	 * and prints an empty newline when it receives a finish().
-	 * @param <T> the value type
-	 * @return the observer
-	 */
-	@Nonnull
-	public static <T> Observer<T> println() {
-		return new Observer<T>() {
-			@Override
-			public void error(Throwable ex) {
-				ex.printStackTrace();
-			}
-			@Override
-			public void finish() {
-				System.out.println();
-			}
-			@Override
-			public void next(T value) {
-				System.out.println(value);
-			}
-		};
-	}
-	/**
-	 * Creates an observer with debugging purposes.
-	 * It prints the submitted values to STDOUT with a line break, the exceptions to STDERR
-	 * and prints an empty newline when it receives a finish().
-	 * @param <T> the value type
-	 * @param prefix the prefix to use when printing
-	 * @return the observer
-	 */
-	@Nonnull
-	public static <T> Observer<T> println(final String prefix) {
-		return new Observer<T>() {
-			@Override
-			public void error(Throwable ex) {
-				System.err.print(prefix);
-				ex.printStackTrace();
-			}
-			@Override
-			public void finish() {
-				System.out.print(prefix);
-				System.out.println();
-			}
-			@Override
-			public void next(T value) {
-				System.out.print(prefix);
-				System.out.println(value);
-			}
-		};
-	}
-	/**
 	 * Returns an observable which shares all registration to the source observable and
 	 * each observer will only see the last notification.
 	 * <p>Basically a replay with buffer size 1.</p>
@@ -4462,138 +4360,139 @@ public final class Reactive {
 	}
 	/**
 	 * Returns an observable which shares a single subscription to the underlying source.
+	 * <p>This is a specialization of the multicast operator with a simple forwarding subject.</p>
 	 * @param <T> the element type
 	 * @param source the source of Ts
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> publish(
-			final Observable<? extends T> source
-	) {
-		return publish(source, DEFAULT_SCHEDULER.get());
+	@Nonnull
+	public static <T> ConnectableObservable<T> publish(
+			@Nonnull final Observable<? extends T> source
+			) {
+		return multicast(source, Subjects.<T>newSubject());
 	}
 	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param <T> the element type
-	 * @param <U> the result type
-	 * @param source the source of Ts
-	 * @param selector the selector function for the return stream
-	 * @return the new observable
-	 */
-	public static <T, U> Observable<U> publish(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector
-	) {
-		return publish(selector.invoke(source));
-	}
-	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param <T> the element type
-	 * @param <U> the result type
-	 * @param source the source of Ts
-	 * @param selector the selector function for the return stream
-	 * @param scheduler the scheduler where the values will be replayed
-	 * @return the new observable
-	 */
-	public static <T, U> Observable<U> publish(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
-			final Scheduler scheduler
-	) {
-		return publish(selector.invoke(source), scheduler);
-	}
-	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param <T> the element type
-	 * @param <U> the result type
-	 * @param source the source of Ts
-	 * @param selector the selector function for the return stream
-	 * @param initialValue the initial stream value
-	 * @return the new observable
-	 */
-	public static <T, U> Observable<U> publish(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
-			final U initialValue
-	) {
-		return publish(selector.invoke(source), initialValue);
-	}
-	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param <T> the element type
-	 * @param <U> the result type
-	 * @param source the source of Ts
-	 * @param selector the selector function for the return stream
-	 * @param initialValue the initial stream value
-	 * @param scheduler the scheduler where the values will be replayed
-	 * @return the new observable
-	 */
-	public static <T, U> Observable<U> publish(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
-			final U initialValue,
-			final Scheduler scheduler
-	) {
-		return publish(selector.invoke(source), initialValue, scheduler);
-	}
-	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
+	 * Returns an observable which shares a single subscription to the underlying source
+	 * and starts with with the initial value.
+	 * <p>Registering parties will immediately receive the initial value but the subsequent
+	 * values depend upon wether the observer is connected or not.</p>
+	 * <p>This is a specialization of the multicast operator with a simple forwarding subject.</p>
 	 * @param <T> the element type
 	 * @param source the source of Ts
-	 * @param scheduler the scheduler where the values will be replayed
+	 * @param initialValue the initial value the observers will receive when registering
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> publish(
-			final Observable<? extends T> source,
-			final Scheduler scheduler
-	) {
-		return new Observable<T>() {
-			/** The first registree to initialize the common observer. */
-			final Lock lock = new ReentrantLock();
-			@GuardedBy("lock")
-			DefaultObservable<T> obs;
+	@Nonnull
+	public static <T> ConnectableObservable<T> publish(
+			@Nonnull final Observable<? extends T> source,
+			final T initialValue
+			) {
+		return multicast(source, new Subject<T, T>() {
+			/** The observable handling the registrations. */
+			final DefaultObservable<T> obs = new DefaultObservable<T>(); 
 			@Override
+			public void next(T value) {
+				obs.next(value);
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				obs.error(ex);
+			}
+
+			@Override
+			public void finish() {
+				obs.finish();
+			}
+
+			@Override
+			@Nonnull
 			public Closeable register(Observer<? super T> observer) {
-				lock.lock();
-				try {
-					if (obs == null) {
-						obs = new DefaultObservable<T>();
-						observeOn(source, scheduler).register(obs);
-					}
-				} finally {
-					lock.unlock();
-				}
+				observer.next(initialValue);
 				return obs.register(observer);
 			}
-		};
-
+			
+		});
 	}
 	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param initialValue the initial stream value
-	 * @return the new observable
+	 * Returns an observable sequence which is the result of
+	 * invoking the selector on a connectable observable sequence
+	 * that shares a single subscription with the underlying 
+	 * <code>source</code> observable.
+	 * <p>This is a specialization of the multicast operator with
+	 * a regular subject on U.</p>
+	 * @param <T> the source element type
+	 * @param <U> the result element type
+	 * @param source the source sequence
+	 * @param selector the observable selector that can
+	 * use the source sequence as many times as necessary, without
+	 * multiple registration.
+	 * @return the observable sequence
 	 */
-	public static <T> Observable<T> publish(
-			final Observable<? extends T> source,
+	public static <T, U> Observable<U> publish(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<? extends U>> selector
+			) {
+		return multicast(source, new Func0<Subject<T, T>>() {
+			@Override
+			public Subject<T, T> invoke() {
+				return Subjects.newSubject();
+			}
+		}, selector);
+	}
+	/**
+	 * Returns an observable sequence which is the result of
+	 * invoking the selector on a connectable observable sequence
+	 * that shares a single subscription with the underlying 
+	 * <code>source</code> observable and registering parties
+	 * receive the initial value immediately.
+	 * <p>This is a specialization of the multicast operator with
+	 * a regular subject on U.</p>
+	 * @param <T> the source element type
+	 * @param <U> the result element type
+	 * @param source the source sequence
+	 * @param selector the observable selector that can
+	 * use the source sequence as many times as necessary, without
+	 * multiple registration.
+	 * @param initialValue the value received by registering parties immediately.
+	 * @return the observable sequence
+	 */
+	public static <T, U> Observable<U> publish(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<? extends U>> selector,
 			final T initialValue
-	) {
-		return publish(source, initialValue, DEFAULT_SCHEDULER.get());
-	}
-	/**
-	 * Returns an observable which shares a single subscription to the underlying source.
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param initialValue the initial stream value
-	 * @param scheduler the scheduler where the values will be replayed
-	 * @return the new observable
-	 */
-	public static <T> Observable<T> publish(
-			final Observable<? extends T> source,
-			final T initialValue,
-			final Scheduler scheduler
-	) {
-		return publish(startWith(source, initialValue, scheduler), scheduler);
+			) {
+		return multicast(source, new Func0<Subject<T, T>>() {
+			@Override
+			public Subject<T, T> invoke() {
+				return new Subject<T, T>() {
+					/** The observable handling the registrations. */
+					final DefaultObservable<T> obs = new DefaultObservable<T>(); 
+					@Override
+					public void next(T value) {
+						obs.next(value);
+					}
+
+					@Override
+					public void error(Throwable ex) {
+						obs.error(ex);
+					}
+
+					@Override
+					public void finish() {
+						obs.finish();
+					}
+
+					@Override
+					@Nonnull
+					public Closeable register(Observer<? super T> observer) {
+						observer.next(initialValue);
+						return obs.register(observer);
+					}
+					
+				};
+			}
+		}, selector);
 	}
 	/**
 	 * Creates an observable which generates numbers from start.
@@ -5160,7 +5059,7 @@ public final class Reactive {
 	 * @param bufferSize the buffer size
 	 * @param timeSpan the window length
 	 * @param unit the time unit
-	 * @return the new observer
+	 * @return the new observable
 	 */
 	public static <T, U> Observable<U> replay(
 			final Observable<? extends T> source,
@@ -5182,7 +5081,7 @@ public final class Reactive {
 	 * @param timeSpan the window length
 	 * @param unit the time unit
 	 * @param scheduler the target scheduler
-	 * @return the new observer
+	 * @return the new observable
 	 */
 	public static <T, U> Observable<U> replay(
 			final Observable<? extends T> source,
@@ -5203,7 +5102,7 @@ public final class Reactive {
 	 * @param selector the output stream selector
 	 * @param timeSpan the window length
 	 * @param unit the time unit
-	 * @return the new observer
+	 * @return the new observable
 	 */
 	public static <T, U> Observable<U> replay(
 			final Observable<? extends T> source,
@@ -5223,7 +5122,7 @@ public final class Reactive {
 	 * @param timeSpan the window length
 	 * @param unit the time unit
 	 * @param scheduler the target scheduler
-	 * @return the new observer
+	 * @return the new observable
 	 */
 	public static <T, U> Observable<U> replay(
 			final Observable<? extends T> source,
@@ -5256,7 +5155,7 @@ public final class Reactive {
 	 * @param bufferSize the buffer size
 	 * @param timeSpan the window length
 	 * @param unit the time unit
-	 * @return the new observer
+	 * @return the new observable
 	 */
 	public static <T> Observable<T> replay(
 			final Observable<? extends T> source,
@@ -5275,7 +5174,7 @@ public final class Reactive {
 	 * @param timeSpan the window length
 	 * @param unit the time unit
 	 * @param scheduler the target scheduler
-	 * @return the new observer
+	 * @return the new observable
 	 */
 	public static <T> Observable<T> replay(
 			final Observable<? extends T> source,
@@ -5534,7 +5433,7 @@ public final class Reactive {
 	 * @param source the source of Ts
 	 * @param timeSpan the window length
 	 * @param unit the time unit
-	 * @return the new observer
+	 * @return the new observable
 	 */
 	public static <T> Observable<T> replay(
 			final Observable<? extends T> source,
@@ -5551,7 +5450,7 @@ public final class Reactive {
 	 * @param timeSpan the window length
 	 * @param unit the time unit
 	 * @param scheduler the target scheduler
-	 * @return the new observer
+	 * @return the new observable
 	 */
 	public static <T> Observable<T> replay(
 			final Observable<? extends T> source,
@@ -7719,9 +7618,6 @@ public final class Reactive {
 	 * Creates an observable which relays events if they arrive
 	 * from the source observable within the specified amount of time
 	 * or it switches to the <code>other</code> observable.
-	 * FIXME not sure if the timeout should happen only when
-	 * distance between elements get to large or just the first element
-	 * does not arrive within the specified timespan.
 	 * @param <T> the element type to observe
 	 * @param source the source observable
 	 * @param time the maximum allowed timespan between events
@@ -7741,9 +7637,6 @@ public final class Reactive {
 	 * Creates an observable which relays events if they arrive
 	 * from the source observable within the specified amount of time
 	 * or it switches to the <code>other</code> observable.
-	 * FIXME not sure if the timeout should happen only when
-	 * distance between elements get to large or just the first element
-	 * does not arrive within the specified timespan.
 	 * @param <T> the element type to observe
 	 * @param source the source observable
 	 * @param time the maximum allowed timespan between events
@@ -7762,27 +7655,7 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			public Closeable register(final Observer<? super T> observer) {
-				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
-					/** The current source. */
-					@GuardedBy("lock")
-					Closeable src;
-					/** The current timer.*/
-					@GuardedBy("lock")
-					Closeable timer;
-					{
-						lock.lock();
-						try {
-							src = source.register(this);
-							registerTimer();
-						} finally {
-							lock.unlock();
-						}
-					}
-					@Override
-					protected void onClose() {
-						Closeables.closeSilently(timer);
-						Closeables.closeSilently(src);
-					}
+				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					@Override
 					protected void onError(Throwable ex) {
 						observer.error(ex);
@@ -7795,10 +7668,7 @@ public final class Reactive {
 
 					@Override
 					protected void onNext(T value) {
-						if (timer != null) {
-							Closeables.closeSilently(timer);
-							timer = null;
-						}
+						remove("timer");
 						observer.next(value);
 						registerTimer();
 					}
@@ -7807,19 +7677,21 @@ public final class Reactive {
 					 * observable sequence
 					 */
 					private void registerTimer() {
-						timer = pool.schedule(new DefaultRunnable(lock) {
+						replace("timer", "timer", pool.schedule(new DefaultRunnable(lock) {
 							@Override
 							public void onRun() {
 								if (!cancelled()) {
-									Closeables.closeSilently(src);
-									timer = null;
-									src = other.register(observer);
+									registerWith(other);
 								}
 							}
-						}, time, unit);
+						}, time, unit));
+					}
+					@Override
+					protected void onRegister() {
+						registerTimer();
 					}
 				};
-				return obs;
+				return obs.registerWith(source);
 			}
 		};
 	}
@@ -7827,9 +7699,6 @@ public final class Reactive {
 	 * Creates an observable which relays events if they arrive
 	 * from the source observable within the specified amount of time
 	 * or it singlals a java.util.concurrent.TimeoutException.
-	 * FIXME not sure if the timeout should happen only when
-	 * distance between elements get to large or just the first element
-	 * does not arrive within the specified timespan.
 	 * @param <T> the element type to observe
 	 * @param source the source observable
 	 * @param time the maximum allowed timespan between events
@@ -8417,61 +8286,6 @@ public final class Reactive {
 				};
 				return pool.schedule(s);
 			}
-		};
-	}
-	/**
-	 * Wraps the given action as an observable which reacts only to <code>next()</code> events.
-	 * @param <T> the type of the values
-	 * @param action the action to wrap
-	 * @return the observer wrapping the action
-	 */
-	@Nonnull
-	public static <T> Observer<T> toObserver(
-			@Nonnull final Action1<? super T> action) {
-		return new Observer<T>() {
-			@Override
-			public void error(Throwable ex) {
-				// ignored
-			}
-			@Override
-			public void finish() {
-				// ignored
-			}
-			@Override
-			public void next(T value) {
-				action.invoke(value);
-			}
-		};
-	}
-	/**
-	 * Creates an observer which calls the given functions on its similarly named methods.
-	 * @param <T> the value type to receive
-	 * @param next the action to invoke on next()
-	 * @param error the action to invoke on error()
-	 * @param finish the action to invoke on finish()
-	 * @return the observer
-	 */
-	@Nonnull
-	public static <T> Observer<T> toObserver(
-			@Nonnull final Action1<? super T> next,
-			@Nonnull final Action1<? super Throwable> error,
-			@Nonnull final Action0 finish) {
-		return new Observer<T>() {
-			@Override
-			public void error(Throwable ex) {
-				error.invoke(ex);
-			}
-
-			@Override
-			public void finish() {
-				finish.invoke();
-			}
-
-			@Override
-			public void next(T value) {
-				next.invoke(value);
-			}
-
 		};
 	}
 	/**
@@ -10129,6 +9943,244 @@ public final class Reactive {
 			Closeables.closeSilently(it);
 		}
 		return defaultSupplier.invoke();
+	}
+	/**
+	 * Observes the source observables in parallel on the default scheduler and collects their individual
+	 * values value streams, blocking in the process. 
+	 * @param <T> the common element type
+	 * @param sources the source sequences
+	 * @return the for each source, the list of their value streams.
+	 * @throws InterruptedException if the wait is interrupted
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> List<List<T>> invokeAll(
+			@Nonnull final Iterable<? extends Observable<? extends T>> sources) throws InterruptedException {
+		return invokeAll(sources, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Observes the source observables in parallel on the default scheduler and collects their individual
+	 * values value streams, blocking in the process. 
+	 * @param <T> the common element type
+	 * @param source1 the first source
+	 * @param source2 the second source
+	 * @return the for each source, the list of their value streams.
+	 * @throws InterruptedException if the wait is interrupted
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> List<List<T>> invokeAll(
+			@Nonnull final Observable<? extends T> source1,
+			@Nonnull final Observable<? extends T> source2
+			) throws InterruptedException {
+		return invokeAll(source1, source2, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Observes the source observables in parallel on the given scheduler and collects their individual
+	 * values value streams, blocking in the process. 
+	 * @param <T> the common element type
+	 * @param source1 the first source
+	 * @param source2 the second source
+	 * @param scheduler the target scheduler
+	 * @return the for each source, the list of their value streams.
+	 * @throws InterruptedException if the wait is interrupted
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> List<List<T>> invokeAll(
+			@Nonnull final Observable<? extends T> source1,
+			@Nonnull final Observable<? extends T> source2,
+			@Nonnull final Scheduler scheduler
+			) throws InterruptedException {
+		List<Observable<? extends T>> sources = new ArrayList<Observable<? extends T>>();
+		sources.add(source1);
+		sources.add(source2);
+		return invokeAll(sources, scheduler);
+	}
+	/**
+	 * Observes the source observables in parallel on the given scheduler and collects their individual
+	 * values value streams, blocking in the process. 
+	 * @param <T> the common element type
+	 * @param sources the source sequences
+	 * @param scheduler the scheduler
+	 * @return the for each source, the list of their value streams.
+	 * @throws InterruptedException if the wait is interrupted
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> List<List<T>> invokeAll(
+			@Nonnull final Iterable<? extends Observable<? extends T>> sources,
+			@Nonnull Scheduler scheduler) throws InterruptedException {
+		
+		List<List<T>> result = new ArrayList<List<T>>();
+		List<Observable<Pair<Integer, T>>> taggedSources = new ArrayList<Observable<Pair<Integer, T>>>();
+		
+		int idx = 0;
+		for (Observable<? extends T> o : sources) {
+			final int fidx = idx;
+			Observable<Pair<Integer, T>> tagged = select(o, new Func1<T, Pair<Integer, T>>() { 
+				@Override
+				public Pair<Integer, T> invoke(T param1) {
+					return Pair.of(fidx, param1);
+				}
+			});
+			taggedSources.add(tagged);
+			result.add(new ArrayList<T>());
+			idx++;
+		}
+		
+		Observable<Pair<Integer, T>> merged = merge(taggedSources);
+
+		CloseableIterator<Pair<Integer, T>> it = toIterable(merged).iterator();
+		try {
+			while (it.hasNext()) {
+				Pair<Integer, T> pair = it.next();
+				result.get(pair.first).add(pair.second);
+			}
+		} finally {
+			Closeables.closeSilently(it);
+		}
+		
+		
+		return result;
+	}
+	/**
+	 * Creates an observable which finishes its observers after the specified
+	 * amount of time if no error or finish events appeared till then.
+	 * @param <T> the element type.
+	 * @param source the source sequence
+	 * @param time the time to wait
+	 * @param unit the time unit to wait
+	 * @param scheduler the scheduler used for the wait
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> Observable<T> timeoutFinish(
+			@Nonnull final Observable<? extends T> source, 
+			final long time, 
+			@Nonnull final TimeUnit unit,
+			@Nonnull final Scheduler scheduler) {
+		return timeout(source, time, unit, Reactive.<T>empty(scheduler), scheduler);
+	}
+	/**
+	 * Creates an observable which finishes its observers after the specified
+	 * amount of time if no error or finish events appeared till then.
+	 * @param <T> the element type.
+	 * @param source the source sequence
+	 * @param time the time to wait
+	 * @param unit the time unit to wait
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> Observable<T> timeoutFinish(
+			@Nonnull final Observable<? extends T> source, 
+			final long time, 
+			@Nonnull final TimeUnit unit) {
+		return timeout(source, time, unit, Reactive.<T>empty());
+	}
+	/**
+	 * Schedules an active tick timer on the specified scheduler to which
+	 * observers can register or deregister getting the current tick values.
+	 * @param start the start of the counter
+	 * @param end the end of the counter
+	 * @param time the initial and between delay of the ticks
+	 * @param unit the time unit of the ticks
+	 * @return the closeable observable that produces the values
+	 * and lets the whole timer cancel
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static CloseableObservable<Long> activeTick(
+			final long start, 
+			final long end, 
+			long time, @Nonnull TimeUnit unit) {
+		return activeTick(start, end, time, unit, DEFAULT_SCHEDULER.get());
+	}
+	/**
+	 * Schedules an active tick timer on the specified scheduler to which
+	 * observers can register or deregister getting the current tick values.
+	 * @param start the start of the counter
+	 * @param end the end of the counter
+	 * @param time the initial and between delay of the ticks
+	 * @param unit the time unit of the ticks
+	 * @param scheduler the scheduler where the ticks are performed
+	 * @return the closeable observable that produces the values
+	 * and lets the whole timer cancel
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static CloseableObservable<Long> activeTick(
+			final long start, 
+			final long end, 
+			long time, @Nonnull TimeUnit unit, 
+			@Nonnull Scheduler scheduler) {
+
+		final DefaultObservable<Long> result = new DefaultObservable<Long>();
+
+		final Closeable timer = scheduler.schedule(new DefaultRunnable() {
+			/** The value. */
+			long value = start;
+			@Override
+			protected void onRun() {
+				if (value < end) {
+					result.next(value++);
+				}
+				if (value >= end) {
+					result.finish();
+					cancel();
+				}
+			}
+		}, time, time, unit);
+		
+		return new CloseableObservable<Long>() {
+			@Override
+			@Nonnull
+			public Closeable register(Observer<? super Long> observer) {
+				return result.register(observer);
+			}
+
+			@Override
+			public void close() throws IOException {
+				Closeables.close(timer, result);
+			}
+		};
+	}
+	/**
+	 * Returns a connectable observable which uses a single registration
+	 * to the underlying source sequence containing only the last value.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public static <T> ConnectableObservable<T> publishLast(
+			@Nonnull final Observable<T> source
+			) {
+		return multicast(source, new AsyncSubject<T>());
+	}
+	/**
+	 * Retunrs an observable that is the result of the selector invocation
+	 * on a connectable observable that shares a single registration to
+	 * <code>source</code> and returns the last event of the source.
+	 * @param <T> the element type
+	 * @param <U> the result type
+	 * @param source the source sequence
+	 * @param selector function that can use the multicasted source as many times as necessary without causing new registrations to source
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public static <T, U> Observable<U> publishLast(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<? extends U>> selector
+			) {
+		return multicast(source, new Func0<Subject<T, T>>() { 
+			@Override
+			public Subject<T, T> invoke() {
+				return new AsyncSubject<T>();
+			}
+		}, selector);
 	}
 	/** Utility class. */
 	private Reactive() {
