@@ -36,6 +36,7 @@ import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.util.Closeables;
 import hu.akarnokd.reactive4java.util.Functions;
+import hu.akarnokd.reactive4java.util.Observables;
 import hu.akarnokd.reactive4java.util.Observers;
 import hu.akarnokd.reactive4java.util.Subjects;
 
@@ -3804,5 +3805,36 @@ public final class ObservableBuilder<T> implements Observable<T> {
 			) 
 					throws InterruptedException {
 		return Reactive.forEach(o, action, time, unit);
+	}
+	/**
+	 * Converts the original Java Observable into an reactive-Observable builder instance.
+	 * Since Java Observables had no concept of error and termination, and
+	 * were considered active observable, the returned reactive-observable
+	 * never terminates or throws an error.
+	 * <p>Note that since java-observables are not generic, ClassCastException
+	 * might occur if the transmitted value has incompatible class.</p>
+	 * <p>Remark: named as fromOriginal to avoid casts to java- or reactive
+	 * observable when using a hybrid source.</p>
+	 * @param <T> the element type
+	 * @param javaObservable the java observable to be used
+	 * @return the new observable builder
+	 */
+	public static <T> ObservableBuilder<T> fromOriginal(java.util.Observable javaObservable) {
+		return from(Observables.<T>toObservable(javaObservable));
+	}
+	/**
+	 * Registers a java-observer with this reactive-observable instance.
+	 * @param javaObserver the java observer to register
+	 * @return the close handler
+	 */
+	@Nonnull 
+	public Closeable register(@Nonnull java.util.Observer javaObserver) {
+		return Observers.registerWith(o, javaObserver);
+	}
+	/**
+	 * @return Wraps this observable into a java-observable.
+	 */
+	public java.util.Observable toOriginalObservable() {
+		return Observables.<T>toOriginalObservable(o);
 	}
 }

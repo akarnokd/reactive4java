@@ -18,8 +18,11 @@ package hu.akarnokd.reactive4java.util;
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Func1;
+import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -339,29 +342,92 @@ public final class Observers {
 	 * @return the reactive-observable
 	 */
 	@Nonnull 
-	public static Observer<Object> toObserver(
+	public static OriginalObserverWrapper toObserver(
 			@Nonnull final java.util.Observer javaObserver, 
 			@Nullable final java.util.Observable javaObservable) {
-		return new Observer<Object>() {
+		return new OriginalObserverWrapper(javaObservable, javaObserver);
+	}
+	/**
+	 * Wraps the reactive-observer into a java-observer.
+	 * <p>Note that since java-observer is non generic,
+	 * ClassCastException might occur on the chain of
+	 * reactive-observers in case an inproper object is
+	 * propagated.
+	 * @param <T> the element type
+	 * @param observer the reactive-observer to wrap
+	 * @return the java-observer
+	 */
+	public static <T> java.util.Observer toJavaObserver(
+			final Observer<T> observer) {
+		return new java.util.Observer() {
 			@Override
-			public void next(Object value) {
-				javaObserver.update(javaObservable, value);
+			@SuppressWarnings("unchecked")
+			public void update(java.util.Observable o, Object arg) {
+				observer.next((T)arg);
 			}
-
-			@Override
-			public void error(Throwable ex) {
-				if (javaObservable != null) {
-					javaObservable.deleteObserver(javaObserver);
-				}
-			}
-
-			@Override
-			public void finish() { 
-				if (javaObservable != null) {
-					javaObservable.deleteObserver(javaObserver);
-				}
-			}
-			
 		};
+	}
+	/**
+	 * Convenience method to let a reactive-observer register with
+	 * a java-observable. 
+	 * <p>The observer won't receive any error
+	 * or finish events since java-observables don't have these
+	 * concepts.<p>
+	 * <p>Note that java-observables are not generic, therefore
+	 * ClassCastException might occur if inproper values are
+	 * sent through the reactive-observable chain.</p>
+	 * @param <T> the element type
+	 * @param javaObservable the observable used to register with.
+	 * @param observer the observer to use
+	 * @return the closeable to unregister the observer
+	 */
+	public static <T> Closeable registerWith(
+			@Nonnull final java.util.Observable javaObservable, 
+			@Nonnull final Observer<T> observer) {
+		final java.util.Observer o = toJavaObserver(observer);
+		Closeable handle = new Closeable() {
+			@Override
+			public void close() throws IOException {
+				javaObservable.deleteObserver(o);
+			}
+		};
+		javaObservable.addObserver(o);
+		return handle;
+	}
+	/**
+	 * Convenience method to register a java-observer with a java-observable in the
+	 * same style as the reactive counterpart do.
+	 * <p>Note that java-observable prevents multiple registrations
+	 * with the same java-observer instance, but there is no way
+	 * to know if an observer is already registered. Therefore,
+	 * in duplicate case the subsequent close handle will close the single registration.</p>
+	 * @param javaObservable the java-observable instance
+	 * @param javaObserver the java-observer instance
+	 * @return the close handle
+	 */
+	public static Closeable registerWith(
+			@Nonnull final java.util.Observable javaObservable, 
+			@Nonnull final java.util.Observer javaObserver) {
+		Closeable handle = new Closeable() {
+			@Override
+			public void close() throws IOException {
+				javaObservable.deleteObserver(javaObserver);
+			}
+		};
+		javaObservable.addObserver(javaObserver);
+		return handle;
+	}
+	/**
+	 * Convenience method to register a java-observable with a reactive-observable.
+	 * @param <T> the element type of the reactive-observable
+	 * @param observable the reactive-observable to register with
+	 * @param javaObserver the java-observer to register
+	 * @return the close handler to deregister the observer
+	 */
+	public static <T> Closeable registerWith(
+			@Nonnull final Observable<T> observable, 
+			@Nonnull final java.util.Observer javaObserver) {
+		ReactiveObservableWrapper<T> row = new ReactiveObservableWrapper<T>(observable);
+		return row.register(javaObserver);
 	}
 }
