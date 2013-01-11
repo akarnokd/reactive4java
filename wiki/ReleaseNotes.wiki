@@ -63,6 +63,7 @@
   * Moved utility classes related to interfaces into the util package.
   * Moved other basic helper classes into the util package (e.g., CircularBuffer).
   * Added utility methods to convert to and from Java's own Observable and Observer objects.
+  * Added overloads to {{{Reactive.forEach}}} to invoke an action on the received events and wait for the completion of the sequence.
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
