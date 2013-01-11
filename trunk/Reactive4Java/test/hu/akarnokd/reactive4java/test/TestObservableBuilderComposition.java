@@ -16,9 +16,9 @@
 package hu.akarnokd.reactive4java.test;
 
 import hu.akarnokd.reactive4java.base.Func1;
+import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Pred1;
 import hu.akarnokd.reactive4java.query.ObservableBuilder;
-import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.Arrays;

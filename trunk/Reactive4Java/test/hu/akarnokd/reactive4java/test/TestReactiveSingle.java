@@ -19,10 +19,10 @@ import static hu.akarnokd.reactive4java.query.ObservableBuilder.from;
 import static hu.akarnokd.reactive4java.reactive.Reactive.empty;
 import static hu.akarnokd.reactive4java.reactive.Reactive.single;
 import static org.junit.Assert.assertEquals;
-import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
-import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
+import hu.akarnokd.reactive4java.util.Functions;
 
 import java.util.NoSuchElementException;
 

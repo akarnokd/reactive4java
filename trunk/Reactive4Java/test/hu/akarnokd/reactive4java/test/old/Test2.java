@@ -16,13 +16,13 @@
 
 package hu.akarnokd.reactive4java.test.old;
 
-import hu.akarnokd.reactive4java.base.Functions;
-import hu.akarnokd.reactive4java.reactive.GroupedObservable;
-import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observer;
-import hu.akarnokd.reactive4java.reactive.Observers;
+import hu.akarnokd.reactive4java.base.GroupedObservable;
+import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.base.Observer;
+import hu.akarnokd.reactive4java.base.Timestamped;
 import hu.akarnokd.reactive4java.reactive.Reactive;
-import hu.akarnokd.reactive4java.reactive.Timestamped;
+import hu.akarnokd.reactive4java.util.Functions;
+import hu.akarnokd.reactive4java.util.Observers;
 
 import java.io.Closeable;
 import java.util.ArrayList;

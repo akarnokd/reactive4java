@@ -17,11 +17,11 @@
 package hu.akarnokd.reactive4java.test.old;
 
 import hu.akarnokd.reactive4java.base.Func2;
-import hu.akarnokd.reactive4java.base.Functions;
-import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observer;
-import hu.akarnokd.reactive4java.reactive.Observers;
+import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.reactive.Reactive;
+import hu.akarnokd.reactive4java.util.Functions;
+import hu.akarnokd.reactive4java.util.Observers;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;

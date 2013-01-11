@@ -15,9 +15,9 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import hu.akarnokd.reactive4java.base.Functions;
-import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
+import hu.akarnokd.reactive4java.util.Functions;
 
 import java.util.NoSuchElementException;
 

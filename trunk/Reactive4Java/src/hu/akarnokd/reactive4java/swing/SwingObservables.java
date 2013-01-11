@@ -15,10 +15,10 @@
  */
 package hu.akarnokd.reactive4java.swing;
 
+import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Scheduler;
-import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
-import hu.akarnokd.reactive4java.reactive.Observer;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;

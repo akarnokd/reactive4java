@@ -15,7 +15,6 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import static hu.akarnokd.reactive4java.base.Functions.equal;
 import static hu.akarnokd.reactive4java.query.ObservableBuilder.from;
 import static hu.akarnokd.reactive4java.reactive.Reactive.concat;
 import static hu.akarnokd.reactive4java.reactive.Reactive.count;
@@ -24,7 +23,8 @@ import static hu.akarnokd.reactive4java.reactive.Reactive.single;
 import static hu.akarnokd.reactive4java.reactive.Reactive.take;
 import static hu.akarnokd.reactive4java.reactive.Reactive.takeLast;
 import static hu.akarnokd.reactive4java.reactive.Reactive.takeWhile;
-import hu.akarnokd.reactive4java.reactive.Observable;
+import static hu.akarnokd.reactive4java.util.Functions.equal;
+import hu.akarnokd.reactive4java.base.Observable;
 
 import org.junit.Test;
 

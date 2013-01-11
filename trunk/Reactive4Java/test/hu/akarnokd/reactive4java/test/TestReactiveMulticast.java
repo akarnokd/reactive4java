@@ -15,12 +15,12 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import hu.akarnokd.reactive4java.base.Closeables;
-import hu.akarnokd.reactive4java.reactive.CloseableObservable;
-import hu.akarnokd.reactive4java.reactive.ConnectableObservable;
-import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.base.CloseableObservable;
+import hu.akarnokd.reactive4java.base.ConnectableObservable;
+import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
-import hu.akarnokd.reactive4java.reactive.Subjects;
+import hu.akarnokd.reactive4java.util.Subjects;
+import hu.akarnokd.reactive4java.util.Closeables;
 
 import java.io.Closeable;
 import java.io.IOException;

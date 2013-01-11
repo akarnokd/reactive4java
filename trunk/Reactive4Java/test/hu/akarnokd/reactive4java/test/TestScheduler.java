@@ -15,22 +15,23 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import static hu.akarnokd.reactive4java.base.Closeables.closeSilently;
 import static hu.akarnokd.reactive4java.base.Option.getError;
 import static hu.akarnokd.reactive4java.base.Option.isError;
 import static hu.akarnokd.reactive4java.base.Option.isNone;
 import static hu.akarnokd.reactive4java.base.Option.isSome;
+import static hu.akarnokd.reactive4java.util.Closeables.closeSilently;
 import static java.util.Collections.sort;
 import static java.util.Collections.unmodifiableList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import hu.akarnokd.reactive4java.base.Func0;
+import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Scheduler;
-import hu.akarnokd.reactive4java.reactive.DefaultObservable;
-import hu.akarnokd.reactive4java.reactive.DefaultObserver;
-import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observer;
-import hu.akarnokd.reactive4java.reactive.Timestamped;
+import hu.akarnokd.reactive4java.base.Timestamped;
+import hu.akarnokd.reactive4java.util.DefaultObservable;
+import hu.akarnokd.reactive4java.util.DefaultObserver;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
 import javax.annotation.Nonnull;
 
 /**

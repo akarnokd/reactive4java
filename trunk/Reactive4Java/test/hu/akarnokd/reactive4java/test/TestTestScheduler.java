@@ -18,8 +18,8 @@ package hu.akarnokd.reactive4java.test;
 import static hu.akarnokd.reactive4java.query.IterableBuilder.from;
 import static hu.akarnokd.reactive4java.test.TestScheduler.onNext;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import hu.akarnokd.reactive4java.base.Closeables;
-import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.util.Closeables;
 
 import java.io.Closeable;
 import java.util.List;
