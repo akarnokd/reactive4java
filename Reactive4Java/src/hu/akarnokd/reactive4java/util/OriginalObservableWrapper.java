@@ -17,6 +17,7 @@ package hu.akarnokd.reactive4java.util;
 
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action0E;
+import hu.akarnokd.reactive4java.base.CloseableObservable;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -26,11 +27,17 @@ import java.util.Observer;
 import javax.annotation.Nonnull;
 
 /**
- * Helper class that wraps a Java Observable and provides a cancellation option.
+ * Helper class that wraps a Java Observable and makes its 
+ * services availabel as java- and reactive- observable.
+ * Data incoming through the observer interfaces are routed to the underlying
+ * java-observable. The class implements Observable&lt;Object>, therefore
+ * reactive-observers can be registered as well.
  * @author akarnokd, 2013.01.11.
  * @since 0.97
+ * @param <T> the reactive-observer's type
  */
-public class OriginalObservableWrapper extends Observable implements Closeable {
+public class OriginalObservableWrapper<T> extends Observable 
+implements CloseableObservable<T> {
 	/** The observable. */
 	protected final Observable observable;
 	/** The close action. */
@@ -141,5 +148,28 @@ public class OriginalObservableWrapper extends Observable implements Closeable {
 	public void close() throws IOException {
 		closeAction.invoke();
 	}
-
+	@Override
+	@Nonnull
+	public Closeable register(
+			hu.akarnokd.reactive4java.base.Observer<? super T> observer) {
+		return Observers.registerWith(this, observer);
+	}
+	/**
+	 * Registers a java-observer and returns a handle to it.
+	 * The observer can be unregistered via this handle or the regular deleteObserver().
+	 * <p>The convenience method is to have symmetric means
+	 * for both observer kinds to interact with this observable.<p>
+	 * @param observer the observer to register
+	 * @return the unregistration handle
+	 */
+	public Closeable register(@Nonnull final Observer observer) {
+		Closeable handle = new Closeable() {
+			@Override
+			public void close() throws IOException {
+				deleteObserver(observer);
+			}
+		};
+		addObserver(observer);
+		return handle;
+	}
 }

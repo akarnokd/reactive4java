@@ -19,7 +19,6 @@ import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 
 import java.io.Closeable;
-import java.io.IOException;
 
 import javax.annotation.Nonnull;
 
@@ -36,31 +35,16 @@ public final class Observables {
 	 * Since Java Observables had no concept of error and termination, and
 	 * were considered active observable, the returned reactive-observable
 	 * never terminates or throws an error.
-	 * @param javaObservable the java observable to be used
+	 * <p>Note that since java-observables are not generic, ClassCastException
+	 * might occur if the transmitted value has incompatible class.</p>
+	 * @param <T> the element type
+	 * @param javaObservable the java-observable to be used
 	 * @return the reactive-observable
 	 */
 	@Nonnull
-	public static Observable<Object> toObservable(
+	public static <T> Observable<T> toObservable(
 			@Nonnull final java.util.Observable javaObservable) {
-		return new Observable<Object>() {
-			@Override
-			@Nonnull
-			public Closeable register(@Nonnull final Observer<? super Object> observer) {
-				final java.util.Observer javaObserver = new java.util.Observer() {
-					@Override
-					public void update(java.util.Observable o, Object arg) {
-						observer.next(arg);
-					}
-				};
-				javaObservable.addObserver(javaObserver);
-				return new Closeable() {
-					@Override
-					public void close() throws IOException {
-						javaObservable.deleteObserver(javaObserver);
-					}
-				};
-			}
-		};
+		return new OriginalObservableWrapper<T>(javaObservable);
 	}
 	/**
 	 * Converts the reactive-observable into the original Java Observable.
@@ -72,13 +56,15 @@ public final class Observables {
 	 * terminate the connection to source and deregister all observers</p>
 	 * <p>Incoming error and finish events will close the connection
 	 * to the source and deregister all observers.</p>
+	 * @param <T> the observable sequence type
 	 * @param source the source sequence of anything
 	 * @return the java-observable
+	 * @see HybridSubject
 	 */
 	@Nonnull
-	public static OriginalObservableWrapper toJavaObservable(
-			@Nonnull final Observable<?> source) {
-		return toJavaObservable(source, true);
+	public static <T> OriginalObservableWrapper<T> toOriginalObservable(
+			@Nonnull final Observable<T> source) {
+		return toOriginalObservable(source, true);
 	}
 	/**
 	 * Converts the reactive-observable into the original Java Observable.
@@ -90,14 +76,16 @@ public final class Observables {
 	 * terminate the connection to source and deregister all observers</p>
 	 * <p>Incoming error and finish events are ignored if unregisterObservers
 	 * is false, or they will cause deregistration otherwise.</p>
+	 * @param <T> the observable sequence type
 	 * @param source the source sequence of anything
 	 * @param unregisterObservers should the registered observers deregistered
 	 * in case of an error or finish message or closing the observer?
 	 * @return the java-observable
+	 * @see HybridSubject
 	 */
 	@Nonnull
-	public static OriginalObservableWrapper toJavaObservable(
-			@Nonnull final Observable<?> source,
+	public static <T> OriginalObservableWrapper<T> toOriginalObservable(
+			@Nonnull final Observable<T> source,
 			final boolean unregisterObservers) {
 		final java.util.Observable javaObservable = new java.util.Observable();
 		
@@ -120,6 +108,6 @@ public final class Observables {
 			}
 		});
 		
-		return new OriginalObservableWrapper(javaObservable, Actions.asAction0E(c), unregisterObservers);
+		return new OriginalObservableWrapper<T>(javaObservable, Actions.asAction0E(c), unregisterObservers);
 	}
 }

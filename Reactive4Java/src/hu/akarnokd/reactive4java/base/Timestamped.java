@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package hu.akarnokd.reactive4java.reactive;
+package hu.akarnokd.reactive4java.base;
 
 import java.util.Date;
 

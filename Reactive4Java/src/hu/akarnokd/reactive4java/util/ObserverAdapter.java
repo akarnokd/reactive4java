@@ -13,29 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package hu.akarnokd.reactive4java.util;
 
-package hu.akarnokd.reactive4java.base;
-
-import javax.annotation.Nonnull;
+import hu.akarnokd.reactive4java.base.Observer;
 
 /**
- * The observer who receives the notifications of T.
- * @author akarnokd
- * @param <T> the type of the notification values.
+ * A simple class that has empty implementations for all
+ * observer methods. 
+ * @author akarnokd, 2013.01.11.
+ * @since 0.97
+ * @param <T> the element type
  */
-public interface Observer<T> {
-	/** 
-	 * The next value is received. 
-	 * @param value the next value 
-	 */
-	void next(T value);
-	/** 
-	 * An exception is received.
-	 * @param ex the exception 
-	 */
-	void error(@Nonnull Throwable ex);
-	/** 
-	 * No more values to expect. 
-	 */
-	void finish();
+public class ObserverAdapter<T> implements Observer<T> {
+
+	@Override
+	public void next(T value) {
+
+	}
+
+	@Override
+	public void error(Throwable ex) {
+
+	}
+
+	@Override
+	public void finish() {
+
+	}
+
 }
