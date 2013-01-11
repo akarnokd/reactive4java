@@ -19,8 +19,9 @@ package hu.akarnokd.reactive4java.test.old;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
-import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.base.Option;
+import hu.akarnokd.reactive4java.util.Functions;
+
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 

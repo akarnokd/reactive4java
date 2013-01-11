@@ -15,7 +15,7 @@
  */
 
 /**
- * This package contains utility classes for various {@code Scheduler} implementations
- * and the functional representation of {@link java.lang.Iterable} and {@link hu.akarnokd.reactive4java.reactive.Observable}.
+ * Contains utility classes for working with the interfaces in the base package
+ * and default implementations for many of them.
  */
 package hu.akarnokd.reactive4java.util;

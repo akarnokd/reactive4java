@@ -15,9 +15,9 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import static hu.akarnokd.reactive4java.base.Functions.pairUp;
 import static hu.akarnokd.reactive4java.query.ObservableBuilder.from;
 import static hu.akarnokd.reactive4java.reactive.Reactive.zip;
+import static hu.akarnokd.reactive4java.util.Functions.pairUp;
 import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.query.ObservableBuilder;
 

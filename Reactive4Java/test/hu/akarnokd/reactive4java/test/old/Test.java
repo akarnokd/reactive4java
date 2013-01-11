@@ -18,12 +18,12 @@ package hu.akarnokd.reactive4java.test.old;
 
 import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Func0;
+import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.interactive.Interactive;
-import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observer;
-import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
+import hu.akarnokd.reactive4java.util.Observers;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

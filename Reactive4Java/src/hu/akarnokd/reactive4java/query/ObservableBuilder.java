@@ -17,25 +17,27 @@ package hu.akarnokd.reactive4java.query;
 
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
+import hu.akarnokd.reactive4java.base.Action2;
+import hu.akarnokd.reactive4java.base.CloseableIterable;
 import hu.akarnokd.reactive4java.base.CloseableIterator;
-import hu.akarnokd.reactive4java.base.Closeables;
+import hu.akarnokd.reactive4java.base.ConnectableObservable;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
-import hu.akarnokd.reactive4java.base.Functions;
+import hu.akarnokd.reactive4java.base.GroupedObservable;
+import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Scheduler;
+import hu.akarnokd.reactive4java.base.Subject;
+import hu.akarnokd.reactive4java.base.TimeInterval;
+import hu.akarnokd.reactive4java.base.Timestamped;
 import hu.akarnokd.reactive4java.interactive.Interactive;
-import hu.akarnokd.reactive4java.reactive.ConnectableObservable;
-import hu.akarnokd.reactive4java.reactive.GroupedObservable;
-import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observer;
-import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
-import hu.akarnokd.reactive4java.reactive.Subject;
-import hu.akarnokd.reactive4java.reactive.Subjects;
-import hu.akarnokd.reactive4java.reactive.TimeInterval;
-import hu.akarnokd.reactive4java.reactive.Timestamped;
+import hu.akarnokd.reactive4java.util.Closeables;
+import hu.akarnokd.reactive4java.util.Functions;
+import hu.akarnokd.reactive4java.util.Observers;
+import hu.akarnokd.reactive4java.util.Subjects;
 
 import java.io.Closeable;
 import java.math.BigDecimal;
@@ -1798,6 +1800,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * Returns an observable which shares a single subscription to the underlying source.
 	 * <p>This is a specialization of the multicast operator with a simple forwarding subject.</p>
 	 * @return the new observable
+	 * @see Reactive#publish(Observable)
 	 */
 	public ObservableBuilder<T> publish() {
 		return from(Reactive.publish(o));
@@ -3614,5 +3617,192 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 */
 	public ObservableBuilder<T> timeoutFinish(long time, @Nonnull TimeUnit unit, @Nonnull Scheduler scheduler) {
 		return from(Reactive.timeoutFinish(o, time, unit, scheduler));
+	}
+	/**
+	 * Returns a connectable observable which uses a single registration
+	 * to the underlying source sequence containing only the last value.
+	 * @return the new observable
+	 * @since 0.97
+	 * @see Reactive#publish(Observable)
+	 */
+	public ObservableBuilder<T> publishLast() {
+		return from(Reactive.publishLast(o));
+	}
+	/**
+	 * Retunrs an observable that is the result of the selector invocation
+	 * on a connectable observable that shares a single registration to
+	 * <code>source</code> and returns the last event of the source.
+	 * @param <U> the result type
+	 * @param selector function that can use the multicasted source as many times as necessary without causing new registrations to source
+	 * @return the new observable
+	 * @since 0.97
+	 * @see Reactive#publishLast(Observable, Func1)
+	 */
+	public <U> ObservableBuilder<U> publishLast(
+			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<? extends U>> selector) {
+		return from(Reactive.publishLast(o, selector));
+	}
+	/**
+	 * Returns an observable sequence which 
+	 * connects to the source for the first registered 
+	 * party and stays connected to the source
+	 * as long as there is at least one registered party to it.
+	 * <p>The wrapped observable of this builder must implement ConnectableObservable,
+	 * or else an UnsupportedOperationException is thrown</p>
+	 * @return the observable sequence.
+	 * @since 0.97
+	 * @see Reactive#refCount(ConnectableObservable)
+	 */
+	public ObservableBuilder<T> refCount() {
+		if (o instanceof ConnectableObservable) {
+			return from(Reactive.refCount((ConnectableObservable<T>)o));
+		}
+		throw new UnsupportedOperationException("Requires ConnectableObservable");
+	}
+	/**
+	 * Checks if the wrapped Observable is the instance of the given class or interface
+	 * according to Class.isInstance().
+	 * @param clazz the class to check against
+	 * @return true if the wrapped Observable is assignable to such type
+	 * @since 0.97
+	 */
+	public boolean isInstance(Class<?> clazz) {
+		return clazz.isInstance(o);
+	}
+	/**
+	 * Casts the wrapped observable into the supplied type via clazz.cast().
+	 * @param <U> the target type
+	 * @param clazz the target class
+	 * @return the cast value of the wrapped Observable
+	 * @since 0.97
+	 */
+	public <U> U cast(Class<U> clazz) {
+		return clazz.cast(o);
+	}
+	/**
+	 * @return Unwraps the underlying Observable in case it is wrapped
+	 * multiple times with the ObservableBuilder class.
+	 * @since 0.97
+	 */
+	public Observable<T> unwrap() {
+		if (o instanceof ObservableBuilder) {
+			return ((ObservableBuilder<T>)o).unwrap();
+		}
+		return o;
+	}
+	/**
+	 * Produces an iterable sequence of consequtive (possibly empty)
+	 * chunks of the source sequence.
+	 * @return the chunks
+	 * @since 0.97
+	 * @see Reactive#chunkify(Observable)
+	 */
+	@Nonnull 
+	public Iterable<List<T>> chunkify() {
+		return Reactive.chunkify(o);
+	}
+	/**
+	 * Produces an enumerable sequence that returns elements
+	 * collected/aggregated/whatever from the source
+	 * between consequtive iterations.
+	 * @param <U> the result type
+	 * @param newCollector the factory method for the current collector
+	 * @param merge the merger that combines elements
+	 * @return the new iterable
+	 * @since 0.97
+	 * @see Reactive#collect(Observable, Func0, Func2)
+	 */
+	@Nonnull
+	public <U> Iterable<U> collect(
+			@Nonnull final Func0<? extends U> newCollector,
+			@Nonnull final Func2<? super U, ? super T, ? extends U> merge
+			) {
+		return Reactive.collect(o, newCollector, merge);
+	}
+	/**
+	 * Produces an iterable sequence that returns elements
+	 * collected/aggregated/whatever from the source
+	 * sequence between consequtive iteration.
+	 * @param <U> the result element type
+	 * @param initialCollector the initial collector factory
+	 * @param merge the merger operator
+	 * @param newCollector the factory to replace the current collector
+	 * @return the sequence
+	 * @since 0.97
+	 * @see Reactive#collect(Observable, Func0, Func2, Func1)
+	 */
+	@Nonnull
+	public <U> CloseableIterable<U> collect(
+			@Nonnull final Func0<? extends U> initialCollector,
+			@Nonnull final Func2<? super U, ? super T, ? extends U> merge,
+			@Nonnull final Func1<? super U, ? extends U> newCollector
+			) {
+		return Reactive.collect(o, initialCollector, merge, newCollector);
+	}
+	/**
+	 * Invokes the action on each element in the source,
+	 * and blocks until the source terminates either way.
+	 * <p>The observation of the source is not serialized,
+	 * therefore, <code>action</code> might be invoked concurrently
+	 * by subsequent source elements.</p>
+	 * @param action the action to invoke on each element.
+	 * @throws InterruptedException if the wait is interrupted
+	 */
+	public void forEach(@Nonnull final Action1<? super T> action)
+					throws InterruptedException {
+		Reactive.forEach(o, action);
+	}
+	/**
+	 * Invokes the indexed action on each element in the source,
+	 * and blocks until the source terminates either way.
+	 * <p>The observation of the source is not serialized,
+	 * therefore, <code>action</code> might be invoked concurrently
+	 * by subsequent source elements.</p>
+	 * @param action the action to invoke on each element.
+	 * @throws InterruptedException if the wait is interrupted
+	 */
+	public void forEach(
+			@Nonnull final Action2<? super T, ? super Integer> action) 
+					throws InterruptedException {
+		Reactive.forEach(o, action);
+	}
+	/**
+	 * Invokes the action on each element in the source,
+	 * and blocks until the source terminates or the time runs out.
+	 * <p>The observation of the source is not serialized,
+	 * therefore, <code>action</code> might be invoked concurrently
+	 * by subsequent source elements.</p>
+	 * @param action the action to invoke on each element.
+	 * @param time the waiting time
+	 * @param unit the waiting time unit
+	 * @return false if a timeout occurred instead of normal termination
+	 * @throws InterruptedException if the wait is interrupted
+	 * @since 0.97
+	 */
+	public boolean forEach(
+			@Nonnull final Action1<? super T> action,
+			long time, @Nonnull TimeUnit unit)
+					throws InterruptedException {
+		return Reactive.forEach(o, action, time, unit);
+	}
+	/**
+	 * Invokes the indexed action on each element in the source,
+	 * and blocks until the source terminates either way.
+	 * <p>The observation of the source is not serialized,
+	 * therefore, <code>action</code> might be invoked concurrently
+	 * by subsequent source elements.</p>
+	 * @param action the action to invoke on each element.
+	 * @param time the waiting time
+	 * @param unit the waiting time unit
+	 * @return false if a timeout occurred instead of normal termination
+	 * @throws InterruptedException if the wait is interrupted
+	 * @since 0.97
+	 */
+	public boolean forEach(
+			@Nonnull final Action2<? super T, ? super Integer> action,
+			long time, @Nonnull TimeUnit unit
+			) 
+					throws InterruptedException {
+		return Reactive.forEach(o, action, time, unit);
 	}
 }

@@ -15,9 +15,10 @@
  */
 package hu.akarnokd.reactive4java.test;
 
+import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Option;
-import hu.akarnokd.reactive4java.reactive.Observer;
-import hu.akarnokd.reactive4java.reactive.Timestamped;
+import hu.akarnokd.reactive4java.base.Timestamped;
+
 import java.util.List;
 
 /**

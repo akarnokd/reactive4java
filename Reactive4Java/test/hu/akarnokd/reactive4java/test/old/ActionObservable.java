@@ -18,15 +18,15 @@ package hu.akarnokd.reactive4java.test.old;
 
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
-import hu.akarnokd.reactive4java.base.Actions;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
-import hu.akarnokd.reactive4java.base.Functions;
+import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Ref;
-import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observer;
 import hu.akarnokd.reactive4java.reactive.Reactive;
+import hu.akarnokd.reactive4java.util.Actions;
+import hu.akarnokd.reactive4java.util.Functions;
 
 import javax.annotation.Nonnull;
 

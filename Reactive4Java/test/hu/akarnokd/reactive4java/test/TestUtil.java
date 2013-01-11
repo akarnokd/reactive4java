@@ -17,15 +17,15 @@ package hu.akarnokd.reactive4java.test;
 
 import static hu.akarnokd.reactive4java.interactive.Interactive.join;
 import static hu.akarnokd.reactive4java.reactive.Reactive.toIterable;
-import hu.akarnokd.reactive4java.base.Closeables;
+import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.query.IterableBuilder;
 import hu.akarnokd.reactive4java.query.ObservableBuilder;
-import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observer;
 import hu.akarnokd.reactive4java.reactive.Reactive;
-import hu.akarnokd.reactive4java.util.DefaultScheduler;
+import hu.akarnokd.reactive4java.scheduler.DefaultScheduler;
+import hu.akarnokd.reactive4java.util.Closeables;
 
 import java.io.Closeable;
 import java.util.ArrayList;

@@ -17,18 +17,18 @@ package hu.akarnokd.reactive4java.query;
 
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
-import hu.akarnokd.reactive4java.base.Closeables;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
-import hu.akarnokd.reactive4java.base.Functions;
+import hu.akarnokd.reactive4java.base.GroupedIterable;
+import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.base.Scheduler;
-import hu.akarnokd.reactive4java.interactive.GroupedIterable;
 import hu.akarnokd.reactive4java.interactive.Interactive;
-import hu.akarnokd.reactive4java.reactive.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
+import hu.akarnokd.reactive4java.util.Closeables;
+import hu.akarnokd.reactive4java.util.Functions;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -77,12 +77,26 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	}
 	/**
 	 * Creates a new iterable builder instance by wrapping the given
-	 * source sequence.
+	 * source sequence, if not already a builder.
 	 * @param <T> the element type
 	 * @param source the source sequence
 	 * @return the created iterable builder
 	 */
 	public static <T> IterableBuilder<T> from(@Nonnull final Iterable<T> source) {
+		if (source instanceof IterableBuilder) {
+			return (IterableBuilder<T>)source;
+		}
+		return new IterableBuilder<T>(source);
+	}
+	/**
+	 * Creates a new iterable builder instance by wrapping the given
+	 * source sequence.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @return the created iterable builder
+	 * @since 0.97
+	 */
+	public static <T> IterableBuilder<T> newBuilder(@Nonnull final Iterable<T> source) {
 		return new IterableBuilder<T>(source);
 	}
 	/**

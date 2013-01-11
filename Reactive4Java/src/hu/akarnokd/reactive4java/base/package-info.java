@@ -15,7 +15,7 @@
  */
 
 /**
- * This package contains base classes that help in both
- * reactive and interactive programming.
+ * The package contains fundamental interfaces, basic value-classes and
+ * common exceptions.
  */
 package hu.akarnokd.reactive4java.base;

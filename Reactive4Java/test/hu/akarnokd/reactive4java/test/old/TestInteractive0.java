@@ -16,9 +16,6 @@
 
 package hu.akarnokd.reactive4java.test.old;
 
-import static hu.akarnokd.reactive4java.base.Functions.identity;
-import static hu.akarnokd.reactive4java.base.Functions.incrementInt;
-import static hu.akarnokd.reactive4java.base.Functions.lessThan;
 import static hu.akarnokd.reactive4java.interactive.Interactive.any;
 import static hu.akarnokd.reactive4java.interactive.Interactive.catchException;
 import static hu.akarnokd.reactive4java.interactive.Interactive.concat;
@@ -42,12 +39,15 @@ import static hu.akarnokd.reactive4java.interactive.Interactive.selectMany;
 import static hu.akarnokd.reactive4java.interactive.Interactive.singleton;
 import static hu.akarnokd.reactive4java.interactive.Interactive.throwException;
 import static hu.akarnokd.reactive4java.interactive.Interactive.where;
+import static hu.akarnokd.reactive4java.util.Functions.identity;
+import static hu.akarnokd.reactive4java.util.Functions.incrementInt;
+import static hu.akarnokd.reactive4java.util.Functions.lessThan;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
-import hu.akarnokd.reactive4java.base.Functions;
+import hu.akarnokd.reactive4java.base.GroupedIterable;
 import hu.akarnokd.reactive4java.base.Option;
-import hu.akarnokd.reactive4java.interactive.GroupedIterable;
 import hu.akarnokd.reactive4java.interactive.Interactive;
+import hu.akarnokd.reactive4java.util.Functions;
 
 import java.util.Arrays;
 import java.util.Iterator;

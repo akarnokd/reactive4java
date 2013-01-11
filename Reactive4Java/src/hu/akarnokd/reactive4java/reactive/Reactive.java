@@ -18,22 +18,40 @@ package hu.akarnokd.reactive4java.reactive;
 
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
-import hu.akarnokd.reactive4java.base.CircularBuffer;
+import hu.akarnokd.reactive4java.base.Action2;
 import hu.akarnokd.reactive4java.base.CloseableIterable;
 import hu.akarnokd.reactive4java.base.CloseableIterator;
-import hu.akarnokd.reactive4java.base.Closeables;
+import hu.akarnokd.reactive4java.base.CloseableObservable;
+import hu.akarnokd.reactive4java.base.ConnectableObservable;
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
-import hu.akarnokd.reactive4java.base.Functions;
+import hu.akarnokd.reactive4java.base.GroupedObservable;
+import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.base.Scheduler;
-import hu.akarnokd.reactive4java.base.SingleContainer;
+import hu.akarnokd.reactive4java.base.Subject;
+import hu.akarnokd.reactive4java.base.TimeInterval;
+import hu.akarnokd.reactive4java.base.Timestamped;
 import hu.akarnokd.reactive4java.base.TooManyElementsException;
 import hu.akarnokd.reactive4java.interactive.Interactive;
-import hu.akarnokd.reactive4java.util.DefaultScheduler;
-import hu.akarnokd.reactive4java.util.SingleLaneExecutor;
+import hu.akarnokd.reactive4java.scheduler.DefaultScheduler;
+import hu.akarnokd.reactive4java.scheduler.SingleLaneExecutor;
+import hu.akarnokd.reactive4java.util.AsyncSubject;
+import hu.akarnokd.reactive4java.util.CircularBuffer;
+import hu.akarnokd.reactive4java.util.Closeables;
+import hu.akarnokd.reactive4java.util.CompositeCloseable;
+import hu.akarnokd.reactive4java.util.DefaultConnectableObservable;
+import hu.akarnokd.reactive4java.util.DefaultObservable;
+import hu.akarnokd.reactive4java.util.DefaultObserver;
+import hu.akarnokd.reactive4java.util.DefaultObserverEx;
+import hu.akarnokd.reactive4java.util.DefaultRunnable;
+import hu.akarnokd.reactive4java.util.Functions;
+import hu.akarnokd.reactive4java.util.SingleContainer;
+import hu.akarnokd.reactive4java.util.Subjects;
+import hu.akarnokd.reactive4java.util.Throwables;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -7528,8 +7546,10 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Returns an observable which produces an ordered sequence of numbers with the specified delay.
-	 * It uses the default scheduler pool.
+	 * Returns an observable which produces an ordered sequence of 
+	 * numbers with the specified delay.
+	 * <p>It uses the default scheduler pool.</p>
+	 * <p>Finishes right after reaching the final value of <code>end - 1</code></p>
 	 * @param start the starting value of the tick
 	 * @param end the finishing value of the tick exclusive
 	 * @param delay the delay value
@@ -7545,7 +7565,9 @@ public final class Reactive {
 		return tick(start, end, delay, unit, DEFAULT_SCHEDULER.get());
 	}
 	/**
-	 * Returns an observable which produces an ordered sequence of numbers with the specified delay.
+	 * Returns an observable which produces an ordered sequence 
+	 * of numbers with the specified delay.
+	 * <p>Finishes right after reaching the final value of <code>end - 1</code></p>
 	 * @param start the starting value of the tick inclusive
 	 * @param end the finishing value of the tick exclusive
 	 * @param delay the delay value
@@ -7573,7 +7595,8 @@ public final class Reactive {
 					protected void onRun() {
 						if (current < end && !cancelled()) {
 							observer.next(current++);
-						} else {
+						}
+						if (current == end) {
 							if (!cancelled()) {
 								observer.finish();
 							}
@@ -10181,6 +10204,386 @@ public final class Reactive {
 				return new AsyncSubject<T>();
 			}
 		}, selector);
+	}
+	/**
+	 * Returns an observable sequence which 
+	 * connects to the source for the first registered 
+	 * party and stays connected to the source
+	 * as long as there is at least one registered party to it.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @return the observable sequence.
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> Observable<T> refCount(
+			@Nonnull final ConnectableObservable<? extends T> source) {
+		return new RefCount<T>(source);
+	}
+	/**
+	 * Produces an iterable sequence of consequtive (possibly empty)
+	 * chunks of the source sequence.
+	 * @param <T> element type
+	 * @param source the source sequence
+	 * @return the chunks
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> Iterable<List<T>> chunkify(@Nonnull Observable<? extends T> source) {
+		return collect(
+				source,
+				new Func0<List<T>>() {
+					@Override
+					public List<T> invoke() {
+						return new ArrayList<T>();
+					}
+				},
+				new Func2<List<T>, T, List<T>>() {
+					@Override
+					public List<T> invoke(List<T> param1, T param2) {
+						param1.add(param2);
+						return param1;
+					}
+				},
+				new Func1<List<T>, List<T>>() {
+					@Override
+					public List<T> invoke(List<T> param) {
+						return new ArrayList<T>();
+					}
+				}
+		);
+	}
+	/**
+	 * Produces an enumerable sequence that returns elements
+	 * collected/aggregated/whatever from the source
+	 * between consequtive iterations.
+	 * @param <T> the source type
+	 * @param <U> the result type
+	 * @param source the source sequence
+	 * @param newCollector the factory method for the current collector
+	 * @param merge the merger that combines elements
+	 * @return the new iterable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, U> Iterable<U> collect(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func0<? extends U> newCollector,
+			@Nonnull final Func2<? super U, ? super T, ? extends U> merge
+			) {
+		return collect(source, newCollector, merge, Functions.asFunc1(newCollector));
+	}
+	/**
+	 * Produces an iterable sequence that returns elements
+	 * collected/aggregated/whatever from the source
+	 * sequence between consequtive iteration.
+	 * FIXME not sure how this should work as the return values depend on
+	 * when the next() is invoked.
+	 * @param <T> the source element type
+	 * @param <U> the result element type
+	 * @param source the source sequence
+	 * @param initialCollector the initial collector factory
+	 * @param merge the merger operator
+	 * @param newCollector the factory to replace the current collector
+	 * @return the sequence
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, U> CloseableIterable<U> collect(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func0<? extends U> initialCollector,
+			@Nonnull final Func2<? super U, ? super T, ? extends U> merge,
+			@Nonnull final Func1<? super U, ? extends U> newCollector
+			) {
+		return new CloseableIterable<U>() {
+			@Override
+			public CloseableIterator<U> iterator() {
+				final AtomicReference<U> collector = new AtomicReference<U>(initialCollector.invoke());
+				final AtomicBoolean done = new AtomicBoolean();
+				final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
+				
+				final DefaultObserverEx<T> obs = new DefaultObserverEx<T>() {
+					@Override
+					protected void onNext(T value) {
+						U current = collector.get();
+						current = merge.invoke(current, value);
+						collector.set(current);
+					}
+
+					@Override
+					protected void onError(Throwable ex) {
+						error.set(ex);
+						done.set(true);
+					}
+
+					@Override
+					protected void onFinish() {
+						done.set(true);
+					}
+					
+				};
+				obs.registerWith(source);
+				
+				return new CloseableIterator<U>() {
+					/** The current value received by hasNext(). */
+					U currentValue;
+					/** Have we completed as well? */
+					boolean completed;
+					@Override
+					public boolean hasNext() {
+						if (!completed) {
+							currentValue = collector.get();
+						}
+						return completed;
+					}
+
+					@Override
+					public U next() {
+						if (hasNext()) {
+							if (done.get()) {
+								completed = true;
+								Throwables.throwAsUnchecked(error.get());
+							} else {
+								collector.set(newCollector.invoke(currentValue));
+							}
+							return currentValue;
+						}
+						throw new NoSuchElementException();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+
+					@Override
+					public void close() throws IOException {
+						obs.close();
+					}
+					@Override
+					protected void finalize() throws Throwable {
+						close();
+					}
+				};
+			}
+		};
+	}
+	/**
+	 * Invokes the action on each element in the source,
+	 * and blocks until the source terminates either way.
+	 * <p>The observation of the source is not serialized,
+	 * therefore, <code>action</code> might be invoked concurrently
+	 * by subsequent source elements.</p>
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param action the action to invoke on each element.
+	 * @throws InterruptedException if the wait is interrupted
+	 * @since 0.97
+	 */
+	public static <T> void forEach(
+			@Nonnull final Observable<T> source, 
+			@Nonnull final Action1<? super T> action)
+					throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		Observer<T> o = new Observer<T>() {
+			/** Indicate the termination. */
+			final AtomicBoolean done = new AtomicBoolean();
+			@Override
+			public void next(T value) {
+				if (!done.get()) {
+					action.invoke(value);
+				}
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				terminate();
+			}
+
+			@Override
+			public void finish() {
+				terminate();
+			}
+			/** Terminate the acceptance of values. */
+			void terminate() {
+				if (done.compareAndSet(false, true)) {
+					latch.countDown();
+				}
+			}
+			
+		};
+		Closeable c = source.register(o);
+		try {
+			latch.await();
+		} finally {
+			Closeables.closeSilently(c);
+		}
+	}
+	/**
+	 * Invokes the indexed action on each element in the source,
+	 * and blocks until the source terminates either way.
+	 * <p>The observation of the source is not serialized,
+	 * therefore, <code>action</code> might be invoked concurrently
+	 * by subsequent source elements.</p>
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param action the action to invoke on each element.
+	 * @throws InterruptedException if the wait is interrupted
+	 * @since 0.97
+	 */
+	public static <T> void forEach(
+			@Nonnull final Observable<T> source, 
+			@Nonnull final Action2<? super T, ? super Integer> action) 
+					throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		Observer<T> o = new Observer<T>() {
+			/** Indicate the termination. */
+			final AtomicBoolean done = new AtomicBoolean();
+			/** The next() counter. */
+			final AtomicInteger index = new AtomicInteger();
+			@Override
+			public void next(T value) {
+				if (!done.get()) {
+					action.invoke(value, index.getAndIncrement());
+				}
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				terminate();
+			}
+
+			@Override
+			public void finish() {
+				terminate();
+			}
+			/** Terminate the acceptance of values. */
+			void terminate() {
+				if (done.compareAndSet(false, true)) {
+					latch.countDown();
+				}
+			}
+			
+		};
+		Closeable c = source.register(o);
+		try {
+			latch.await();
+		} finally {
+			Closeables.closeSilently(c);
+		}
+	}
+	/**
+	 * Invokes the action on each element in the source,
+	 * and blocks until the source terminates or the time runs out.
+	 * <p>The observation of the source is not serialized,
+	 * therefore, <code>action</code> might be invoked concurrently
+	 * by subsequent source elements.</p>
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param action the action to invoke on each element.
+	 * @param time the waiting time
+	 * @param unit the waiting time unit
+	 * @return false if a timeout occurred instead of normal termination
+	 * @throws InterruptedException if the wait is interrupted
+	 * @since 0.97
+	 */
+	public static <T> boolean forEach(
+			@Nonnull final Observable<T> source, 
+			@Nonnull final Action1<? super T> action,
+			long time, @Nonnull TimeUnit unit)
+					throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		Observer<T> o = new Observer<T>() {
+			/** Indicate the termination. */
+			final AtomicBoolean done = new AtomicBoolean();
+			@Override
+			public void next(T value) {
+				if (!done.get()) {
+					action.invoke(value);
+				}
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				terminate();
+			}
+
+			@Override
+			public void finish() {
+				terminate();
+			}
+			/** Terminate the acceptance of values. */
+			void terminate() {
+				if (done.compareAndSet(false, true)) {
+					latch.countDown();
+				}
+			}
+			
+		};
+		Closeable c = source.register(o);
+		try {
+			return latch.await(time, unit);
+		} finally {
+			Closeables.closeSilently(c);
+		}
+	}
+	/**
+	 * Invokes the indexed action on each element in the source,
+	 * and blocks until the source terminates either way.
+	 * <p>The observation of the source is not serialized,
+	 * therefore, <code>action</code> might be invoked concurrently
+	 * by subsequent source elements.</p>
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param action the action to invoke on each element.
+	 * @param time the waiting time
+	 * @param unit the waiting time unit
+	 * @return false if a timeout occurred instead of normal termination
+	 * @throws InterruptedException if the wait is interrupted
+	 * @since 0.97
+	 */
+	public static <T> boolean forEach(
+			@Nonnull final Observable<T> source, 
+			@Nonnull final Action2<? super T, ? super Integer> action,
+			long time, @Nonnull TimeUnit unit
+			) 
+					throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		Observer<T> o = new Observer<T>() {
+			/** Indicate the termination. */
+			final AtomicBoolean done = new AtomicBoolean();
+			/** The next() counter. */
+			final AtomicInteger index = new AtomicInteger();
+			@Override
+			public void next(T value) {
+				if (!done.get()) {
+					action.invoke(value, index.getAndIncrement());
+				}
+			}
+
+			@Override
+			public void error(Throwable ex) {
+				terminate();
+			}
+
+			@Override
+			public void finish() {
+				terminate();
+			}
+			/** Terminate the acceptance of values. */
+			void terminate() {
+				if (done.compareAndSet(false, true)) {
+					latch.countDown();
+				}
+			}
+			
+		};
+		Closeable c = source.register(o);
+		try {
+			return latch.await(time, unit);
+		} finally {
+			Closeables.closeSilently(c);
+		}
 	}
 	/** Utility class. */
 	private Reactive() {

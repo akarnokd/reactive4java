@@ -15,9 +15,9 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import static hu.akarnokd.reactive4java.base.Functions.equal;
 import static hu.akarnokd.reactive4java.query.ObservableBuilder.from;
 import static hu.akarnokd.reactive4java.reactive.Reactive.any;
+import static hu.akarnokd.reactive4java.util.Functions.equal;
 
 import org.junit.Test;
 

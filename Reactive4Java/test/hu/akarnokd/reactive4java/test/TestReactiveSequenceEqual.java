@@ -19,7 +19,7 @@ import static hu.akarnokd.reactive4java.query.ObservableBuilder.from;
 import static hu.akarnokd.reactive4java.reactive.Reactive.concat;
 import static hu.akarnokd.reactive4java.reactive.Reactive.empty;
 import static hu.akarnokd.reactive4java.reactive.Reactive.sequenceEqual;
-import hu.akarnokd.reactive4java.reactive.Observable;
+import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.Arrays;

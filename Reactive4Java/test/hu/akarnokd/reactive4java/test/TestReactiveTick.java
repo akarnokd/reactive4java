@@ -15,10 +15,10 @@
  */
 package hu.akarnokd.reactive4java.test;
 
+import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.interactive.Interactive;
-import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observers;
 import hu.akarnokd.reactive4java.reactive.Reactive;
+import hu.akarnokd.reactive4java.util.Observers;
 
 import java.util.concurrent.TimeUnit;
 

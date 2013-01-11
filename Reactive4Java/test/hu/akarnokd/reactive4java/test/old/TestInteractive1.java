@@ -18,8 +18,8 @@ package hu.akarnokd.reactive4java.test.old;
 
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
-import hu.akarnokd.reactive4java.base.Functions;
 import hu.akarnokd.reactive4java.interactive.Interactive;
+import hu.akarnokd.reactive4java.util.Functions;
 
 
 /**

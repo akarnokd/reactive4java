@@ -16,11 +16,11 @@
 package hu.akarnokd.reactive4java.test.old;
 
 import hu.akarnokd.reactive4java.base.Func1;
-import hu.akarnokd.reactive4java.base.Lambdas;
 import hu.akarnokd.reactive4java.base.Pred1;
 import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.query.IterableBuilder;
 import hu.akarnokd.reactive4java.query.ObservableBuilder;
+import hu.akarnokd.reactive4java.util.Lambdas;
 
 /**
  * Testing the Builder version of the framework.

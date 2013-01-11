@@ -15,7 +15,7 @@
  */
 package hu.akarnokd.reactive4java.swing;
 
-import hu.akarnokd.reactive4java.reactive.DefaultObservable;
+import hu.akarnokd.reactive4java.util.DefaultObservable;
 
 import javax.annotation.Nonnull;
 import javax.swing.event.DocumentEvent;
