@@ -56,6 +56,13 @@
   * Reworked the {{{Reactive.publish}}} methods.
   * Added {{{Reactive.publishLast}}} methods.
   * Added {{{AsyncSubject}}} which works similarly to Future, but aimed at registering with an observable and getting its final result.
+  * Added {{{Reactive.refCount}}} and its helper class, {{{RefCount}}}.
+  * Added operators {{{Reactive.chunkify}}}, {{{Reactive.collect}}} + 1 overload.
+  * Moved general Scheduler implementations from util to scheduler packages.
+  * Moved all interfaces into the base package.
+  * Moved utility classes related to interfaces into the util package.
+  * Moved other basic helper classes into the util package (e.g., CircularBuffer).
+  * Added utility methods to convert to and from Java's own Observable and Observer objects.
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
