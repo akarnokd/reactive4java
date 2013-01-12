@@ -101,6 +101,63 @@ public final class Closeables {
 		}
 	}
 	/**
+	 * Closes the given closeable instance and
+	 * wraps the IOException into a RuntimeException.
+	 * @param c the closeable instance, null means no-op
+	 * @since 0.97
+	 */
+	public static void closeUnchecked(@Nullable Closeable c) {
+		if (c != null) {
+			try {
+				c.close();
+			} catch (IOException ex) {
+				throw new RuntimeException(ex);
+			}
+		}
+	}
+	/**
+	 * Closes the given closeable silently or wrapped as
+	 * RuntimeException depending on the parameter.
+	 * @param c the closeable
+	 * @param silently close silently?
+	 * @since 0.97
+	 */
+	public static void close(@Nullable Closeable c, boolean silently) {
+		if (silently) {
+			closeSilently(c);
+		} else {
+			closeUnchecked(c);
+		}
+	}
+	/**
+	 * Closes the given potentially closeable instance silently or wrapped as
+	 * RuntimeException depending on the parameter.
+	 * @param c the closeable
+	 * @param silently close silently?
+	 * @since 0.97
+	 */
+	public static void close(@Nullable Object c, boolean silently) {
+		if (silently) {
+			closeSilently(c);
+		} else {
+			closeUnchecked(c);
+		}
+	}
+	/**
+	 * Closes the given object if it implements the Closeable interface and
+	 * wraps the IOException into a RuntimeException.
+	 * @param c the closeable instance, null means no-op
+	 */
+	public static void closeUnchecked(@Nullable Object c) {
+		if (c instanceof Closeable) {
+			try {
+				((Closeable)c).close();
+			} catch (IOException ex) {
+				throw new RuntimeException(ex);
+			}
+		}
+	}
+	/**
 	 * Creates a composite closeable from the array of closeables.
 	 * <code>IOException</code>s thrown from the closeables are suppressed.
 	 * @param closeables the closeables array

@@ -18,12 +18,14 @@ package hu.akarnokd.reactive4java.util;
 
 /**
  * Helper class that stores a single element.
- * The caller may add a new element only when the peeker is empty and
+ * The caller may add a new element only when the container is empty and
  * the caller may take the contained element if there is one.
  * Use the <code>isEmpty()</code> to check for the status
- * The add and take methods might throw <code>IllegalStateException</code>, which should indicate a library bug.
+ * The add and take methods might throw <code>IllegalStateException</code>, 
+ * which should indicate a library bug.
  * Typically used by the Interactive methods to help them conform with the Iterable contract,
- * e.g., <code>hasNext()</code> is idempotent, but <code>next()</code> might be called without <code>hasNext()</code> to be called at all.
+ * e.g., <code>hasNext()</code> is idempotent, but <code>next()</code> might 
+ * be called without <code>hasNext()</code> to be called at all.
  * The container is not thread-safe.
  * @author akarnokd, 2011.02.03.
  * @param <T> the contained element type
