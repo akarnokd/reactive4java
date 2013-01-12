@@ -1404,7 +1404,12 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	}
 	/**
 	 * Returns the last element of the source observable or throws
-	 * NoSuchElementException if the source is empty.
+	 * NoSuchElementException if the source is empty or the wait is interrupted.
+	 * <p>Exception semantics: the exceptions thrown by the source are ignored and treated
+	 * as termination signals.</p>
+	 * <p>The difference between this and the <code>wait</code> operator is that
+	 * it returns the last valid value from before an error or finish, ignoring any
+	 * exceptions.</p>
 	 * @return the last element
 	 */
 	@Nonnull
@@ -1659,15 +1664,16 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return from(Reactive.<T>never());
 	}
 	/**
-	 * Returns an iterable which returns a single element from the
-	 * given source then terminates. It blocks the current thread.
-	 * <p>For hot observables, this
-	 * will be the first element they produce, for cold observables,
-	 * this will be the next value (e.g., the next mouse move event).</p>
-	 * <p><b>Exception semantics:</b> The <code>Iterator.next()</code> will rethrow the exception.</p>
-	 * <p><b>Completion semantics:</b> If the source completes instantly, the iterator completes as empty.</p>
+	 * Returns an iterable sequence which blocks until an element
+	 * becomes available from the source.
+	 * The iterable's (has)next() call is paired up with the observer's next() call,
+	 * therefore, values might be skipped if the iterable is not on its (has)next() call
+	 * at the time of reception.
 	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code> for its
-	 * <code>remove()</code> method.
+	 * <code>remove()</code> method.</p>
+	 * <p>Exception semantics: in case of exception received, the source is
+	 * disconnected and the exception is rethrown from the iterator's next method
+	 * as a wrapped RuntimeException if necessary.</p>
 	 * @return the iterable
 	 */
 	public IterableBuilder<T> next() {
@@ -3834,7 +3840,41 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	/**
 	 * @return Wraps this observable into a java-observable.
 	 */
+	@Nonnull
 	public java.util.Observable toOriginalObservable() {
 		return Observables.<T>toOriginalObservable(o);
+	}
+	/**
+	 * Waits indefinitely for the observable to complete and returns the last
+	 * value. If the source terminated with an error, the exception
+	 * is rethrown, wrapped into RuntimeException if necessary.
+	 * If the source didn't produce any elements or
+	 * is interrupted, a NoSuchElementException is
+	 * thrown.
+	 * @return the last value of the sequence in case the observable terminated with finish.
+	 * @since 0.97
+	 * @see ObservableBuilder#last()
+	 */
+	public T await() {
+		return Reactive.await(o);
+	}
+	/**
+	 * Waits a limited amount of time for the observable to complete and returns the last
+	 * value. If the source terminated with an error, the exception
+	 * is rethrown, wrapped into RuntimeException if necessary.
+	 * If the source didn't produce any elements, times out or
+	 * is interrupted, a NoSuchElementException is
+	 * thrown.
+	 * <p>The difference from the <code>last</code> operator is that
+	 * unlike last, this operator does not treat the error event
+	 * as just a termination signal.</p>
+	 * @param time the wait time
+	 * @param unit the wait time unit
+	 * @return the last value of the sequence
+	 * @since 0.97
+	 * @see ObservableBuilder#last()
+	 */
+	public T await(long time, @Nonnull TimeUnit unit) {
+		return Reactive.await(o, time, unit);
 	}
 }

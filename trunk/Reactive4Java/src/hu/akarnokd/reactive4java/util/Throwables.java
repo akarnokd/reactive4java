@@ -15,6 +15,7 @@
  */
 package hu.akarnokd.reactive4java.util;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -36,6 +37,18 @@ public final class Throwables {
 				throw (RuntimeException)t;
 			}
 			throw new RuntimeException(t);
+		}
+	}
+	/**
+	 * Sets up the cause for the exception and throws it by either
+	 * casting it to RuntimeException or wrapping it into a RuntimeException.
+	 * @param t the exception to throw, null means no-op
+	 * @param cause the cause for the exception
+	 */
+	public static void throwAsUncheckedWithCause(@Nullable Throwable t, @Nonnull Throwable cause) {
+		if (t != null) {
+			t.initCause(cause);
+			throwAsUnchecked(t);
 		}
 	}
 }

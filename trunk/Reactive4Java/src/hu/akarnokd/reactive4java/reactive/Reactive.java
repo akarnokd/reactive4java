@@ -44,12 +44,12 @@ import hu.akarnokd.reactive4java.util.CircularBuffer;
 import hu.akarnokd.reactive4java.util.Closeables;
 import hu.akarnokd.reactive4java.util.CompositeCloseable;
 import hu.akarnokd.reactive4java.util.DefaultConnectableObservable;
+import hu.akarnokd.reactive4java.util.DefaultGroupedObservable;
 import hu.akarnokd.reactive4java.util.DefaultObservable;
 import hu.akarnokd.reactive4java.util.DefaultObserver;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
 import hu.akarnokd.reactive4java.util.DefaultRunnable;
 import hu.akarnokd.reactive4java.util.Functions;
-import hu.akarnokd.reactive4java.util.SingleContainer;
 import hu.akarnokd.reactive4java.util.Subjects;
 import hu.akarnokd.reactive4java.util.Throwables;
 
@@ -108,28 +108,6 @@ import javax.annotation.concurrent.GuardedBy;
  * @see hu.akarnokd.reactive4java.interactive.Interactive
  */
 public final class Reactive {
-
-	/**
-	 * A variant of the registering observable which stores a group key.
-	 * @author akarnokd, 2011.01.29.
-	 * @param <Key> the type of the key
-	 * @param <Value> the value type
-	 */
-	static class GroupedRegisteringObservable<Key, Value> extends DefaultObservable<Value> implements GroupedObservable<Key, Value> {
-		/** The group key. */
-		private final Key key;
-		/**
-		 * Constructor.
-		 * @param key the group key
-		 */
-		public GroupedRegisteringObservable(Key key) {
-			this.key = key;
-		}
-		@Override
-		public Key key() {
-			return key;
-		}
-	}
 	/** The diagnostic states of the current runnable. */
 	public enum ObserverState { OBSERVER_ERROR, OBSERVER_FINISHED, OBSERVER_RUNNING }
 	/** The common observable pool where the Observer methods get invoked by default. */
@@ -1624,71 +1602,7 @@ public final class Reactive {
 			final long time,
 			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
-					/** The outstanding requests. */
-					final BlockingQueue<Closeable> outstanding = new LinkedBlockingQueue<Closeable>();
-					@Override
-					public void onClose() {
-						List<Closeable> list = new LinkedList<Closeable>();
-						outstanding.drainTo(list);
-						for (Closeable c : list) {
-							Closeables.closeSilently(c);
-						}
-						super.close();
-					}
-
-					@Override
-					public void onError(final Throwable ex) {
-						Runnable r = new Runnable() {
-							@Override
-							public void run() {
-								try {
-									observer.error(ex);
-									close();
-								} finally {
-									outstanding.poll();
-								}
-							}
-						};
-						outstanding.add(pool.schedule(r, time, unit));
-					}
-
-					@Override
-					public void onFinish() {
-						Runnable r = new Runnable() {
-							@Override
-							public void run() {
-								try {
-									observer.finish();
-									close();
-								} finally {
-									outstanding.poll();
-								}
-							}
-						};
-						outstanding.add(pool.schedule(r, time, unit));
-					}
-					@Override
-					public void onNext(final T value) {
-						Runnable r = new Runnable() {
-							@Override
-							public void run() {
-								try {
-									observer.next(value);
-								} finally {
-									outstanding.poll();
-								}
-							}
-						};
-						outstanding.add(pool.schedule(r, time, unit));
-					}
-				};
-				return obs;
-			}
-		};
+		return new Delay<T>(source, time, unit, pool);
 	}
 	/**
 	 * Returns an observable which converts all option messages
@@ -2308,7 +2222,7 @@ public final class Reactive {
 			@Override
 			public Closeable register(
 					final Observer<? super GroupedObservable<Key, U>> observer) {
-				final ConcurrentMap<Key, GroupedRegisteringObservable<Key, U>> knownGroups = new ConcurrentHashMap<Key, GroupedRegisteringObservable<Key, U>>();
+				final ConcurrentMap<Key, DefaultGroupedObservable<Key, U>> knownGroups = new ConcurrentHashMap<Key, DefaultGroupedObservable<Key, U>>();
 				return source.register(new Observer<T>() {
 					@Override
 					public void error(Throwable ex) {
@@ -2329,10 +2243,10 @@ public final class Reactive {
 					@Override
 					public void next(T value) {
 						final Key key = keyExtractor.invoke(value);
-						GroupedRegisteringObservable<Key, U> group = knownGroups.get(key);
+						DefaultGroupedObservable<Key, U> group = knownGroups.get(key);
 						if (group == null) {
-							group = new GroupedRegisteringObservable<Key, U>(key);
-							GroupedRegisteringObservable<Key, U> group2 = knownGroups.putIfAbsent(key, group);
+							group = new DefaultGroupedObservable<Key, U>(key);
+							DefaultGroupedObservable<Key, U> group2 = knownGroups.putIfAbsent(key, group);
 							if (group2 != null) {
 								group = group2;
 							}
@@ -2419,7 +2333,7 @@ public final class Reactive {
 					final Observer<? super GroupedObservable<K, V>> observer) {
 				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
 					/** The active groups. */
-					final Map<K, GroupedRegisteringObservable<K, V>> groups = new HashMap<K, GroupedRegisteringObservable<K, V>>();
+					final Map<K, DefaultGroupedObservable<K, V>> groups = new HashMap<K, DefaultGroupedObservable<K, V>>();
 					@Override
 					protected void onError(Throwable ex) {
 						for (Observer<V> o : groups.values()) {
@@ -2440,10 +2354,10 @@ public final class Reactive {
 					protected void onNext(T value) {
 						final K k = keySelector.invoke(value);
 						final V v = valueSelector.invoke(value);
-						GroupedRegisteringObservable<K, V> gr = groups.get(k);
+						DefaultGroupedObservable<K, V> gr = groups.get(k);
 						if (gr != null) {
-							gr = new GroupedRegisteringObservable<K, V>(k);
-							final GroupedRegisteringObservable<K, V> fgr = gr;
+							gr = new DefaultGroupedObservable<K, V>(k);
+							final DefaultGroupedObservable<K, V> fgr = gr;
 							groups.put(k, gr);
 							add(fgr, durationSelector.invoke(gr).register(new DefaultObserver<D>(lock, true) {
 
@@ -2533,7 +2447,7 @@ public final class Reactive {
 						}
 					}
 					/** The active groups. */
-					final Map<Key, GroupedRegisteringObservable<K, V>> groups = new HashMap<Key, GroupedRegisteringObservable<K, V>>();
+					final Map<Key, DefaultGroupedObservable<K, V>> groups = new HashMap<Key, DefaultGroupedObservable<K, V>>();
 					@Override
 					protected void onError(Throwable ex) {
 						for (Observer<V> o : groups.values()) {
@@ -2555,10 +2469,10 @@ public final class Reactive {
 						final K kv = keySelector.invoke(value);
 						final Key k = new Key(kv);
 						final V v = valueSelector.invoke(value);
-						GroupedRegisteringObservable<K, V> gr = groups.get(k);
+						DefaultGroupedObservable<K, V> gr = groups.get(k);
 						if (gr != null) {
-							gr = new GroupedRegisteringObservable<K, V>(kv);
-							final GroupedRegisteringObservable<K, V> fgr = gr;
+							gr = new DefaultGroupedObservable<K, V>(kv);
+							final DefaultGroupedObservable<K, V> fgr = gr;
 							groups.put(k, gr);
 							add(fgr, durationSelector.invoke(gr).register(new DefaultObserver<D>(lock, true) {
 
@@ -3260,17 +3174,22 @@ public final class Reactive {
 	}
 	/**
 	 * Returns the last element of the source observable or throws
-	 * NoSuchElementException if the source is empty.
+	 * NoSuchElementException if the source is empty or the wait is interrupted.
 	 * <p>Exception semantics: the exceptions thrown by the source are ignored and treated
 	 * as termination signals.</p>
+	 * <p>The difference between this and the <code>wait</code> operator is that
+	 * it returns the last valid value from before an error or finish, ignoring any
+	 * exceptions.</p>
 	 * @param <T> the type of the elements
 	 * @param source the source of Ts
 	 * @return the last element
+	 * @see Reactive#await(Observable)
 	 */
 	@Nonnull
 	public static <T> T last(
 			@Nonnull final Observable<? extends T> source) {
-		final LinkedBlockingQueue<Option<T>> queue = new LinkedBlockingQueue<Option<T>>();
+		final CountDownLatch latch = new CountDownLatch(1);
+		final AtomicReference<Option<T>> value = new AtomicReference<Option<T>>();
 		Closeable c = source.register(new Observer<T>() {
 			/** The current value. */
 			T current;
@@ -3278,16 +3197,17 @@ public final class Reactive {
 			boolean first = true;
 			@Override
 			public void error(Throwable ex) {
-				queue.add(Option.<T>none());
+				finish();
 			}
 
 			@Override
 			public void finish() {
 				if (first) {
-					queue.add(Option.<T>none());
+					value.set(Option.<T>none());
 				} else {
-					queue.add(Option.some(current));
+					value.set(Option.some(current));
 				}
+				latch.countDown();
 			}
 
 			@Override
@@ -3298,93 +3218,33 @@ public final class Reactive {
 
 		});
 		try {
-			Option<T> value = queue.take();
-			c.close();
-			if (value == Option.none()) {
+			latch.await();
+			Option<T> v = value.get();
+			if (Option.isNone(v)) {
 				throw new NoSuchElementException();
 			}
-			return value.value();
+			return v.value();
 		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		} catch (IOException ex) {
-			throw new RuntimeException(ex);
+			Throwables.throwAsUncheckedWithCause(new NoSuchElementException(), e);
+		} finally {
+			Closeables.closeSilently(c);
 		}
+		return null;
 	}
 	/**
-	 * Returns an iterable which returns values on a momentary basis from the
-	 * source. Useful when source produces values at different rate than the consumer takes it.
-	 * The iterable.next() call might block until the first value becomes available or something else happens in the observable
-	 * FIXME not sure where the observer should run
+	 * Returns an iterable sequence which returns the latest element
+	 * from the observable sequence, consuming it only once.
+	 * <p>Note that it is possible one doesn't receive the
+	 * last value of a fixed-length observable sequence in case 
+	 * the last next() call is is quickly followed by a finish() event.</p>
 	 * @param <T> the type of the values
 	 * @param source the source
 	 * @return the iterable
 	 */
 	@Nonnull
-	public static <T> Iterable<T> latest(
+	public static <T> CloseableIterable<T> latest(
 			@Nonnull final Observable<? extends T> source) {
-		return new Iterable<T>() {
-			@Override
-			public Iterator<T> iterator() {
-				final AtomicBoolean complete = new AtomicBoolean();
-				final CountDownLatch first = new CountDownLatch(1);
-				final AtomicBoolean hasValue = new AtomicBoolean();
-				final AtomicReference<T> current = new AtomicReference<T>();
-				final Closeable c = source.register(new Observer<T>() {
-					/** Set the has value once. */
-					boolean once = true;
-					@Override
-					public void error(Throwable ex) {
-						complete.set(true);
-						first.countDown();
-					}
-
-					@Override
-					public void finish() {
-						complete.set(true);
-						first.countDown();
-					}
-
-					@Override
-					public void next(T value) {
-						if (once) {
-							once = false;
-							hasValue.set(true);
-						}
-						current.set(value);
-						first.countDown();
-					}
-
-				});
-				return new Iterator<T>() {
-					@Override
-					protected void finalize() throws Throwable {
-						c.close();
-					}
-
-					@Override
-					public boolean hasNext() {
-						try {
-							first.await();
-						} catch (InterruptedException e) {
-							throw new RuntimeException(e);
-						}
-						return !complete.get() && hasValue.get();
-					}
-
-					@Override
-					public T next() {
-						if (hasValue.get()) {
-							return current.get();
-						}
-						throw new NoSuchElementException();
-					}
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
-		};
+		return new Latest<T>(source);
 	}
 	/**
 	 * Returns an observable which calls the given selector with the given value
@@ -3927,62 +3787,8 @@ public final class Reactive {
 	 * @param initialValue the initial value to return until the source actually produces something.
 	 * @return the iterable
 	 */
-	public static <T> Iterable<T> mostRecent(final Observable<? extends T> source, final T initialValue) {
-		return new Iterable<T>() {
-			@Override
-			public Iterator<T> iterator() {
-				final AtomicReference<Option<T>> latest = new AtomicReference<Option<T>>(Option.some(initialValue));
-				final Closeable c = source.register(new Observer<T>() {
-
-					@Override
-					public void error(Throwable ex) {
-						latest.set(Option.<T>error(ex));
-					}
-
-					@Override
-					public void finish() {
-						latest.set(Option.<T>none());
-					}
-
-					@Override
-					public void next(T value) {
-						latest.set(Option.some(value));
-					}
-
-				});
-				return new Iterator<T>() {
-					@Override
-					protected void finalize() throws Throwable {
-						Closeables.closeSilently(c);
-						super.finalize();
-					}
-
-					@Override
-					public boolean hasNext() {
-						return !Option.isNone(latest.get());
-					}
-
-					@Override
-					public T next() {
-						if (hasNext()) {
-							Option<T> o = latest.get();
-							// if the latest value is error, emit it only once, then
-							// do if the source simply terminated
-							if (Option.isError(o)) {
-								latest.set(Option.<T>none());
-								return o.value();
-							}
-							return o.value();
-						}
-						throw new NoSuchElementException();
-					}
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
-		};
+	public static <T> CloseableIterable<T> mostRecent(final Observable<? extends T> source, final T initialValue) {
+		return new MostRecent<T>(source, initialValue);
 	}
 	/**
 	 * Multicasts the source sequence through the supplied subject by allowing
@@ -4073,80 +3879,22 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Returns an iterable which returns a single element from the
-	 * given source then terminates. It blocks the current thread.
-	 * <p>For hot observables, this
-	 * will be the first element they produce, for cold observables,
-	 * this will be the next value (e.g., the next mouse move event).</p>
-	 * <p><b>Exception semantics:</b> The <code>Iterator.next()</code> will rethrow the exception.</p>
-	 * <p><b>Completion semantics:</b> If the source completes instantly, the iterator completes as empty.</p>
+	 * Returns an iterable sequence which blocks until an element
+	 * becomes available from the source.
+	 * The iterable's (has)next() call is paired up with the observer's next() call,
+	 * therefore, values might be skipped if the iterable is not on its (has)next() call
+	 * at the time of reception.
 	 * <p>The returned iterator will throw an <code>UnsupportedOperationException</code> for its
-	 * <code>remove()</code> method.
+	 * <code>remove()</code> method.</p>
+	 * <p>Exception semantics: in case of exception received, the source is
+	 * disconnected and the exception is rethrown from the iterator's next method
+	 * as a wrapped RuntimeException if necessary.</p>
 	 * @param <T> the element type
 	 * @param source the source of elements
 	 * @return the iterable
 	 */
-	public static <T> Iterable<T> next(final Observable<? extends T> source) {
-		return new Iterable<T>() {
-			@Override
-			public Iterator<T> iterator() {
-				final BlockingQueue<Option<T>> element = new LinkedBlockingQueue<Option<T>>();
-				final Closeable c = source.register(new DefaultObserver<T>(true) {
-
-					@Override
-					protected void onError(Throwable ex) {
-						element.add(Option.<T>error(ex));
-					}
-
-					@Override
-					protected void onFinish() {
-						element.add(Option.<T>none());
-					}
-
-					@Override
-					protected void onNext(T value) {
-						element.add(Option.some(value));
-						close();
-					}
-
-				});
-				return new Iterator<T>() {
-					/** The completion marker. */
-					boolean done;
-					/** The single element look-ahead. */
-					final SingleContainer<Option<T>> peek = new SingleContainer<Option<T>>();
-					@Override
-					public boolean hasNext() {
-						if (!done) {
-							if (peek.isEmpty()) {
-								try {
-									Option<T> e = element.take();
-									if (!Option.isNone(e)) {
-										peek.add(e);
-									}
-								} catch (InterruptedException ex) {
-									peek.add(Option.<T>error(ex));
-								}
-								done = true;
-								Closeables.closeSilently(c);
-							}
-						}
-						return !peek.isEmpty() && !done;
-					}
-					@Override
-					public T next() {
-						if (hasNext()) {
-							return element.peek().value();
-						}
-						throw new NoSuchElementException();
-					}
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
-		};
+	public static <T> CloseableIterable<T> next(final Observable<? extends T> source) {
+		return new Next<T>(source);
 	}
 	/**
 	 * Wrap the given observable object in a way that any of its observers receive callbacks on
@@ -10584,6 +10332,67 @@ public final class Reactive {
 		} finally {
 			Closeables.closeSilently(c);
 		}
+	}
+	/**
+	 * Waits indefinitely for the observable to complete and returns the last
+	 * value. If the source terminated with an error, the exception
+	 * is rethrown, wrapped into RuntimeException if necessary.
+	 * If the source didn't produce any elements or
+	 * is interrupted, a NoSuchElementException is
+	 * thrown.
+	 * @param <T> the element type 
+	 * @param source the source sequence.
+	 * @return the last value of the sequence
+	 * @since 0.97
+	 * <p>The difference from the <code>last</code> operator is that
+	 * unlike last, this operator does not treat the error event
+	 * as just a termination signal.</p>
+	 * @see Reactive#last(Observable)
+	 */
+	public static <T> T await(@Nonnull Observable<? extends T> source) {
+		AsyncSubject<T> subject = new AsyncSubject<T>();
+		Closeable c = source.register(subject);
+		try {
+			return subject.get();
+		} catch (InterruptedException ex) {
+			Throwables.throwAsUncheckedWithCause(new NoSuchElementException(), ex);
+			return null; // we won't get here
+		} finally {
+			Closeables.closeSilently(c);
+		}
+	}
+	/**
+	 * Waits a limited amount of time for the observable to complete and returns the last
+	 * value. If the source terminated with an error, the exception
+	 * is rethrown, wrapped into RuntimeException if necessary.
+	 * If the source didn't produce any elements, times out or
+	 * is interrupted, a NoSuchElementException is
+	 * thrown.
+	 * <p>The difference from the <code>last</code> operator is that
+	 * unlike last, this operator does not treat the error event
+	 * as just a termination signal.</p>
+	 * @param <T> the element type 
+	 * @param source the source sequence.
+	 * @param time the wait time
+	 * @param unit the wait time unit
+	 * @return the last value of the sequence
+	 * @since 0.97
+	 * @see Reactive#last(Observable)
+	 */
+	public static <T> T await(@Nonnull Observable<? extends T> source,
+			long time, @Nonnull TimeUnit unit) {
+		AsyncSubject<T> subject = new AsyncSubject<T>();
+		Closeable c = source.register(subject);
+		try {
+			return subject.get(time, unit);
+		} catch (InterruptedException ex) {
+			Throwables.throwAsUncheckedWithCause(new NoSuchElementException(), ex);
+		} catch (TimeoutException ex) {
+			Throwables.throwAsUncheckedWithCause(new NoSuchElementException(), ex);
+		} finally {
+			Closeables.closeSilently(c);
+		}
+		return null; // we won't get here
 	}
 	/** Utility class. */
 	private Reactive() {
