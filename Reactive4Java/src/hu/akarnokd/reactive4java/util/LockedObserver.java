@@ -79,7 +79,7 @@ public class LockedObserver<T> implements Observer<T>, Closeable {
 		}
 	}
 	@Override
-	public void error(Throwable ex) {
+	public void error(@Nonnull Throwable ex) {
 		lock.lock();
 		try {
 			observer.error(ex);

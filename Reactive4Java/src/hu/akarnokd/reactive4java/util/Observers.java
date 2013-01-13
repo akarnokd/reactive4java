@@ -51,7 +51,7 @@ public final class Observers {
 			@Nonnull final Action1<? super T> action) {
 		return new Observer<T>() {
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				// ignored
 			}
 			@Override
@@ -79,7 +79,7 @@ public final class Observers {
 			@Nonnull final Action0 finish) {
 		return new Observer<T>() {
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				error.invoke(ex);
 			}
 
@@ -125,7 +125,7 @@ public final class Observers {
 			/** The current line length. */
 			int len;
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				ex.printStackTrace();
 			}
 			@Override
@@ -170,7 +170,7 @@ public final class Observers {
 	public static <T> Observer<T> println() {
 		return new Observer<T>() {
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				ex.printStackTrace();
 			}
 			@Override
@@ -195,7 +195,7 @@ public final class Observers {
 	public static <T> Observer<T> println(final String prefix) {
 		return new Observer<T>() {
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				System.err.print(prefix);
 				ex.printStackTrace();
 			}
@@ -227,7 +227,7 @@ public final class Observers {
 			}
 
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				onDone.run();
 			}
 
@@ -322,7 +322,7 @@ public final class Observers {
 			@Nonnull final Func1<? super U, ? extends T> selector) {
 		return new Observer<U>() {
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				observer.error(ex);
 			}
 			@Override
@@ -359,6 +359,7 @@ public final class Observers {
 	 * @param observer the reactive-observer to wrap
 	 * @return the java-observer
 	 */
+	@Nonnull 
 	public static <T> java.util.Observer toJavaObserver(
 			final Observer<T> observer) {
 		return new java.util.Observer() {
@@ -383,6 +384,7 @@ public final class Observers {
 	 * @param observer the observer to use
 	 * @return the closeable to unregister the observer
 	 */
+	@Nonnull 
 	public static <T> Closeable registerWith(
 			@Nonnull final java.util.Observable javaObservable, 
 			@Nonnull final Observer<T> observer) {
@@ -407,6 +409,7 @@ public final class Observers {
 	 * @param javaObserver the java-observer instance
 	 * @return the close handle
 	 */
+	@Nonnull 
 	public static Closeable registerWith(
 			@Nonnull final java.util.Observable javaObservable, 
 			@Nonnull final java.util.Observer javaObserver) {
@@ -426,6 +429,7 @@ public final class Observers {
 	 * @param javaObserver the java-observer to register
 	 * @return the close handler to deregister the observer
 	 */
+	@Nonnull 
 	public static <T> Closeable registerWith(
 			@Nonnull final Observable<T> observable, 
 			@Nonnull final java.util.Observer javaObserver) {
@@ -441,6 +445,7 @@ public final class Observers {
 	 * @param observer the observer
 	 * @return the close handler
 	 */
+	@Nonnull 
 	public static <T> Closeable registerWith(
 			@Nonnull Iterable<T> iterable, 
 			@Nonnull Observer<? super T> observer) {
@@ -467,6 +472,7 @@ public final class Observers {
 	 * @param scheduler the scheduler
 	 * @return the closeable to cancel the operation
 	 */
+	@Nonnull 
 	public static <T> Closeable registerWith(
 			@Nonnull final Iterable<T> iterable, 
 			@Nonnull final Observer<? super T> observer,
@@ -522,6 +528,7 @@ public final class Observers {
 	 * @return the close handle for the registration
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public static <T> Closeable registerSafe(
 			@Nonnull final Observable<? extends T> source, 
 			@Nonnull final Observer<? super T> observer) {

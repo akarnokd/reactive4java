@@ -39,6 +39,7 @@ import javax.annotation.Nonnull;
  */
 public final class Func1Builder<T, U> implements Func1<T, U> {
 	/** The wrapped function. */
+	@Nonnull 
 	protected final Func1<T, U> f;
 	/**
 	 * Construct a function builder by wrapping the given function.
@@ -54,6 +55,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param f the function to wrap
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static <T, U> Func1Builder<T, U> from(@Nonnull Func1<T, U> f) {
 		return new Func1Builder<T, U>(f);
 	}
@@ -65,6 +67,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param f the function to wrap
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static <T, U> Func1Builder<T, U> from(@Nonnull Func0<U> f) {
 		return from(Functions.<T, U>asFunc1(f));
 	}
@@ -76,6 +79,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param value the value to return
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static <T, U> Func1Builder<T, U> from(final U value) {
 		return from(Functions.<T, U>constant(value));
 	}
@@ -125,6 +129,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param map the map to wrap
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static <T, U> Func1Builder<T, U> from(@Nonnull final Map<? super T, ? extends U> map) {
 		return from(Functions.asFunc1(map));
 	}
@@ -132,6 +137,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param <T> the parameter type (irrelevant)
 	 * @return a function builder which returns always true.
 	 */
+	@Nonnull 
 	public static <T> Func1Builder<T, Boolean> alwaysTrue() {
 		return from(Functions.<T>alwaysTrue1());
 	}
@@ -139,6 +145,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param <T> the parameter type (irrelevant)
 	 * @return a function builder which retuns always false. 
 	 */
+	@Nonnull 
 	public static <T> Func1Builder<T, Boolean> alwaysFalse() {
 		return from(Functions.<T>alwaysFalse1());
 	}
@@ -152,6 +159,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param param1 the fixed parameter value
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public Func0Builder<U> toFunc0(final T param1) {
 		return Func0Builder.from(new Func0<U>() {
 			@Override
@@ -167,6 +175,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @return the function builder.
 	 */
 	@SuppressWarnings("unchecked")
+	@Nonnull 
 	public Func1Builder<T, Boolean> not() {
 		return from(Functions.not((Func1<T, Boolean>)f));
 	}
@@ -178,6 +187,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @return the function builder
 	 */
 	@SuppressWarnings("unchecked")
+	@Nonnull 
 	public Func1Builder<T, Boolean> and(@Nonnull final Func1<? super T, Boolean> func) {
 		return from(Functions.and((Func1<T, Boolean>)f, func));
 	}
@@ -188,6 +198,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param func the function to AND with
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public Func1Builder<T, Boolean> and(@Nonnull final Func0<Boolean> func) {
 		return from(new Pred1<T>() {
 			@Override
@@ -204,6 +215,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @return the function builder
 	 */
 	@SuppressWarnings("unchecked")
+	@Nonnull 
 	public Func1Builder<T, Boolean> or(Func1<? super T, Boolean> func) {
 		return from(Functions.or((Func1<T, Boolean>)f, func));
 	}
@@ -214,6 +226,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param func the function to AND with
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public Func1Builder<T, Boolean> or(@Nonnull final Func0<Boolean> func) {
 		return from(new Pred1<T>() {
 			@Override
@@ -230,7 +243,8 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @return the function builder
 	 */
 	@SuppressWarnings("unchecked")
-	public Func1Builder<T, Boolean> xor(Func1<? super T, Boolean> func) {
+	@Nonnull 
+	public Func1Builder<T, Boolean> xor(@Nonnull Func1<? super T, Boolean> func) {
 		return from(Functions.xor((Func1<T, Boolean>)f, func));
 	}
 	/**
@@ -240,6 +254,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param func the function to AND with
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public Func1Builder<T, Boolean> xor(@Nonnull final Func0<Boolean> func) {
 		return from(new Pred1<T>() {
 			@Override
@@ -256,6 +271,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param func the function to compose with
 	 * @return the function builder with the new return type
 	 */
+	@Nonnull 
 	public <V> Func1Builder<T, V> composeTo(@Nonnull final Func1<? super U, ? extends V> func) {
 		return from(new Func1<T, V>() {
 			@Override
@@ -272,6 +288,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param func the function to compose with
 	 * @return the function builder with the new return type
 	 */
+	@Nonnull 
 	public <V> Func1Builder<V, U> composeFrom(@Nonnull final Func1<? super V, ? extends T> func) {
 		return from(new Func1<V, U>() {
 			@Override
@@ -289,6 +306,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param result the return value by this function
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static <T, U> Func1Builder<T, U> from(@Nonnull Action0 action, U result) {
 		return from(Functions.<T, U>asFunc1(action, result));
 	}
@@ -301,6 +319,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param result the return value by this function
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static <T, U> Func1Builder<T, U> from(@Nonnull Runnable run, U result) {
 		return from(Functions.<T, U>asFunc1(run, result));
 	}
@@ -313,6 +332,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param result the return value by this function
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static <T, U> Func1Builder<T, U> from(@Nonnull Action1<? super T> action, U result) {
 		return from(Functions.<T, U>asFunc1(action, result));
 	}
@@ -323,6 +343,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param f the function to wrap
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static <T, U> Func1Builder<T, U> from(@Nonnull Callable<? extends U> f) {
 		return from(Functions.<T, U>asFunc1(f));
 	}
@@ -331,6 +352,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param values the array of values
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static Func1Builder<Integer, Integer> from(@Nonnull int... values) {
 		return from(Functions.asFunc1(values));
 	}
@@ -339,6 +361,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param values the array of values
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static Func1Builder<Integer, Double> from(@Nonnull double... values) {
 		return from(Functions.asFunc1(values));
 	}
@@ -347,6 +370,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param values the array of values
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static Func1Builder<Integer, Long> from(@Nonnull long... values) {
 		return from(Functions.asFunc1(values));
 	}
@@ -355,6 +379,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param values the list of numbers
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static Func1Builder<Integer, Double> fromDoubles(@Nonnull List<? extends Number> values) {
 		return from(Functions.asDoubleFunc1(values));
 	}
@@ -363,6 +388,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param values the list of numbers
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static Func1Builder<Integer, Integer> fromInts(@Nonnull List<? extends Number> values) {
 		return from(Functions.asIntFunc1(values));
 	}
@@ -371,6 +397,7 @@ public final class Func1Builder<T, U> implements Func1<T, U> {
 	 * @param values the list of numbers
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static Func1Builder<Integer, Long> fromLongs(@Nonnull List<? extends Number> values) {
 		return from(Functions.asLongFunc1(values));
 	}

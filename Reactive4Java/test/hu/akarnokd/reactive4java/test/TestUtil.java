@@ -34,6 +34,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
 
+import javax.annotation.Nonnull;
+
 import org.junit.Assert;
 
 /**
@@ -64,7 +66,7 @@ public final class TestUtil {
 			}
 
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				complete.add(ex);
 			}
 
@@ -93,7 +95,8 @@ public final class TestUtil {
 	 * @param source the source sequence
 	 * @return the output text
 	 */
-	public static String makeString(Iterable<?> source) {
+	public static String makeString(
+			@Nonnull Iterable<?> source) {
 		Iterator<String> iterator = join(source, ", ").iterator();
 		return iterator.hasNext() ? iterator.next() : "";
 	}
@@ -103,7 +106,9 @@ public final class TestUtil {
 	 * @param expected the expected sequence
 	 * @param actual the actual sequence
 	 */
-	public static <T> void assertEqual(Iterable<? extends T> expected, Iterable<? extends T> actual) {
+	public static <T> void assertEqual(
+			@Nonnull Iterable<? extends T> expected, 
+			@Nonnull Iterable<? extends T> actual) {
 		assertCompare(expected, actual, true);
 	}
 	/**
@@ -112,7 +117,9 @@ public final class TestUtil {
 	 * @param expected the expected sequence
 	 * @param actual the actual sequence
 	 */
-	public static <T> void assertNotEqual(Iterable<? extends T> expected, Iterable<? extends T> actual) {
+	public static <T> void assertNotEqual(
+			@Nonnull Iterable<? extends T> expected, 
+			@Nonnull Iterable<? extends T> actual) {
 		assertCompare(expected, actual, false);
 	}
 	/**
@@ -133,7 +140,7 @@ public final class TestUtil {
 	 * @param source the source sequence
 	 * @return the output text
 	 */
-	public static String makeString(Observable<?> source) {
+	public static String makeString(@Nonnull Observable<?> source) {
 		return makeString(toIterable(source));
 	}
 	/**
@@ -142,7 +149,9 @@ public final class TestUtil {
 	 * @param expected the expected sequence
 	 * @param actual the actual sequence
 	 */
-	public static <T> void assertEqual(Iterable<? extends T> expected, Observable<? extends T> actual) {
+	public static <T> void assertEqual(
+			@Nonnull Iterable<? extends T> expected, 
+			@Nonnull Observable<? extends T> actual) {
 		assertCompare(expected, actual, true);
 	}
 	/**
@@ -151,7 +160,9 @@ public final class TestUtil {
 	 * @param expected the expected sequence
 	 * @param actual the actual sequence
 	 */
-	public static <T> void assertEqual(Observable<? extends T> expected, Observable<? extends T> actual) {
+	public static <T> void assertEqual(
+			@Nonnull Observable<? extends T> expected, 
+			@Nonnull Observable<? extends T> actual) {
 		assertCompare(expected, actual, true);
 	}
 	/**
@@ -160,7 +171,9 @@ public final class TestUtil {
 	 * @param expected the expected sequence
 	 * @param actual the actual sequence
 	 */
-	public static <T> void assertNotEqual(Observable<? extends T> expected, Observable<? extends T> actual) {
+	public static <T> void assertNotEqual(
+			@Nonnull Observable<? extends T> expected, 
+			@Nonnull Observable<? extends T> actual) {
 		assertCompare(expected, actual, false);
 	}
 	/**
@@ -169,7 +182,9 @@ public final class TestUtil {
 	 * @param expected the expected sequence
 	 * @param actual the actual sequence
 	 */
-	public static <T> void assertNotEqual(Iterable<? extends T> expected, Observable<? extends T> actual) {
+	public static <T> void assertNotEqual(
+			@Nonnull Iterable<? extends T> expected, 
+			@Nonnull Observable<? extends T> actual) {
 		assertCompare(expected, actual, false);
 	}
 	/**
@@ -178,7 +193,8 @@ public final class TestUtil {
 	 * @param expected the expected value
 	 * @param actual the actual sequence
 	 */
-	public static <T> void assertSingle(T expected, Observable<? extends T> actual) {
+	public static <T> void assertSingle(T expected, 
+			@Nonnull Observable<? extends T> actual) {
 		assertCompare(Collections.singleton(expected), actual, true);
 	}
 	/**
@@ -188,7 +204,9 @@ public final class TestUtil {
 	 * @param actual the actual sequence
 	 * @param eq should they equal?
 	 */
-	public static <T> void assertCompare(Iterable<? extends T> expected, Iterable<? extends T> actual, boolean eq) {
+	public static <T> void assertCompare(
+			@Nonnull Iterable<? extends T> expected, 
+			@Nonnull Iterable<? extends T> actual, boolean eq) {
 		List<? extends T> expectedList = IterableBuilder.from(expected).toList();
 		List<? extends T> actualList = IterableBuilder.from(actual).toList();
 		if (eq != expectedList.equals(actualList)) {
@@ -200,7 +218,9 @@ public final class TestUtil {
 	 * @param expected the expected sequence
 	 * @param actual the actual sequence
 	 */
-	public static void fail(Iterable<?> expected, Iterable<?> actual) {
+	public static void fail(
+			@Nonnull Iterable<?> expected, 
+			@Nonnull Iterable<?> actual) {
 		Assert.fail("Sequences mismatch: expected = " + makeString(expected) + ", actual = " + makeString(actual));
 	}
 	/**
@@ -210,7 +230,9 @@ public final class TestUtil {
 	 * @param actual the actual sequence
 	 * @param eq should they equal?
 	 */
-	public static <T> void assertCompare(Observable<? extends T> expected, Observable<? extends T> actual, boolean eq) {
+	public static <T> void assertCompare(
+			@Nonnull Observable<? extends T> expected, 
+			@Nonnull Observable<? extends T> actual, boolean eq) {
 		DefaultScheduler scheduler = new DefaultScheduler(2);
 		assertCompare(expected, actual, eq, scheduler);
 		scheduler.shutdown();
@@ -224,9 +246,9 @@ public final class TestUtil {
 	 * @param scheduler the scheduler that waits for the individual sequences
 	 */
 	public static <T> void assertCompare(
-			Observable<? extends T> expected, 
-			Observable<? extends T> actual, boolean eq,
-			Scheduler scheduler) {
+			@Nonnull Observable<? extends T> expected, 
+			@Nonnull Observable<? extends T> actual, boolean eq,
+			@Nonnull Scheduler scheduler) {
 		try {
 			List<List<T>> both = Reactive.invokeAll(expected, actual, scheduler);
 			
@@ -245,7 +267,9 @@ public final class TestUtil {
 	 * @param actual the actual sequence
 	 * @param eq should they equal?
 	 */
-	public static <T> void assertCompare(Iterable<? extends T> expected, Observable<? extends T> actual, boolean eq) {
+	public static <T> void assertCompare(
+			@Nonnull Iterable<? extends T> expected, 
+			@Nonnull Observable<? extends T> actual, boolean eq) {
 		List<?> actualList = ObservableBuilder.from(actual).into(new ArrayList<Object>());
 		if (eq != Interactive.elementsEqual(expected, actualList)) {
 			fail(expected, actualList);

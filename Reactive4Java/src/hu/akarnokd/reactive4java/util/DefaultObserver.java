@@ -23,7 +23,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * The default implementation of the Observer interface
@@ -73,7 +72,7 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 	 * under lock.
 	 * @param value the value
 	 */
-	protected abstract void onNext(@Nullable T value);
+	protected abstract void onNext(T value);
 	/**
 	 * The alternative error() method, which is called by the original error() method.
 	 * @param ex the exception
@@ -116,7 +115,7 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 		}
 	}
 	@Override
-	public final void error(Throwable ex) {
+	public final void error(@Nonnull Throwable ex) {
 		lock.lock();
 		try {
 			if (!completed) {

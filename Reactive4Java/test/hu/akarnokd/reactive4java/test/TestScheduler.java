@@ -201,7 +201,8 @@ public class TestScheduler implements Scheduler {
 		}
 
 		@Override
-		public Closeable register(Observer<? super T> observer) {
+		@Nonnull 
+		public Closeable register(@Nonnull Observer<? super T> observer) {
 			if (cold) {
 				scheduleEvents(this, events);
 			}
@@ -234,7 +235,7 @@ public class TestScheduler implements Scheduler {
 		}
 
 		@Override
-		protected void onError(Throwable ex) {
+		protected void onError(@Nonnull Throwable ex) {
 			events.add(TestScheduler.<T>onError(ex, getClock()));
 		}
 

@@ -102,6 +102,7 @@ public final class Interactive {
 	}
 
 	/** The common empty iterator. */
+	@Nonnull
 	private static final Iterator<Object> EMPTY_ITERATOR = new Iterator<Object>() {
 		@Override
 		public boolean hasNext() {
@@ -117,6 +118,7 @@ public final class Interactive {
 		}
 	};
 	/** The common empty iterable. */
+	@Nonnull
 	private static final Iterable<Object> EMPTY_ITERABLE = new Iterable<Object>() {
 		@Override
 		public Iterator<Object> iterator() {
@@ -1989,6 +1991,7 @@ public final class Interactive {
 	 * @param scheduler the scheduler for running each inner iterable in parallel
 	 * @return the new iterable
 	 */
+	@Nonnull
 	public static <T> Iterable<T> merge(
 			@Nonnull final Iterable<? extends Iterable<? extends T>> sources,
 			@Nonnull final Scheduler scheduler) {
@@ -2122,7 +2125,7 @@ public final class Interactive {
 	@Nonnull
 	public static <T> Iterable<T> min(
 			@Nonnull final Iterable<? extends T> source,
-			final Comparator<? super T> comparator) {
+			@Nonnull final Comparator<? super T> comparator) {
 		return aggregate(source, Functions.<T>min(comparator), Functions.<T, Integer>identityFirst());
 	}
 	/**
@@ -3192,7 +3195,7 @@ public final class Interactive {
 	 * @param iterable the input sequence
 	 * @return the number of elements in the sequence
 	 */
-	public static int size(Iterable<?> iterable) {
+	public static int size(@Nonnull Iterable<?> iterable) {
 		return first(count(iterable));
 	}
 	/**
@@ -3525,6 +3528,7 @@ public final class Interactive {
 			@Nonnull final Iterable<? extends T> e) {
 		return new Enumerable<T>() {
 			@Override
+			@Nonnull
 			public Enumerator<T> enumerator() {
 				return toEnumerator(e.iterator());
 			}
@@ -3853,6 +3857,7 @@ public final class Interactive {
 	 * @return the iterable for the array
 	 * @since 0.96
 	 */
+	@Nonnull 
 	public static <T> Iterable<T> toIterable(@Nonnull final T... ts) {
 		return new Iterable<T>() {
 			@Override
@@ -3894,7 +3899,11 @@ public final class Interactive {
 	 * @return the iterable for the array
 	 * @since 0.96
 	 */
-	public static <T> Iterable<T> toIterablePart(final int from, final int to, @Nonnull final T... ts) {
+	@Nonnull 
+	public static <T> Iterable<T> toIterablePart(
+			final int from, 
+			final int to, 
+			@Nonnull final T... ts) {
 		return new Iterable<T>() {
 			@Override
 			public Iterator<T> iterator() {
@@ -4084,7 +4093,9 @@ public final class Interactive {
 	 * @return the new iterable
 	 * @since 0.96
 	 */
-	public static <T> Iterable<T> endWith(final Iterable<? extends T> source, T value) {
+	@Nonnull
+	public static <T> Iterable<T> endWith(
+			@Nonnull final Iterable<? extends T> source, T value) {
 		return concat(source, singleton(value));
 	}
 	/**
@@ -4349,6 +4360,7 @@ public final class Interactive {
 	 * @return the new closeable iterable
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> CloseableIterable<T> newCloseableIterable(
 			@Nonnull final Iterable<? extends T> src,
 			@Nonnull final Action1<? super Iterator<? extends T>> close
@@ -4369,6 +4381,7 @@ public final class Interactive {
 	 * @return the new closeable iterable
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> CloseableIterable<T> newCloseableIterable(
 			@Nonnull final Iterable<? extends T> src,
 			@Nonnull final Action0 close
@@ -4389,6 +4402,7 @@ public final class Interactive {
 	 * @return the new closeable iterable
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> CloseableIterable<T> newCloseableIterable(
 			@Nonnull final Iterable<? extends T> src,
 			@Nonnull final Closeable close
@@ -4409,6 +4423,7 @@ public final class Interactive {
 	 * @return the new closeable iterator
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> CloseableIterator<T> newCloseableIterator(
 			@Nonnull final Iterator<? extends T> src,
 			@Nonnull final Action0 close
@@ -4445,6 +4460,7 @@ public final class Interactive {
 	 * @return the new closeable iterator
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> CloseableIterator<T> newCloseableIterator(
 			@Nonnull final Iterator<? extends T> src,
 			@Nonnull final Closeable close
@@ -4480,6 +4496,7 @@ public final class Interactive {
 	 * @param close the close action
 	 * @return the new closeable iterator
 	 */
+	@Nonnull
 	public static <T> CloseableIterator<T> newCloseableIterator(
 			@Nonnull final Iterator<? extends T> src,
 			@Nonnull final Action1<? super Iterator<? extends T>> close

@@ -93,9 +93,9 @@ public class DefaultScheduler implements Scheduler {
      * @param scheduled the backing scheduled executor service
 	 */
 	public DefaultScheduler(@Nonnull ScheduledExecutorService scheduled) {
-		if (scheduled == null) {
-			throw new IllegalArgumentException("scheduled is null");
-		}
+//		if (scheduled == null) {
+//			throw new IllegalArgumentException("scheduled is null");
+//		}
 		this.pool = scheduled;
 	}
 	/**
@@ -105,15 +105,16 @@ public class DefaultScheduler implements Scheduler {
 	 */
 	static class FutureCloser implements Closeable {
 		/** The wrapped future. */
+		@Nonnull 
 		final Future<?> future;
 		/**
 		 * Constructor.
 		 * @param future the future to close
 		 */
-		FutureCloser(Future<?> future) {
-			if (future == null) {
-				throw new IllegalArgumentException("future is null");
-			}
+		FutureCloser(@Nonnull Future<?> future) {
+//			if (future == null) {
+//				throw new IllegalArgumentException("future is null");
+//			}
 			this.future = future;
 		}
 		@Override
@@ -122,17 +123,27 @@ public class DefaultScheduler implements Scheduler {
 		}
 	}
 	@Override
-	public Closeable schedule(Runnable run) {
+	@Nonnull 
+	public Closeable schedule(@Nonnull Runnable run) {
 		return toCloseable(pool.submit(run));
 	}
 
 	@Override
-	public Closeable schedule(Runnable run, long delay, TimeUnit unit) {
+	@Nonnull 
+	public Closeable schedule(
+			@Nonnull Runnable run, 
+			long delay, 
+			@Nonnull TimeUnit unit) {
 		return toCloseable(pool.schedule(run, delay, unit));
 	}
 
 	@Override
-	public Closeable schedule(Runnable run, long initialDelay, long betweenDelay, TimeUnit unit) {
+	@Nonnull 
+	public Closeable schedule(
+			@Nonnull Runnable run, 
+			long initialDelay, 
+			long betweenDelay, 
+			@Nonnull TimeUnit unit) {
 		return toCloseable(
 				pool.scheduleAtFixedRate(run, initialDelay, betweenDelay, unit));
 	}
@@ -142,7 +153,8 @@ public class DefaultScheduler implements Scheduler {
 	 * @return the closeable instance
 	 * @since 0.97
 	 */
-	protected Closeable toCloseable(Future<?> future) {
+	@Nonnull 
+	protected Closeable toCloseable(@Nonnull Future<?> future) {
 		return new FutureCloser(future);
 	}
 	/**

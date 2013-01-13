@@ -52,6 +52,9 @@ implements Observable<T> {
 	}
 	@Override
 	public synchronized void addObserver(java.util.Observer o) {
+		if (o == null) {
+			throw new IllegalArgumentException("o is null");
+		}
 		OriginalObserverWrapper observer = Observers.toObserver(o, this);
 		Closeable c = observable.register(observer);
 		if (!observer.isDone() && !registry.containsKey(o)) {
@@ -86,7 +89,7 @@ implements Observable<T> {
 	}
 	@Override
 	@Nonnull
-	public Closeable register(Observer<? super T> observer) {
+	public Closeable register(@Nonnull Observer<? super T> observer) {
 		return observable.register(observer);
 	}
 	/**
@@ -97,6 +100,7 @@ implements Observable<T> {
 	 * @param observer the observer to register
 	 * @return the unregistration handle
 	 */
+	@Nonnull 
 	public Closeable register(@Nonnull final java.util.Observer observer) {
 		Closeable handle = new Closeable() {
 			@Override

@@ -41,6 +41,7 @@ public final class Subjects {
 	 * @param observable the observable object
 	 * @return the subject relaying to both
 	 */
+	@Nonnull 
 	public static <T, U> Subject<T, U> newSubject(
 			@Nonnull final Observer<? super T> observer, 
 			@Nonnull final Observable<? extends U> observable) {
@@ -52,7 +53,7 @@ public final class Subjects {
 			}
 
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				observer.error(ex);
 			}
 
@@ -74,6 +75,7 @@ public final class Subjects {
 	 * @param <T> the element type
 	 * @return the new subject
 	 */
+	@Nonnull 
 	public static <T> Subject<T, T> newSubject() {
 		return new DefaultObservable<T>();
 	}
@@ -85,7 +87,9 @@ public final class Subjects {
 	 * @param selector the selector to use
 	 * @return the new subject
 	 */
-	public static <T, U> Subject<T, U> newSubject(@Nonnull final Func1<? super T, ? extends U> selector) {
+	@Nonnull 
+	public static <T, U> Subject<T, U> newSubject(
+			@Nonnull final Func1<? super T, ? extends U> selector) {
 		return new Subject<T, U>() {
 			final DefaultObservable<U> observable = new DefaultObservable<U>();
 
@@ -95,7 +99,7 @@ public final class Subjects {
 			}
 
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				observable.error(ex);
 			}
 
@@ -105,7 +109,7 @@ public final class Subjects {
 			}
 			@Override
 			@Nonnull
-			public Closeable register(Observer<? super U> observer) {
+			public Closeable register(@Nonnull Observer<? super U> observer) {
 				return observable.register(observer);
 			}
 			

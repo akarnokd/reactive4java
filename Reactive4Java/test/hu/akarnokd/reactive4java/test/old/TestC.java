@@ -26,6 +26,8 @@ import hu.akarnokd.reactive4java.util.Observers;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 
 /**
  * Test Reactive operators, B.
@@ -86,7 +88,7 @@ public final class TestC {
 			}
 
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				ex.printStackTrace();
 				cdl.countDown();
 			}

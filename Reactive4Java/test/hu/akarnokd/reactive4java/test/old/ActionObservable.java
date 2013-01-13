@@ -231,7 +231,7 @@ public final class ActionObservable {
 			@Nonnull final Action1<? super Option<T>> action) {
 		return new Observer<T>() {
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				action.invoke(Option.<T>error(ex));
 			}
 

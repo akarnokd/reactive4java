@@ -125,8 +125,8 @@ public final class SingleOption<T> {
 	@Nonnull
 	public Option<T> option() {
 		if (hasContent) {
-			if (error != null) {
-				Throwable t = error;
+			Throwable t = error;
+			if (t != null) {
 				error = null;
 				return Option.error(t);
 			}

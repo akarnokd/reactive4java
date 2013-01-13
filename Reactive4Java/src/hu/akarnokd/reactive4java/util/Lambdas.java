@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
@@ -149,6 +148,7 @@ public final class Lambdas {
 	 * @param nameThenObject the String, Object, String, Object, ... sequence of name and value pairs.
 	 * @return the function
 	 */
+	@Nonnull 
 	public static <T> Action1<T> action1(
 			@Nonnull String expression,
 			@Nonnull ScriptEngine engine,
@@ -198,6 +198,7 @@ public final class Lambdas {
 	 * @param bindings the extra parameter bindings
 	 * @return the function
 	 */
+	@Nonnull 
 	public static <T> Action1<T> as1(
 			@Nonnull String expression,
 			@Nonnull Map<String, Object> bindings) {
@@ -214,6 +215,7 @@ public final class Lambdas {
 	 * @param nameThenObject the String, Object, String, Object, ... sequence of name and value pairs.
 	 * @return the function
 	 */
+	@Nonnull 
 	public static <T> Action1<T> as1(
 			@Nonnull String expression,
 			@Nonnull Object... nameThenObject) {
@@ -221,13 +223,20 @@ public final class Lambdas {
 	}
 	/**
 	 * Retrieve a script engine for the given name.
-	 * This method is equivalent to <code>new ScriptEngineManager().getEngineByName(name)</code> call.
+	 * This method is equivalent to 
+	 * <code>new ScriptEngineManager().getEngineByName(name)</code> call.
+	 * Might throw an IllegalArgumentException if there is no such engine
+	 * by the name.
 	 * @param name the script engine name. For javascript, you may use <code>js</code>.
 	 * @return the script engine
 	 */
-	@Nullable
+	@Nonnull 
 	public static ScriptEngine getEngine(@Nonnull String name) {
-		return new ScriptEngineManager().getEngineByName(name);
+		ScriptEngine engineByName = new ScriptEngineManager().getEngineByName(name);
+		if (engineByName != null) {
+			return engineByName;
+		}
+		throw new IllegalArgumentException("No such engine: " + name);
 	}
 	/**
 	 * Returns a parameterless function which invokes the given javascript
@@ -392,31 +401,6 @@ public final class Lambdas {
 		}
 		return js2(expression, bindings);
 	}
-//	/**
-//	 * Test program for scripting capabilities.
-//	 * @param args the arguments
-//	 */
-//	public static void main(String[] args) {
-//		ScriptEngineManager mgr = new ScriptEngineManager();
-//		List<ScriptEngineFactory> factories =
-//			mgr.getEngineFactories();
-//		for (ScriptEngineFactory factory : factories) {
-//			System.out.println("ScriptEngineFactory Info");
-//			String engName = factory.getEngineName();
-//			String engVersion = factory.getEngineVersion();
-//			String langName = factory.getLanguageName();
-//			String langVersion = factory.getLanguageVersion();
-//			System.out.printf("\tScript Engine: %s (%s)\n",
-//					engName, engVersion);
-//			List<String> engNames = factory.getNames();
-//			for (String name : engNames) {
-//				System.out.printf("\tEngine Alias: %s\n", name);
-//			}
-//			System.out.printf("\tLanguage: %s (%s)\n",
-//					langName, langVersion);
-//			System.out.printf("\tThreading: %s%n", factory.getParameter("THREADING"));
-//		}
-//	}
 	/**
 	 * Returns a parameterless function which invokes the given script on the
 	 * script engine and retunrs its value.
@@ -527,6 +511,7 @@ public final class Lambdas {
 	 * @param nameThenObject the String, Object, String, Object, ... sequence of name and value pairs.
 	 * @return the function
 	 */
+	@Nonnull 
 	public static <T, U> Func1<T, U> script1(
 			@Nonnull String expression,
 			@Nonnull ScriptEngine engine,

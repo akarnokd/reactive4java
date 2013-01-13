@@ -16,9 +16,9 @@
 package hu.akarnokd.reactive4java.test;
 
 import static hu.akarnokd.reactive4java.query.ObservableBuilder.from;
-import static hu.akarnokd.reactive4java.reactive.Reactive.combine;
 import static java.util.Arrays.asList;
 import hu.akarnokd.reactive4java.query.ObservableBuilder;
+import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.List;
 
@@ -46,7 +46,7 @@ public class TestReactiveCombine {
 		ObservableBuilder<List<Integer>> expected = from(asList(a0, b0), asList(a1, b1));
 		@SuppressWarnings("unchecked")
 		List<ObservableBuilder<Integer>> asList = asList(a, b);
-		TestUtil.assertEqual(expected, combine(asList));
+		TestUtil.assertEqual(expected, Reactive.zip(asList));
 	}
 
 	/**
@@ -60,7 +60,7 @@ public class TestReactiveCombine {
 		ObservableBuilder<Integer> a = from(a0, a1);
 		@SuppressWarnings("unchecked")
 		ObservableBuilder<List<Integer>> expected = from(asList(a0, value), asList(a1, value));
-		TestUtil.assertEqual(expected, combine(a, value));
+		TestUtil.assertEqual(expected, Reactive.zip(a, value));
 	}
 
 }

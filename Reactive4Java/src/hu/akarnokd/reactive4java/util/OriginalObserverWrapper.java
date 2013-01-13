@@ -63,7 +63,7 @@ public class OriginalObserverWrapper implements
 	}
 
 	@Override
-	public void error(Throwable ex) {
+	public void error(@Nonnull Throwable ex) {
 		done.set(true);
 		if (javaObservable != null) {
 			javaObservable.deleteObserver(javaObserver);

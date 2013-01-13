@@ -27,6 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nonnull;
+
 /**
  * An observable + observer implementation which keeps track of the registered observers and
  * common methods which dispatch events to all registered observers.
@@ -65,7 +67,7 @@ public class DefaultObservable<T> implements Subject<T, T>, CloseableObservable<
 		this.unregisterOnError = unregisterOnError;
 	}
 	@Override
-	public void error(Throwable ex) {
+	public void error(@Nonnull Throwable ex) {
 		if (unregisterOnError) {
 			for (Map.Entry<Closeable, Observer<? super T>> os : observers.entrySet()) {
 				os.getValue().error(ex);
@@ -100,7 +102,8 @@ public class DefaultObservable<T> implements Subject<T, T>, CloseableObservable<
 	}
 
 	@Override
-	public Closeable register(final Observer<? super T> observer) {
+	@Nonnull
+	public Closeable register(@Nonnull final Observer<? super T> observer) {
 		// FIXME allow multiple registrations for the same observer instance?!
 		final Closeable handler = new Closeable() {
 			@Override

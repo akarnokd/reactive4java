@@ -31,6 +31,7 @@ import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Pair;
+import hu.akarnokd.reactive4java.base.Pred0;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.base.Subject;
 import hu.akarnokd.reactive4java.base.TimeInterval;
@@ -76,7 +77,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -105,6 +105,7 @@ import javax.annotation.concurrent.GuardedBy;
  * <li><a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html'>http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html</a></li>
  * <li><a href='http://rxwiki.wikidot.com/101samples#toc3'>http://rxwiki.wikidot.com/101samples#toc3</a></li>
  * <li><a href='http://channel9.msdn.com/Tags/rx'>http://channel9.msdn.com/Tags/rx</a></li>
+ * <li><a href='http://rx.codeplex.com'>Rx open-source at CodePlex</a></li>
  * </ul>
  *
  * @author akarnokd, 2011.01.26
@@ -147,7 +148,8 @@ public final class Reactive {
 	public static CloseableObservable<Long> activeTick(
 			final long start, 
 			final long end, 
-			long time, @Nonnull TimeUnit unit, 
+			long time, 
+			@Nonnull TimeUnit unit, 
 			@Nonnull Scheduler scheduler) {
 
 		final DefaultObservable<Long> result = new DefaultObservable<Long>();
@@ -175,7 +177,7 @@ public final class Reactive {
 
 			@Override
 			@Nonnull
-			public Closeable register(Observer<? super Long> observer) {
+			public Closeable register(@Nonnull Observer<? super Long> observer) {
 				return result.register(observer);
 			}
 		};
@@ -193,31 +195,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T> Observable<TimeInterval<T>> addTimeInterval(
 			@Nonnull final Observable<? extends T> source) {
-		return new Observable<TimeInterval<T>>() {
-			@Override
-			public Closeable register(final Observer<? super TimeInterval<T>> observer) {
-				return source.register(new Observer<T>() {
-					long lastTime = System.nanoTime();
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						long t2 = System.nanoTime();
-						observer.next(TimeInterval.of(value, t2 - lastTime));
-						lastTime = t2;
-					}
-
-				});
-			}
-		};
+		return new AddTimeInterval<T>(source);
 	}
 	/**
 	 * Wrap the values within a observable to a timestamped value having always
@@ -245,38 +223,7 @@ public final class Reactive {
 	public static <T> Observable<T> aggregate(
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				return source.register(new Observer<T>() {
-					/** The current aggregation result. */
-					T result;
-					/** How many items did we get */
-					int phase;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-					@Override
-					public void finish() {
-						if (phase >= 1) {
-							observer.next(result);
-						}
-						observer.finish();
-					}
-					@Override
-					public void next(T value) {
-						if (phase == 0) {
-							result = value;
-							phase++;
-						} else {
-							result = accumulator.invoke(result, value);
-							phase = 2;
-						}
-					}
-				});
-			}
-		};
+		return new Aggregate.Simple<T>(source, accumulator);
 	}
 	/**
 	 * Computes an aggregated value of the source Ts by applying a sum function and applying the divide function when the source
@@ -294,36 +241,7 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Func2<? super U, ? super T, ? extends U> accumulator,
 			@Nonnull final Func2<? super U, ? super Integer, ? extends V> divide) {
-		return new Observable<V>() {
-			@Override
-			public Closeable register(final Observer<? super V> observer) {
-				return source.register(new Observer<T>() {
-					/** The number of values. */
-					int count;
-					/** The sum of the values thus far. */
-					U temp;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (count > 0) {
-							observer.next(divide.invoke(temp, count));
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						temp = accumulator.invoke(temp, value);
-						count++;
-					}
-
-				});
-			}
-		};
+		return new Aggregate.Projected<V, T, U>(source, accumulator, divide);
 	}
 	/**
 	 * Apply an accumulator function over the observable source and submit the accumulated value to the returned observable.
@@ -339,28 +257,7 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> source,
 			final U seed,
 			@Nonnull final Func2<? super U, ? super T, ? extends U> accumulator) {
-		return new Observable<U>() {
-			@Override
-			public Closeable register(final Observer<? super U> observer) {
-				return source.register(new Observer<T>() {
-					/** The current aggregation result. */
-					U result = seed;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-					@Override
-					public void finish() {
-						observer.next(result);
-						observer.finish();
-					}
-					@Override
-					public void next(T value) {
-						result = accumulator.invoke(result, value);
-					}
-				});
-			}
-		};
+		return new Aggregate.Seeded<U, T>(source, seed, accumulator);
 	}
 	/**
 	 * Aggregates the incoming sequence via the accumulator function
@@ -404,36 +301,7 @@ public final class Reactive {
 			final U seed,
 			@Nonnull final Func2<? super U, ? super T, ? extends U> accumulator,
 			@Nonnull final Func2<? super U, ? super Integer, ? extends V> divide) {
-		return new Observable<V>() {
-			@Override
-			public Closeable register(final Observer<? super V> observer) {
-				return source.register(new Observer<T>() {
-					/** The number of values. */
-					int count;
-					/** The sum of the values thus far. */
-					U temp = seed;
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (count > 0) {
-							observer.next(divide.invoke(temp, count));
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						temp = accumulator.invoke(temp, value);
-						count++;
-					}
-
-				});
-			}
-		};
+		return new Aggregate.SeededIndexedProjected<V, T, U>(source, seed, accumulator, divide);
 	}
 	/**
 	 * Signals a single true or false if all elements of the observable match the predicate.
@@ -448,39 +316,7 @@ public final class Reactive {
 	public static <T> Observable<Boolean> all(
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Func1<? super T, Boolean> predicate) {
-		return new Observable<Boolean>() {
-			@Override
-			public Closeable register(final Observer<? super Boolean> observer) {
-				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
-					{
-						add("source", source);
-					}
-					/** Indicate if we returned early. */
-					boolean done;
-					@Override
-					public void onError(Throwable ex) {
-						observer.error(ex);
-					}
-					@Override
-					public void onFinish() {
-						if (!done) {
-							done = true;
-							observer.next(true);
-							observer.finish();
-						}
-					}
-					@Override
-					public void onNext(T value) {
-						if (!predicate.invoke(value)) {
-							done = true;
-							observer.next(false);
-							observer.finish();
-						}
-					}
-				};
-				return o;
-			}
-		};
+		return new Containment.All<T>(source, predicate);
 	}
 	/**
 	 * Channels the values of the first observable who fires first from the given set of observables.
@@ -492,76 +328,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T> Observable<T> amb(
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				final CompositeCloseable result = new CompositeCloseable();
-				
-				final List<DefaultObserverEx<T>> observers = new ArrayList<DefaultObserverEx<T>>();
-				List<Observable<? extends T>> observables = new ArrayList<Observable<? extends T>>();
-
-				final AtomicReference<Object> first = new AtomicReference<Object>();
-
-				int i = 0;
-				for (final Observable<? extends T> os : sources) {
-					observables.add(os);
-					final int thisIndex = i;
-					DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
-						/** We won the race. */
-						boolean weWon;
-						/** Cancel everyone else. */
-						void cancelRest() {
-							for (int i = 0; i < observers.size(); i++) {
-								if (i != thisIndex) {
-									observers.get(i).close();
-								}
-							}
-						}
-						/** @return Check if we won the race. */
-						boolean didWeWon() {
-							if (!weWon) {
-								if (first.compareAndSet(null, this)) {
-									weWon = true;
-									cancelRest();
-								} else {
-									close();
-								}
-							}
-							return weWon;
-						}
-						@Override
-						public void onError(Throwable ex) {
-							if (didWeWon()) {
-								observer.error(ex);
-							}
-						}
-						@Override
-						public void onFinish() {
-							if (didWeWon()) {
-								observer.finish();
-							}
-						}
-						@Override
-						public void onNext(T value) {
-							if (didWeWon()) {
-								observer.next(value);
-							} else {
-								close();
-							}
-						}
-					};
-					observers.add(obs);
-					result.add(obs);
-				}
-				i = 0;
-				for (final Observable<? extends T> os : observables) {
-					DefaultObserverEx<T> observerEx = observers.get(i);
-					observerEx.registerWith(os);
-					i++;
-				}
-				return result;
-			}
-		};
+		return new Ambiguous<T>(sources);
 	}
 	/**
 	 * Channels the values of either left or right depending on who fired its first value.
@@ -571,6 +338,7 @@ public final class Reactive {
 	 * @return the observable that will stream one of the sources.
 	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T> Observable<T> amb(
 			@Nonnull final Observable<? extends T> left,
 			@Nonnull final Observable<? extends T> right
@@ -605,36 +373,7 @@ public final class Reactive {
 	public static <T> Observable<Boolean> any(
 			@Nonnull final Observable<T> source,
 			@Nonnull final Func1<? super T, Boolean> predicate) {
-		return new Observable<Boolean>() {
-			@Override
-			public Closeable register(final Observer<? super Boolean> observer) {
-				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
-					@Override
-					public void onError(Throwable ex) {
-						observer.error(ex);
-						close();
-					}
-
-					@Override
-					public void onFinish() {
-						observer.next(false);
-						observer.finish();
-						close();
-					}
-
-					@Override
-					public void onNext(T value) {
-						if (predicate.invoke(value)) {
-							observer.next(true);
-							observer.finish();
-							close();
-						}
-					}
-
-				};
-				return obs.registerWith(source);
-			}
-		};
+		return new Containment.Any<T>(source, predicate);
 	}
 	/**
 	 * Computes and signals the average value of the BigDecimal source.
@@ -841,41 +580,7 @@ public final class Reactive {
 	public static <T> Observable<List<T>> buffer(
 			@Nonnull final Observable<? extends T> source,
 			final int bufferSize) {
-		return new Observable<List<T>>() {
-			@Override
-			public Closeable register(final Observer<? super List<T>> observer) {
-				return source.register(new Observer<T>() {
-					/** The current buffer. */
-					List<T> buffer;
-
-					@Override
-					public void error(Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						if (buffer != null && buffer.size() > 0) {
-							observer.next(buffer);
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						if (buffer == null) {
-							buffer = new ArrayList<T>(bufferSize);
-						}
-						buffer.add(value);
-						if (buffer.size() == bufferSize) {
-							observer.next(buffer);
-							buffer = new ArrayList<T>(bufferSize);
-						}
-					}
-
-				});
-			}
-		};
+		return new Buffer.WithSize<T>(source, bufferSize);
 	}
 	/**
 	 * Buffer the Ts of the source until the buffer reaches its capacity or the current time unit runs out.
@@ -914,59 +619,7 @@ public final class Reactive {
 			final long time,
 			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
-		return new Observable<List<T>>() {
-			@Override
-			public Closeable register(final Observer<? super List<T>> observer) {
-				final BlockingQueue<T> buffer = new LinkedBlockingQueue<T>();
-				final AtomicInteger bufferLength = new AtomicInteger();
-				final Lock lock = new ReentrantLock(true);
-				final DefaultRunnable r = new DefaultRunnable(lock) {
-					@Override
-					public void onRun() {
-						List<T> curr = new ArrayList<T>();
-						buffer.drainTo(curr);
-						bufferLength.addAndGet(-curr.size());
-						observer.next(curr);
-					}
-				};
-				DefaultObserver<T> s = new DefaultObserver<T>(lock, true) {
-					/** The timer companion. */
-					Closeable timer = pool.schedule(r, time, time, unit);
-					@Override
-					protected void onClose() {
-						Closeables.closeSilently(timer);
-					}
-
-					@Override
-					public void onError(Throwable ex) {
-						observer.error(ex);
-					}
-					@Override
-					public void onFinish() {
-						List<T> curr = new ArrayList<T>();
-						buffer.drainTo(curr);
-						bufferLength.addAndGet(-curr.size());
-						observer.next(curr);
-
-						observer.finish();
-					}
-
-					/** The buffer to fill in. */
-					@Override
-					public void onNext(T value) {
-						buffer.add(value);
-						if (bufferLength.incrementAndGet() == bufferSize) {
-							List<T> curr = new ArrayList<T>();
-							buffer.drainTo(curr);
-							bufferLength.addAndGet(-curr.size());
-
-							observer.next(curr);
-						}
-					}
-				};
-				return Closeables.newCloseable(s, source.register(s));
-			}
-		};
+		return new Buffer.WithSizeOrTime<T>(source, bufferSize, time, unit, pool);
 
 	}
 	/**
@@ -1006,48 +659,7 @@ public final class Reactive {
 			final long time,
 			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
-		return new Observable<List<T>>() {
-			@Override
-			public Closeable register(final Observer<? super List<T>> observer) {
-
-				final BlockingQueue<T> buffer = new LinkedBlockingQueue<T>();
-				final Lock lock = new ReentrantLock(true);
-
-				final DefaultRunnable r = new DefaultRunnable(lock) {
-					@Override
-					public void onRun() {
-						List<T> curr = new ArrayList<T>();
-						buffer.drainTo(curr);
-						observer.next(curr);
-					}
-				};
-				DefaultObserver<T> o = new DefaultObserver<T>(lock, true) {
-					Closeable timer = pool.schedule(r, time, time, unit);
-					@Override
-					protected void onClose() {
-						Closeables.closeSilently(timer);
-					}
-
-					@Override
-					public void onError(Throwable ex) {
-						observer.error(ex);
-					}
-					@Override
-					public void onFinish() {
-						List<T> curr = new ArrayList<T>();
-						buffer.drainTo(curr);
-						observer.next(curr);
-						observer.finish();
-					}
-					/** The buffer to fill in. */
-					@Override
-					public void onNext(T value) {
-						buffer.add(value);
-					}
-				};
-				return Closeables.newCloseable(o, source.register(o));
-			}
-		};
+		return new Buffer.WithTime<T>(source, time, unit, pool);
 	}
 	/**
 	 * Produces an iterable sequence of consequtive (possibly empty)
@@ -1124,78 +736,7 @@ public final class Reactive {
 			@Nonnull final Func2<? super U, ? super T, ? extends U> merge,
 			@Nonnull final Func1<? super U, ? extends U> newCollector
 			) {
-		return new CloseableIterable<U>() {
-			@Override
-			public CloseableIterator<U> iterator() {
-				final AtomicReference<U> collector = new AtomicReference<U>(initialCollector.invoke());
-				final AtomicBoolean done = new AtomicBoolean();
-				final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-				
-				final DefaultObserverEx<T> obs = new DefaultObserverEx<T>() {
-					@Override
-					protected void onError(Throwable ex) {
-						error.set(ex);
-						done.set(true);
-					}
-
-					@Override
-					protected void onFinish() {
-						done.set(true);
-					}
-
-					@Override
-					protected void onNext(T value) {
-						U current = collector.get();
-						current = merge.invoke(current, value);
-						collector.set(current);
-					}
-					
-				};
-				obs.registerWith(source);
-				
-				return new CloseableIterator<U>() {
-					/** The current value received by hasNext(). */
-					U currentValue;
-					/** Have we completed as well? */
-					boolean completed;
-					@Override
-					public void close() throws IOException {
-						obs.close();
-					}
-
-					@Override
-					protected void finalize() throws Throwable {
-						close();
-					}
-
-					@Override
-					public boolean hasNext() {
-						if (!completed) {
-							currentValue = collector.get();
-						}
-						return completed;
-					}
-
-					@Override
-					public U next() {
-						if (hasNext()) {
-							if (done.get()) {
-								completed = true;
-								Throwables.throwAsUnchecked(error.get());
-							} else {
-								collector.set(newCollector.invoke(currentValue));
-							}
-							return currentValue;
-						}
-						throw new NoSuchElementException();
-					}
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
-		};
+		return new Collect<U, T>(source, initialCollector, merge, newCollector);
 	}
 	/**
 	 * Combine a value supplied by the function with a stream of Ts whenever the src fires.
@@ -1206,7 +747,10 @@ public final class Reactive {
 	 * @return the new observable
 	 * @since 0.97
 	 */
-	public static <T> Observable<List<T>> combine(final Func0<? extends T> supplier, Observable<? extends T> src) {
+	@Nonnull 
+	public static <T> Observable<List<T>> combine(
+			@Nonnull final Func0<? extends T> supplier, 
+			@Nonnull Observable<? extends T> src) {
 		return select(src, new Func1<T, List<T>>() {
 			@Override
 			public List<T> invoke(T param1) {
@@ -1220,11 +764,14 @@ public final class Reactive {
 	/**
 	 * Combine the incoming Ts of the various observables into a single list of Ts like
 	 * using zip() on more than two sources.
+	 * TODO rework
 	 * @param <T> the element type
 	 * @param srcs the iterable of observable sources.
 	 * @return the new observable
 	 */
-	public static <T> Observable<List<T>> combine(final List<? extends Observable<? extends T>> srcs) {
+	@Nonnull 
+	public static <T> Observable<List<T>> zip(
+			@Nonnull final List<? extends Observable<? extends T>> srcs) {
 		if (srcs.size() < 1) {
 			return never();
 		} else
@@ -1240,7 +787,8 @@ public final class Reactive {
 		}
 		return new Observable<List<T>>() {
 			@Override
-			public Closeable register(Observer<? super List<T>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull Observer<? super List<T>> observer) {
 				Observable<List<T>> res0 = zip(srcs.get(0), srcs.get(1), new Func2<T, T, List<T>>() {
 					@Override
 					public List<T> invoke(T param1, T param2) {
@@ -1271,7 +819,9 @@ public final class Reactive {
 	 * @param constant the constant T to combine with
 	 * @return the new observable
 	 */
-	public static <T> Observable<List<T>> combine(Observable<? extends T> src, final T constant) {
+	@Nonnull 
+	public static <T> Observable<List<T>> zip(
+			@Nonnull Observable<? extends T> src, final T constant) {
 		return select(src, new Func1<T, List<T>>() {
 			@Override
 			public List<T> invoke(T param1) {
@@ -1290,7 +840,9 @@ public final class Reactive {
 	 * @param src the source of Ts
 	 * @return the new observable
 	 */
-	public static <T> Observable<List<T>> combine(final T constant, Observable<? extends T> src) {
+	@Nonnull 
+	public static <T> Observable<List<T>> zip(final T constant, 
+			@Nonnull Observable<? extends T> src) {
 		return select(src, new Func1<T, List<T>>() {
 			@Override
 			public List<T> invoke(T param1) {
@@ -1318,80 +870,13 @@ public final class Reactive {
 	 * @param selector the function which combines values from both streams and returns a new value
 	 * @return the new observable.
 	 */
+	@Nonnull 
 	public static <T, U, V> Observable<V> combineLatest(
-			final Observable<? extends T> left,
-			final Observable<? extends U> right,
-			final Func2<? super T, ? super U, ? extends V> selector
+			@Nonnull final Observable<? extends T> left,
+			@Nonnull final Observable<? extends U> right,
+			@Nonnull final Func2<? super T, ? super U, ? extends V> selector
 	) {
-		return new Observable<V>() {
-			@Override
-			public Closeable register(final Observer<? super V> observer) {
-				final Lock lock = new ReentrantLock(true);
-				final CompositeCloseable closeBoth = new CompositeCloseable();
-				final AtomicReference<T> leftRef = new AtomicReference<T>();
-				final AtomicBoolean leftFirst = new AtomicBoolean();
-				final AtomicReference<U> rightRef = new AtomicReference<U>();
-				final AtomicBoolean rightFirst = new AtomicBoolean();
-				final AtomicInteger wip = new AtomicInteger(2);
-				DefaultObserverEx<T> obs1 = new DefaultObserverEx<T>(lock, false) {
-
-					@Override
-					protected void onError(Throwable ex) {
-						observer.error(ex);
-						Closeables.closeSilently(closeBoth);
-					}
-
-					@Override
-					protected void onFinish() {
-						if (wip.decrementAndGet() == 0) {
-							observer.finish();
-						}
-						close();
-					}
-
-					@Override
-					protected void onNext(T value) {
-						leftRef.set(value);
-						leftFirst.set(true);
-						if (rightFirst.get()) {
-							observer.next(selector.invoke(value, rightRef.get()));
-						}
-					}
-
-				};
-				DefaultObserverEx<U> obs2 = new DefaultObserverEx<U>(lock, false) {
-
-					@Override
-					protected void onError(Throwable ex) {
-						observer.error(ex);
-						Closeables.closeSilently(closeBoth);
-					}
-
-					@Override
-					protected void onFinish() {
-						if (wip.decrementAndGet() == 0) {
-							observer.finish();
-						}
-						close();
-					}
-
-					@Override
-					protected void onNext(U value) {
-						rightRef.set(value);
-						rightFirst.set(true);
-						if (leftFirst.get()) {
-							observer.next(selector.invoke(leftRef.get(), value));
-						}
-					}
-
-				};
-				closeBoth.add(obs1);
-				closeBoth.add(obs2);
-				obs1.add(new Object(), left);
-				obs2.add(new Object(), right);
-				return closeBoth;
-			}
-		};
+		return new CombineLatest.Sent<V, T, U>(left, right, selector);
 	}
 	/**
 	 * Returns an observable which combines the latest values of
@@ -1411,73 +896,47 @@ public final class Reactive {
 	 * @param selector the function which combines values from both streams and returns a new value
 	 * @return the new observable.
 	 */
+	@Nonnull 
 	public static <T, U, V> Observable<V> combineLatest0(
-			final Observable<? extends T> left,
-			final Observable<? extends U> right,
-			final Func2<? super T, ? super U, ? extends V> selector
+			@Nonnull final Observable<? extends T> left,
+			@Nonnull final Observable<? extends U> right,
+			@Nonnull final Func2<? super T, ? super U, ? extends V> selector
 	) {
-		return new Observable<V>() {
-			@Override
-			public Closeable register(final Observer<? super V> observer) {
-				final Lock lock = new ReentrantLock(true);
-				final CompositeCloseable closeBoth = new CompositeCloseable();
-				
-				final AtomicReference<T> leftRef = new AtomicReference<T>();
-				final AtomicReference<U> rightRef = new AtomicReference<U>();
-				final AtomicInteger wip = new AtomicInteger(2);
-				DefaultObserverEx<T> obs1 = new DefaultObserverEx<T>(lock, false) {
-
-					@Override
-					protected void onError(Throwable ex) {
-						observer.error(ex);
-						Closeables.closeSilently(closeBoth);
-					}
-
-					@Override
-					protected void onFinish() {
-						if (wip.decrementAndGet() == 0) {
-							observer.finish();
-						}
-						close();
-					}
-
-					@Override
-					protected void onNext(T value) {
-						leftRef.set(value);
-						observer.next(selector.invoke(value, rightRef.get()));
-					}
-
-				};
-				DefaultObserverEx<U> obs2 = new DefaultObserverEx<U>(lock, false) {
-
-					@Override
-					protected void onError(Throwable ex) {
-						observer.error(ex);
-						Closeables.closeSilently(closeBoth);
-					}
-
-					@Override
-					protected void onFinish() {
-						if (wip.decrementAndGet() == 0) {
-							observer.finish();
-						}
-						close();
-					}
-
-					@Override
-					protected void onNext(U value) {
-						rightRef.set(value);
-						observer.next(selector.invoke(leftRef.get(), value));
-					}
-
-				};
-				closeBoth.add(obs1);
-				closeBoth.add(obs2);
-				obs1.add(new Object(), left);
-				obs2.add(new Object(), right);
-				return closeBoth;
-			}
-		};
+		return new CombineLatest.NullStart<V, T, U>(left, right, selector);
+	}
+	/**
+	 * Concatenates the observable sequences resulting from enumerating
+	 * the sorce iterable and calling the resultSelector function.
+	 * <p>Remark: RX calls this For.</p>
+	 * @param <T> the source element type
+	 * @param <U> the result type
+	 * @param source the source sequence
+	 * @param resultSelector the observable selector
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, U> Observable<U> concat(
+			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Func1<? super T, ? extends Observable<? extends U>> resultSelector) {
+		return new Concat.FromIterable.Selector<T, U>(source, resultSelector);
+	}
+	/**
+	 * Concatenates the observable sequences resulting from enumerating
+	 * the sorce iterable and calling the indexed resultSelector function.
+	 * <p>Remark: RX calls this For.</p>
+	 * @param <T> the source element type
+	 * @param <U> the result type
+	 * @param source the source sequence
+	 * @param resultSelector the observable selector
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, U> Observable<U> concat(
+			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Func2<? super Integer, ? super T, ? extends Observable<? extends U>> resultSelector) {
+		return new Concat.FromIterable.IndexedSelector<T, U>(source, resultSelector);
 	}
 	/**
 	 * Concatenates the source observables in a way that when the first finish(), the
@@ -1492,39 +951,8 @@ public final class Reactive {
 	@Nonnull
 	public static <T> Observable<T> concat(
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				final Iterator<? extends Observable<? extends T>> it = sources.iterator();
-				if (it.hasNext()) {
-					DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
-						@Override
-						public void onError(Throwable ex) {
-							observer.error(ex);
-							close();
-						}
-
-						@Override
-						public void onFinish() {
-							if (it.hasNext()) {
-								remove(this);
-								registerWith(it.next());
-							} else {
-								observer.finish();
-								close();
-							}
-						}
-						@Override
-						public void onNext(T value) {
-							observer.next(value);
-						}
-					};
-					
-					return obs.registerWith(it.next());
-				}
-				return Closeables.emptyCloseable();
-			}
-		};
+		return new Concat.FromIterable.Selector<Observable<? extends T>, T>(
+				sources, Functions.<Observable<? extends T>>identity());
 	}
 	/**
 	 * Concatenate the the multiple sources of T one after another.
@@ -1534,81 +962,47 @@ public final class Reactive {
 	 * @param sources the observable sequence of the observable sequence of Ts.
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> concat(
-			final Observable<? extends Observable<? extends T>> sources
+			@Nonnull final Observable<? extends Observable<? extends T>> sources
 	) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				final LinkedBlockingQueue<Observable<? extends T>> sourceQueue = new LinkedBlockingQueue<Observable<? extends T>>();
-				final AtomicInteger wip = new AtomicInteger(1);
-				DefaultObserverEx<Observable<? extends T>> o = new DefaultObserverEx<Observable<? extends T>>(true) {
-					/** The first value arrived? */
-					@GuardedBy("lock")
-					boolean first;
-					/**
-					 * The inner exception to forward.
-					 * @param ex the exception
-					 */
-					void innerError(Throwable ex) {
-						error(ex);
-					}
-					@Override
-					protected void onError(Throwable ex) {
-						observer.error(ex);
-					}
-					@Override
-					protected void onFinish() {
-						if (wip.decrementAndGet() == 0) {
-							observer.finish();
-						}
-					}
-					@Override
-					protected void onNext(Observable<? extends T> value) {
-						if (!first) {
-							first = true;
-							registerOn(value);
-						} else {
-							sourceQueue.add(value);
-						}
-					}
-
-					void registerOn(Observable<? extends T> value) {
-						wip.incrementAndGet();
-						replace("source", "source", value.register(new DefaultObserver<T>(lock, true) {
-							@Override
-							public void onError(Throwable ex) {
-								innerError(ex);
-							}
-
-							@Override
-							public void onFinish() {
-								Observable<? extends T> nextO = sourceQueue.poll();
-								if (nextO != null) {
-									registerOn(nextO);
-								} else {
-									if (wip.decrementAndGet() == 0) {
-										observer.finish();
-										remove("source");
-									} else {
-										first = true;
-									}
-								}
-							}
-
-							@Override
-							public void onNext(T value) {
-								observer.next(value);
-							}
-
-						}));
-					}
-					
-				};
-				o.registerWith(sources);
-				return o;
-			}
-		};
+		return new Concat.FromObservable.Selector<T, T>(sources, Functions.<Observable<? extends T>>identity());
+	}
+	/**
+	 * Concatenate the the multiple sources of T one after another.
+	 * <p><b>Exception semantics:</b> if the sources or any inner observer signals an
+	 * error, the outer observable will signal that error and the sequence is terminated.</p>
+	 * @param <T> the source element type
+	 * @param <U> the result element type
+	 * @param sources the observable sequence of the observable sequence of Ts.
+	 * @param resultSelector the concatenation result selector
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T, U> Observable<U> concat(
+			@Nonnull final Observable<? extends Observable<? extends T>> sources,
+			@Nonnull Func1<? super Observable<? extends T>, ? extends Observable<? extends U>> resultSelector
+	) {
+		return new Concat.FromObservable.Selector<T, U>(sources, resultSelector);
+	}
+	/**
+	 * Concatenate the the multiple sources of T one after another.
+	 * <p><b>Exception semantics:</b> if the sources or any inner observer signals an
+	 * error, the outer observable will signal that error and the sequence is terminated.</p>
+	 * @param <T> the source element type
+	 * @param <U> the result element type
+	 * @param sources the observable sequence of the observable sequence of Ts.
+	 * @param resultSelector the indexed concatenation result selector
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T, U> Observable<U> concat(
+			@Nonnull final Observable<? extends Observable<? extends T>> sources,
+			@Nonnull Func2<? super Integer, ? super Observable<? extends T>, ? extends Observable<? extends U>> resultSelector
+	) {
+		return new Concat.FromObservable.IndexedSelector<T, U>(sources, resultSelector);
 	}
 	/**
 	 * Concatenate two observables in a way when the first finish() the second is registered
@@ -1641,7 +1035,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T> Observable<Boolean> contains(
 			@Nonnull final Observable<? extends T> source,
-			final Func0<? extends T> supplier) {
+			@Nonnull final Func0<? extends T> supplier) {
 		return any(source, new Func1<T, Boolean>() {
 			@Override
 			public Boolean invoke(T param1) {
@@ -1678,9 +1072,10 @@ public final class Reactive {
 	 * @return  the observable with a single value
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public static <T> Observable<Integer> count(
-			Observable<? extends T> source, 
-			Func1<? super T, Boolean> predicate) {
+			@Nonnull Observable<? extends T> source, 
+			@Nonnull Func1<? super T, Boolean> predicate) {
 		return count(where(source, predicate));
 	}
 	/**
@@ -1694,12 +1089,13 @@ public final class Reactive {
 			@Nonnull final Observable<T> source) {
 		return new Observable<Integer>() {
 			@Override
-			public Closeable register(final Observer<? super Integer> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Integer> observer) {
 				return source.register(new Observer<T>() {
 					/** The counter. */
 					int count;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -1726,9 +1122,10 @@ public final class Reactive {
 	 * @return  the observable with a single value
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public static <T> Observable<Long> countLong(
-			Observable<? extends T> source, 
-			Func1<? super T, Boolean> predicate) {
+			@Nonnull Observable<? extends T> source, 
+			@Nonnull Func1<? super T, Boolean> predicate) {
 		return countLong(where(source, predicate));
 	}
 	/**
@@ -1742,12 +1139,13 @@ public final class Reactive {
 			@Nonnull final Observable<T> source) {
 		return new Observable<Long>() {
 			@Override
-			public Closeable register(final Observer<? super Long> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Long> observer) {
 				return source.register(new Observer<T>() {
 					/** The counter. */
 					long count;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -1778,11 +1176,12 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> source) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					ObserverState state = ObserverState.OBSERVER_RUNNING;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						if (state != ObserverState.OBSERVER_RUNNING) {
 							new IllegalStateException(state.toString()).printStackTrace();
 						}
@@ -1823,7 +1222,8 @@ public final class Reactive {
 			@Nonnull final Func0<? extends Observable<? extends T>> observableFactory) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull Observer<? super T> observer) {
 				return observableFactory.invoke().register(observer);
 			}
 		};
@@ -1878,12 +1278,13 @@ public final class Reactive {
 			@Nonnull final Observable<? extends Option<T>> source) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<Option<T>>() {
 					/** Keeps track of the observer's state. */
 					final AtomicBoolean done = new AtomicBoolean();
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						if (!done.get()) {
 							done.set(true);
 							observer.error(ex);
@@ -1924,7 +1325,6 @@ public final class Reactive {
 	 * @param observer the observer
 	 * @param value the value to dispatch
 	 */
-	@Nonnull
 	public static <T> void dispatch(
 			@Nonnull Observer<? super T> observer,
 			@Nonnull Option<T> value) {
@@ -1932,7 +1332,7 @@ public final class Reactive {
 			observer.finish();
 		} else
 		if (Option.isError(value)) {
-			observer.error(((Option.Error<?>)value).error());
+			observer.error(Option.getError(value));
 		} else {
 			observer.next(value.value());
 		}
@@ -1963,14 +1363,15 @@ public final class Reactive {
 			@Nonnull final Func1<T, U> keyExtractor) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					/** Indication as the first. */
 					boolean first = true;
 					/** The last value. */
 					U lastKey;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -2026,7 +1427,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<Void>() {
 			@Override
-			public Closeable register(final Observer<? super Void> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Void> observer) {
 				// keep track of the forked observers so the last should invoke finish() on the observer
 				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					/** The work in progress counter. */
@@ -2038,7 +1440,7 @@ public final class Reactive {
 							pump.invoke(value).register(
 								new Observer<Void>() {
 									@Override
-									public void error(Throwable ex) {
+									public void error(@Nonnull Throwable ex) {
 										lock.lock();
 										try {
 											observer.error(ex);
@@ -2071,7 +1473,7 @@ public final class Reactive {
 					}
 
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 						close();
 					}
@@ -2114,7 +1516,7 @@ public final class Reactive {
 				return (new DefaultObserverEx<T>() {
 					int i = index;
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -2161,7 +1563,7 @@ public final class Reactive {
 				return (new DefaultObserverEx<T>() {
 					int i = index;
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -2223,7 +1625,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
@@ -2246,10 +1649,11 @@ public final class Reactive {
 			@Nonnull final Action0 action) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						action.invoke();
 						observer.error(ex);
 					}
@@ -2340,10 +1744,10 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			@Nonnull
-			public Closeable register(final Observer<? super T> observer) {
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return (new DefaultObserverEx<T>() {
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -2380,10 +1784,10 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			@Nonnull
-			public Closeable register(final Observer<? super T> observer) {
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return (new DefaultObserverEx<T>() {
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -2421,23 +1825,6 @@ public final class Reactive {
 		return firstAsync(source, Functions.constant0(defaultValue));
 	}
 	/**
-	 * Creates a concatenated sequence of Observables based on the decision function of <code>selector</code> keyed by the source iterable.
-	 * @param <T> the type of the source values
-	 * @param <U> the type of the observable elements.
-	 * @param source the source of keys
-	 * @param selector the selector of keys which returns a new observable
-	 * @return the concatenated observable.
-	 */
-	public static <T, U> Observable<U> forEach(
-			@Nonnull final Iterable<? extends T> source,
-			@Nonnull final Func1<? super T, ? extends Observable<? extends U>> selector) {
-		List<Observable<? extends U>> list = new ArrayList<Observable<? extends U>>();
-		for (T t : source) {
-			list.add(selector.invoke(t));
-		}
-		return concat(list);
-	}
-	/**
 	 * Invokes the action on each element in the source,
 	 * and blocks until the source terminates either way.
 	 * <p>The observation of the source is not serialized,
@@ -2458,7 +1845,7 @@ public final class Reactive {
 			/** Indicate the termination. */
 			final AtomicBoolean done = new AtomicBoolean();
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				terminate();
 			}
 
@@ -2506,14 +1893,15 @@ public final class Reactive {
 	public static <T> boolean forEach(
 			@Nonnull final Observable<T> source, 
 			@Nonnull final Action1<? super T> action,
-			long time, @Nonnull TimeUnit unit)
+			long time, 
+			@Nonnull TimeUnit unit)
 					throws InterruptedException {
 		final CountDownLatch latch = new CountDownLatch(1);
 		Observer<T> o = new Observer<T>() {
 			/** Indicate the termination. */
 			final AtomicBoolean done = new AtomicBoolean();
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				terminate();
 			}
 
@@ -2566,7 +1954,7 @@ public final class Reactive {
 			/** The next() counter. */
 			final AtomicInteger index = new AtomicInteger();
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				terminate();
 			}
 
@@ -2624,7 +2012,7 @@ public final class Reactive {
 			/** The next() counter. */
 			final AtomicInteger index = new AtomicInteger();
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				terminate();
 			}
 
@@ -2666,7 +2054,8 @@ public final class Reactive {
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
 		return new Observable<List<T>>() {
 			@Override
-			public Closeable register(final Observer<? super List<T>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super List<T>> observer) {
 				final List<AtomicReference<T>> lastValues = new ArrayList<AtomicReference<T>>();
 				final List<Observable<? extends T>> observableList = new ArrayList<Observable<? extends T>>();
 				final List<Observer<T>> observers = new ArrayList<Observer<T>>();
@@ -2681,7 +2070,7 @@ public final class Reactive {
 						/** The last value. */
 						T last;
 						@Override
-						public void error(Throwable ex) {
+						public void error(@Nonnull Throwable ex) {
 							// TODO Auto-generated method stub
 
 						}
@@ -2769,7 +2158,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<U>() {
 			@Override
-			public Closeable register(final Observer<? super U> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super U> observer) {
 				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void onRun() {
@@ -2861,7 +2251,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<Timestamped<U>>() {
 			@Override
-			public Closeable register(final Observer<? super Timestamped<U>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Timestamped<U>> observer) {
 				// the cancellation indicator
 
 				DefaultRunnable s = new DefaultRunnable() {
@@ -2889,7 +2280,7 @@ public final class Reactive {
 					Pair<Long, TimeUnit> toWait = delay.invoke(initial);
 					return pool.schedule(s, toWait.first, toWait.second);
 				}
-				return Functions.EMPTY_CLOSEABLE;
+				return Closeables.emptyCloseable();
 			}
 		};
 	}
@@ -2932,12 +2323,13 @@ public final class Reactive {
 			@Nonnull final Func1<? super T, ? extends U> valueExtractor) {
 		return new Observable<GroupedObservable<Key, U>>() {
 			@Override
+			@Nonnull 
 			public Closeable register(
-					final Observer<? super GroupedObservable<Key, U>> observer) {
+					@Nonnull final Observer<? super GroupedObservable<Key, U>> observer) {
 				final ConcurrentMap<Key, DefaultGroupedObservable<Key, U>> knownGroups = new ConcurrentHashMap<Key, DefaultGroupedObservable<Key, U>>();
 				return source.register(new Observer<T>() {
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						for (Observer<U> group : knownGroups.values()) {
 							group.error(ex);
 						}
@@ -2986,10 +2378,11 @@ public final class Reactive {
 	 * @param durationSelector the observable for a particular group termination
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T, K, D> Observable<GroupedObservable<K, T>> groupByUntil(
-			final Observable<? extends T> source,
-			final Func1<? super T, ? extends K> keySelector,
-			final Func1<? super GroupedObservable<K, T>, ? extends Observable<D>> durationSelector
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super T, ? extends K> keySelector,
+			@Nonnull final Func1<? super GroupedObservable<K, T>, ? extends Observable<D>> durationSelector
 	) {
 		return groupByUntil(source, keySelector, Functions.<T>identity(), durationSelector);
 	}
@@ -3008,11 +2401,12 @@ public final class Reactive {
 	 * @param keyComparer the key comparer for the grouping
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T, K, D> Observable<GroupedObservable<K, T>> groupByUntil(
-			final Observable<? extends T> source,
-			final Func1<? super T, ? extends K> keySelector,
-			final Func1<? super GroupedObservable<K, T>, ? extends Observable<D>> durationSelector,
-			final Func2<? super K, ? super K, Boolean> keyComparer
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super T, ? extends K> keySelector,
+			@Nonnull final Func1<? super GroupedObservable<K, T>, ? extends Observable<D>> durationSelector,
+			@Nonnull final Func2<? super K, ? super K, Boolean> keyComparer
 	) {
 		return groupByUntil(source, keySelector, Functions.<T>identity(), durationSelector, keyComparer);
 	}
@@ -3033,21 +2427,23 @@ public final class Reactive {
 	 * @param durationSelector the observable for a particular group termination
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T, K, V, D> Observable<GroupedObservable<K, V>> groupByUntil(
-			final Observable<? extends T> source,
-			final Func1<? super T, ? extends K> keySelector,
-			final Func1<? super T, ? extends V> valueSelector,
-			final Func1<? super GroupedObservable<K, V>, ? extends Observable<D>> durationSelector
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super T, ? extends K> keySelector,
+			@Nonnull final Func1<? super T, ? extends V> valueSelector,
+			@Nonnull final Func1<? super GroupedObservable<K, V>, ? extends Observable<D>> durationSelector
 	) {
 		return new Observable<GroupedObservable<K, V>>() {
 			@Override
+			@Nonnull 
 			public Closeable register(
-					final Observer<? super GroupedObservable<K, V>> observer) {
+					@Nonnull final Observer<? super GroupedObservable<K, V>> observer) {
 				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
 					/** The active groups. */
 					final Map<K, DefaultGroupedObservable<K, V>> groups = new HashMap<K, DefaultGroupedObservable<K, V>>();
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						for (Observer<V> o : groups.values()) {
 							o.error(ex);
 						}
@@ -3067,14 +2463,14 @@ public final class Reactive {
 						final K k = keySelector.invoke(value);
 						final V v = valueSelector.invoke(value);
 						DefaultGroupedObservable<K, V> gr = groups.get(k);
-						if (gr != null) {
+						if (gr == null) {
 							gr = new DefaultGroupedObservable<K, V>(k);
 							final DefaultGroupedObservable<K, V> fgr = gr;
 							groups.put(k, gr);
 							add(fgr, durationSelector.invoke(gr).register(new DefaultObserver<D>(lock, true) {
 
 								@Override
-								protected void onError(Throwable ex) {
+								protected void onError(@Nonnull Throwable ex) {
 									fgr.error(ex); // FIXME error propagation
 									groups.remove(k);
 									remove(fgr);
@@ -3123,17 +2519,19 @@ public final class Reactive {
 	 * @param keyComparer the key comparer for the grouping
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T, K, V, D> Observable<GroupedObservable<K, V>> groupByUntil(
-			final Observable<? extends T> source,
-			final Func1<? super T, ? extends K> keySelector,
-			final Func1<? super T, ? extends V> valueSelector,
-			final Func1<? super GroupedObservable<K, V>, ? extends Observable<D>> durationSelector,
-			final Func2<? super K, ? super K, Boolean> keyComparer
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super T, ? extends K> keySelector,
+			@Nonnull final Func1<? super T, ? extends V> valueSelector,
+			@Nonnull final Func1<? super GroupedObservable<K, V>, ? extends Observable<D>> durationSelector,
+			@Nonnull final Func2<? super K, ? super K, Boolean> keyComparer
 	) {
 		return new Observable<GroupedObservable<K, V>>() {
 			@Override
+			@Nonnull 
 			public Closeable register(
-					final Observer<? super GroupedObservable<K, V>> observer) {
+					@Nonnull final Observer<? super GroupedObservable<K, V>> observer) {
 				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
 					/** The key class with custom equality comparer. */
 					class Key {
@@ -3161,7 +2559,7 @@ public final class Reactive {
 					/** The active groups. */
 					final Map<Key, DefaultGroupedObservable<K, V>> groups = new HashMap<Key, DefaultGroupedObservable<K, V>>();
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						for (Observer<V> o : groups.values()) {
 							o.error(ex);
 						}
@@ -3182,14 +2580,14 @@ public final class Reactive {
 						final Key k = new Key(kv);
 						final V v = valueSelector.invoke(value);
 						DefaultGroupedObservable<K, V> gr = groups.get(k);
-						if (gr != null) {
+						if (gr == null) {
 							gr = new DefaultGroupedObservable<K, V>(kv);
 							final DefaultGroupedObservable<K, V> fgr = gr;
 							groups.put(k, gr);
 							add(fgr, durationSelector.invoke(gr).register(new DefaultObserver<D>(lock, true) {
 
 								@Override
-								protected void onError(Throwable ex) {
+								protected void onError(@Nonnull Throwable ex) {
 									fgr.error(ex); // FIXME error propagation
 									groups.remove(k);
 									remove(fgr);
@@ -3238,16 +2636,18 @@ public final class Reactive {
 	 * @return the new observable
 	 * @see #join(Observable, Observable, Func1, Func1, Func2)
 	 */
+	@Nonnull 
 	public static <Left, Right, LeftDuration, RightDuration, Result> Observable<Result> groupJoin(
-			final Observable<? extends Left> left,
-			final Observable<? extends Right> right,
-			final Func1<? super Left, ? extends Observable<LeftDuration>> leftDurationSelector,
-			final Func1<? super Right, ? extends Observable<RightDuration>> rightDurationSelector,
-			final Func2<? super Left, ? super Observable<? extends Right>, ? extends Result> resultSelector
+			@Nonnull final Observable<? extends Left> left,
+			@Nonnull final Observable<? extends Right> right,
+			@Nonnull final Func1<? super Left, ? extends Observable<LeftDuration>> leftDurationSelector,
+			@Nonnull final Func1<? super Right, ? extends Observable<RightDuration>> rightDurationSelector,
+			@Nonnull final Func2<? super Left, ? super Observable<? extends Right>, ? extends Result> resultSelector
 	) {
 		return new Observable<Result>() {
 			@Override
-			public Closeable register(final Observer<? super Result> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Result> observer) {
 				final Lock lock = new ReentrantLock(true);
 				final HashSet<Left> leftActive = new HashSet<Left>();
 				final HashSet<Right> rightActive = new HashSet<Right>();
@@ -3267,7 +2667,7 @@ public final class Reactive {
 					}
 
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -3289,7 +2689,7 @@ public final class Reactive {
 							}
 
 							@Override
-							protected void onError(Throwable ex) {
+							protected void onError(@Nonnull Throwable ex) {
 								innerError(ex);
 							}
 
@@ -3318,7 +2718,7 @@ public final class Reactive {
 						Closeables.closeSilently(closeBoth);
 					}
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -3344,7 +2744,7 @@ public final class Reactive {
 							}
 
 							@Override
-							protected void onError(Throwable ex) {
+							protected void onError(@Nonnull Throwable ex) {
 								innerError(ex);
 							}
 
@@ -3377,7 +2777,9 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Returns an observable where the submitted condition decides whether the <code>then</code> source is allowed to submit values.
+	 * Returns an observable where the submitted condition decides whether 
+	 * the <code>then</code> source is allowed to submit values or else
+	 * an empty sequence is used.
 	 * @param <T> the type of the values to observe
 	 * @param condition the condition function
 	 * @param then the source to use when the condition is true
@@ -3387,7 +2789,25 @@ public final class Reactive {
 	public static <T> Observable<T> ifThen(
 			@Nonnull final Func0<Boolean> condition,
 			@Nonnull final Observable<? extends T> then) {
-		return ifThen(condition, then, Reactive.<T>never());
+		return ifThen(condition, then, Reactive.<T>empty());
+	}
+	/**
+	 * Returns an observable where the submitted condition decides whether 
+	 * the <code>then</code> source is allowed to submit values
+	 * or else an empty sequence is returned.
+	 * @param <T> the type of the values to observe
+	 * @param condition the condition function
+	 * @param then the source to use when the condition is true
+	 * @param scheduler the scheduler for the empty case.
+	 * @return the observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> ifThen(
+			@Nonnull final Func0<Boolean> condition,
+			@Nonnull final Observable<? extends T> then,
+			@Nonnull Scheduler scheduler) {
+		return ifThen(condition, then, Reactive.<T>empty(scheduler));
 	}
 	/**
 	 * Returns an observable where the submitted condition decides whether the <code>then</code> or <code>orElse</code>
@@ -3406,57 +2826,15 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> orElse) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				final Closeable s1 = then.register(new Observer<T>() {
-
-					@Override
-					public void error(Throwable ex) {
-						if (condition.invoke()) {
-							observer.error(ex);
-						}
-					}
-
-					@Override
-					public void finish() {
-						if (condition.invoke()) {
-							observer.finish();
-						}
-					}
-
-					@Override
-					public void next(T value) {
-						if (condition.invoke()) {
-							observer.next(value);
-						}
-					}
-
-				});
-				final Closeable s2 = orElse.register(new Observer<T>() {
-
-					@Override
-					public void error(Throwable ex) {
-						if (!condition.invoke()) {
-							observer.error(ex);
-						}
-					}
-
-					@Override
-					public void finish() {
-						if (!condition.invoke()) {
-							observer.finish();
-						}
-					}
-
-					@Override
-					public void next(T value) {
-						if (!condition.invoke()) {
-							observer.next(value);
-						}
-					}
-
-				});
-
-				return Closeables.newCloseable(s1, s2);
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
+				Observable<? extends T> source = null;
+				if (condition.invoke()) {
+					source = then;
+				} else {
+					source = orElse;
+				}
+				return source.register(observer);
 			}
 		};
 	}
@@ -3467,13 +2845,16 @@ public final class Reactive {
 	 * @param source the source of Ts
 	 * @return the new observable
 	 */
-	public static <T> Observable<T> ignoreValues(final Observable<? extends T> source) {
+	@Nonnull 
+	public static <T> Observable<T> ignoreValues(
+			@Nonnull final Observable<? extends T> source) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -3505,10 +2886,11 @@ public final class Reactive {
 			@Nonnull final Action1<? super T> action) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -3541,10 +2923,11 @@ public final class Reactive {
 			@Nonnull final Observer<? super T> observer) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> o) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> o) {
 				return source.register(new Observer<T>() {
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 						o.error(ex);
 					}
@@ -3691,7 +3074,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
@@ -3732,7 +3116,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
@@ -3777,7 +3162,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
@@ -3804,12 +3190,13 @@ public final class Reactive {
 			@Nonnull final Observable<?> source) {
 		return new Observable<Boolean>() {
 			@Override
-			public Closeable register(final Observer<? super Boolean> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Boolean> observer) {
 				return source.register(new Observer<Object>() {
 					/** We already determined the answer? */
 					boolean done;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						if (!done) {
 							observer.error(ex);
 						}
@@ -3867,7 +3254,8 @@ public final class Reactive {
 	) {
 		return new Observable<Result>() {
 			@Override
-			public Closeable register(final Observer<? super Result> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Result> observer) {
 				final Lock lock = new ReentrantLock(true);
 				final HashSet<Left> leftActive = new HashSet<Left>();
 				final HashSet<Right> rightActive = new HashSet<Right>();
@@ -3876,7 +3264,7 @@ public final class Reactive {
 
 				DefaultObserverEx<Left> o1 = new DefaultObserverEx<Left>(lock, true) {
 					/** Relay the inner error to the outer. */
-					void innerError(Throwable ex) {
+					void innerError(@Nonnull Throwable ex) {
 						error(ex);
 					}
 					@Override
@@ -3886,7 +3274,7 @@ public final class Reactive {
 					}
 
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -3908,7 +3296,7 @@ public final class Reactive {
 							}
 
 							@Override
-							protected void onError(Throwable ex) {
+							protected void onError(@Nonnull Throwable ex) {
 								innerError(ex);
 							}
 
@@ -3937,7 +3325,7 @@ public final class Reactive {
 						Closeables.closeSilently(closeBoth);
 					}
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -3959,7 +3347,7 @@ public final class Reactive {
 							}
 
 							@Override
-							protected void onError(Throwable ex) {
+							protected void onError(@Nonnull Throwable ex) {
 								innerError(ex);
 							}
 
@@ -3997,7 +3385,6 @@ public final class Reactive {
 	 * @return the last element
 	 * @see Reactive#await(Observable)
 	 */
-	@Nonnull
 	public static <T> T last(
 			@Nonnull final Observable<? extends T> source) {
 		final CountDownLatch latch = new CountDownLatch(1);
@@ -4008,7 +3395,7 @@ public final class Reactive {
 			/** Are we the first? */
 			boolean first = true;
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				finish();
 			}
 
@@ -4054,7 +3441,6 @@ public final class Reactive {
 	 * @return the last element
 	 * @since 0.97
 	 */
-	@Nonnull
 	public static <T> T last(
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Func0<? extends T> defaultSupplier) {
@@ -4065,7 +3451,7 @@ public final class Reactive {
 			/** Are we the first? */
 			boolean first = true;
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				queue.add(Option.<T>none());
 			}
 
@@ -4087,15 +3473,14 @@ public final class Reactive {
 		});
 		try {
 			Option<T> value = queue.take();
-			c.close();
 			if (value == Option.none()) {
 				throw new NoSuchElementException();
 			}
 			return value.value();
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
-		} catch (IOException ex) {
-			throw new RuntimeException(ex);
+		} finally {
+			Closeables.closeSilently(c);
 		}
 	}
 	/**
@@ -4109,7 +3494,6 @@ public final class Reactive {
 	 * @return the last element
 	 * @since 0.97
 	 */
-	@Nonnull
 	public static <T> T last(
 			@Nonnull final Observable<? extends T> source,
 			final T defaultValue) {
@@ -4128,15 +3512,15 @@ public final class Reactive {
 	public static <T> Observable<T> lastAsync(@Nonnull final Observable<? extends T> source) {
 		return new Observable<T>() {
 			@Override
-			@Nonnull
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					/** The first value is pending? */
 					boolean first = true;
 					/** The current value. */
 					T current;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -4177,14 +3561,14 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			@Nonnull
-			public Closeable register(final Observer<? super T> observer) {
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					/** The first value is pending? */
 					boolean first = true;
 					/** The current value. */
 					T current;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -4218,6 +3602,7 @@ public final class Reactive {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public static <T> Observable<T> lastAsync(
 			@Nonnull final Observable<? extends T> source,
 			final T defaultValue) {
@@ -4249,12 +3634,14 @@ public final class Reactive {
 	 * @param selector the selector function
 	 * @return a new observable
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> let(
 			final T value,
-			final Func1<? super T, ? extends Observable<U>> selector) {
+			@Nonnull final Func1<? super T, ? extends Observable<U>> selector) {
 		return new Observable<U>() {
 			@Override
-			public Closeable register(Observer<? super U> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull Observer<? super U> observer) {
 				return selector.invoke(value).register(observer);
 			}
 		};
@@ -4264,15 +3651,17 @@ public final class Reactive {
 	 * element and calls the selector function. The function's return observable is then merged
 	 * into a single observable sequence.<p>
 	 * For example, a source sequence of (1, 2, 3) will create three function calls with (1, 2, 3), (2, 3) and (3) as a content.
+	 * FIXME rework
 	 * @param <T> the source element type
 	 * @param <U> the result element type
 	 * @param source the source of Ts
 	 * @param selector the selector function
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> manySelect(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<T>, ? extends Observable<U>> selector
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<T>, ? extends Observable<U>> selector
 	) {
 		return merge(select(source, new Func1<T, Observable<U>>() {
 			/** The skip position. */
@@ -4292,6 +3681,7 @@ public final class Reactive {
 	 * The result of that computation is then transmitted to the observer.
 	 * <p>It is sometimes called the comonadic bind operator and compared to the ContinueWith
 	 * semantics.</p>
+	 * FIXME rework
 	 * @param <T> the source element type
 	 * @param <U> the result element type
 	 * @param source the source of Ts
@@ -4299,19 +3689,21 @@ public final class Reactive {
 	 * @param scheduler the scheduler where the extracted U will be emitted from.
 	 * @return the new observable.
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> manySelect(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<T>, ? extends U> selector,
-			final Scheduler scheduler) {
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<T>, ? extends U> selector,
+			@Nonnull final Scheduler scheduler) {
 		return new Observable<U>() {
 			@Override
-			public Closeable register(final Observer<? super U> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super U> observer) {
 				final AtomicInteger wip = new AtomicInteger(1);
 				Closeable c = source.register(new DefaultObserverEx<T>(true) {
 					/** The skip position. */
 					int counter;
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 						close();
 					}
@@ -4357,9 +3749,10 @@ public final class Reactive {
 	 * @param selector the selector that extracts an U from the series of Ts.
 	 * @return the new observable.
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> manySelect0(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<T>, ? extends U> selector) {
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<T>, ? extends U> selector) {
 		return manySelect(source, selector, scheduler());
 	}
 	/**
@@ -4380,10 +3773,11 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> source) {
 		return new Observable<Option<T>>() {
 			@Override
-			public Closeable register(final Observer<? super Option<T>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Option<T>> observer) {
 				return source.register(new Observer<T>() {
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.next(Option.<T>error(ex));
 						observer.finish();
 					}
@@ -4418,10 +3812,11 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> source) {
 		return new Observable<Option<T>>() {
 			@Override
-			public Closeable register(final Observer<? super Option<T>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Option<T>> observer) {
 				return source.register(new Observer<T>() {
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.next(Option.<T>error(ex));
 					}
 
@@ -4510,7 +3905,8 @@ public final class Reactive {
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				final CompositeCloseable closeables = new CompositeCloseable();
 				
 				List<Observable<? extends T>> sourcesList = new ArrayList<Observable<? extends T>>();
@@ -4524,7 +3920,7 @@ public final class Reactive {
 					final int j = i;
 					DefaultObserverEx<T> obs = new DefaultObserverEx<T>(lock, true) {
 						@Override
-						public void onError(Throwable ex) {
+						public void onError(@Nonnull Throwable ex) {
 							observer.error(ex);
 							for (int k = 0; k < observers.size(); k++) {
 								if (k != j) {
@@ -4572,7 +3968,8 @@ public final class Reactive {
 			final Observable<? extends Observable<? extends T>> sources) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				final AtomicInteger wip = new AtomicInteger(1);
 				DefaultObserverEx<Observable<? extends T>> obs = new DefaultObserverEx<Observable<? extends T>>(false) {
 					/** Signal finish if the sources and inner observables have all finished. */
@@ -4590,7 +3987,7 @@ public final class Reactive {
 						error(ex);
 					}
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 					@Override
@@ -4604,7 +4001,7 @@ public final class Reactive {
 						wip.incrementAndGet();
 						add(token, value.register(new DefaultObserver<T>(lock, true) {
 							@Override
-							public void onError(Throwable ex) {
+							public void onError(@Nonnull Throwable ex) {
 								innerError(ex);
 							}
 
@@ -4721,18 +4118,19 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Func1<? super T, ? extends Key> keyExtractor,
 			@Nonnull final Comparator<? super Key> keyComparator,
-			@Nonnull final boolean max
+			final boolean max
 	) {
 		return new Observable<List<T>>() {
 			@Override
-			public Closeable register(final Observer<? super List<T>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super List<T>> observer) {
 				return source.register(new Observer<T>() {
 					/** The current collection for the minimum of Ts. */
 					List<T> collect;
 					/** The current minimum value. */
 					Key maxKey;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -4779,7 +4177,10 @@ public final class Reactive {
 	 * @param initialValue the initial value to return until the source actually produces something.
 	 * @return the iterable
 	 */
-	public static <T> CloseableIterable<T> mostRecent(final Observable<? extends T> source, final T initialValue) {
+	@Nonnull 
+	public static <T> CloseableIterable<T> mostRecent(
+			@Nonnull final Observable<? extends T> source, 
+			final T initialValue) {
 		return new MostRecent<T>(source, initialValue);
 	}
 	/**
@@ -4805,7 +4206,7 @@ public final class Reactive {
 		return new Observable<V>() {
 			@Override
 			@Nonnull
-			public Closeable register(Observer<? super V> observer) {
+			public Closeable register(@Nonnull Observer<? super V> observer) {
 				Subject<? super T, ? extends U> subject = subjectSelector.invoke();
 				ConnectableObservable<U> connectable = new DefaultConnectableObservable<T, U>(source, subject);
 				Observable<? extends V> observable = selector.invoke(connectable);
@@ -4846,8 +4247,9 @@ public final class Reactive {
 	public static <T> Observable<T> never() {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(Observer<? super T> observer) {
-				return Functions.EMPTY_CLOSEABLE;
+			@Nonnull 
+			public Closeable register(@Nonnull Observer<? super T> observer) {
+				return Closeables.emptyCloseable();
 			}
 		};
 	}
@@ -4858,6 +4260,7 @@ public final class Reactive {
 	 * @param objectComparer the objectComparer.
 	 * @return the new comparison function
 	 */
+	@Nonnull 
 	protected static <T> Func2<? super Option<T>, ? super Option<T>, Boolean> newOptionComparer(
 			@Nonnull final Func2<? super T, ? super T, Boolean> objectComparer) {
 		return new Func2<Option<T>, Option<T>, Boolean>() {
@@ -4885,7 +4288,9 @@ public final class Reactive {
 	 * @param source the source of elements
 	 * @return the iterable
 	 */
-	public static <T> CloseableIterable<T> next(final Observable<? extends T> source) {
+	@Nonnull 
+	public static <T> CloseableIterable<T> next(
+			@Nonnull final Observable<? extends T> source) {
 		return new Next<T>(source);
 	}
 	/**
@@ -4902,7 +4307,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 
 				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					/** The single lane executor. */
@@ -4915,7 +4321,7 @@ public final class Reactive {
 						}
 					);
 					@Override
-					public void onError(final Throwable ex) {
+					public void onError(@Nonnull final Throwable ex) {
 						run.add(new Runnable() {
 							@Override
 							public void run() {
@@ -5022,13 +4428,14 @@ public final class Reactive {
 			) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					/** The buffer. */
 					final List<T> buffer = new ArrayList<T>();
 
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -5062,6 +4469,7 @@ public final class Reactive {
 	 * @param source the source of Ts
 	 * @return the observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> prune(
 			final Observable<? extends T> source
 	) {
@@ -5077,9 +4485,10 @@ public final class Reactive {
 	 * @param selector the output stream selector
 	 * @return the observable
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> prune(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector
 	) {
 		return replay(source, selector, 1);
 	}
@@ -5094,10 +4503,11 @@ public final class Reactive {
 	 * @param scheduler the scheduler for replaying the single value
 	 * @return the observable
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> prune(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
-			final Scheduler scheduler
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+					@Nonnull final Scheduler scheduler
 	) {
 		return replay(source, selector, 1, scheduler);
 	}
@@ -5110,9 +4520,10 @@ public final class Reactive {
 	 * @param scheduler the scheduler for replaying the single value
 	 * @return the observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> prune(
-			final Observable<? extends T> source,
-			final Scheduler scheduler
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Scheduler scheduler
 	) {
 		return replay(source, 1, scheduler);
 	}
@@ -5144,6 +4555,7 @@ public final class Reactive {
 	 * multiple registration.
 	 * @return the observable sequence
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> publish(
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<? extends U>> selector
@@ -5172,6 +4584,7 @@ public final class Reactive {
 	 * @param initialValue the value received by registering parties immediately.
 	 * @return the observable sequence
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> publish(
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<? extends U>> selector,
@@ -5184,7 +4597,7 @@ public final class Reactive {
 					/** The observable handling the registrations. */
 					final DefaultObservable<T> obs = new DefaultObservable<T>(); 
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						obs.error(ex);
 					}
 
@@ -5200,7 +4613,7 @@ public final class Reactive {
 
 					@Override
 					@Nonnull
-					public Closeable register(Observer<? super T> observer) {
+					public Closeable register(@Nonnull Observer<? super T> observer) {
 						observer.next(initialValue);
 						return obs.register(observer);
 					}
@@ -5229,7 +4642,7 @@ public final class Reactive {
 			/** The observable handling the registrations. */
 			final DefaultObservable<T> obs = new DefaultObservable<T>(); 
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				obs.error(ex);
 			}
 
@@ -5245,7 +4658,7 @@ public final class Reactive {
 
 			@Override
 			@Nonnull
-			public Closeable register(Observer<? super T> observer) {
+			public Closeable register(@Nonnull Observer<? super T> observer) {
 				observer.next(initialValue);
 				return obs.register(observer);
 			}
@@ -5263,6 +4676,7 @@ public final class Reactive {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> publishLast(
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<? extends U>> selector
@@ -5282,6 +4696,7 @@ public final class Reactive {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public static <T> ConnectableObservable<T> publishLast(
 			@Nonnull final Observable<T> source
 			) {
@@ -5317,7 +4732,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<BigDecimal>() {
 			@Override
-			public Closeable register(final Observer<? super BigDecimal> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super BigDecimal> observer) {
 				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void onRun() {
@@ -5358,10 +4774,11 @@ public final class Reactive {
 	public static Observable<BigInteger> range(
 			@Nonnull final BigInteger start,
 			@Nonnull final BigInteger count,
-			final Scheduler pool) {
+			@Nonnull final Scheduler pool) {
 		return new Observable<BigInteger>() {
 			@Override
-			public Closeable register(final Observer<? super BigInteger> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super BigInteger> observer) {
 				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void onRun() {
@@ -5402,6 +4819,7 @@ public final class Reactive {
 	 * @param pool the pool where to emit the values
 	 * @return the observable of float
 	 */
+	@Nonnull 
 	public static Observable<Double> range(
 			final double start,
 			final int count,
@@ -5409,7 +4827,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<Double>() {
 			@Override
-			public Closeable register(final Observer<? super Double> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Double> observer) {
 				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void onRun() {
@@ -5457,7 +4876,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<Float>() {
 			@Override
-			public Closeable register(final Observer<? super Float> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Float> observer) {
 				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void onRun() {
@@ -5483,7 +4903,7 @@ public final class Reactive {
 	@Nonnull
 	public static Observable<Integer> range(
 			final int start,
-			@Nonnull final int count) {
+			final int count) {
 		return range(start, count, scheduler());
 	}
 	/**
@@ -5493,13 +4913,15 @@ public final class Reactive {
 	 * @param pool the execution thread pool.
 	 * @return the observable
 	 */
+	@Nonnull 
 	public static Observable<Integer> range(
 			final int start,
 			final int count,
 			@Nonnull final Scheduler pool) {
 		return new Observable<Integer>() {
 			@Override
-			public Closeable register(final Observer<? super Integer> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Integer> observer) {
 				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void onRun() {
@@ -5544,7 +4966,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				SingleCloseable cancelRegister = new SingleCloseable();
 				
 				final SequentialCloseable cancelUnregister = new SequentialCloseable();
@@ -5590,10 +5013,11 @@ public final class Reactive {
 			@Nonnull final Func0<Boolean> condition) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -5636,8 +5060,8 @@ public final class Reactive {
 	 */
 	@Nonnull
 	public static <T> Observable<T> removeTimestamped(
-			@Nonnull Observable<Timestamped<T>> source) {
-		Func1<Timestamped<T>, T> f = unwrapTimestamped();
+			@Nonnull Observable<Timestamped<? extends T>> source) {
+		Func1<Timestamped<? extends T>, T> f = unwrapTimestamped();
 		return select(source, f);
 	}
 	/**
@@ -5682,7 +5106,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				DefaultRunnable r = new DefaultRunnable() {
 					@Override
 					public void onRun() {
@@ -5707,45 +5132,49 @@ public final class Reactive {
 	 * @param pool the pool where the generator loop runs
 	 * @return the observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> repeat(
 			@Nonnull final Func0<? extends T> func,
 			@Nonnull final Scheduler pool) {
-		return new Observable<T>() {
-			@Override
-			public Closeable register(final Observer<? super T> observer) {
-				DefaultRunnable r = new DefaultRunnable() {
-					@Override
-					public void onRun() {
-						while (!cancelled()) {
-							observer.next(func.invoke());
-						}
-					}
-				};
-				return pool.schedule(r);
-			}
-		};
+		return new Repeat.RepeatValue<T>(func, pool);
 	}
 	/**
-	 * Repeat the source observable count times. Basically it creates
-	 * a list of observables, all the source instance and applies
-	 * the concat() operator on it.
+	 * Repeat the source observable count times.
 	 * @param <T> the element type
 	 * @param source the source observable
 	 * @param count the number of times to repeat
 	 * @return the new observable
+	 * @see Reactive#doWhile(Observable, Func0)
 	 */
 	@Nonnull
 	public static <T> Observable<T> repeat(
 			@Nonnull Observable<? extends T> source,
-			int count) {
+			final int count) {
 		if (count > 0) {
-			List<Observable<? extends T>> srcs = new ArrayList<Observable<? extends T>>(count);
-			for (int i = 0; i < count; i++) {
-				srcs.add(source);
-			}
-			return concat(srcs);
+			Pred0 condition = new Pred0() {
+				/** Repeat counter. */
+				int i = count - 1;
+				@Override
+				public Boolean invoke() {
+					return i-- > 0;
+				}
+			};
+			return doWhile(source, condition);
 		}
 		return empty();
+	}
+	/**
+	 * Repeat the source observable indefinitely.
+	 * @param <T> the element type
+	 * @param source the source observable
+	 * @return the new observable
+	 * @see Reactive#doWhile(Observable, Func0)
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> repeat(
+			@Nonnull Observable<? extends T> source) {
+		return doWhile(source, Functions.TRUE);
 	}
 	/**
 	 * Creates an observable which repeates the given value indefinitely
@@ -5810,8 +5239,9 @@ public final class Reactive {
 	 * @param source the source of Ts
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> replay(
-			final Observable<? extends T> source
+			@Nonnull final Observable<? extends T> source
 	) {
 		return replay(source, scheduler());
 	}
@@ -5825,9 +5255,10 @@ public final class Reactive {
 	 * @param bufferSize the target buffer size
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> replay(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
 			final int bufferSize
 	) {
 		return replay(selector.invoke(source), bufferSize);
@@ -5844,12 +5275,13 @@ public final class Reactive {
 	 * @param unit the time unit
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> replay(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
 			final int bufferSize,
 			final long timeSpan,
-			final TimeUnit unit
+			@Nonnull final TimeUnit unit
 	) {
 		return replay(selector.invoke(source), bufferSize, timeSpan, unit);
 	}
@@ -5866,13 +5298,14 @@ public final class Reactive {
 	 * @param scheduler the target scheduler
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> replay(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
 			final int bufferSize,
 			final long timeSpan,
-			final TimeUnit unit,
-			final Scheduler scheduler
+			@Nonnull final TimeUnit unit,
+			@Nonnull final Scheduler scheduler
 	) {
 		return replay(selector.invoke(source), bufferSize, timeSpan, unit, scheduler);
 	}
@@ -5887,11 +5320,12 @@ public final class Reactive {
 	 * @param unit the time unit
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> replay(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
 			final long timeSpan,
-			final TimeUnit unit
+			@Nonnull final TimeUnit unit
 	) {
 		return replay(selector.invoke(source), timeSpan, unit);
 	}
@@ -5907,12 +5341,13 @@ public final class Reactive {
 	 * @param scheduler the target scheduler
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> replay(
-			final Observable<? extends T> source,
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
 			final long timeSpan,
-			final TimeUnit unit,
-			final Scheduler scheduler
+			@Nonnull final TimeUnit unit,
+			@Nonnull final Scheduler scheduler
 	) {
 		return replay(selector.invoke(source), timeSpan, unit, scheduler);
 	}
@@ -5924,8 +5359,9 @@ public final class Reactive {
 	 * @param bufferSize the target buffer size
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> replay(
-			final Observable<? extends T> source,
+			@Nonnull final Observable<? extends T> source,
 			final int bufferSize
 	) {
 		return replay(source, bufferSize, scheduler());
@@ -5940,11 +5376,12 @@ public final class Reactive {
 	 * @param unit the time unit
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> replay(
-			final Observable<? extends T> source,
+			@Nonnull final Observable<? extends T> source,
 			final int bufferSize,
 			final long timeSpan,
-			final TimeUnit unit
+			@Nonnull final TimeUnit unit
 	) {
 		return replay(source, bufferSize, timeSpan, unit, scheduler());
 	}
@@ -5959,12 +5396,13 @@ public final class Reactive {
 	 * @param scheduler the target scheduler
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> replay(
-			final Observable<? extends T> source,
+			@Nonnull final Observable<? extends T> source,
 			final int bufferSize,
 			final long timeSpan,
-			final TimeUnit unit,
-			final Scheduler scheduler
+			@Nonnull final TimeUnit unit,
+			@Nonnull final Scheduler scheduler
 	) {
 		return new Observable<T>() {
 			/** The read-write lock. */
@@ -5992,7 +5430,8 @@ public final class Reactive {
 				super.finalize();
 			}
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				writeLock.lock();
 				try {
 					if (sourceClose != null) {
@@ -6015,7 +5454,7 @@ public final class Reactive {
 							}
 
 							@Override
-							public void error(Throwable ex) {
+							public void error(@Nonnull Throwable ex) {
 								doOption(Option.<T>error(ex));
 							}
 
@@ -6101,10 +5540,11 @@ public final class Reactive {
 	 * @param scheduler the scheduler from where the historical elements are emitted
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> replay(
-			final Observable<? extends T> source,
+			@Nonnull final Observable<? extends T> source,
 			final int bufferSize,
-			final Scheduler scheduler
+			@Nonnull final Scheduler scheduler
 	) {
 		return new Observable<T>() {
 			/** The read-write lock. */
@@ -6128,7 +5568,8 @@ public final class Reactive {
 				super.finalize();
 			}
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				writeLock.lock();
 				try {
 					if (sourceClose == null) {
@@ -6150,7 +5591,7 @@ public final class Reactive {
 							}
 
 							@Override
-							public void error(Throwable ex) {
+							public void error(@Nonnull Throwable ex) {
 								doOption(Option.<T>error(ex));
 							}
 
@@ -6218,10 +5659,11 @@ public final class Reactive {
 	 * @param unit the time unit
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> replay(
-			final Observable<? extends T> source,
+			@Nonnull final Observable<? extends T> source,
 			final long timeSpan,
-			final TimeUnit unit
+			@Nonnull final TimeUnit unit
 	) {
 		return replay(source, timeSpan, unit, scheduler());
 	}
@@ -6235,11 +5677,12 @@ public final class Reactive {
 	 * @param scheduler the target scheduler
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> replay(
-			final Observable<? extends T> source,
+			@Nonnull final Observable<? extends T> source,
 			final long timeSpan,
-			final TimeUnit unit,
-			final Scheduler scheduler
+			@Nonnull final TimeUnit unit,
+			@Nonnull final Scheduler scheduler
 	) {
 		return new Observable<T>() {
 			/** The read-write lock. */
@@ -6267,7 +5710,8 @@ public final class Reactive {
 				super.finalize();
 			}
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				writeLock.lock();
 				try {
 					if (sourceClose == null) {
@@ -6290,7 +5734,7 @@ public final class Reactive {
 							}
 
 							@Override
-							public void error(Throwable ex) {
+							public void error(@Nonnull Throwable ex) {
 								doOption(Option.<T>error(ex));
 							}
 
@@ -6375,9 +5819,10 @@ public final class Reactive {
 	 * @param scheduler the scheduler from where the historical elements are emitted
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<T> replay(
-			final Observable<? extends T> source,
-			final Scheduler scheduler
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Scheduler scheduler
 	) {
 		return new Observable<T>() {
 			/** The read-write lock. */
@@ -6401,7 +5846,8 @@ public final class Reactive {
 				super.finalize();
 			}
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				writeLock.lock();
 				try {
 					if (sourceClose == null) {
@@ -6423,7 +5869,7 @@ public final class Reactive {
 							}
 
 							@Override
-							public void error(Throwable ex) {
+							public void error(@Nonnull Throwable ex) {
 								doOption(Option.<T>error(ex));
 							}
 
@@ -6492,11 +5938,12 @@ public final class Reactive {
 	 * @param scheduler the scheduler from where the historical elements are emitted
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> replay(
-			final Observable<T> source,
-			final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
+			@Nonnull final Observable<T> source,
+			@Nonnull final Func1<? super Observable<? extends T>, ? extends Observable<U>> selector,
 			final int bufferSize,
-			final Scheduler scheduler
+			@Nonnull final Scheduler scheduler
 	) {
 		return replay(selector.invoke(source), bufferSize, scheduler);
 	}
@@ -6509,9 +5956,10 @@ public final class Reactive {
 	 * @param selector the selector which returns an observable of Us for the given <code>source</code>
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> replay(
-		final Observable<T> source,
-		final Func1<? super Observable<T>, ? extends Observable<U>> selector
+			@Nonnull final Observable<T> source,
+			@Nonnull final Func1<? super Observable<T>, ? extends Observable<U>> selector
 	) {
 		return selector.invoke(source);
 	}
@@ -6528,12 +5976,13 @@ public final class Reactive {
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				final Iterator<? extends Observable<? extends T>> it = sources.iterator();
 				if (it.hasNext()) {
 					DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 						@Override
-						public void onError(Throwable ex) {
+						public void onError(@Nonnull Throwable ex) {
 							remove(this);
 							if (it.hasNext()) {
 								registerWith(it.next());
@@ -6578,12 +6027,13 @@ public final class Reactive {
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				final Iterator<? extends Observable<? extends T>> it = sources.iterator();
 				if (it.hasNext()) {
 					DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 						@Override
-						public void onError(Throwable ex) {
+						public void onError(@Nonnull Throwable ex) {
 							if (it.hasNext()) {
 								registerWith(it.next());
 							} else {
@@ -6619,10 +6069,11 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> source) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						registerWith(source);
 					}
 
@@ -6654,12 +6105,13 @@ public final class Reactive {
 			final int count) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 					/** The remaining retry count. */
 					int remainingCount = count;
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						if (remainingCount-- > 0) {
 							registerWith(source);
 						} else {
@@ -6698,7 +6150,7 @@ public final class Reactive {
 		final CountDownLatch latch = new CountDownLatch(1);
 		Closeable c = source.register(new DefaultObserver<T>(true) {
 			@Override
-			public void onError(Throwable ex) {
+			public void onError(@Nonnull Throwable ex) {
 				latch.countDown();
 			}
 
@@ -6733,7 +6185,7 @@ public final class Reactive {
 		final CountDownLatch latch = new CountDownLatch(1);
 		Closeable c = source.register(new DefaultObserver<T>(true) {
 			@Override
-			public void onError(Throwable ex) {
+			public void onError(@Nonnull Throwable ex) {
 				try {
 					observer.error(ex);
 				} finally {
@@ -6773,7 +6225,7 @@ public final class Reactive {
 		final CountDownLatch latch = new CountDownLatch(1);
 		Closeable c = source.register(new DefaultObserver<Object>(true) {
 			@Override
-			public void onError(Throwable ex) {
+			public void onError(@Nonnull Throwable ex) {
 				latch.countDown();
 			}
 
@@ -6811,7 +6263,7 @@ public final class Reactive {
 		final CountDownLatch latch = new CountDownLatch(1);
 		Closeable c = source.register(new DefaultObserver<Object>(true) {
 			@Override
-			public void onError(Throwable ex) {
+			public void onError(@Nonnull Throwable ex) {
 				latch.countDown();
 			}
 
@@ -6868,13 +6320,14 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				final AtomicReference<T> current = new AtomicReference<T>();
 				final AtomicBoolean first = new AtomicBoolean(true);
 				
 				final DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -6917,14 +6370,15 @@ public final class Reactive {
 			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					/** The current accumulated value. */
 					T current;
 					/** Are we waiting for the first value? */
 					boolean first = true;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 					@Override
@@ -6965,12 +6419,13 @@ public final class Reactive {
 			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					/** The current accumulated value. */
 					T current = seed;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 					@Override
@@ -7005,14 +6460,15 @@ public final class Reactive {
 			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					/** The current accumulated value. */
 					T current;
 					/** Are we waiting for the first value? */
 					boolean first = true;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 					@Override
@@ -7055,10 +6511,11 @@ public final class Reactive {
 			@Nonnull final Func1<? super T, ? extends U> mapper) {
 		return new Observable<U>() {
 			@Override
-			public Closeable register(final Observer<? super U> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super U> observer) {
 				return source.register(new Observer<T>() {
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -7090,12 +6547,13 @@ public final class Reactive {
 			@Nonnull final Func2<? super Integer, ? super T, ? extends U> selector) {
 		return new Observable<U>() {
 			@Override
-			public Closeable register(final Observer<? super U> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super U> observer) {
 				return source.register(new Observer<T>() {
 					/** The running index. */
 					int index;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -7153,7 +6611,8 @@ public final class Reactive {
 			@Nonnull final Func2<? super T, ? super U, ? extends V> resultSelector) {
 		return new Observable<V>() {
 			@Override
-			public Closeable register(final Observer<? super V> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super V> observer) {
 				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 					/** The work in progress counter. */
 					final AtomicInteger wip = new AtomicInteger(1);
@@ -7167,7 +6626,7 @@ public final class Reactive {
 					}
 
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 						close();
 					}
@@ -7199,7 +6658,7 @@ public final class Reactive {
 							}
 
 							@Override
-							protected void onError(Throwable ex) {
+							protected void onError(@Nonnull Throwable ex) {
 								onInnerError(ex);
 								close();
 							}
@@ -7254,11 +6713,12 @@ public final class Reactive {
 			@Nonnull final Func1<? super T, ? extends Iterable<? extends U>> selector) {
 		return new Observable<U>() {
 			@Override
-			public Closeable register(final Observer<? super U> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super U> observer) {
 				return source.register(new Observer<T>() {
 
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -7307,10 +6767,11 @@ public final class Reactive {
 	 * @param comparer the equality comparison function
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<Boolean> sequenceEqual(
-			final Iterable<? extends T> first,
-			final Observable<? extends T> second,
-			final Func2<? super T, ? super T, Boolean> comparer) {
+			@Nonnull final Iterable<? extends T> first,
+			@Nonnull final Observable<? extends T> second,
+			@Nonnull final Func2<? super T, ? super T, Boolean> comparer) {
 		return select(
 				any(
 					zip(
@@ -7333,9 +6794,10 @@ public final class Reactive {
 	 * @param second the second source of Ts
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<Boolean> sequenceEqual(
-			final Observable<? extends T> first,
-			final Observable<? extends T> second) {
+			@Nonnull final Observable<? extends T> first,
+			@Nonnull final Observable<? extends T> second) {
 		return sequenceEqual(first, second, Functions.equals());
 	}
 	/**
@@ -7350,10 +6812,11 @@ public final class Reactive {
 	 * @param comparer the equality comparison function
 	 * @return the new observable
 	 */
+	@Nonnull 
 	public static <T> Observable<Boolean> sequenceEqual(
-			final Observable<? extends T> first,
-			final Observable<? extends T> second,
-			final Func2<? super T, ? super T, Boolean> comparer) {
+			@Nonnull final Observable<? extends T> first,
+			@Nonnull final Observable<? extends T> second,
+			@Nonnull final Func2<? super T, ? super T, Boolean> comparer) {
 		return select(
 				any(
 					zip(
@@ -7374,7 +6837,6 @@ public final class Reactive {
 	 * @param source the source of Ts
 	 * @return the single element
 	 */
-	@Nonnull
 	public static <T> T single(
 			@Nonnull Observable<? extends T> source) {
 		CloseableIterator<T> it = toIterable(source).iterator();
@@ -7402,7 +6864,6 @@ public final class Reactive {
 	 * @see #first(Observable, Func0)
 	 * @since 0.97
 	 */
-	@Nonnull
 	public static <T> T single(
 			@Nonnull Observable<? extends T> source,
 			@Nonnull Func0<? extends T> defaultSupplier) {
@@ -7431,7 +6892,6 @@ public final class Reactive {
 	 * @see #first(Observable, Object)
 	 * @since 0.97
 	 */
-	@Nonnull
 	public static <T> T single(
 			@Nonnull Observable<? extends T> source,
 			T defaultValue) {
@@ -7452,14 +6912,14 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			@Nonnull
-			public Closeable register(final Observer<? super T> observer) {
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return (new DefaultObserverEx<T>() {
 					/** True if the first element received. */
 					boolean firstReceived;
 					/** The first element encountered. */
 					T first;
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -7504,14 +6964,14 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			@Nonnull
-			public Closeable register(final Observer<? super T> observer) {
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return (new DefaultObserverEx<T>() {
 					/** True if the first element received. */
 					boolean firstReceived;
 					/** The first element encountered. */
 					T first;
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -7584,7 +7044,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
@@ -7619,7 +7080,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
@@ -7644,12 +7106,13 @@ public final class Reactive {
 			final int count) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					/** The remaining count. */
 					int remaining = count;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -7681,12 +7144,13 @@ public final class Reactive {
 	public static <T> Observable<T> skipLast(final Observable<? extends T> source, final int count) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					final Queue<T> buffer = new ConcurrentLinkedQueue<T>();
 
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -7723,7 +7187,8 @@ public final class Reactive {
 			@Nonnull final Observable<U> signaller) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				final CompositeCloseable closeables = new CompositeCloseable();
 				final AtomicBoolean gate = new AtomicBoolean();
 				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
@@ -7733,7 +7198,7 @@ public final class Reactive {
 						closeables.closeSilently();
 					}
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -7752,7 +7217,7 @@ public final class Reactive {
 				};
 				DefaultObserverEx<U> so = new DefaultObserverEx<U>(true) {
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 					@Override
@@ -7790,12 +7255,13 @@ public final class Reactive {
 			@Nonnull final Func1<? super T, Boolean> condition) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					/** Can we relay stuff? */
 					boolean mayRelay;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -7844,7 +7310,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<Void>() {
 			@Override
-			public Closeable register(final Observer<? super Void> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Void> observer) {
 				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
@@ -7887,7 +7354,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
@@ -8080,7 +7548,8 @@ public final class Reactive {
 	public static <T> Observable<T> switchToNext(final Observable<? extends Observable<? extends T>> sources) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				DefaultObserver<Observable<? extends T>> outer
 				= new DefaultObserver<Observable<? extends T>>(false) {
 					/** The inner observer. */
@@ -8089,7 +7558,7 @@ public final class Reactive {
 
 					DefaultObserver<T> innerObserver = new DefaultObserver<T>(lock, true) {
 						@Override
-						protected void onError(Throwable ex) {
+						protected void onError(@Nonnull Throwable ex) {
 							innerError(ex);
 						}
 
@@ -8119,7 +7588,7 @@ public final class Reactive {
 					}
 
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 						close();
 					}
@@ -8155,7 +7624,7 @@ public final class Reactive {
 		return new Observable<T>() {
 			@Override
 			@Nonnull
-			public Closeable register(Observer<? super T> observer) {
+			public Closeable register(@Nonnull Observer<? super T> observer) {
 				return DefaultObserverEx.wrap(observer).registerWith(source);
 			}
 		};
@@ -8175,12 +7644,13 @@ public final class Reactive {
 
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
 					/** The countdown. */
 					protected int i = count;
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -8213,12 +7683,13 @@ public final class Reactive {
 	public static <T> Observable<T> takeLast(final Observable<? extends T> source, final int count) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					final CircularBuffer<T> buffer = new CircularBuffer<T>(count);
 
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -8254,7 +7725,8 @@ public final class Reactive {
 			@Nonnull final Observable<U> signaller) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				final Lock lock0 = new ReentrantLock(true);
 				DefaultObserverEx<T> o = new DefaultObserverEx<T>(lock0, true) {
 					/** Error call from the inner. */
@@ -8266,7 +7738,7 @@ public final class Reactive {
 						finish();
 					}
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 					@Override
@@ -8283,7 +7755,7 @@ public final class Reactive {
 					protected void onRegister() {
 						add("signaller", signaller.register(new Observer<U>() {
 							@Override
-							public void error(Throwable ex) {
+							public void error(@Nonnull Throwable ex) {
 								innerError(ex);
 							}
 
@@ -8317,10 +7789,11 @@ public final class Reactive {
 			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -8380,7 +7853,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				final DefaultObserver<T> obs = new DefaultObserver<T>(true) {
 					/** The last seen value. */
 					T last;
@@ -8400,7 +7874,7 @@ public final class Reactive {
 						Closeables.closeSilently(c);
 					}
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -8451,7 +7925,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
@@ -8487,7 +7962,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return pool.schedule(new Runnable() {
 					@Override
 					public void run() {
@@ -8539,7 +8015,8 @@ public final class Reactive {
 		}
 		return new Observable<Long>() {
 			@Override
-			public Closeable register(final Observer<? super Long> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Long> observer) {
 				return pool.schedule(new DefaultRunnable() {
 					/** The current value. */
 					long current = start;
@@ -8568,7 +8045,7 @@ public final class Reactive {
 	 */
 	@Nonnull
 	public static Observable<Long> tick(
-			@Nonnull final long delay,
+			final long delay,
 			@Nonnull final TimeUnit unit) {
 		return tick(0, Long.MAX_VALUE, delay, unit, scheduler());
 	}
@@ -8629,10 +8106,11 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -8742,12 +8220,13 @@ public final class Reactive {
 		final Class<?> ct = a.getClass().getComponentType();
 		return new Observable<T[]>() {
 			@Override
-			public Closeable register(final Observer<? super T[]> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T[]> observer) {
 				return source.register(new Observer<T>() {
 					/** The buffer for the Ts. */
 					final List<T> list = new LinkedList<T>();
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -8801,12 +8280,13 @@ public final class Reactive {
 	) {
 		return new Observable<List<T>>() {
 			@Override
-			public Closeable register(final Observer<? super List<T>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super List<T>> observer) {
 				return source.register(new Observer<T>() {
 					/** The list for aggregation. */
 					final List<T> list = new LinkedList<T>();
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -8846,12 +8326,13 @@ public final class Reactive {
 	) {
 		return new Observable<Map<K, V>>() {
 			@Override
-			public Closeable register(final Observer<? super Map<K, V>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Map<K, V>> observer) {
 				return source.register(new Observer<T>() {
 					/** The map. */
 					final Map<K, V> map = new HashMap<K, V>();
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 					@Override
@@ -8889,7 +8370,8 @@ public final class Reactive {
 	) {
 		return new Observable<Map<K, V>>() {
 			@Override
-			public Closeable register(final Observer<? super Map<K, V>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Map<K, V>> observer) {
 				return source.register(new Observer<T>() {
 					/** The key class with custom equality comparer. */
 					class Key {
@@ -8917,7 +8399,7 @@ public final class Reactive {
 					/** The map. */
 					final Map<Key, V> map = new HashMap<Key, V>();
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -9054,12 +8536,13 @@ public final class Reactive {
 	) {
 		return new Observable<Map<K, Collection<V>>>() {
 			@Override
-			public Closeable register(final Observer<? super Map<K, Collection<V>>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Map<K, Collection<V>>> observer) {
 				return source.register(new Observer<T>() {
 					/** The map. */
 					final Map<K, Collection<V>> map = new HashMap<K, Collection<V>>();
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -9109,7 +8592,8 @@ public final class Reactive {
 	) {
 		return new Observable<Map<K, Collection<V>>>() {
 			@Override
-			public Closeable register(final Observer<? super Map<K, Collection<V>>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Map<K, Collection<V>>> observer) {
 				return source.register(new Observer<T>() {
 					/** The key class with custom equality comparer. */
 					class Key {
@@ -9137,7 +8621,7 @@ public final class Reactive {
 					/** The map. */
 					final Map<Key, Collection<V>> map = new HashMap<Key, Collection<V>>();
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -9193,7 +8677,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				DefaultRunnable s = new DefaultRunnable() {
 					@Override
 					public void onRun() {
@@ -9228,10 +8713,11 @@ public final class Reactive {
 			@Nonnull final Class<T> token) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<Object>() {
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -9271,10 +8757,10 @@ public final class Reactive {
 	 * @return the unwrapper function
 	 */
 	@Nonnull
-	public static <T> Func1<Timestamped<T>, T> unwrapTimestamped() {
-		return new Func1<Timestamped<T>, T>() {
+	public static <T> Func1<Timestamped<? extends T>, T> unwrapTimestamped() {
+		return new Func1<Timestamped<? extends T>, T>() {
 			@Override
-			public T invoke(Timestamped<T> param1) {
+			public T invoke(Timestamped<? extends T> param1) {
 				return param1.value();
 			}
 		};
@@ -9294,11 +8780,12 @@ public final class Reactive {
 			@Nonnull final Func1<? super U, ? extends Observable<? extends T>> resourceUsage) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				final U resource = resourceSelector.invoke();
 				return resourceUsage.invoke(resource).register(new Observer<T>() {
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						try {
 							observer.error(ex);
 						} finally {
@@ -9341,14 +8828,15 @@ public final class Reactive {
 			@Nonnull final Func0<Func2<Integer, ? super T, Boolean>> clauseFactory) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					/** The current element index. */
 					int index;
 					/** The clause factory to use. */
 					final Func2<Integer, ? super T, Boolean> clause = clauseFactory.invoke();
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -9382,10 +8870,11 @@ public final class Reactive {
 			@Nonnull final Func1<? super T, Boolean> clause) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -9419,12 +8908,13 @@ public final class Reactive {
 			@Nonnull final Func2<Integer, ? super T, Boolean> clause) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				return source.register(new Observer<T>() {
 					/** The current element index. */
 					int index;
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -9479,7 +8969,8 @@ public final class Reactive {
 			@Nonnull final Scheduler pool) {
 		return new Observable<Observable<T>>() {
 			@Override
-			public Closeable register(final Observer<? super Observable<T>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Observable<T>> observer) {
 				// The current observable
 				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
 					/** The current observable window. */
@@ -9488,7 +8979,7 @@ public final class Reactive {
 					/** The window watcher. */
 					final DefaultObserver<U> wo = new DefaultObserver<U>(lock, true) {
 						@Override
-						public void onError(Throwable ex) {
+						public void onError(@Nonnull Throwable ex) {
 							innerError(ex);
 						}
 
@@ -9542,7 +9033,7 @@ public final class Reactive {
 					}
 
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -9613,7 +9104,8 @@ public final class Reactive {
 	) {
 		return new Observable<Observable<T>>() {
 			@Override
-			public Closeable register(final Observer<? super Observable<T>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Observable<T>> observer) {
 				final AtomicReference<DefaultObservable<T>> current = new AtomicReference<DefaultObservable<T>>();
 				final AtomicInteger counter = new AtomicInteger(0);
 				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
@@ -9637,7 +9129,7 @@ public final class Reactive {
 						observer.next(d);
 					}
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						remove("timer");
 						DefaultObservable<T> d = current.get();
 						d.error(ex);
@@ -9723,7 +9215,8 @@ public final class Reactive {
 	) {
 		return new Observable<Observable<T>>() {
 			@Override
-			public Closeable register(final Observer<? super Observable<T>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Observable<T>> observer) {
 				final AtomicReference<DefaultObservable<T>> current = new AtomicReference<DefaultObservable<T>>();
 				final AtomicInteger counter = new AtomicInteger(0);
 				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
@@ -9745,7 +9238,7 @@ public final class Reactive {
 						observer.next(d);
 					}
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						remove("timer");
 						DefaultObservable<T> d = current.get();
 						d.error(ex);
@@ -9849,7 +9342,8 @@ public final class Reactive {
 	) {
 		return new Observable<Observable<T>>() {
 			@Override
-			public Closeable register(final Observer<? super Observable<T>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Observable<T>> observer) {
 				final AtomicReference<DefaultObservable<T>> current = new AtomicReference<DefaultObservable<T>>();
 				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
 					{
@@ -9869,7 +9363,7 @@ public final class Reactive {
 						observer.next(d);
 					}
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						remove("timer");
 						DefaultObservable<T> d = current.get();
 						d.error(ex);
@@ -9960,7 +9454,8 @@ public final class Reactive {
 			@Nonnull final Func1<? super U, ? extends Observable<V>> windowClosing) {
 		return new Observable<Observable<T>>() {
 			@Override
-			public Closeable register(final Observer<? super Observable<T>> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super Observable<T>> observer) {
 				final Lock lock = new ReentrantLock(true);
 				final Map<U, DefaultObservable<T>> openWindows = new IdentityHashMap<U, DefaultObservable<T>>();
 				final CompositeCloseable closeBoth = new CompositeCloseable();
@@ -9973,7 +9468,7 @@ public final class Reactive {
 					}
 
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						for (DefaultObservable<T> ot : openWindows.values()) {
 							ot.error(ex);
 						}
@@ -10003,7 +9498,7 @@ public final class Reactive {
 					}
 
 					@Override
-					protected void onError(Throwable ex) {
+					protected void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -10017,7 +9512,7 @@ public final class Reactive {
 						openWindows.put(value, newWindow);
 						add(value, windowClosing.invoke(value).register(new Observer<V>() {
 							@Override
-							public void error(Throwable ex) {
+							public void error(@Nonnull Throwable ex) {
 								openWindows.remove(value);
 								newWindow.error(ex);
 							}
@@ -10083,14 +9578,15 @@ public final class Reactive {
 			@Nonnull final Func2<? super T, ? super U, ? extends V> selector) {
 		return new Observable<V>() {
 			@Override
-			public Closeable register(final Observer<? super V> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super V> observer) {
 
 				DefaultObserverEx<U> obs = new DefaultObserverEx<U>(true) {
 					/** The second source. */
 					final Iterator<? extends T> it = left.iterator();
 
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -10135,14 +9631,15 @@ public final class Reactive {
 			@Nonnull final Func2<? super T, ? super U, ? extends V> selector) {
 		return new Observable<V>() {
 			@Override
-			public Closeable register(final Observer<? super V> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super V> observer) {
 
 				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 					/** The second source. */
 					final Iterator<? extends U> it = right.iterator();
 
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 					}
 
@@ -10188,7 +9685,8 @@ public final class Reactive {
 			@Nonnull final Func2<U, V, T> selector) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(final Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
 				final LinkedBlockingQueue<U> queueU = new LinkedBlockingQueue<U>();
 				final LinkedBlockingQueue<V> queueV = new LinkedBlockingQueue<V>();
 				final CompositeCloseable closeBoth = new CompositeCloseable();
@@ -10197,7 +9695,7 @@ public final class Reactive {
 
 				DefaultObserverEx<U> oU = new DefaultObserverEx<U>(lockBoth, false) {
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 						Closeables.closeSilently(closeBoth);
 					}
@@ -10225,7 +9723,7 @@ public final class Reactive {
 				};
 				DefaultObserverEx<V> oV = new DefaultObserverEx<V>(lockBoth, false) {
 					@Override
-					public void onError(Throwable ex) {
+					public void onError(@Nonnull Throwable ex) {
 						observer.error(ex);
 						Closeables.closeSilently(closeBoth);
 					}
@@ -10270,6 +9768,7 @@ public final class Reactive {
 	 * @return the new observable sequence
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> switchCase(
 			@Nonnull final Func0<? extends T> selector, 
 			@Nonnull final Map<? super T, ? extends Observable<U>> sources, 
@@ -10277,7 +9776,7 @@ public final class Reactive {
 		return new Observable<U>() {
 			@Override
 			@Nonnull
-			public Closeable register(Observer<? super U> observer) {
+			public Closeable register(@Nonnull Observer<? super U> observer) {
 				T key = selector.invoke();
 				Observable<U> obs = sources.get(key);
 				if (obs == null) {
@@ -10298,6 +9797,7 @@ public final class Reactive {
 	 * @return the new observable sequence
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> switchCase(
 			@Nonnull final Func0<? extends T> selector, 
 			@Nonnull final Map<? super T, ? extends Observable<U>> sources) {
@@ -10315,11 +9815,44 @@ public final class Reactive {
 	 * @return the new observable sequence
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public static <T, U> Observable<U> switchCase(
 			@Nonnull final Func0<? extends T> selector, 
 			@Nonnull final Map<? super T, ? extends Observable<U>> sources,
 			@Nonnull final Scheduler pool) {
 		return switchCase(selector, sources, Reactive.<U>empty(pool));
+	}
+	/**
+	 * Repeats the given source so long as the condition returns true.
+	 * The condition is checked after each completion of the source sequence.
+	 * <p>Exception semantics: exception received will stop the repeat process
+	 * and is delivered to observers as-is.</p>
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param condition the condition to check
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> Observable<T> doWhile(
+			@Nonnull final Observable<? extends T> source, 
+			@Nonnull final Func0<Boolean> condition) {
+		return new Repeat.DoWhile<T>(source, condition);
+	}
+	/**
+	 * Repeatedly registers with the source observable 
+	 * if the condition holds on registration.
+	 * The condition is checked before each registration.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param condition the condition to check
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public static <T> Observable<T> whileDo(
+			@Nonnull final Observable<? extends T> source, 
+			@Nonnull final Func0<Boolean> condition) {
+		return new Repeat.WhileDo<T>(source, condition);
 	}
 	/** Utility class. */
 	private Reactive() {

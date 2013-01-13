@@ -26,6 +26,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -45,12 +46,13 @@ public final class Latest<T> extends
 	 * Constructor.
 	 * @param observable the source sequence
 	 */
-	public Latest(Observable<? extends T> observable) {
+	public Latest(@Nonnull Observable<? extends T> observable) {
 		super(observable);
 	}
 
 	@Override
-	protected ObserverToIteratorSink<T, T> run(Closeable handle) {
+	@Nonnull 
+	protected ObserverToIteratorSink<T, T> run(@Nonnull Closeable handle) {
 		return new ObserverToIteratorSink<T, T>(handle) {
 			/** The signal that value is available. */
 			protected final Semaphore semaphore = new Semaphore(0, true);
@@ -67,6 +69,7 @@ public final class Latest<T> extends
 			protected Throwable error;
 			/** The last observation kind. */
 			@GuardedBy("lock")
+			@Nonnull 
 			protected ObservationKind kind;
 			@Override
 			public void next(T value) {
@@ -88,7 +91,7 @@ public final class Latest<T> extends
 				}
 			}
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				done();
 				boolean hadNoValue = false;
 				lock.lock();
@@ -126,7 +129,7 @@ public final class Latest<T> extends
 				}
 			}
 			@Override
-			public boolean tryNext(SingleOption<? super T> out) {
+			public boolean tryNext(@Nonnull SingleOption<? super T> out) {
 				
 				T v = null;
 				Throwable e = null; 

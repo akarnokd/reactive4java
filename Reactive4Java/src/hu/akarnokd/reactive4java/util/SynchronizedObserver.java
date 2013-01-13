@@ -71,7 +71,7 @@ public class SynchronizedObserver<T> implements Observer<T>, Closeable {
 		}
 	}
 	@Override
-	public void error(Throwable ex) {
+	public void error(@Nonnull Throwable ex) {
 		synchronized (gate) {
 			observer.error(ex);
 		}

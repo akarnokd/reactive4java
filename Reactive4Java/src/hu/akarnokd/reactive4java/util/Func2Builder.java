@@ -55,6 +55,7 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param f the function to wrap
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static <T, U, V> Func2Builder<T, U, V> from(@Nonnull Func2<T, U, V> f) {
 		return new Func2Builder<T, U, V>(f);
 	}
@@ -67,6 +68,7 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param f the function to wrap
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static <T, U, V> Func2Builder<T, U, V> from(@Nonnull Func0<V> f) {
 		return from(Functions.<T, U, V>asFunc2(f));
 	}
@@ -79,6 +81,7 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param value the value to return
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static <T, U, V> Func2Builder<T, U, V> from(final V value) {
 		return from(Functions.<T, U, V>constant2(value));
 	}
@@ -91,6 +94,7 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param <U> the parameter type (irrelevant)
 	 * @return a function builder which returns always true.
 	 */
+	@Nonnull 
 	public static <T, U> Func2Builder<T, U, Boolean> alwaysTrue() {
 		return from(Functions.<T, U>alwaysTrue2());
 	}
@@ -99,16 +103,18 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param <U> the parameter type (irrelevant)
 	 * @return a function builder which retuns always false. 
 	 */
+	@Nonnull 
 	public static <T, U> Func2Builder<T, U, Boolean> alwaysFalse() {
 		return from(Functions.<T, U>alwaysFalse2());
 	}
 	/**
 	 * Convert this function into a zero parameter function builder by fixing the parameter
-	 * to the given value.
+	 * to the given values.
 	 * @param param1 the fixed parameter value
 	 * @param param2 the fixed parameter value
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public Func0Builder<V> toFunc0(final T param1, final U param2) {
 		return Func0Builder.from(new Func0<V>() {
 			@Override
@@ -124,6 +130,7 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @return the function builder.
 	 */
 	@SuppressWarnings("unchecked")
+	@Nonnull 
 	public Func2Builder<T, U, Boolean> not() {
 		return from(Functions.not((Func2<T, U, Boolean>)f));
 	}
@@ -135,6 +142,7 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @return the function builder
 	 */
 	@SuppressWarnings("unchecked")
+	@Nonnull 
 	public Func2Builder<T, U, Boolean> and(@Nonnull final Func2<? super T, ? super U, Boolean> func) {
 		return from(Functions.and((Func2<T, U, Boolean>)f, func));
 	}
@@ -145,6 +153,7 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param func the function to AND with
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public Func2Builder<T, U, Boolean> and(@Nonnull final Func0<Boolean> func) {
 		return from(new Pred2<T, U>() {
 			@Override
@@ -161,7 +170,9 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @return the function builder
 	 */
 	@SuppressWarnings("unchecked")
-	public Func2Builder<T, U, Boolean> or(Func2<? super T, ? super U, Boolean> func) {
+	@Nonnull 
+	public Func2Builder<T, U, Boolean> or(
+			@Nonnull Func2<? super T, ? super U, Boolean> func) {
 		return from(Functions.or((Func2<T, U, Boolean>)f, func));
 	}
 	/**
@@ -171,6 +182,7 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param func the function to AND with
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public Func2Builder<T, U, Boolean> or(@Nonnull final Func0<Boolean> func) {
 		return from(new Pred2<T, U>() {
 			@Override
@@ -187,7 +199,9 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @return the function builder
 	 */
 	@SuppressWarnings("unchecked")
-	public Func2Builder<T, U, Boolean> xor(Func2<? super T, ? super U, Boolean> func) {
+	@Nonnull 
+	public Func2Builder<T, U, Boolean> xor(
+			@Nonnull Func2<? super T, ? super U, Boolean> func) {
 		return from(Functions.xor((Func2<T, U, Boolean>)f, func));
 	}
 	/**
@@ -197,6 +211,7 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param func the function to AND with
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public Func2Builder<T, U, Boolean> xor(@Nonnull final Func0<Boolean> func) {
 		return from(new Pred2<T, U>() {
 			@Override
@@ -215,6 +230,7 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param result the return value by this function
 	 * @return the function builder
 	 */
+	@Nonnull 
 	public static <T, U, V> Func2Builder<T, U, V> from(@Nonnull Action0 action, V result) {
 		return from(Functions.<T, U, V>asFunc2(action, result));
 	}
@@ -228,7 +244,9 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param result the return value by this function
 	 * @return the function builder
 	 */
-	public static <T, U, V> Func2Builder<T, U, V> from(@Nonnull Runnable run, V result) {
+	@Nonnull 
+	public static <T, U, V> Func2Builder<T, U, V> from(
+			@Nonnull Runnable run, V result) {
 		return from(Functions.<T, U, V>asFunc2(run, result));
 	}
 	/**
@@ -241,7 +259,9 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param result the return value by this function
 	 * @return the function builder
 	 */
-	public static <T, U, V> Func2Builder<T, U, V> from(@Nonnull Action2<? super T, ? super U> action, V result) {
+	@Nonnull 
+	public static <T, U, V> Func2Builder<T, U, V> from(
+			@Nonnull Action2<? super T, ? super U> action, V result) {
 		return from(Functions.<T, U, V>asFunc2(action, result));
 	}
 	/**
@@ -252,7 +272,9 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param f the function to wrap
 	 * @return the function builder
 	 */
-	public static <T, U, V> Func2Builder<T, U, V> from(@Nonnull Callable<? extends V> f) {
+	@Nonnull 
+	public static <T, U, V> Func2Builder<T, U, V> from(
+			@Nonnull Callable<? extends V> f) {
 		return from(Functions.<T, U, V>asFunc2(f));
 	}
 	/**
@@ -261,7 +283,9 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param comp the comparator to wrap
 	 * @return the function builder
 	 */
-	public static <T> Func2Builder<T, T, Integer> from(@Nonnull Comparator<? super T> comp) {
+	@Nonnull 
+	public static <T> Func2Builder<T, T, Integer> from(
+			@Nonnull Comparator<? super T> comp) {
 		return from(Functions.<T>asFunc2(comp));
 	}
 	/**
@@ -270,6 +294,7 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * you might expect to get a ClassCastException.</b></p>
 	 * @return the comparator representing this function
 	 */
+	@Nonnull 
 	public Comparator<T> toComparator() {
 		return new Comparator<T>() {
 			@Override
@@ -285,7 +310,9 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param matrix the matrix to index
 	 * @return the function builder
 	 */
-	public static <T> Func2Builder<Integer, Integer, T> from(@Nonnull T[][] matrix) {
+	@Nonnull 
+	public static <T> Func2Builder<Integer, Integer, T> from(
+			@Nonnull T[][] matrix) {
 		return from(Functions.asFunc2(matrix));
 	}
 	/**
@@ -293,7 +320,9 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param matrix the matrix to index
 	 * @return the function builder
 	 */
-	public static Func2Builder<Integer, Integer, Integer> from(@Nonnull int[][] matrix) {
+	@Nonnull 
+	public static Func2Builder<Integer, Integer, Integer> from(
+			@Nonnull int[][] matrix) {
 		return from(Functions.asFunc2(matrix));
 	}
 	/**
@@ -301,7 +330,9 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param matrix the matrix to index
 	 * @return the function builder
 	 */
-	public static Func2Builder<Integer, Integer, Double> from(@Nonnull double[][] matrix) {
+	@Nonnull 
+	public static Func2Builder<Integer, Integer, Double> from(
+			@Nonnull double[][] matrix) {
 		return from(Functions.asFunc2(matrix));
 	}
 	/**
@@ -309,7 +340,9 @@ public class Func2Builder<T, U, V> implements Func2<T, U, V> {
 	 * @param matrix the matrix to index
 	 * @return the function builder
 	 */
-	public static Func2Builder<Integer, Integer, Long> from(@Nonnull long[][] matrix) {
+	@Nonnull 
+	public static Func2Builder<Integer, Integer, Long> from(
+			@Nonnull long[][] matrix) {
 		return from(Functions.asFunc2(matrix));
 	}
 }

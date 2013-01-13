@@ -31,6 +31,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -42,21 +43,25 @@ import javax.annotation.concurrent.GuardedBy;
  */
 public class AsyncSubject<T> implements Subject<T, T> {
 	/** The lock. */
+	@Nonnull
 	protected final Lock lock;
 	/** Indication that a value was produced. */
 	@GuardedBy("lock")
 	protected boolean hasValue;
 	/** The last value produced. */
 	@GuardedBy("lock")
+	@Nullable
 	protected T value;
 	/** The exception produced. */
 	@GuardedBy("lock")
+	@Nullable
 	protected Throwable error;
 	/** Indicator that the source finished. */
 	@GuardedBy("lock")
 	protected boolean done;
 	/** The map of registered observers. */
 	@GuardedBy("lock")
+	@Nonnull
 	protected Map<Closeable, Observer<? super T>> observers = new HashMap<Closeable, Observer<? super T>>();
 	/**
 	 * Creates an AsyncSubject with a fair reentrant lock.
@@ -73,7 +78,7 @@ public class AsyncSubject<T> implements Subject<T, T> {
 	}
 
 	@Override
-	public void error(Throwable ex) {
+	public void error(@Nonnull Throwable ex) {
 		Map<Closeable, Observer<? super T>> os = null;
 		lock.lock();
 		try {
@@ -169,7 +174,7 @@ public class AsyncSubject<T> implements Subject<T, T> {
 	 * Remove the registration of the observable identified by the closeable.
 	 * @param c the registration token to remove
 	 */
-	protected void unregister(Closeable c) {
+	protected void unregister(@Nonnull Closeable c) {
 		lock.lock();
 		try {
 			observers.remove(c);
@@ -205,8 +210,9 @@ public class AsyncSubject<T> implements Subject<T, T> {
 			}
 			lock.lock();
 			try {
-				if (error != null) {
-					return Option.error(error);
+				@Nullable Throwable e = error;
+				if (e != null) {
+					return Option.error(e);
 				} else
 				if (hasValue) {
 					return Option.some(value);
@@ -229,7 +235,8 @@ public class AsyncSubject<T> implements Subject<T, T> {
 	 * if timeout happened.
 	 * @throws InterruptedException in case the wait was interrupted 
 	 */
-	public Option<T> getOption(long time, TimeUnit unit) throws InterruptedException {
+	@Nullable
+	public Option<T> getOption(long time, @Nonnull TimeUnit unit) throws InterruptedException {
 		Closeable c = null;
 		try {
 			if (!isDone()) {
@@ -241,8 +248,9 @@ public class AsyncSubject<T> implements Subject<T, T> {
 			}
 			lock.lock();
 			try {
-				if (error != null) {
-					return Option.error(error);
+				@Nullable Throwable e = error;
+				if (e != null) {
+					return Option.error(e);
 				} else
 				if (hasValue) {
 					return Option.some(value);
@@ -279,7 +287,7 @@ public class AsyncSubject<T> implements Subject<T, T> {
 	 * @throws InterruptedException in case the wait was interrupted 
 	 * @throws TimeoutException in case the wait timed out
 	 */
-	public T get(long time, TimeUnit unit) throws InterruptedException, TimeoutException {
+	public T get(long time, @Nonnull TimeUnit unit) throws InterruptedException, TimeoutException {
 		Option<T> result = getOption(time, unit);
 		if (Option.isNone(result)) {
 			throw new NoSuchElementException();

@@ -17,6 +17,7 @@
 package hu.akarnokd.reactive4java.base;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * A class representing a value, an exception or nothing.
@@ -147,12 +148,13 @@ public abstract class Option<T> {
 	 */
 	public static final class Error<T> extends Option<T> {
 		/** The exception held. */
+		@Nonnull 
 		private final Throwable ex;
 		/**
 		 * Constructor.
 		 * @param ex the exception to hold
 		 */
-		private Error(Throwable ex) {
+		private Error(@Nonnull Throwable ex) {
 			this.ex = ex;
 		}
 		@Override
@@ -172,6 +174,7 @@ public abstract class Option<T> {
 			return "Error of " + ex.toString();
 		}
 		/** @return the contained throwable value. */
+		@Nonnull
 		public Throwable error() {
 			return ex;
 		}
@@ -205,6 +208,7 @@ public abstract class Option<T> {
 		}
 	}
 	/** The single instance of the nothingness. */
+	@Nonnull
 	private static final None<Void> NONE = new None<Void>();
 	/**
 	 * Returns a none of T.
@@ -212,7 +216,7 @@ public abstract class Option<T> {
 	 * @return the None of T
 	 */
 	@SuppressWarnings("unchecked")
-	@Nonnull
+	@Nonnull 
 	public static <T> None<T> none() {
 		return (None<T>)NONE;
 	}
@@ -241,7 +245,7 @@ public abstract class Option<T> {
 	 * @param o the option
 	 * @return true if the option is of type Error.
 	 */
-	public static boolean isError(Option<?> o) {
+	public static boolean isError(@Nullable Option<?> o) {
 		return o != null && o.hasError();
 	}
 	/**
@@ -249,7 +253,7 @@ public abstract class Option<T> {
 	 * @param o the option
 	 * @return true if the option is of type None.
 	 */
-	public static boolean isNone(Option<?> o) {
+	public static boolean isNone(@Nullable Option<?> o) {
 		return o == NONE;
 	}
 	/**
@@ -257,7 +261,7 @@ public abstract class Option<T> {
 	 * @param o the option
 	 * @return true if the option is of type Some.
 	 */
-	public static boolean isSome(Option<?> o) {
+	public static boolean isSome(@Nullable Option<?> o) {
 		return o != null && o.hasValue();
 	}
 	/**
@@ -266,6 +270,7 @@ public abstract class Option<T> {
 	 * @param o the option to get the error from
 	 * @return the inner throwable
 	 */
+	@Nonnull
 	public static Throwable getError(Option<?> o) {
 		if (isError(o)) {
 			return ((Error<?>)o).error();

@@ -36,6 +36,7 @@ public class NewThreadScheduler implements Scheduler {
 	@Nonnull
 	private String name = "NewThreadScheduler";
 	/** Counts the new threads started. */
+	@Nonnull 
 	private final AtomicInteger counter = new AtomicInteger();
 	/**
 	 * Constructor. The threads are named as {@code NewThreadScheduler-#}
@@ -50,7 +51,8 @@ public class NewThreadScheduler implements Scheduler {
 		this.name = name;
 	}
 	@Override
-	public Closeable schedule(Runnable run) {
+	@Nonnull 
+	public Closeable schedule(@Nonnull Runnable run) {
 		final Thread t = new Thread(run, name + "-" + counter.incrementAndGet());
 		t.start();
 		return new Closeable() {
@@ -62,7 +64,11 @@ public class NewThreadScheduler implements Scheduler {
 	}
 
 	@Override
-	public Closeable schedule(final Runnable run, final long delay, final TimeUnit unit) {
+	@Nonnull 
+	public Closeable schedule(
+			@Nonnull final Runnable run, 
+			final long delay, 
+			@Nonnull final TimeUnit unit) {
 		Runnable task = new Runnable() {
 			@Override
 			public void run() {
@@ -80,8 +86,12 @@ public class NewThreadScheduler implements Scheduler {
 	}
 
 	@Override
-	public Closeable schedule(final Runnable run, final long initialDelay,
-			final long betweenDelay, final TimeUnit unit) {
+	@Nonnull 
+	public Closeable schedule(
+			@Nonnull final Runnable run, 
+			final long initialDelay,
+			final long betweenDelay, 
+			@Nonnull final TimeUnit unit) {
 		Runnable task = new Runnable() {
 			@Override
 			public void run() {

@@ -27,7 +27,6 @@ import hu.akarnokd.reactive4java.base.Pred0;
 import hu.akarnokd.reactive4java.base.Pred1;
 import hu.akarnokd.reactive4java.base.Pred2;
 
-import java.io.Closeable;
 import java.lang.ref.Reference;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -57,6 +56,7 @@ import javax.annotation.Nonnull;
  */
 public final class Functions {
 	/** Constant function returning always false. */
+	@Nonnull 
 	private static final Pred1<Object> FALSE1 = new Pred1<Object>() {
 		@Override
 		public Boolean invoke(Object param1) {
@@ -64,6 +64,7 @@ public final class Functions {
 		}
 	};
 	/** Constant function returning always true. */
+	@Nonnull 
 	private static final Pred1<Object> TRUE1 = new Pred1<Object>() {
 		@Override
 		public Boolean invoke(Object param1) {
@@ -71,6 +72,7 @@ public final class Functions {
 		}
 	};
 	/** Constant function returning always false. */
+	@Nonnull 
 	private static final Pred2<Object, Object> FALSE2 = new Pred2<Object, Object>() {
 		@Override
 		public Boolean invoke(Object param1, Object param2) {
@@ -78,6 +80,7 @@ public final class Functions {
 		}
 	};
 	/** Constant function returning always true. */
+	@Nonnull 
 	private static final Pred2<Object, Object> TRUE2 = new Pred2<Object, Object>() {
 		@Override
 		public Boolean invoke(Object param1, Object param2) {
@@ -85,6 +88,7 @@ public final class Functions {
 		}
 	};
 	/** Constant parameterless function which returns always false. */
+	@Nonnull 
 	public static final Pred0 FALSE = new Pred0() {
 		@Override
 		public Boolean invoke() {
@@ -92,6 +96,7 @@ public final class Functions {
 		}
 	};
 	/** Constant parameterless function which returns always true. */
+	@Nonnull 
 	public static final Pred0 TRUE = new Pred0() {
 		@Override
 		public Boolean invoke() {
@@ -99,6 +104,7 @@ public final class Functions {
 		}
 	};
 	/** The identity function which returns its parameter. */
+	@Nonnull 
 	private static final Func1<Object, Object> IDENTITY = new Func1<Object, Object>() {
 		@Override
 		public Object invoke(Object param1) {
@@ -106,20 +112,15 @@ public final class Functions {
 		}
 	};
 	/** An empty runnable. */
+	@Nonnull 
 	public static final Runnable EMPTY_RUNNABLE = new Runnable() {
 		@Override
 		public void run() {
 
 		}
 	};
-	/** An empty runnable. */
-	public static final Closeable EMPTY_CLOSEABLE = new Closeable() {
-		@Override
-		public void close() {
-
-		}
-	};
 	/** Function to sum integers in aggregators. */
+	@Nonnull 
 	static final Func2<Integer, Integer, Integer> SUM_INTEGER = new Func2<Integer, Integer, Integer>() {
 		@Override
 		public Integer invoke(Integer param1, Integer param2) {
@@ -127,6 +128,7 @@ public final class Functions {
 		}
 	};
 	/** Function to sum integers in aggregators. */
+	@Nonnull 
 	static final Func2<Float, Float, Float> SUM_FLOAT = new Func2<Float, Float, Float>() {
 		@Override
 		public Float invoke(Float param1, Float param2) {
@@ -134,6 +136,7 @@ public final class Functions {
 		}
 	};
 	/** Function to sum integers in aggregators. */
+	@Nonnull 
 	static final Func2<Double, Double, Double> SUM_DOUBLE = new Func2<Double, Double, Double>() {
 		@Override
 		public Double invoke(Double param1, Double param2) {
@@ -141,6 +144,7 @@ public final class Functions {
 		}
 	};
 	/** Function to sum integers in aggregators. */
+	@Nonnull 
 	static final Func2<Long, Long, Long> SUM_LONG = new Func2<Long, Long, Long>() {
 		@Override
 		public Long invoke(Long param1, Long param2) {
@@ -148,6 +152,7 @@ public final class Functions {
 		}
 	};
 	/** Function to sum integers in aggregators. */
+	@Nonnull 
 	static final Func2<BigInteger, BigInteger, BigInteger> SUM_BIGINTEGER = new Func2<BigInteger, BigInteger, BigInteger>() {
 		@Override
 		public BigInteger invoke(BigInteger param1, BigInteger param2) {
@@ -155,6 +160,7 @@ public final class Functions {
 		}
 	};
 	/** Function to sum integers in aggregators. */
+	@Nonnull 
 	static final Func2<BigDecimal, BigDecimal, BigDecimal> SUM_BIGDECIMAL = new Func2<BigDecimal, BigDecimal, BigDecimal>() {
 		@Override
 		public BigDecimal invoke(BigDecimal param1, BigDecimal param2) {
@@ -162,6 +168,7 @@ public final class Functions {
 		}
 	};
 	/** A helper function which returns its first parameter. */
+	@Nonnull 
 	private static final Func2<Object, Object, Object> IDENTITY_FIRST = new Func2<Object, Object, Object>() {
 		@Override
 		public Object invoke(Object param1, Object param2) {
@@ -169,6 +176,7 @@ public final class Functions {
 		}
 	};
 	/** A helper function which returns its second parameter. */
+	@Nonnull 
 	private static final Func2<Object, Object, Object> IDENTITY_SECOND = new Func2<Object, Object, Object>() {
 		@Override
 		public Object invoke(Object param1, Object param2) {
@@ -257,7 +265,9 @@ public final class Functions {
 	 * @param result the result to present after the action invocation
 	 * @return the function
 	 */
-	public static <T> Func0<T> asFunc0(final Action0 action, final T result) {
+	@Nonnull 
+	public static <T> Func0<T> asFunc0(
+			@Nonnull final Action0 action, final T result) {
 		return new Func0<T>() {
 			@Override
 			public T invoke() {
@@ -275,7 +285,9 @@ public final class Functions {
 	 * @param result the result to present after the action invocation
 	 * @return the function
 	 */
-	public static <T, U> Func1<T, U> asFunc1(final Action1<? super T> action, final U result) {
+	@Nonnull 
+	public static <T, U> Func1<T, U> asFunc1(
+			@Nonnull final Action1<? super T> action, final U result) {
 		return new Func1<T, U>() {
 			@Override
 			public U invoke(T param1) {
@@ -294,7 +306,9 @@ public final class Functions {
 	 * @param result the result to present after the action invocation
 	 * @return the function
 	 */
-	public static <T, U, V> Func2<T, U, V> asFunc2(final Action2<? super T, ? super U> action, final V result) {
+	@Nonnull 
+	public static <T, U, V> Func2<T, U, V> asFunc2(
+			@Nonnull final Action2<? super T, ? super U> action, final V result) {
 		return new Func2<T, U, V>() {
 			@Override
 			public V invoke(T param1, U param2) {
@@ -401,25 +415,28 @@ public final class Functions {
 		};
 	}
 	/**
-	 * Returns a convenience comparator which basically compares objects which implement the <code>Comparable</code>
-	 * interface. The comparator is null safe in the manner, that nulls are always less than any non-nulls.
+	 * Returns a convenience comparator which basically compares 
+	 * objects which implement the <code>Comparable</code>
+	 * interface. The comparator is null safe in the manner, 
+	 * that nulls are always less than any non-nulls.
 	 * To have a comparator which places nulls last, use the <code>comparator0()</code> method.
 	 * @param <T> the element types to compare
 	 * @return the comparator
+	 * @see Functions#comparator0()
 	 */
 	@Nonnull
 	public static <T extends Comparable<? super T>> Comparator<T> comparator() {
 		return new Comparator<T>() {
 			@Override
 			public int compare(T o1, T o2) {
-				if (o1 != null && o2 == null) {
-					return 1;
-				} else
-				if (o1 == null && o2 != null) {
+				if (o1 == null) {
+					if (o2 == null) {
+						return 0;
+					}
 					return -1;
-				} else
-				if (o1 == o2) {
-					return 0;
+				}
+				if (o2 == null) {
+					return 1;
 				}
 				return o1.compareTo(o2);
 			}
@@ -437,14 +454,14 @@ public final class Functions {
 		return new Comparator<T>() {
 			@Override
 			public int compare(T o1, T o2) {
-				if (o1 != null && o2 == null) {
-					return -1;
-				} else
-				if (o1 == null && o2 != null) {
+				if (o1 == null) {
+					if (o2 == null) {
+						return 0;
+					}
 					return 1;
-				} else
-				if (o1 == o2) {
-					return 0;
+				}
+				if (o2 == null) {
+					return -1;
 				}
 				return o1.compareTo(o2);
 			}
@@ -990,6 +1007,7 @@ public final class Functions {
 		return SUM_LONG;
 	}
 	/** A null safe equals function. */
+	@Nonnull 
 	private static final Func2<Object, Object, Boolean> NULL_SAFE_EQUALS = new Func2<Object, Object, Boolean>() {
 		@Override
 		public Boolean invoke(Object param1, Object param2) {
@@ -1003,6 +1021,7 @@ public final class Functions {
 	 * @return the function
 	 */
 	@SuppressWarnings("unchecked")
+	@Nonnull 
 	public static <T> Func2<T, T, Boolean> equals() {
 		return (Func2<T, T, Boolean>)NULL_SAFE_EQUALS;
 	}
@@ -1014,7 +1033,9 @@ public final class Functions {
 	 * @return the created function
 	 * @since 0.96
 	 */
-	public static <K, V> Func1<K, V> asFunc1(final Map<? super K, ? extends V> map) {
+	@Nonnull 
+	public static <K, V> Func1<K, V> asFunc1(
+			@Nonnull final Map<? super K, ? extends V> map) {
 		return new Func1<K, V>() {
 			@Override
 			public V invoke(K param1) {
@@ -1032,8 +1053,9 @@ public final class Functions {
 	 * @return the function
 	 * @since 0.96
 	 */
+	@Nonnull 
 	public static <K1, K2, V> Func2<K1, K2, V> asFunc2(
-			final Map<? super K1, ? extends Map<? super K2, ? extends V>> map) {
+			@Nonnull final Map<? super K1, ? extends Map<? super K2, ? extends V>> map) {
 		return new Func2<K1, K2, V>() {
 			@Override
 			public V invoke(K1 param1, K2 param2) {
@@ -1053,7 +1075,9 @@ public final class Functions {
 	 * @return the created function
 	 * @since 0.96
 	 */
-	public static <K> Func1<K, Boolean> asFunc1(final Set<? super K> set) {
+	@Nonnull 
+	public static <K> Func1<K, Boolean> asFunc1(
+			@Nonnull final Set<? super K> set) {
 		return new Pred1<K>() {
 			@Override
 			public Boolean invoke(K param1) {
@@ -1067,6 +1091,7 @@ public final class Functions {
 	 * @return a function which creates a new empty instance of the given concrete list implementation.
 	 * @since 0.96.1
 	 */
+	@Nonnull 
 	public static <T> Func0<ArrayList<T>> arrayListProvider() {
 		return new Func0<ArrayList<T>>() {
 			@Override
@@ -1083,6 +1108,7 @@ public final class Functions {
 	 * the given concrete list implementation.
 	 * @since 0.97
 	 */
+	@Nonnull 
 	public static <T, U> Func1<U, ArrayList<T>> arrayListProvider1() {
 		return new Func1<U, ArrayList<T>>() {
 			@Override
@@ -1097,6 +1123,7 @@ public final class Functions {
 	 * @return a function which creates a new empty instance of the given concrete list implementation.
 	 * @since 0.96.1
 	 */
+	@Nonnull 
 	public static <T> Func0<LinkedList<T>> linkedListProvider() {
 		return new Func0<LinkedList<T>>() {
 			@Override
@@ -1112,6 +1139,7 @@ public final class Functions {
 	 * @return a function which creates a new empty instance of the given concrete map implementation.
 	 * @since 0.96.1
 	 */
+	@Nonnull 
 	public static <K, V> Func0<HashMap<K, V>> hashMapProvider() {
 		return new Func0<HashMap<K, V>>() {
 			@Override
@@ -1127,6 +1155,7 @@ public final class Functions {
 	 * @return a function which creates a new empty instance of the given concrete map implementation.
 	 * @since 0.96.1
 	 */
+	@Nonnull 
 	public static <K, V> Func0<TreeMap<K, V>> treeMapProvider() {
 		return new Func0<TreeMap<K, V>>() {
 			@Override
@@ -1143,6 +1172,7 @@ public final class Functions {
 	 * @return a function which creates a new empty instance of the given concrete map implementation.
 	 * @since 0.96.1
 	 */
+	@Nonnull 
 	public static <K, V> Func0<TreeMap<K, V>> treeMapProvider(@Nonnull final Comparator<? super K> keyComparator) {
 		return new Func0<TreeMap<K, V>>() {
 			@Override
@@ -1158,6 +1188,7 @@ public final class Functions {
 	 * @return a function which creates a new empty instance of the given concrete map implementation.
 	 * @since 0.96.1
 	 */
+	@Nonnull 
 	public static <K, V> Func0<LinkedHashMap<K, V>> linkedHashMapProvider() {
 		return new Func0<LinkedHashMap<K, V>>() {
 			@Override
@@ -1173,6 +1204,7 @@ public final class Functions {
 	 * @return a function which creates a new empty instance of the given concrete map implementation.
 	 * @since 0.96.1
 	 */
+	@Nonnull 
 	public static <K, V> Func0<ConcurrentHashMap<K, V>> concurrentHashMapProvider() {
 		return new Func0<ConcurrentHashMap<K, V>>() {
 			@Override
@@ -1187,6 +1219,7 @@ public final class Functions {
 	 * @return the function which creates an empty instance of the set
 	 * @since 0.96.1
 	 */
+	@Nonnull 
 	public static <T> Func0<HashSet<T>> hashSetProvider() {
 		return new Func0<HashSet<T>>() {
 			@Override
@@ -1201,6 +1234,7 @@ public final class Functions {
 	 * @return the function which creates an empty instance of the set
 	 * @since 0.96.1
 	 */
+	@Nonnull 
 	public static <T> Func0<TreeSet<T>> treeSetProvider() {
 		return new Func0<TreeSet<T>>() {
 			@Override
@@ -1576,6 +1610,7 @@ public final class Functions {
 	 * @param ref the reference object
 	 * @return the function
 	 */
+	@Nonnull 
 	public static <T> Func0<T> asFunc0(@Nonnull final Reference<? extends T> ref) {
 		return new Func0<T>() {
 			@Override
@@ -1696,6 +1731,7 @@ public final class Functions {
 	 * @param value the value to return
 	 * @return the created function
 	 */
+	@Nonnull 
 	public static <T, U, V> Func2<T, U, V> constant2(final V value) {
 		return new Func2<T, U, V>() {
 			@Override
@@ -1713,6 +1749,7 @@ public final class Functions {
 	 * @return the function
 	 * @since 0.96.1
 	 */
+	@Nonnull 
 	public static <T> Func0<T> asFunc0(final Runnable action, final T result) {
 		return new Func0<T>() {
 			@Override
@@ -1732,7 +1769,9 @@ public final class Functions {
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	public static <T, U> Func1<T, U> asFunc1(final Runnable action, final U result) {
+	@Nonnull 
+	public static <T, U> Func1<T, U> asFunc1(
+			@Nonnull final Runnable action, final U result) {
 		return new Func1<T, U>() {
 			@Override
 			public U invoke(T param1) {
@@ -1751,7 +1790,9 @@ public final class Functions {
 	 * @return the function
 	 * @since 0.96.1
 	 */
-	public static <T, U> Func1<T, U> asFunc1(final Action0 action, final U result) {
+	@Nonnull 
+	public static <T, U> Func1<T, U> asFunc1(
+			@Nonnull final Action0 action, final U result) {
 		return new Func1<T, U>() {
 			@Override
 			public U invoke(T param1) {
@@ -1768,7 +1809,9 @@ public final class Functions {
 	 * @param call the callable instance
 	 * @return the new function
 	 */
-	public static <T, U> Func1<T, U> asFunc1(@Nonnull final Callable<? extends U> call) {
+	@Nonnull 
+	public static <T, U> Func1<T, U> asFunc1(
+			@Nonnull final Callable<? extends U> call) {
 		return new Func1<T, U>() {
 			@Override
 			public U invoke(T param1) {
@@ -1811,6 +1854,7 @@ public final class Functions {
 	 * @param value the value to return
 	 * @return the new function
 	 */
+	@Nonnull 
 	public static <T, U, V> Func2<T, U, V> asFunc2(@Nonnull final Action0 action, final V value) {
 		return new Func2<T, U, V>() {
 			@Override
@@ -1830,6 +1874,7 @@ public final class Functions {
 	 * @param value the value to return
 	 * @return the new function
 	 */
+	@Nonnull 
 	public static <T, U, V> Func2<T, U, V> asFunc2(@Nonnull final Runnable action, final V value) {
 		return new Func2<T, U, V>() {
 			@Override
@@ -1844,6 +1889,7 @@ public final class Functions {
 	 * @param <U> the second parameter type
 	 * @return a function which pairs its arguments
 	 */
+	@Nonnull 
 	public static <T, U> Func2<T, U, Pair<T, U>> pairUp() {
 		return new Func2<T, U, Pair<T, U>>() {
 			@Override
@@ -1855,6 +1901,7 @@ public final class Functions {
 	/**
 	 * @return Returns a function that negates the incoming boolean value.
 	 */
+	@Nonnull 
 	public static Func1<Boolean, Boolean> negate() {
 		return new Func1<Boolean, Boolean>() {
 			@Override

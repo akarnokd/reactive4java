@@ -60,7 +60,7 @@ public class DefaultCloseableObserver<T> implements CloseableObserver<T> {
 	}
 
 	@Override
-	public void error(Throwable ex) {
+	public void error(@Nonnull Throwable ex) {
 		if (!completed) {
 			try {
 				observer.error(ex);
