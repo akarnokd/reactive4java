@@ -15,6 +15,8 @@
  */
 package hu.akarnokd.reactive4java.util;
 
+import hu.akarnokd.reactive4java.base.Action0;
+import hu.akarnokd.reactive4java.base.Action0E;
 import hu.akarnokd.reactive4java.base.MultiIOException;
 
 import java.io.Closeable;
@@ -147,6 +149,7 @@ public final class Closeables {
 	 * Closes the given object if it implements the Closeable interface and
 	 * wraps the IOException into a RuntimeException.
 	 * @param c the closeable instance, null means no-op
+	 * @since 0.97
 	 */
 	public static void closeUnchecked(@Nullable Object c) {
 		if (c instanceof Closeable) {
@@ -218,10 +221,41 @@ public final class Closeables {
 	 * it, otherwise its a no-op.
 	 * @param o the object to close
 	 * @throws IOException the exception thrown by the close() method
+	 * @since 0.97
 	 */
 	public static void close(Object o) throws IOException {
 		if (o instanceof Closeable) {
 			((Closeable)o).close();
 		}
+	}
+	/**
+	 * Wraps the given action into a Closeable.
+	 * @param action the action to wrap
+	 * @return the closeable instance
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static Closeable toCloseable(@Nonnull final Action0 action) {
+		return new Closeable() {
+			@Override
+			public void close() throws IOException {
+				action.invoke();
+			}
+		};
+	}
+	/**
+	 * Wraps the given action into a Closeable.
+	 * @param action the action to wrap
+	 * @return the closeable instance
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static Closeable toCloseable(@Nonnull final Action0E<? extends IOException> action) {
+		return new Closeable() {
+			@Override
+			public void close() throws IOException {
+				action.invoke();
+			}
+		};
 	}
 }

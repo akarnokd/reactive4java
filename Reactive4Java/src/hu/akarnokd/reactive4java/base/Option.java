@@ -26,10 +26,29 @@ import javax.annotation.Nonnull;
  * @param <T> the type of the contained object
  */
 public abstract class Option<T> {
-//	/** @return does this option hold a value? */
-//	public abstract boolean hasValue();
 	/** @return query for the value. */
 	public abstract T value();
+	/**
+	 * @return true if this option has a value (not error).
+	 * @since 0.97
+	 */
+	public boolean hasValue() {
+		return false;
+	}
+	/** 
+	 * @return true if this option has an error (not value). 
+	 * @since 0.97
+	 */ 
+	public boolean hasError() {
+		return false;
+	}
+	/** 
+	 * @return true if this option is empty. 
+	 * @since 0.97
+	 */
+	public boolean isNone() {
+		return false;
+	}
 	/**
 	 * The helper class representing an option holding nothing.
 	 * @author akarnokd
@@ -44,6 +63,10 @@ public abstract class Option<T> {
 		@Override
 		public T value() {
 			throw new UnsupportedOperationException();
+		}
+		@Override
+		public boolean isNone() {
+			return true;
 		}
 		@Override
 		public String toString() {
@@ -77,6 +100,10 @@ public abstract class Option<T> {
 		@Override
 		public T value() {
 			return value;
+		}
+		@Override
+		public boolean hasValue() {
+			return true;
 		}
 		@Override
 		public String toString() {
@@ -135,6 +162,11 @@ public abstract class Option<T> {
 			}
 			throw new RuntimeException(ex);
 		}
+		@Override
+		public boolean hasError() {
+			return true;
+		}
+
 		@Override
 		public String toString() {
 			return "Error of " + ex.toString();
@@ -210,7 +242,7 @@ public abstract class Option<T> {
 	 * @return true if the option is of type Error.
 	 */
 	public static boolean isError(Option<?> o) {
-		return o != null && o.getClass() == Error.class;
+		return o != null && o.hasError();
 	}
 	/**
 	 * Returns true if the option is of type None.
@@ -226,7 +258,7 @@ public abstract class Option<T> {
 	 * @return true if the option is of type Some.
 	 */
 	public static boolean isSome(Option<?> o) {
-		return o != null && o.getClass() == Some.class;
+		return o != null && o.hasValue();
 	}
 	/**
 	 * Extracts the error value from the option.

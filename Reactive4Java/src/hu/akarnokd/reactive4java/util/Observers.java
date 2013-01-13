@@ -20,9 +20,11 @@ import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
+import hu.akarnokd.reactive4java.base.Scheduler;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -429,5 +431,108 @@ public final class Observers {
 			@Nonnull final java.util.Observer javaObserver) {
 		ReactiveObservableWrapper<T> row = new ReactiveObservableWrapper<T>(observable);
 		return row.register(javaObserver);
+	}
+	/**
+	 * "Registers" the observer with the iterable source
+	 * and iterates over the source iterable in the current
+	 * thread.
+	 * @param <T> the element type 
+	 * @param iterable the iterable sequence
+	 * @param observer the observer
+	 * @return the close handler
+	 */
+	public static <T> Closeable registerWith(
+			@Nonnull Iterable<T> iterable, 
+			@Nonnull Observer<? super T> observer) {
+		Iterator<T> it = iterable.iterator();
+		try {
+			while (it.hasNext()) {
+				observer.next(it.next());
+			}
+			observer.finish();
+		} catch (Throwable t) {
+			observer.error(t);
+		} finally {
+			Closeables.closeSilently(it);
+		}
+		return Closeables.emptyCloseable();
+	}
+	/**
+	 * "Registers" an observer with the given iterable
+	 * and iterates over it on the given scheduler.
+	 * Each iteration is run as a new task.
+	 * @param <T> the element type 
+	 * @param iterable the iterable source
+	 * @param observer the observer
+	 * @param scheduler the scheduler
+	 * @return the closeable to cancel the operation
+	 */
+	public static <T> Closeable registerWith(
+			@Nonnull final Iterable<T> iterable, 
+			@Nonnull final Observer<? super T> observer,
+			@Nonnull final Scheduler scheduler) {
+		final SequentialCloseable close = new SequentialCloseable();
+		
+		close.set(scheduler.schedule(new Runnable() {
+			/** The iterator. */
+			Iterator<T> it = iterable.iterator();
+			@Override
+			public void run() {
+				if (close.isClosed()) {
+					Closeables.closeSilently(it);
+					return;
+				}
+				try {
+					if (close.isClosed()) {
+						Closeables.closeSilently(it);
+						return;
+					}
+					if (it.hasNext()) {
+						T v = it.next();
+						if (close.isClosed()) {
+							Closeables.closeSilently(it);
+							return;
+						}
+						observer.next(v);
+					}
+				} catch (Throwable t) {
+					if (close.isClosed()) {
+						Closeables.closeSilently(it);
+						return;
+					}
+					observer.error(t);
+				}
+				if (close.isClosed()) {
+					Closeables.closeSilently(it);
+					return;
+				}
+				close.set(scheduler.schedule(this));
+			}
+		}));
+		
+		return close;
+	}
+	/**
+	 * Registers the observer with the source in a way
+	 * that if the registration call throws an exception,
+	 * it is routed to the observer via the error() method.
+	 * @param <T> the element type
+	 * @param source the source observable
+	 * @param observer the observer to register
+	 * @return the close handle for the registration
+	 * @since 0.97
+	 */
+	public static <T> Closeable registerSafe(
+			@Nonnull final Observable<? extends T> source, 
+			@Nonnull final Observer<? super T> observer) {
+		Closeable c = Closeables.emptyCloseable();
+		
+		try {
+			c = source.register(observer);
+		} catch (Throwable t) {
+			observer.error(t);
+		}
+		
+		return c;
 	}
 }

@@ -29,12 +29,12 @@ import hu.akarnokd.reactive4java.base.Option;
 import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.interactive.Interactive.LinkedBuffer.N;
-import hu.akarnokd.reactive4java.scheduler.DefaultScheduler;
 import hu.akarnokd.reactive4java.util.Actions;
 import hu.akarnokd.reactive4java.util.CircularBuffer;
 import hu.akarnokd.reactive4java.util.Closeables;
 import hu.akarnokd.reactive4java.util.DefaultGroupedIterable;
 import hu.akarnokd.reactive4java.util.Functions;
+import hu.akarnokd.reactive4java.util.Schedulers;
 import hu.akarnokd.reactive4java.util.SingleContainer;
 
 import java.io.Closeable;
@@ -56,7 +56,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -124,8 +123,6 @@ public final class Interactive {
 			return EMPTY_ITERATOR;
 		}
 	};
-	/** The common observable pool where the Observer methods get invoked by default. */
-	static final AtomicReference<Scheduler> DEFAULT_SCHEDULER = new AtomicReference<Scheduler>(new DefaultScheduler());
 	/**
 	 * Creates an iterable which traverses the source iterable and maintains a running sum value based
 	 * on the <code>sum</code> function parameter. Once the source is depleted, it
@@ -1417,8 +1414,8 @@ public final class Interactive {
 	 * @return the current default pool used by the Observables methods
 	 */
 	@Nonnull
-	public static Scheduler getDefaultScheduler() {
-		return DEFAULT_SCHEDULER.get();
+	static Scheduler scheduler() {
+		return Schedulers.getDefault();
 	}
 	/**
 	 * Creates an iterable which traverses the source iterable,
@@ -1979,7 +1976,7 @@ public final class Interactive {
 	@Nonnull
 	public static <T> Iterable<T> merge(
 			@Nonnull final Iterable<? extends Iterable<? extends T>> sources) {
-		return merge(sources, getDefaultScheduler());
+		return merge(sources, scheduler());
 	}
 	/**
 	 * Merges a bunch of iterable streams where each of the iterable will run by
@@ -2630,20 +2627,6 @@ public final class Interactive {
 				};
 			}
 		});
-	}
-	/**
-	 * Replace the current default scheduler with the specified  new scheduler.
-	 * This method is thread-safe.
-	 * @param newScheduler the new scheduler
-	 * @return the current scheduler
-	 */
-	@Nonnull
-	public static Scheduler replaceDefaultScheduler(
-			@Nonnull Scheduler newScheduler) {
-		if (newScheduler == null) {
-			throw new IllegalArgumentException("newScheduler is null");
-		}
-		return DEFAULT_SCHEDULER.getAndSet(newScheduler);
 	}
 	/**
 	 * The returned iterable ensures that the source iterable is only traversed once, regardless of

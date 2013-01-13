@@ -21,6 +21,7 @@ import hu.akarnokd.reactive4java.reactive.Reactive;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import junit.framework.Assert;
 
@@ -41,7 +42,7 @@ public class TestReactiveAwait {
 		Assert.assertEquals((Long)1L, result);
 	}
 	/** Test an empty sequence. */
-	@Test(/* timeout = 1500, */expected = NoSuchElementException.class)
+	@Test(timeout = 1500, expected = NoSuchElementException.class)
 	public void simpleEmpty() {
 		Observable<Long> source = Reactive.<Long>empty();
 		Observable<Long> delayed = Reactive.delay(source, 1, TimeUnit.SECONDS);
@@ -51,18 +52,27 @@ public class TestReactiveAwait {
 	/**
 	 * Test for an error in the sequence.
 	 */
-	@Test(timeout = 1500, expected = NoSuchElementException.class)
+	@Test(timeout = 1500)
 	public void simpleException() {
-		Observable<Long> source = Reactive.<Long>throwException(new IOException());
+		IOException ex = new IOException();
+		Observable<Long> source = Reactive.<Long>throwException(ex);
 		Observable<Long> delayed = Reactive.delay(source, 1, TimeUnit.SECONDS);
 		
-		Reactive.await(delayed);
+		try {
+			Reactive.await(delayed);
+		} catch (RuntimeException exc) {
+			Assert.assertEquals(ex, exc.getCause());
+		}
 	}
 	/** Test for a timeout case. */
-	@Test(timeout = 1500, expected = NoSuchElementException.class)
+	@Test/* (timeout = 1500)*/
 	public void simpleTimeout() {
-		Observable<Long> source = Reactive.tick(0, 2, 1, TimeUnit.SECONDS);
+		Observable<Long> source = Reactive.tick(0, 300, 1, TimeUnit.SECONDS);
 		
-		Reactive.await(source, 500, TimeUnit.SECONDS);
+		try {
+			Reactive.await(source, 500, TimeUnit.MILLISECONDS);
+		} catch (RuntimeException exc) {
+			TestUtil.assertInstanceof(TimeoutException.class, exc.getCause());
+		}
 	}
 }

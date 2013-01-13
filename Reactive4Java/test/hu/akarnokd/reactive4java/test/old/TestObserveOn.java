@@ -19,6 +19,7 @@ import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.util.Observers;
+import hu.akarnokd.reactive4java.util.Schedulers;
 
 /**
  * Test the ObserveOn operator.
@@ -38,7 +39,7 @@ public final class TestObserveOn {
 	 */
 	public static void main(String[] args) throws Exception {
 		Observable<Integer> xs = Reactive.range(0, 10);
-		Scheduler exec = Reactive.getDefaultScheduler();
+		Scheduler exec = Schedulers.getDefault();
 		Observable<Integer> ys = Reactive.observeOn(xs, exec);
 		
 		ys.register(Observers.println());

@@ -27,6 +27,7 @@ import hu.akarnokd.reactive4java.base.Ref;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 import hu.akarnokd.reactive4java.util.Actions;
 import hu.akarnokd.reactive4java.util.Functions;
+import hu.akarnokd.reactive4java.util.Observables;
 
 import javax.annotation.Nonnull;
 
@@ -209,7 +210,7 @@ public final class ActionObservable {
 	@Nonnull
 	public static <T> Observable<T> asObservable(
 			@Nonnull final Action1<Action1<Option<T>>> source) {
-		return Reactive.create(new Func1<Observer<? super T>, Action0>() {
+		return Observables.createWithAction(new Func1<Observer<? super T>, Action0>() {
 			@Override
 			public Action0 invoke(final Observer<? super T> o) {
 				source.invoke(asAction(o));

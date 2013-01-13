@@ -19,8 +19,9 @@ import hu.akarnokd.reactive4java.base.CloseableObservable;
 import hu.akarnokd.reactive4java.base.ConnectableObservable;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
-import hu.akarnokd.reactive4java.util.Subjects;
 import hu.akarnokd.reactive4java.util.Closeables;
+import hu.akarnokd.reactive4java.util.Schedulers;
+import hu.akarnokd.reactive4java.util.Subjects;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -48,7 +49,7 @@ public class TestReactiveMulticast {
 		TestUtil.assertEqual(Arrays.asList(0L, 1L, 2L, 3L, 4L), result);
 	}
 	/** Test for the simple, always connected case. */
-	@Test /* (timeout = 10000) */
+	@Test(timeout = 10000)
 	public void testEarlyDisconnect() {
 		Observable<Long> source = Reactive.tick(0, 5, 1, TimeUnit.SECONDS);
 		
@@ -56,7 +57,7 @@ public class TestReactiveMulticast {
 
 		final Closeable c = conn.connect();
 		
-		Reactive.getDefaultScheduler().schedule(new Runnable() {
+		Schedulers.getDefault().schedule(new Runnable() {
 			@Override
 			public void run() {
 				Closeables.closeSilently(c);
@@ -71,7 +72,7 @@ public class TestReactiveMulticast {
 	 * Test for the simple, always connected case.
 	 * @throws IOException on error 
 	 */
-	@Test /* (timeout = 10000) */
+	@Test(timeout = 10000)
 	public void testLateConnect() throws IOException {
 		CloseableObservable<Long> source = Reactive.activeTick(0, 5, 1, TimeUnit.SECONDS);
 		
@@ -79,14 +80,14 @@ public class TestReactiveMulticast {
 				Subjects.<Long>newSubject());
 
 		
-		Reactive.getDefaultScheduler().schedule(new Runnable() {
+		Schedulers.getDefault().schedule(new Runnable() {
 			@Override
 			public void run() {
 				conn.connect();
 			}
 		}, 3500, TimeUnit.MILLISECONDS);
 
-		Observable<Long> result = Reactive.timeoutFinish(conn, 2, TimeUnit.SECONDS);
+		Observable<Long> result = Reactive.timeoutFinish(conn, 200, TimeUnit.SECONDS);
 
 		TestUtil.assertEqual(Arrays.asList(3L, 4L), result);
 		

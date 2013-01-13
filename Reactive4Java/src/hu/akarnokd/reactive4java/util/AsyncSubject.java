@@ -196,22 +196,27 @@ public class AsyncSubject<T> implements Subject<T, T> {
 	 */
 	@Nonnull
 	public Option<T> getOption() throws InterruptedException {
-		if (!isDone()) {
-			final CountDownLatch latch = new CountDownLatch(1);
-			register(Observers.newAsyncAwaiter(latch));
-			latch.await();
-		}
-		lock.lock();
+		Closeable c = null;
 		try {
-			if (error != null) {
-				return Option.error(error);
-			} else
-			if (hasValue) {
-				return Option.some(value);
+			if (!isDone()) {
+				final CountDownLatch latch = new CountDownLatch(1);
+				c = register(Observers.newAsyncAwaiter(latch));
+				latch.await();
 			}
-			return Option.none();
+			lock.lock();
+			try {
+				if (error != null) {
+					return Option.error(error);
+				} else
+				if (hasValue) {
+					return Option.some(value);
+				}
+				return Option.none();
+			} finally {
+				lock.unlock();
+			}
 		} finally {
-			lock.unlock();
+			Closeables.closeSilently(c);
 		}
 	}
 	/**
@@ -225,24 +230,29 @@ public class AsyncSubject<T> implements Subject<T, T> {
 	 * @throws InterruptedException in case the wait was interrupted 
 	 */
 	public Option<T> getOption(long time, TimeUnit unit) throws InterruptedException {
-		if (!isDone()) {
-			final CountDownLatch latch = new CountDownLatch(1);
-			register(Observers.newAsyncAwaiter(latch));
-			if (!latch.await(time, unit)) {
-				return null;
-			}
-		}
-		lock.lock();
+		Closeable c = null;
 		try {
-			if (error != null) {
-				return Option.error(error);
-			} else
-			if (hasValue) {
-				return Option.some(value);
+			if (!isDone()) {
+				final CountDownLatch latch = new CountDownLatch(1);
+				c = register(Observers.newAsyncAwaiter(latch));
+				if (!latch.await(time, unit)) {
+					return null;
+				}
 			}
-			return Option.none();
+			lock.lock();
+			try {
+				if (error != null) {
+					return Option.error(error);
+				} else
+				if (hasValue) {
+					return Option.some(value);
+				}
+				return Option.none();
+			} finally {
+				lock.unlock();
+			}
 		} finally {
-			lock.unlock();
+			Closeables.closeSilently(c);
 		}
 	}
 	/**

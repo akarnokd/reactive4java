@@ -17,30 +17,40 @@ package hu.akarnokd.reactive4java.test;
 
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.reactive.Reactive;
+import hu.akarnokd.reactive4java.util.Closeables;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
+import java.util.Iterator;
+import java.util.List;
+
+import junit.framework.Assert;
 
 import org.junit.Test;
 
 /**
- * Test the Reactive.skipUntil operator.
- * @author akarnokd, 2013.01.08.
- * @since 0.97
+ * Test the Reactive.toIterable operator.
+ * @author akarnokd, 2013.01.12.
  */
-public class TestReactiveSkipUntil {
-
-	/**
-	 * Simple test to skip anything for a second.
-	 */
-	@Test
-	public void skipUntilSimple() {
-		Observable<Long> sequence = Reactive.tick(1, 6, 400, TimeUnit.MILLISECONDS);
-		Observable<Long> timer = Reactive.delay(Reactive.singleton(1L), 1, TimeUnit.SECONDS);
+public class TestReactiveToIterable {
+	/** Run a simple value stream test. */
+	@Test/*(timeout = 1000)*/
+	public void test() {
+		Observable<Integer> source = Reactive.range(0, 10);
 		
-		Observable<Long> result = Reactive.skipUntil(sequence, timer);
+		Iterable<Integer> iter = Reactive.toIterable(source);
 		
-		TestUtil.assertEqual(Arrays.asList(3L, 4L, 5L), result);
+		List<Integer> result = new ArrayList<Integer>();
+		Iterator<Integer> it = iter.iterator();
+		try {
+			while (it.hasNext()) {
+				result.add(it.next());
+			}
+		} finally {
+			Closeables.closeSilently(it);
+		}
+		
+		Assert.assertEquals(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), result);
 	}
 
 }

@@ -15,10 +15,14 @@
  */
 package hu.akarnokd.reactive4java.util;
 
+import hu.akarnokd.reactive4java.base.Action0;
+import hu.akarnokd.reactive4java.base.Action0E;
+import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 
 import java.io.Closeable;
+import java.io.IOException;
 
 import javax.annotation.Nonnull;
 
@@ -109,5 +113,57 @@ public final class Observables {
 		});
 		
 		return new OriginalObservableWrapper<T>(javaObservable, Actions.asAction0E(c), unregisterObservers);
+	}
+	/**
+	 * Create an observable instance by submitting a function which takes responsibility
+	 * for registering observers.
+	 * @param <T> the type of the value to observe
+	 * @param register the function to manage new registrations
+	 * @return the observable instance
+	 */
+	@Nonnull
+	public static <T> Observable<T> createWithAction(
+			@Nonnull final Func1<Observer<? super T>, ? extends Action0> register) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(Observer<? super T> observer) {
+				final Action0 a = register.invoke(observer);
+				return Closeables.toCloseable(a);
+			}
+		};
+	}
+	/**
+	 * Create an observable instance by submitting a function which takes responsibility
+	 * for registering observers and returns a custom Closeable to terminate the registration.
+	 * @param <T> the type of the value to observe
+	 * @param registerer the function to manage new registrations
+	 * @return the observable instance
+	 */
+	@Nonnull
+	public static <T> Observable<T> create(
+			@Nonnull final Func1<Observer<? super T>, ? extends Closeable> registerer) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(Observer<? super T> observer) {
+				return registerer.invoke(observer);
+			}
+		};
+	}
+	/**
+	 * Create an observable instance by submitting a function which takes responsibility
+	 * for registering observers and returns a custom Closeable to terminate the registration.
+	 * @param <T> the type of the value to observe
+	 * @param registerer the function to manage new registrations
+	 * @return the observable instance
+	 */
+	@Nonnull
+	public static <T> Observable<T> createWithActionE(
+			@Nonnull final Func1<Observer<? super T>, ? extends Action0E<? extends IOException>> registerer) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(Observer<? super T> observer) {
+				return Closeables.toCloseable(registerer.invoke(observer));
+			}
+		};
 	}
 }

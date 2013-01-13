@@ -251,4 +251,24 @@ public final class TestUtil {
 			fail(expected, actualList);
 		}
 	}
+	/**
+	 * Test if the actual object is assignable to the expected class.
+	 * @param expectedClass the expected class
+	 * @param actual the actual object
+	 */
+	public static void assertInstanceof(Class<?> expectedClass, Object actual) {
+		if (!expectedClass.isInstance(actual)) {
+			Assert.fail("Not instance, expected = " + expectedClass + ", actual = " + (actual != null ? actual.getClass() : "null"));
+		}
+	}
+	/**
+	 * Test if the actual object is assignable to the expected class.
+	 * @param expectedClass the expected class
+	 * @param actual the actual object
+	 */
+	public static void assertNotInstanceof(Class<?> expectedClass, Object actual) {
+		if (expectedClass.isInstance(actual)) {
+			Assert.fail("Shouldn't be an instance, expected = " + expectedClass + ", actual = " + (actual != null ? actual.getClass() : "null"));
+		}
+	}
 }

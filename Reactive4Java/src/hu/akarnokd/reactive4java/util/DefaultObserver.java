@@ -30,7 +30,8 @@ import javax.annotation.Nullable;
  * used by the Reactive operators.
  * <p>This implementation ensures that its onNext, onError and onFinish methods
  * are never interleaved and won't be executed after an error or finish message.
- * An incoming finish or error message automatically calls close().</p>
+ * In addition, a Throwable thrown from the onNext() method is routed
+ * through the error() method.</p>
  * <p>The close method is idempotent and can be called multiple times.</p>
  * <p>Extend this class when you need something more than a decorator or
  * filter around some Observer passed to the custom register method, e.g.,
@@ -92,7 +93,11 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 		lock.lock();
 		try {
 			if (!completed) {
-				onNext(value);
+				try {
+					onNext(value);
+				} catch (Throwable t) {
+					error(t);
+				}
 			}
 		} finally {
 			lock.unlock();
