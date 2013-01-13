@@ -26,6 +26,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 /**
  * The scheduler uses a cached thread pool executor (via {@link Executors#newCachedThreadPool()}) as its backing thread pool.
  * Delayed executions are performed via the TimeUnit.sleep() methods on the pool thread (consuming resources).
@@ -43,7 +45,8 @@ public class CachedThreadPoolScheduler implements Scheduler {
 		pool = Executors.newCachedThreadPool();
 	}
 	@Override
-	public Closeable schedule(Runnable run) {
+	@Nonnull 
+	public Closeable schedule(@Nonnull Runnable run) {
 		final Future<?> f = pool.submit(run);
 		return new Closeable() {
 			@Override
@@ -54,7 +57,10 @@ public class CachedThreadPoolScheduler implements Scheduler {
 	}
 
 	@Override
-	public Closeable schedule(final Runnable run, final long delay, final TimeUnit unit) {
+	@Nonnull 
+	public Closeable schedule(@Nonnull final Runnable run, 
+			final long delay, 
+			@Nonnull final TimeUnit unit) {
 		Runnable task = new Runnable() {
 			@Override
 			public void run() {
@@ -72,8 +78,12 @@ public class CachedThreadPoolScheduler implements Scheduler {
 	}
 
 	@Override
-	public Closeable schedule(final Runnable run, final long initialDelay,
-			final long betweenDelay, final TimeUnit unit) {
+	@Nonnull 
+	public Closeable schedule(
+			@Nonnull final Runnable run, 
+			final long initialDelay,
+			final long betweenDelay, 
+			@Nonnull final TimeUnit unit) {
 		Runnable task = new Runnable() {
 			@Override
 			public void run() {

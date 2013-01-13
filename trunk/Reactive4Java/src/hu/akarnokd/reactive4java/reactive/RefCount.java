@@ -39,8 +39,10 @@ import javax.annotation.concurrent.GuardedBy;
  */
 public class RefCount<T> implements Observable<T> {
 	/** The lock. */
+	@Nonnull 
 	protected final Lock lock;
 	/** The source . */
+	@Nonnull 
 	protected final ConnectableObservable<? extends T> source;
 	/** The active connection. */
 	@GuardedBy("lock")
@@ -66,7 +68,7 @@ public class RefCount<T> implements Observable<T> {
 	}
 	@Override
 	@Nonnull
-	public Closeable register(final Observer<? super T> observer) {
+	public Closeable register(@Nonnull final Observer<? super T> observer) {
 		final Closeable c = source.register(observer);
 		lock.lock();
 		try {

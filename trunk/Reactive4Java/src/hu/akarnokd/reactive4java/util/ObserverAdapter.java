@@ -15,6 +15,8 @@
  */
 package hu.akarnokd.reactive4java.util;
 
+import javax.annotation.Nonnull;
+
 import hu.akarnokd.reactive4java.base.Observer;
 
 /**
@@ -32,7 +34,7 @@ public class ObserverAdapter<T> implements Observer<T> {
 	}
 
 	@Override
-	public void error(Throwable ex) {
+	public void error(@Nonnull Throwable ex) {
 
 	}
 

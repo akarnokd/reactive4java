@@ -35,6 +35,7 @@ import javax.annotation.Nullable;
  */
 public class SingleCloseable implements Closeable {
 	/** The reference holder. */
+	@Nonnull 
 	protected final AtomicReference<Closeable> current = new AtomicReference<Closeable>();
 	@Override
 	public void close() throws IOException {
@@ -84,6 +85,7 @@ public class SingleCloseable implements Closeable {
 	 * closed the previous instance and keep the 
 	 * invariants of this SingleCloseable.
 	 */
+	@Nonnull 
 	protected static final Closeable SENTINEL = new Closeable() {
 		@Override
 		public void close() throws IOException { }

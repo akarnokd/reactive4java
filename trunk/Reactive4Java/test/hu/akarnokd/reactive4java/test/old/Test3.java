@@ -26,6 +26,8 @@ import hu.akarnokd.reactive4java.util.Observers;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.Nonnull;
+
 /**
  * Test Reactive operators, 3.
  * @author akarnokd
@@ -70,7 +72,7 @@ public final class Test3 {
 					}
 
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						
 					}
 
@@ -82,7 +84,7 @@ public final class Test3 {
 				});
 			}
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				
 			}
 			@Override

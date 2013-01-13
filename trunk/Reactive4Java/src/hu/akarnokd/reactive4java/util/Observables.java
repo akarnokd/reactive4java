@@ -99,7 +99,7 @@ public final class Observables {
 				javaObservable.notifyObservers(value);
 			}
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				if (unregisterObservers) {
 					javaObservable.deleteObservers();
 				}
@@ -126,7 +126,8 @@ public final class Observables {
 			@Nonnull final Func1<Observer<? super T>, ? extends Action0> register) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull Observer<? super T> observer) {
 				final Action0 a = register.invoke(observer);
 				return Closeables.toCloseable(a);
 			}
@@ -144,7 +145,8 @@ public final class Observables {
 			@Nonnull final Func1<Observer<? super T>, ? extends Closeable> registerer) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull Observer<? super T> observer) {
 				return registerer.invoke(observer);
 			}
 		};
@@ -161,7 +163,8 @@ public final class Observables {
 			@Nonnull final Func1<Observer<? super T>, ? extends Action0E<? extends IOException>> registerer) {
 		return new Observable<T>() {
 			@Override
-			public Closeable register(Observer<? super T> observer) {
+			@Nonnull 
+			public Closeable register(@Nonnull Observer<? super T> observer) {
 				return Closeables.toCloseable(registerer.invoke(observer));
 			}
 		};

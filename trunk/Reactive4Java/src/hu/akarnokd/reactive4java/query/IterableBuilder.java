@@ -1428,4 +1428,17 @@ public final class IterableBuilder<T> implements Iterable<T> {
 			Closeables.closeSilently(it);
 		}
 	}
+	/**
+	 * Perform the concatenation of observable
+	 * sequences based on this iterable and the
+	 * given result selector function.
+	 * @param <U> the result sequence type
+	 * @param resultSelector the observable selector function
+	 * @return the concatenating observable sequence
+	 */
+	@Nonnull
+	public <U> ObservableBuilder<U> concat(
+			@Nonnull Func1<? super T, ? extends Observable<? extends U>> resultSelector) {
+		return ObservableBuilder.from(Reactive.concat(it, resultSelector));
+	}
 }

@@ -23,6 +23,8 @@ import hu.akarnokd.reactive4java.util.SingleOption;
 
 import java.io.Closeable;
 
+import javax.annotation.Nonnull;
+
 /**
  * Samples the latest T value coming from the source observable or the initial
  * value when no messages arrived so far. If the producer and consumer run
@@ -44,15 +46,17 @@ public class MostRecent<T> extends ObservableToIterableAdapter<T, T> {
 	 * @param observable the source observable
 	 * @param initialValue the initial value
 	 */
-	public MostRecent(Observable<? extends T> observable, T initialValue) {
+	public MostRecent(@Nonnull Observable<? extends T> observable, T initialValue) {
 		super(observable);
 		this.initialValue = initialValue;
 	}
 
 	@Override
-	protected ObserverToIteratorSink<T, T> run(Closeable handle) {
+	@Nonnull 
+	protected ObserverToIteratorSink<T, T> run(@Nonnull Closeable handle) {
 		return new ObserverToIteratorSink<T, T>(handle) {
 			/** The observation kind. */
+			@Nonnull 
 			protected volatile ObservationKind kind = ObservationKind.NEXT;
 			/** The current value. */
 			protected volatile T current = initialValue;
@@ -65,7 +69,7 @@ public class MostRecent<T> extends ObservableToIterableAdapter<T, T> {
 			}
 
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				done();
 
 				this.error = ex;
@@ -80,7 +84,7 @@ public class MostRecent<T> extends ObservableToIterableAdapter<T, T> {
 			}
 
 			@Override
-			public boolean tryNext(SingleOption<? super T> out) {
+			public boolean tryNext(@Nonnull SingleOption<? super T> out) {
 				switch (kind) {
 				case NEXT:
 					out.add(current);

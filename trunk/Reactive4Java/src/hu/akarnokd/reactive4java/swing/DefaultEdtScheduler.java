@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.Nonnull;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
@@ -69,14 +70,19 @@ public class DefaultEdtScheduler implements Scheduler {
 		}
 	}
 	@Override
-	public Closeable schedule(Runnable run) {
+	@Nonnull 
+	public Closeable schedule(@Nonnull Runnable run) {
 		EdtRunnable t = new EdtRunnable(run);
 		SwingUtilities.invokeLater(t);
 		return t;
 	}
 
 	@Override
-	public Closeable schedule(final Runnable run, long delay, final TimeUnit unit) {
+	@Nonnull 
+	public Closeable schedule(
+			@Nonnull final Runnable run, 
+			long delay, 
+			@Nonnull final TimeUnit unit) {
 		final Timer t = new Timer((int)unit.convert(delay, TimeUnit.MILLISECONDS), null);
 		t.addActionListener(new ActionListener() {
 			@Override
@@ -95,7 +101,12 @@ public class DefaultEdtScheduler implements Scheduler {
 	}
 
 	@Override
-	public Closeable schedule(final Runnable run, long initialDelay, long betweenDelay, TimeUnit unit) {
+	@Nonnull 
+	public Closeable schedule(
+			@Nonnull final Runnable run, 
+			long initialDelay, 
+			long betweenDelay, 
+			@Nonnull TimeUnit unit) {
 		final Timer t = new Timer((int)unit.convert(initialDelay, TimeUnit.MILLISECONDS), null);
 		t.addActionListener(new ActionListener() {
 			@Override

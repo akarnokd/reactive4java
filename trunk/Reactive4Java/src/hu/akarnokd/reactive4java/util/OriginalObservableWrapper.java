@@ -39,8 +39,10 @@ import javax.annotation.Nonnull;
 public class OriginalObservableWrapper<T> extends Observable 
 implements CloseableObservable<T> {
 	/** The observable. */
+	@Nonnull 
 	protected final Observable observable;
 	/** The close action. */
+	@Nonnull 
 	protected final Action0E<? extends IOException> closeAction;
 	/**
 	 * Wraps the given observable and sets a close
@@ -151,7 +153,7 @@ implements CloseableObservable<T> {
 	@Override
 	@Nonnull
 	public Closeable register(
-			hu.akarnokd.reactive4java.base.Observer<? super T> observer) {
+			@Nonnull hu.akarnokd.reactive4java.base.Observer<? super T> observer) {
 		return Observers.registerWith(this, observer);
 	}
 	/**
@@ -162,6 +164,7 @@ implements CloseableObservable<T> {
 	 * @param observer the observer to register
 	 * @return the unregistration handle
 	 */
+	@Nonnull 
 	public Closeable register(@Nonnull final Observer observer) {
 		Closeable handle = new Closeable() {
 			@Override

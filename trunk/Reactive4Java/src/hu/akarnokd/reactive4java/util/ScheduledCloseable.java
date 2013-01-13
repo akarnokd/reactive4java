@@ -86,6 +86,7 @@ public class ScheduledCloseable implements Closeable {
 	 * closed the previous instance and keep the 
 	 * invariants of this SingleCloseable.
 	 */
+	@Nonnull 
 	protected static final Closeable SENTINEL = new Closeable() {
 		@Override
 		public void close() throws IOException { }

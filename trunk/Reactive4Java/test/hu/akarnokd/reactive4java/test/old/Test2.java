@@ -28,6 +28,8 @@ import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 /**
  * Test Reactive operators, 2.
  * @author akarnokd
@@ -92,7 +94,7 @@ public final class Test2 {
 					}
 
 					@Override
-					public void error(Throwable ex) {
+					public void error(@Nonnull Throwable ex) {
 						
 					}
 
@@ -104,7 +106,7 @@ public final class Test2 {
 				});
 			}
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				
 			}
 			@Override

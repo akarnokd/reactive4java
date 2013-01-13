@@ -26,6 +26,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -48,14 +49,19 @@ public class Next<T> extends ObservableToIterableAdapter<T, T> {
 	 * Constructor.
 	 * @param observable the source obserable.
 	 */
-	public Next(Observable<? extends T> observable) {
+	public Next(@Nonnull Observable<? extends T> observable) {
 		super(observable);
 	}
 
 	@Override
-	protected ObserverToIteratorSink<T, T> run(Closeable handle) {
+	@Nonnull 
+	protected ObserverToIteratorSink<T, T> run(@Nonnull Closeable handle) {
 		return new ObserverToIteratorSink<T, T>(handle) {
+			/** The lock guarding the data exchange. */
+			@Nonnull 
 			protected final Lock lock = new ReentrantLock(true);
+			/** The notification semaphore. */
+			@Nonnull 
 			protected final Semaphore semaphore = new Semaphore(0);
 			@GuardedBy("lock")
 			protected boolean iteratorIsWaiting;
@@ -64,6 +70,7 @@ public class Next<T> extends ObservableToIterableAdapter<T, T> {
 			@GuardedBy("lock")
 			protected Throwable error;
 			@GuardedBy("lock")
+			@Nonnull 
 			protected ObservationKind kind;
 			@Override
 			public void next(T value) {
@@ -71,7 +78,7 @@ public class Next<T> extends ObservableToIterableAdapter<T, T> {
 			}
 
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				done();
 				set(ObservationKind.ERROR, null, ex);
 			}
@@ -104,7 +111,7 @@ public class Next<T> extends ObservableToIterableAdapter<T, T> {
 				}
 			}
 			@Override
-			public boolean tryNext(SingleOption<? super T> out) {
+			public boolean tryNext(@Nonnull SingleOption<? super T> out) {
 				boolean finished = false;
 				
 				lock.lock();

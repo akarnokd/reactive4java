@@ -37,6 +37,7 @@ public final class Closeables {
 		// utility class
 	}
 	/** An empty closeable. */
+	@Nonnull 
 	private static final Closeable EMPTY_CLOSEABLE = new Closeable() {
 		@Override
 		public void close() throws IOException {
@@ -47,6 +48,7 @@ public final class Closeables {
 	 * Returns an empty closeable object which does nothing. 
 	 * @return an empty, no-op closeable instance. 
 	 */
+	@Nonnull 
 	public static Closeable emptyCloseable() {
 		return EMPTY_CLOSEABLE;
 	}

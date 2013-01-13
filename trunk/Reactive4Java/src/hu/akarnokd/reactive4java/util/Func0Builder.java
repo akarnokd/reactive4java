@@ -56,7 +56,8 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @param f the function to wrap
 	 * @return the function builder
 	 */
-	public static <T> Func0Builder<T> from(Func0<T> f) {
+	@Nonnull
+	public static <T> Func0Builder<T> from(@Nonnull Func0<T> f) {
 		return new Func0Builder<T>(f);
 	}
 	/**
@@ -76,6 +77,7 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @param result the return value by this function
 	 * @return the function builder
 	 */
+	@Nonnull
 	public static <T> Func0Builder<T> from(@Nonnull Action0 action, T result) {
 		return from(Functions.asFunc0(action, result));
 	}
@@ -87,6 +89,7 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @param result the return value by this function
 	 * @return the function builder
 	 */
+	@Nonnull
 	public static <T> Func0Builder<T> from(@Nonnull Runnable run, T result) {
 		return from(Functions.asFunc0(run, result));
 	}
@@ -96,6 +99,7 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @param call the callable instance
 	 * @return the function builder
 	 */
+	@Nonnull
 	public static <T> Func0Builder<T> from(@Nonnull Callable<? extends T> call) {
 		return from(Functions.asFunc0(call));
 	}
@@ -104,6 +108,7 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @param value the atomic variable
 	 * @return the function builder
 	 */
+	@Nonnull
 	public static Func0Builder<Boolean> from(@Nonnull AtomicBoolean value) {
 		return from(Functions.asFunc0(value));
 	}
@@ -112,6 +117,7 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @param value the atomic variable
 	 * @return the function builder
 	 */
+	@Nonnull
 	public static Func0Builder<Integer> from(@Nonnull AtomicInteger value) {
 		return from(Functions.asFunc0(value));
 	}
@@ -120,6 +126,7 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @param value the atomic variable
 	 * @return the function builder
 	 */
+	@Nonnull
 	public static Func0Builder<Long> from(@Nonnull AtomicLong value) {
 		return from(Functions.asFunc0(value));
 	}
@@ -129,18 +136,21 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @param value the atomic variable
 	 * @return the function builder
 	 */
+	@Nonnull
 	public static <T> Func0Builder<T> from(@Nonnull AtomicReference<? extends T> value) {
 		return from(Functions.asFunc0(value));
 	}
 	/**
 	 * @return a function builder which returns always true.
 	 */
+	@Nonnull
 	public static Func0Builder<Boolean> alwaysTrue() {
 		return from(Functions.TRUE);
 	}
 	/** 
 	 * @return a function builder which retuns always false. 
 	 */
+	@Nonnull
 	public static Func0Builder<Boolean> alwaysFalse() {
 		return from(Functions.FALSE);
 	}
@@ -152,6 +162,7 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @param ref the reference to wrap
 	 * @return the function builder
 	 */
+	@Nonnull
 	public static <T> Func0Builder<T> from(@Nonnull final Reference<? extends T> ref) {
 		return from(Functions.asFunc0(ref));
 	}
@@ -162,6 +173,7 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @return the function builder.
 	 */
 	@SuppressWarnings("unchecked")
+	@Nonnull
 	public Func0Builder<Boolean> not() {
 		return from(Functions.not((Func0<Boolean>)f));
 	}
@@ -173,7 +185,8 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @return the function builder
 	 */
 	@SuppressWarnings("unchecked")
-	public Func0Builder<Boolean> and(Func0<Boolean> func) {
+	@Nonnull 
+	public Func0Builder<Boolean> and(@Nonnull Func0<Boolean> func) {
 		return from(Functions.and((Func0<Boolean>)f, func));
 	}
 	/**
@@ -184,7 +197,8 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @return the function builder
 	 */
 	@SuppressWarnings("unchecked")
-	public Func0Builder<Boolean> or(Func0<Boolean> func) {
+	@Nonnull
+	public Func0Builder<Boolean> or(@Nonnull Func0<Boolean> func) {
 		return from(Functions.or((Func0<Boolean>)f, func));
 	}
 	/**
@@ -195,10 +209,12 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @return the function builder
 	 */
 	@SuppressWarnings("unchecked")
-	public Func0Builder<Boolean> xor(Func0<Boolean> func) {
+	@Nonnull 
+	public Func0Builder<Boolean> xor(@Nonnull Func0<Boolean> func) {
 		return from(Functions.xor((Func0<Boolean>)f, func));
 	}
 	/** @return convert this function into a callable instance. */
+	@Nonnull 
 	public Callable<T> toCallable() {
 		return Functions.asCallable(this.f);
 	}
@@ -206,6 +222,7 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @param <U> the function parameter (irrelevant) 
 	 * @return convert this function by wrapping it into a 1 parameter function builder. 
 	 */
+	@Nonnull 
 	public <U> Func1Builder<U, T> toFunc1() {
 		return Func1Builder.from(f);
 	}
@@ -214,6 +231,7 @@ public final class Func0Builder<T> implements Func0<T> {
 	 * @param <V> the function second parameter (irrelevant) 
 	 * @return convert this function by wrapping it into a 1 parameter function builder. 
 	 */
+	@Nonnull 
 	public <U, V> Func2Builder<U, V, T> toFunc2() {
 		return Func2Builder.from(f);
 	}

@@ -57,5 +57,6 @@ implements CloseableIterable<U> {
 	 * @param handle the closea handle
 	 * @return the closeable iterator
 	 */
-	protected abstract ObserverToIteratorSink<T, U> run(Closeable handle); 
+	@Nonnull 
+	protected abstract ObserverToIteratorSink<T, U> run(@Nonnull Closeable handle); 
 }

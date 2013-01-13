@@ -48,6 +48,7 @@ import javax.annotation.Nonnull;
 public class HybridSubject<T> extends java.util.Observable implements java.util.Observer,
 		Subject<T, T>, CloseableObservable<T> {
 	/** The registration holder for the reactive-observers. */
+	@Nonnull 
 	protected ConcurrentMap<Closeable, Observer<? super T>> registry = new ConcurrentHashMap<Closeable, Observer<? super T>>();
 	@Override
 	public void next(T value) {
@@ -63,7 +64,7 @@ public class HybridSubject<T> extends java.util.Observable implements java.util.
 		next((T)arg);
 	}
 	@Override
-	public void error(Throwable ex) {
+	public void error(@Nonnull Throwable ex) {
 		for (Observer<? super T> o : observers()) {
 			o.error(ex);
 		}

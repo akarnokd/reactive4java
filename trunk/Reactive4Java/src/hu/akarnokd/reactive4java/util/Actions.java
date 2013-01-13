@@ -39,6 +39,7 @@ import javax.annotation.Nonnull;
 public final class Actions {
 
 	/** A helper action with one parameter which does nothing. */
+	@Nonnull
 	private static final Action1<Void> NO_ACTION_1 = new Action1<Void>() {
 		@Override
 		public void invoke(Void value) {
@@ -46,6 +47,7 @@ public final class Actions {
 		}
 	};
 	/** A helper action without parameters which does nothing. */
+	@Nonnull
 	private static final Action0 NO_ACTION_0 = new Action0() {
 		@Override
 		public void invoke() {
@@ -53,6 +55,7 @@ public final class Actions {
 		}
 	};
 	/** Empty action. */
+	@Nonnull
 	private static final Action2<Void, Void> NO_ACTION_2 = new Action2<Void, Void>() {
 		@Override
 		public void invoke(Void t, Void u) { }
@@ -213,8 +216,10 @@ public final class Actions {
 	 * @return the action composite
 	 * @since 0.96
 	 */
-	public static <T, U> Action2<T, U> dualAction(final Action1<? super T> first, 
-			final Action1<? super U> second) {
+	@Nonnull
+	public static <T, U> Action2<T, U> dualAction(
+			@Nonnull final Action1<? super T> first, 
+			@Nonnull final Action1<? super U> second) {
 		return new Action2<T, U>() {
 			@Override
 			public void invoke(T t, U u) {
@@ -234,9 +239,10 @@ public final class Actions {
 	 * @return the action composite
 	 * @since 0.96
 	 */
+	@Nonnull
 	public static <T, U, E extends Exception> Action2E<T, U, E> dualAction(
-			final Action1E<? super T, ? extends E> first, 
-			final Action1E<? super U, ? extends E> second) {
+			@Nonnull final Action1E<? super T, ? extends E> first, 
+			@Nonnull final Action1E<? super U, ? extends E> second) {
 		return new Action2E<T, U, E>() {
 			@Override
 			public void invoke(T t, U u) throws E {
@@ -252,7 +258,9 @@ public final class Actions {
 	 * @return the action with exception
 	 * @since 0.96
 	 */
-	public static <E extends Exception> Action0E<E> asAction0E(final Action0 action) {
+	@Nonnull 
+	public static <E extends Exception> Action0E<E> asAction0E(
+			@Nonnull final Action0 action) {
 		return new Action0E<E>() {
 			@Override
 			public void invoke() throws E {
@@ -268,7 +276,9 @@ public final class Actions {
 	 * @return the action with exception
 	 * @since 0.96
 	 */
-	public static <T, E extends Exception> Action1E<T, E> asAction1E(final Action1<? super T> action) {
+	@Nonnull 
+	public static <T, E extends Exception> Action1E<T, E> asAction1E(
+			@Nonnull final Action1<? super T> action) {
 		return new Action1E<T, E>() {
 			@Override
 			public void invoke(T t) throws E {
@@ -285,8 +295,9 @@ public final class Actions {
 	 * @return the action with exception
 	 * @since 0.96
 	 */
+	@Nonnull 
 	public static <T, U, E extends Exception> Action2E<T, U, E> asAction2E(
-			final Action2<? super T, ? super U> action) {
+			@Nonnull final Action2<? super T, ? super U> action) {
 		return new Action2E<T, U, E>() {
 			@Override
 			public void invoke(T t, U u) throws E {
@@ -300,7 +311,9 @@ public final class Actions {
 	 * @return the action
 	 * @since 0.96
 	 */
-	public static Action0E<IOException> close(final Closeable c) {
+	@Nonnull 
+	public static Action0E<IOException> close(
+			@Nonnull final Closeable c) {
 		return new Action0E<IOException>() {
 			@Override
 			public void invoke() throws IOException {
@@ -316,7 +329,9 @@ public final class Actions {
 	 * @return the action
 	 * @since 0.96
 	 */
-	public static Action0 closeSilently(final Closeable c) {
+	@Nonnull 
+	public static Action0 closeSilently(
+			@Nonnull final Closeable c) {
 		return new Action0() {
 			@Override
 			public void invoke() {
@@ -332,7 +347,9 @@ public final class Actions {
 	 * @return the created action
 	 * @since 0.96
 	 */
-	public static <T> Action0 asAction(final Func0<T> func) {
+	@Nonnull 
+	public static <T> Action0 asAction(
+			@Nonnull final Func0<T> func) {
 		return new Action0() {
 			@Override
 			public void invoke() {
@@ -349,7 +366,9 @@ public final class Actions {
 	 * @return the created action
 	 * @since 0.96
 	 */
-	public static <T, U> Action1<T> asAction(final Func1<? super T, U> func) {
+	@Nonnull 
+	public static <T, U> Action1<T> asAction(
+			@Nonnull final Func1<? super T, U> func) {
 		return new Action1<T>() {
 			@Override
 			public void invoke(T value) {
@@ -367,7 +386,9 @@ public final class Actions {
 	 * @return the created action
 	 * @since 0.96
 	 */
-	public static <T, U, V> Action2<T, U> asAction(final Func2<? super T, ? super U, V> func) {
+	@Nonnull 
+	public static <T, U, V> Action2<T, U> asAction(
+			@Nonnull final Func2<? super T, ? super U, V> func) {
 		return new Action2<T, U>() {
 			@Override
 			public void invoke(T value1, U value2) {
@@ -380,7 +401,9 @@ public final class Actions {
 	 * @param closeable the closeable to call
 	 * @return the Action0E created
 	 */
-	public static Action0E<IOException> asAction0E(@Nonnull final Closeable closeable) {
+	@Nonnull 
+	public static Action0E<IOException> asAction0E(
+			@Nonnull final Closeable closeable) {
 		return new Action0E<IOException>() {
 			@Override
 			public void invoke() throws IOException {

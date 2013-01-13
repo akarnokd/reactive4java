@@ -30,6 +30,8 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 /**
  * Test Reactive operators, 1.
  * @author akarnokd
@@ -94,7 +96,7 @@ public final class Test {
 				
 			}
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				// TODO Auto-generated method stub
 				
 			}

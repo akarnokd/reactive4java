@@ -39,6 +39,7 @@ import javax.annotation.concurrent.GuardedBy;
 public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	/** The sub-observer registration holder. The key is a use-site created object. */
 	@GuardedBy("lock")
+	@Nonnull 
 	protected final Map<Object, Closeable> subObservers = new IdentityHashMap<Object, Closeable>();
 	/**
 	 * Constructor. Sets up the observer to complete once the error or finish
@@ -60,7 +61,7 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	 * @param lock the external lock to use when synchronizing the message methods
 	 * @param complete should the observer close its sub-resources automatically on error/finish?
 	 */
-	public DefaultObserverEx(Lock lock, boolean complete) {
+	public DefaultObserverEx(@Nonnull Lock lock, boolean complete) {
 		super(lock, complete);
 	}
 	/**
@@ -94,7 +95,7 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	 * @param token the reference token
 	 * @param source the target observable
 	 */
-	public void add(Object token, Observable<? extends T> source) {
+	public void add(@Nonnull Object token, @Nonnull Observable<? extends T> source) {
 		lock.lock();
 		try {
 			if (!completed) {
@@ -114,7 +115,8 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	 * @param source the source observable
 	 * @return this
 	 */
-	public Closeable registerWith(Observable<? extends T> source) {
+	@Nonnull 
+	public Closeable registerWith(@Nonnull Observable<? extends T> source) {
 		Closeable closePrevious = null;
 		lock.lock();
 		try {
@@ -138,7 +140,7 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	 * The call should be called with the <code>lock</code> being held.
 	 * @param token the token to remove
 	 */
-	protected void removeInner(Object token) {
+	protected void removeInner(@Nonnull Object token) {
 		Closeable c = subObservers.remove(token);
 		Closeables.closeSilently(c);
 	}
@@ -146,7 +148,7 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	 * Removes and closes the close handler associated with the token.
 	 * @param token the token to the closeable handler
 	 */
-	public void remove(Object token) {
+	public void remove(@Nonnull Object token) {
 		lock.lock();
 		try {
 			removeInner(token);
@@ -161,7 +163,7 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 	 * @param newToken the new token
 	 * @param newHandler the new closeable handler
 	 */
-	public void replace(Object oldToken, Object newToken, Closeable newHandler) {
+	public void replace(@Nonnull Object oldToken, @Nonnull Object newToken, @Nonnull Closeable newHandler) {
 		Closeable oldHandler = null;
 		boolean shouldCloseNew = false;
 		lock.lock();
@@ -202,7 +204,7 @@ public abstract class DefaultObserverEx<T> extends DefaultObserver<T> {
 			}
 
 			@Override
-			protected void onError(Throwable ex) {
+			protected void onError(@Nonnull Throwable ex) {
 				observer.error(ex);
 			}
 

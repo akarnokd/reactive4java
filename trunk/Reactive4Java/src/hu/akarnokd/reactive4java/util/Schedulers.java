@@ -29,7 +29,9 @@ import javax.annotation.Nonnull;
  */
 public final class Schedulers {
 	/** The common observable pool where the Observer methods get invoked by default. */
+	@Nonnull
 	static final AtomicReference<Scheduler> DEFAULT_SCHEDULER = new AtomicReference<Scheduler>();
+	/** Setup default scheduler. */
 	static {
 		restoreDefault();
 	}

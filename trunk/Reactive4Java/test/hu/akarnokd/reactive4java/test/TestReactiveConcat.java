@@ -15,7 +15,9 @@
  */
 package hu.akarnokd.reactive4java.test;
 
+import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.interactive.Interactive;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.Arrays;
@@ -42,5 +44,22 @@ public class TestReactiveConcat {
 
 		TestUtil.assertEqual(Arrays.asList(1, 1), result);
 	}
-
+	/**
+	 * Test the iterable sorce + observable selector.
+	 */
+	@Test
+	public void concatFunction() {
+		Iterable<Integer> source = Interactive.range(0, 5);
+		
+		Func1<Integer, Observable<Integer>> f = new Func1<Integer, Observable<Integer>>() {
+			@Override
+			public Observable<Integer> invoke(Integer param1) {
+				return Reactive.singleton(param1 * param1);
+			}
+		};
+		
+		Observable<Integer> result = Reactive.concat(source, f);
+		
+		TestUtil.assertEqual(Arrays.asList(0, 1, 2 * 2, 3 * 3, 4 * 4), result);
+	}
 }

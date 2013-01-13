@@ -25,6 +25,8 @@ import java.io.Closeable;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import javax.annotation.Nonnull;
+
 /**
  * Convert the given observable instance into a classical iterable instance.
  * <p>The resulting iterable does not support the {@code remove()} method.</p>
@@ -38,12 +40,13 @@ public final class ToIterable<T> extends
 	 * Constructor.
 	 * @param observable the observable to convert
 	 */
-	public ToIterable(Observable<? extends T> observable) {
+	public ToIterable(@Nonnull Observable<? extends T> observable) {
 		super(observable);
 	}
 
 	@Override
-	protected ObserverToIteratorSink<T, T> run(Closeable handle) {
+	@Nonnull 
+	protected ObserverToIteratorSink<T, T> run(@Nonnull Closeable handle) {
 		return new ObserverToIteratorSink<T, T>(handle) {
 			/** The queue. */
 			final BlockingQueue<Option<T>> queue = new LinkedBlockingQueue<Option<T>>();
@@ -53,7 +56,7 @@ public final class ToIterable<T> extends
 			}
 
 			@Override
-			public void error(Throwable ex) {
+			public void error(@Nonnull Throwable ex) {
 				done();
 				
 				queue.add(Option.<T>error(ex));
@@ -67,7 +70,7 @@ public final class ToIterable<T> extends
 			}
 
 			@Override
-			public boolean tryNext(SingleOption<? super T> out) {
+			public boolean tryNext(@Nonnull SingleOption<? super T> out) {
 				try {
 					Option<T> o = queue.take();
 					

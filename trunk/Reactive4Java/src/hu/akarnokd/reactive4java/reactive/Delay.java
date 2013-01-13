@@ -40,12 +40,15 @@ import javax.annotation.Nonnull;
  */
 public final class Delay<T> implements Observable<T> {
 	/** The source observable. */
+	@Nonnull 
 	private final Observable<? extends T> source;
 	/** The wait time. */
 	private final long time;
 	/** The wait time unit. */
+	@Nonnull 
 	private final TimeUnit unit;
 	/** The pool where the delay is scheduled. */
+	@Nonnull 
 	private final Scheduler pool;
 	/**
 	 * Constructor.
@@ -66,9 +69,11 @@ public final class Delay<T> implements Observable<T> {
 	}
 
 	@Override
-	public Closeable register(final Observer<? super T> observer) {
+	@Nonnull 
+	public Closeable register(@Nonnull final Observer<? super T> observer) {
 		DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 			/** The outstanding requests. */
+			@Nonnull 
 			final BlockingQueue<Closeable> outstanding = new LinkedBlockingQueue<Closeable>();
 			@Override
 			public void onClose() {
@@ -81,7 +86,7 @@ public final class Delay<T> implements Observable<T> {
 			}
 
 			@Override
-			public void onError(final Throwable ex) {
+			public void onError(@Nonnull final Throwable ex) {
 				Runnable r = new OnError<T>(outstanding, observer, ex, this);
 				outstanding.add(pool.schedule(r, time, unit));
 			}
@@ -146,8 +151,8 @@ public final class Delay<T> implements Observable<T> {
 		 * @param value the value to deliver
 		 */
 		public OnNext(
-				BlockingQueue<Closeable> queue,
-				Observer<? super T> observer,
+				@Nonnull BlockingQueue<Closeable> queue,
+				@Nonnull Observer<? super T> observer,
 				T value) {
 			super(queue, observer);
 			this.value = value;
@@ -179,10 +184,10 @@ public final class Delay<T> implements Observable<T> {
 		 * @param c the close handler to stop the entire operation
 		 */
 		public OnError(
-				BlockingQueue<Closeable> queue,
-				Observer<? super T> observer,
-				Throwable error,
-				Closeable c) {
+				@Nonnull BlockingQueue<Closeable> queue,
+				@Nonnull Observer<? super T> observer,
+				@Nonnull Throwable error,
+				@Nonnull Closeable c) {
 			super(queue, observer);
 			this.error = error;
 			this.c = c;
