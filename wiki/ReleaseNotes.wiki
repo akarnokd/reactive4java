@@ -77,6 +77,14 @@
   * Renamed {{{Reactive.create}}} to {{{Observables.createWithAction}}}.
   * Added {{{Observables.createWithActionE}}}.
   * Added {{{Reactive.switchCase}}} operator +1 overload.
+  * Added {{{Reactive.doWhile}}} operator.
+  * Changed {{{ObservableBuilder.repeat}}} to be static, as they should be.
+  * Added {{{Reactive.repeat}}} overload for repeating an observable sequence indefinitely.
+  * Removed {{{Reactive.forEach(Iterable,Func1)}}} overload and replaced with {{{Reactive.concat(Iterable,Func1)}}} + 1 overload.
+  * Added {{{Reactive.concat}}} overloads for observable sequences with result selector.
+  * Changed {{{Reactive.ifThen}}} to have an empty sequence returned for the default case. Added +1 overload.
+  * Added {{{Reactive.whileDo}}} operator.
+  * Renamed {{{Reactive.combine}}} and its overloads to {{{Reactive.zip}}}
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
