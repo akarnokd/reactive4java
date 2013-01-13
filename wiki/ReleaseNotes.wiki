@@ -69,6 +69,14 @@
   * Reworked {{{Reactive.latest}}} behavior.
   * Reworked {{{Reactive.mostRecent}}} behavior.
   * Reworked {{{Reactive.next}}} behavior.
+  * Added {{{Reactive.await}}} operator +1 overload
+  * Added special closeable containers: {{{SingleCloseable}}}, {{{SequentialCloseable}}} and {{{ScheduledCloseable}}}
+  * Created {{{Schedulers}}} and moved the global default scheduler from Reactive and Interactive into it. Related methods removed from them.
+  * Enhanced {{{Option}}} with instance methods to test for value, error or empty cases.
+  * Renamed {{{Reactive.create}}} to {{{Observables.createWithAction}}}.
+  * Renamed {{{Reactive.create}}} to {{{Observables.createWithAction}}}.
+  * Added {{{Observables.createWithActionE}}}.
+  * Added {{{Reactive.switchCase}}} operator +1 overload.
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
