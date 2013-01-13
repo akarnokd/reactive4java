@@ -53,12 +53,13 @@ public abstract class ObserverToIteratorSink<T, U> implements Observer<T>,
 	public boolean hasNext() {
 		if (!done) {
 			if (current.isEmpty()) {
-				if (tryNext(current)) {
-					return true;
-				} else {
+				if (!tryNext(current)) {
+					done = true;
 					Closeables.closeSilently(this);
+					return false;
 				}
 			}
+			return true;
 		}
 		return false;
 	}
@@ -67,6 +68,7 @@ public abstract class ObserverToIteratorSink<T, U> implements Observer<T>,
 	public U next() {
 		if (hasNext()) {
 			if (current.hasError()) {
+				done = true;
 				Closeables.closeSilently(this);
 			}
 			return current.take();
@@ -80,7 +82,6 @@ public abstract class ObserverToIteratorSink<T, U> implements Observer<T>,
 	}
 	@Override
 	public void close() throws IOException {
-		done = true;
 		handle.close();
 	}
 	/** Closes this iterator and suppresses exceptions. */

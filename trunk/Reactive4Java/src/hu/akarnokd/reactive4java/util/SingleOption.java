@@ -136,4 +136,20 @@ public final class SingleOption<T> {
 		}
 		return Option.none();
 	}
+	/**
+	 * Add a new optional value to the container.
+	 * The container must be empty.
+	 * Throws IllegalArgumentException if o is None.
+	 * @param o the option to add
+	 */
+	public void addOption(@Nonnull Option<? extends T> o) {
+		if (o.hasValue()) {
+			add(o.value());
+		} else
+		if (o.hasError()) {
+			addError(Option.getError(o));
+		} else {
+			throw new IllegalArgumentException("Option.None has no meaning here");
+		}
+	}
 }

@@ -39,7 +39,7 @@ public class TestReactiveElementAt {
 		
 		Observable<Integer> result = Reactive.elementAt(values, 5);
 		
-		TestUtil.assertEqual(Arrays.asList(4), result);
+		TestUtil.assertEqual(Arrays.asList(5), result);
 	}
 	/**
 	 * Test if the surely exising index is returned in case of a supplied default.
@@ -48,9 +48,9 @@ public class TestReactiveElementAt {
 	public void existingWithDefault() {
 		Observable<Integer> values = Reactive.range(0, 10);
 		
-		Observable<Integer> result = Reactive.elementAt(values, 10, 10);
+		Observable<Integer> result = Reactive.elementAt(values, 5, 10);
 		
-		TestUtil.assertEqual(Arrays.asList(4), result);
+		TestUtil.assertEqual(Arrays.asList(5), result);
 	}
 	/**
 	 * Test if the surely exising index is returned in case of a supplied default supplier.
@@ -59,9 +59,9 @@ public class TestReactiveElementAt {
 	public void existingWithDefaultFunction() {
 		Observable<Integer> values = Reactive.range(0, 10);
 		
-		Observable<Integer> result = Reactive.elementAt(values, 10, Functions.constant0(10));
+		Observable<Integer> result = Reactive.elementAt(values, 5, Functions.constant0(10));
 		
-		TestUtil.assertEqual(Arrays.asList(4), result);
+		TestUtil.assertEqual(Arrays.asList(5), result);
 	}
 	/**
 	 * Test if the nonexistent index throws the exception.

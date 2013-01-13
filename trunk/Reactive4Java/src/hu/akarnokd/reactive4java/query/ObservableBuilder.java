@@ -3877,4 +3877,17 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public T await(long time, @Nonnull TimeUnit unit) {
 		return Reactive.await(o, time, unit);
 	}
+	/**
+	 * Returns an observable sequence which ensures that
+	 * the registering observers follow the general contract
+	 * on observables by serializing access to the event
+	 * methods. This can be used to make
+	 * non-conformant observables to work with observers conforming the
+	 * contract.
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> synchronize() {
+		return from(Reactive.synchronize(o));
+	}
 }
