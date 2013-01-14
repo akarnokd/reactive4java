@@ -85,10 +85,19 @@
   * Changed {{{Reactive.ifThen}}} to have an empty sequence returned for the default case. Added +1 overload.
   * Added {{{Reactive.whileDo}}} operator.
   * Renamed {{{Reactive.combine}}} and its overloads to {{{Reactive.zip}}}
-  * Added +3 overloads to {{{Reactive.buffer}}}.
+  * Added +4 overloads to {{{Reactive.buffer}}}.
   * Added {{{Reactie.resumeConditionally}}}.
   * Reworked the {{{Reactive.window}}} operators.
   * Reworked the {{{Reactive.zip}}} operators and added +1 overload.
+  * Added +3 overloads to {{{Reactive.invoke}}}.
+  * Reworked the {{{Reactive.scan}}} and removed {{{Reactive.scan0}}}.
+  * Reworked the {{{Reactive.skipLast}}}.
+  * Added varargs overload to many operators.
+    * {{{Reactive.startWith}}}
+  * Added overload to {{{Reactive.takeLast}}}.
+  * Reworked {{{Reactive.take}}} to handle zero count.
+  * Added {{{Reactive.takeLastBuffer}}}.
+  * Added {{{Reactive.window}}} overload with size and skip.
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
