@@ -70,7 +70,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +81,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -764,52 +765,40 @@ public final class Reactive {
 	/**
 	 * Combine the incoming Ts of the various observables into a single list of Ts like
 	 * using zip() on more than two sources.
-	 * TODO rework
+	 * <p>The resulting sequence terminates if no more pairs can be
+	 * established, i.e., streams of length 1 and 2 zipped will produce
+	 * only 1 item.</p>
+	 * <p>Exception semantics: errors from the source observable are
+	 * propagated as-is.</p>
 	 * @param <T> the element type
 	 * @param srcs the iterable of observable sources.
 	 * @return the new observable
 	 */
 	@Nonnull 
 	public static <T> Observable<List<T>> zip(
-			@Nonnull final List<? extends Observable<? extends T>> srcs) {
-		if (srcs.size() < 1) {
-			return never();
-		} else
-		if (srcs.size() == 1) {
-			return select(srcs.get(0), new Func1<T, List<T>>() {
-				@Override
-				public List<T> invoke(T param1) {
-					List<T> result = new ArrayList<T>(1);
-					result.add(param1);
-					return result;
-				}
-			});
-		}
-		return new Observable<List<T>>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull Observer<? super List<T>> observer) {
-				Observable<List<T>> res0 = zip(srcs.get(0), srcs.get(1), new Func2<T, T, List<T>>() {
-					@Override
-					public List<T> invoke(T param1, T param2) {
-						List<T> result = new ArrayList<T>();
-						result.add(param1);
-						result.add(param2);
-						return result;
-					}
-				});
-				for (int i = 2; i < srcs.size(); i++) {
-					res0 = zip(res0, srcs.get(i), new Func2<List<T>, T, List<T>>() {
-						@Override
-						public List<T> invoke(List<T> param1, T param2) {
-							param1.add(param2);
-							return param1;
-						}
-					});
-				}
-				return res0.register(observer);
-			}
-		};
+			@Nonnull final Iterable<? extends Observable<? extends T>> srcs) {
+		return zip(srcs, Functions.<List<T>>identity());
+	}
+	/**
+	 * Combine the incoming Ts of the various observables into a
+	 * single value stream by the given selector.
+	 * <p>The resulting sequence terminates if no more pairs can be
+	 * established, i.e., streams of length 1 and 2 zipped will produce
+	 * only 1 item.</p>
+	 * <p>Exception semantics: errors from the source observable are
+	 * propagated as-is.</p>
+	 * @param <T> the element type
+	 * @param <U> the result element type
+	 * @param srcs the iterable of observable sources.
+	 * @param selector the result selector function
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T, U> Observable<U> zip(
+			@Nonnull final Iterable<? extends Observable<? extends T>> srcs,
+			@Nonnull final Func1<? super List<T>, ? extends U> selector) {
+		return new Zip.ManyObservables<T, U>(srcs, selector);
 	}
 	/**
 	 * Combine a stream of Ts with a constant T whenever the src fires.
@@ -5974,44 +5963,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T> Observable<T> resumeAlways(
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
-		return new Observable<T>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super T> observer) {
-				final Iterator<? extends Observable<? extends T>> it = sources.iterator();
-				if (it.hasNext()) {
-					DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
-						@Override
-						public void onError(@Nonnull Throwable ex) {
-							remove(this);
-							if (it.hasNext()) {
-								registerWith(it.next());
-							} else {
-								observer.finish();
-								close();
-							}
-						}
-
-						@Override
-						public void onFinish() {
-							remove(this);
-							if (it.hasNext()) {
-								registerWith(it.next());
-							} else {
-								observer.finish();
-								close();
-							}
-						}
-						@Override
-						public void onNext(T value) {
-							observer.next(value);
-						}
-					};
-					return obs.registerWith(it.next());
-				}
-				return Closeables.emptyCloseable();
-			}
-		};
+		return new Resume.Always<T>(sources);
 	}
 	/**
 	 * It tries to submit the values of first observable, but when it throws an exeption,
@@ -6025,38 +5977,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T> Observable<T> resumeOnError(
 			@Nonnull final Iterable<? extends Observable<? extends T>> sources) {
-		return new Observable<T>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super T> observer) {
-				final Iterator<? extends Observable<? extends T>> it = sources.iterator();
-				if (it.hasNext()) {
-					DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
-						@Override
-						public void onError(@Nonnull Throwable ex) {
-							if (it.hasNext()) {
-								registerWith(it.next());
-							} else {
-								observer.error(ex);
-								close();
-							}
-						}
-
-						@Override
-						public void onFinish() {
-							observer.finish();
-							close();
-						}
-						@Override
-						public void onNext(T value) {
-							observer.next(value);
-						}
-					};
-					return obs.registerWith(it.next());
-				}
-				return Closeables.emptyCloseable();
-			}
-		};
+		return new Resume.OnError<T>(sources);
 	}
 	/**
 	 * Restarts the observation until the source observable terminates normally.
@@ -6775,8 +6696,8 @@ public final class Reactive {
 		return select(
 				any(
 					zip(
-							Interactive.materialize(first), 
 							materialize(second), 
+							Interactive.materialize(first), 
 							newOptionComparer(comparer)
 					), 
 					Functions.alwaysFalse1()
@@ -8134,7 +8055,7 @@ public final class Reactive {
 					 * observable sequence
 					 */
 					private void registerTimer() {
-						replace("timer", "timer", pool.schedule(new DefaultRunnable(lock) {
+						add("timer", pool.schedule(new DefaultRunnable(lock) {
 							@Override
 							public void onRun() {
 								if (!cancelled()) {
@@ -8941,504 +8862,18 @@ public final class Reactive {
 	 * @param <T> the element type to observe
 	 * @param <U> the closing event type, irrelevant
 	 * @param source the source of Ts
-	 * @param windowClosing the source of the window splitting events
+	 * @param windowClosingSelector the source of the window splitting events
 	 * @return the observable on sequences of observables of Ts
 	 */
 	@Nonnull
 	public static <T, U> Observable<Observable<T>> window(
 			@Nonnull final Observable<? extends T> source,
-			@Nonnull final Func0<? extends Observable<U>> windowClosing) {
-		return window(source, windowClosing, scheduler());
-	}
-	/**
-	 * Splits the source stream into separate observables on
-	 * each windowClosing event.
-	 * FIXME not sure how to implement
-	 * @param <T> the element type to observe
-	 * @param <U> the closing event type, irrelevant
-	 * @param source the source of Ts
-	 * @param windowClosing the source of the window splitting events
-	 * @param pool the pool where the first group is signalled from directly after
-	 * the registration
-	 * @return the observable on sequences of observables of Ts
-	 */
-	@Nonnull
-	public static <T, U> Observable<Observable<T>> window(
-			@Nonnull final Observable<? extends T> source,
-			@Nonnull final Func0<? extends Observable<U>> windowClosing,
-			@Nonnull final Scheduler pool) {
-		return new Observable<Observable<T>>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super Observable<T>> observer) {
-				// The current observable
-				DefaultObserver<T> obs = new DefaultObserver<T>(true) {
-					/** The current observable window. */
-					@GuardedBy("lock")
-					DefaultObservable<T> current;
-					/** The window watcher. */
-					final DefaultObserver<U> wo = new DefaultObserver<U>(lock, true) {
-						@Override
-						public void onError(@Nonnull Throwable ex) {
-							innerError(ex);
-						}
-
-						@Override
-						public void onFinish() {
-							innerFinish();
-						}
-
-						@Override
-						public void onNext(U value) {
-							DefaultObservable<T> o = new DefaultObservable<T>();
-							Observer<T> os = current;
-							current = o;
-							if (os != null) {
-								os.finish();
-							}
-							observer.next(o);
-						}
-
-					};
-					/** The close handler for the inner observer of closing events. */
-					Closeable woc = windowClosing.invoke().register(wo);
-					/**
-					 * The scheduled action which will open the first window as soon as possible.
-					 */
-					Closeable openWindow = pool.schedule(new DefaultRunnable(lock) {
-						@Override
-						protected void onRun() {
-							if (current == null) {
-								DefaultObservable<T> o = new DefaultObservable<T>();
-								current = o;
-								observer.next(o);
-							}
-						}
-					});
-					/**
-					 * The inner exception callback.
-					 * @param ex the exception
-					 */
-					void innerError(Throwable ex) {
-						error(ex);
-					}
-					/** The inner finish callback. */
-					void innerFinish() {
-						finish();
-					}
-					@Override
-					public void onClose() {
-						Closeables.closeSilently(woc);
-						Closeables.closeSilently(openWindow);
-					}
-
-					@Override
-					public void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void onFinish() {
-						observer.finish();
-					}
-					@Override
-					public void onNext(T value) {
-						if (current == null) {
-							DefaultObservable<T> o = new DefaultObservable<T>();
-							current = o;
-							observer.next(o);
-						}
-						current.next(value);
-					}
-				};
-				return Closeables.newCloseable(obs, source.register(obs));
-			}
-		};
-	}
-	/**
-	 * Project the source elements into observable windows of size <code>count</code>
-	 * and skip some initial values.
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param count the count of elements
-	 * @return the new observable
-	 */
-	public static <T> Observable<Observable<T>> window(
-			final Observable<? extends T> source,
-			int count
-	) {
-		return window(source, count, 0, scheduler());
-	}
-	/**
-	 * Project the source elements into observable windows of size <code>count</code>
-	 * and skip some initial values.
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param count the count of elements
-	 * @param skip the elements to skip
-	 * @return the new observable
-	 */
-	public static <T> Observable<Observable<T>> window(
-			final Observable<? extends T> source,
-			int count,
-			int skip
-	) {
-		return window(source, count, skip, scheduler());
-	}
-	/**
-	 * Project the source elements into observable windows of size <code>count</code>
-	 * and skip some initial values.
-	 * FIXME implement
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param count the count of elements
-	 * @param skip the elements to skip
-	 * @param scheduler the scheduler
-	 * @return the new observable
-	 */
-	public static <T> Observable<Observable<T>> window(
-			final Observable<? extends T> source,
-			final int count,
-			final int skip,
-			final Scheduler scheduler
-	) {
-		return new Observable<Observable<T>>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super Observable<T>> observer) {
-				final AtomicReference<DefaultObservable<T>> current = new AtomicReference<DefaultObservable<T>>();
-				final AtomicInteger counter = new AtomicInteger(0);
-				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
-					/** The elements to skip at first. */
-					int skipCount = skip;
-					{
-						registerTimer();
-						add("source", source);
-					}
-					/**
-					 * Create a new observable and reset the limit counter as well.
-					 */
-					void createNewObservable() {
-						counter.set(count);
-						DefaultObservable<T> d = current.get();
-						if (d != null) {
-							d.finish();
-						}
-						d = new DefaultObservable<T>();
-						current.set(d);
-						observer.next(d);
-					}
-					@Override
-					protected void onError(@Nonnull Throwable ex) {
-						remove("timer");
-						DefaultObservable<T> d = current.get();
-						d.error(ex);
-						observer.error(ex);
-					}
-					@Override
-					protected void onFinish() {
-						remove("timer");
-						DefaultObservable<T> d = current.get();
-						d.finish();
-						observer.finish();
-					}
-
-					@Override
-					protected void onNext(T value) {
-						if (skipCount > 0) {
-							skipCount--;
-							return;
-						}
-
-						if (counter.get() == 0 || current.get() == null) {
-							createNewObservable();
-						}
-						counter.decrementAndGet();
-						DefaultObservable<T> d = current.get();
-						d.next(value);
-					}
-
-					void registerTimer() {
-						replace("timer", "timer", scheduler.schedule(
-							new DefaultRunnable(lock) {
-								@Override
-								protected void onRun() {
-									// first only
-									if (current.get() == null) {
-										createNewObservable();
-									}
-								}
-							}, 0, TimeUnit.MILLISECONDS
-						));
-					}
-
-				};
-				return o;
-			}
-		};
-	}
-	/**
-	 * Projects each value of T into an observable which are closed by
-	 * either the <code>count</code> limit or the elapsed timespan.
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param count the maximum count of the elements in each window
-	 * @param timeSpan the maximum time for each window
-	 * @param unit the time unit
-	 * @return the new observable
-	 */
-	public static <T> Observable<Observable<T>> window(
-		final Observable<? extends T> source,
-		final int count,
-		final long timeSpan,
-		final TimeUnit unit
-	) {
-		return window(source, count, timeSpan, unit, scheduler());
-	}
-	/**
-	 * Projects each value of T into an observable which are closed by
-	 * either the <code>count</code> limit or the elapsed timespan.
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param count the maximum count of the elements in each window
-	 * @param timeSpan the maximum time for each window
-	 * @param unit the time unit
-	 * @param scheduler the scheduler
-	 * @return the new observable
-	 */
-	public static <T> Observable<Observable<T>> window(
-		final Observable<? extends T> source,
-		final int count,
-		final long timeSpan,
-		final TimeUnit unit,
-		final Scheduler scheduler
-	) {
-		return new Observable<Observable<T>>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super Observable<T>> observer) {
-				final AtomicReference<DefaultObservable<T>> current = new AtomicReference<DefaultObservable<T>>();
-				final AtomicInteger counter = new AtomicInteger(0);
-				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
-					{
-						registerTimer();
-						add("source", source);
-					}
-					/**
-					 * Create a new observable and reset the limit counter as well.
-					 */
-					void createNewObservable() {
-						counter.set(count);
-						DefaultObservable<T> d = current.get();
-						if (d != null) {
-							d.finish();
-						}
-						d = new DefaultObservable<T>();
-						current.set(d);
-						observer.next(d);
-					}
-					@Override
-					protected void onError(@Nonnull Throwable ex) {
-						remove("timer");
-						DefaultObservable<T> d = current.get();
-						d.error(ex);
-						observer.error(ex);
-					}
-					@Override
-					protected void onFinish() {
-						remove("timer");
-						DefaultObservable<T> d = current.get();
-						d.finish();
-						observer.finish();
-					}
-
-					@Override
-					protected void onNext(T value) {
-						if (counter.get() == 0 || current.get() == null) {
-							createNewObservable();
-						}
-						counter.decrementAndGet();
-						DefaultObservable<T> d = current.get();
-						d.next(value);
-					}
-
-					void registerTimer() {
-						replace("timer", "timer", scheduler.schedule(
-							new DefaultRunnable(lock) {
-								/** First run. */
-								boolean first;
-								@Override
-								protected void onRun() {
-									if (!first) {
-										first = true;
-										if (current.get() == null) {
-											createNewObservable();
-										}
-									} else {
-										createNewObservable();
-									}
-								}
-							}, timeSpan, unit
-						));
-					}
-
-				};
-				return o;
-			}
-		};
-	}
-	/**
-	 * Project the source elements into observable windows of size <code>count</code>
-	 * and skip some initial values.
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param count the count of elements
-	 * @param scheduler the scheduler
-	 * @return the new observable
-	 */
-	public static <T> Observable<Observable<T>> window(
-			final Observable<? extends T> source,
-			int count,
-			Scheduler scheduler
-	) {
-		return window(source, count, 0, scheduler);
-	}
-	/**
-	 * Project each of the source Ts into observable sequences separated by
-	 * the timespan and initial timeskip values.
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param timeSpan the timespan between window openings
-	 * @param timeSkip the initial delay to open the first window
-	 * @param unit the time unit
-	 * @return the observable
-	 */
-	public static <T> Observable<Observable<T>> window(
-		final Observable<? extends T> source,
-		final long timeSpan,
-		final long timeSkip,
-		final TimeUnit unit
-	) {
-		return window(source, timeSpan, timeSkip, unit, scheduler());
-	}
-	/**
-	 * Project each of the source Ts into observable sequences separated by
-	 * the timespan and initial timeskip values.
-	 * FIXME implement
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param timeSpan the timespan between window openings
-	 * @param timeSkip the initial delay to open the first window
-	 * @param unit the time unit
-	 * @param scheduler the scheduler
-	 * @return the observable
-	 */
-	public static <T> Observable<Observable<T>> window(
-		final Observable<? extends T> source,
-		final long timeSpan,
-		final long timeSkip,
-		final TimeUnit unit,
-		final Scheduler scheduler
-	) {
-		return new Observable<Observable<T>>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super Observable<T>> observer) {
-				final AtomicReference<DefaultObservable<T>> current = new AtomicReference<DefaultObservable<T>>();
-				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
-					{
-						registerTimer();
-						add("source", source);
-					}
-					/**
-					 * Create a new observable and reset the limit counter as well.
-					 */
-					void createNewObservable() {
-						DefaultObservable<T> d = current.get();
-						if (d != null) {
-							d.finish();
-						}
-						d = new DefaultObservable<T>();
-						current.set(d);
-						observer.next(d);
-					}
-					@Override
-					protected void onError(@Nonnull Throwable ex) {
-						remove("timer");
-						DefaultObservable<T> d = current.get();
-						d.error(ex);
-						observer.error(ex);
-					}
-					@Override
-					protected void onFinish() {
-						remove("timer");
-						DefaultObservable<T> d = current.get();
-						d.finish();
-						observer.finish();
-					}
-
-					@Override
-					protected void onNext(T value) {
-						DefaultObservable<T> d = current.get();
-						if (d != null) {
-							d.next(value);
-						}
-					}
-
-					void registerTimer() {
-						replace("timer", "timer", scheduler.schedule(
-							new DefaultRunnable(lock) {
-								@Override
-								protected void onRun() {
-									createNewObservable();
-								}
-							}, timeSkip, timeSpan, unit
-						));
-					}
-
-				};
-				return o;
-			}
-		};
-	}
-	/**
-	 * Project each of the source Ts into observable sequences separated by
-	 * the timespan and initial timeskip values.
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param timeSpan the timespan between window openings
-	 * @param unit the time unit
-	 * @return the observable
-	 */
-	public static <T> Observable<Observable<T>> window(
-		final Observable<? extends T> source,
-		final long timeSpan,
-		final TimeUnit unit
-	) {
-		return window(source, timeSpan, 0L, unit, scheduler());
-	}
-	/**
-	 * Project each of the source Ts into observable sequences separated by
-	 * the timespan and initial timeskip values.
-	 * @param <T> the element type
-	 * @param source the source of Ts
-	 * @param timeSpan the timespan between window openings
-	 * @param unit the time unit
-	 * @param scheduler the scheduler
-	 * @return the observable
-	 */
-	public static <T> Observable<Observable<T>> window(
-		final Observable<? extends T> source,
-		final long timeSpan,
-		final TimeUnit unit,
-		final Scheduler scheduler
-	) {
-		return window(source, timeSpan, 0L, unit, scheduler);
+			@Nonnull final Func0<? extends Observable<U>> windowClosingSelector) {
+		return new Windowing.WithClosing<T, U>(source, windowClosingSelector);
 	}
 	/**
 	 * Splits the source stream into separate observables
 	 * by starting at windowOpening events and closing at windowClosing events.
-	 * FIXME not sure how to implement
 	 * @param <T> the element type to observe
 	 * @param <U> the opening event type, irrelevant
 	 * @param <V> the closing event type, irrelevant
@@ -9452,93 +8887,27 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Observable<? extends U> windowOpening,
 			@Nonnull final Func1<? super U, ? extends Observable<V>> windowClosing) {
-		return new Observable<Observable<T>>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super Observable<T>> observer) {
-				final Lock lock = new ReentrantLock(true);
-				final Map<U, DefaultObservable<T>> openWindows = new IdentityHashMap<U, DefaultObservable<T>>();
-				final CompositeCloseable closeBoth = new CompositeCloseable();
-				// relay Ts to open windows
-				DefaultObserverEx<T> o1 = new DefaultObserverEx<T>(lock, true) {
-					@Override
-					protected void onClose() {
-						super.onClose();
-						Closeables.closeSilently(closeBoth);
-					}
-
-					@Override
-					protected void onError(@Nonnull Throwable ex) {
-						for (DefaultObservable<T> ot : openWindows.values()) {
-							ot.error(ex);
-						}
-						observer.error(ex);
-					}
-
-					@Override
-					protected void onFinish() {
-						for (DefaultObservable<T> ot : openWindows.values()) {
-							ot.finish();
-						}
-						observer.finish();
-					}
-					@Override
-					protected void onNext(T value) {
-						for (DefaultObservable<T> ot : openWindows.values()) {
-							ot.next(value);
-						}
-					}
-				};
-				DefaultObserverEx<U> o2 = new DefaultObserverEx<U>(lock, true) {
-
-					@Override
-					protected void onClose() {
-						super.onClose();
-						Closeables.closeSilently(closeBoth);
-					}
-
-					@Override
-					protected void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					protected void onFinish() {
-						observer.finish();
-					}
-					@Override
-					protected void onNext(final U value) {
-						final DefaultObservable<T> newWindow = new DefaultObservable<T>();
-						openWindows.put(value, newWindow);
-						add(value, windowClosing.invoke(value).register(new Observer<V>() {
-							@Override
-							public void error(@Nonnull Throwable ex) {
-								openWindows.remove(value);
-								newWindow.error(ex);
-							}
-
-							@Override
-							public void finish() {
-								openWindows.remove(value);
-								newWindow.finish();
-							}
-
-							@Override
-							public void next(V value) {
-								// No op?!
-							}
-
-						}));
-						observer.next(newWindow);
-					}
-				};
-
-				closeBoth.add(o1, o2);
-				o1.registerWith(source);
-				o2.registerWith(windowOpening);
-				return closeBoth;
-			}
-		};
+		return new Windowing.WithOpenClose<T, U, V>(source, windowOpening, windowClosing);
+	}
+	/**
+	 * Projects the source elements into a non-overlapping consecutive windows.
+	 * <p>The first window opens immediately, The current window is closed when 
+	 * the boundary observable sequence has sent a value. The finish
+	 * of the boundary will finish both inner and outer observables.
+	 * <p>Exception semantics: exception thrown by the source or the
+	 * windowClosingSelector's observable is propagated to both the outer
+	 * and inner observable returned.</p>
+	 * @param <T> the source and result element type
+	 * @param <U> the window boundary element type (irrelevant
+	 * @param source the source sequence
+	 * @param boundary the window boundary indicator.
+	 * @return the new observable
+	 */
+	public static <T, U> Observable<Observable<T>> window(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Observable<U> boundary
+			) {
+		return new Windowing.WithBoundary<T, U>(source, boundary);
 	}
 	/**
 	 * Wrap the given type into a timestamped container of T.
@@ -9557,7 +8926,7 @@ public final class Reactive {
 	}
 	/**
 	 * Creates an observable which waits for events from left
-	 * and combines it with the next available value from the right iterable,
+	 * and combines it with the next available value from the iterable,
 	 * applies the selector function and emits the resulting T.
 	 * The error() and finish() signals are relayed to the output.
 	 * The result is finished if the right iterator runs out of
@@ -9573,94 +8942,10 @@ public final class Reactive {
 	 */
 	@Nonnull
 	public static <T, U, V> Observable<V> zip(
-			@Nonnull final Iterable<? extends T> left,
-			@Nonnull final Observable<? extends U> right,
-			@Nonnull final Func2<? super T, ? super U, ? extends V> selector) {
-		return new Observable<V>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super V> observer) {
-
-				DefaultObserverEx<U> obs = new DefaultObserverEx<U>(true) {
-					/** The second source. */
-					final Iterator<? extends T> it = left.iterator();
-
-					@Override
-					public void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void onFinish() {
-						observer.finish();
-					}
-					@Override
-					public void onNext(U u) {
-						if (it.hasNext()) {
-							T t = it.next();
-							observer.next(selector.invoke(t, u));
-						} else {
-							observer.finish();
-							close();
-						}
-					}
-				};
-				return obs.registerWith(right);
-			}
-		};
-	}
-	/**
-	 * Creates an observable which waits for events from left
-	 * and combines it with the next available value from the right iterable,
-	 * applies the selector function and emits the resulting T.
-	 * The error() and finish() signals are relayed to the output.
-	 * The result is finished if the right iterator runs out of
-	 * values before the left iterator.
-	 * @param <T> the resulting element type
-	 * @param <U> the value type streamed on the left observable
-	 * @param <V> the value type streamed on the right iterable
-	 * @param left the left observables of Us
-	 * @param right the right iterable of Vs
-	 * @param selector the selector taking the left Us and right Vs.
-	 * @return the resulting observable
-	 */
-	@Nonnull
-	public static <T, U, V> Observable<V> zip(
 			@Nonnull final Observable<? extends T> left,
 			@Nonnull final Iterable<? extends U> right,
 			@Nonnull final Func2<? super T, ? super U, ? extends V> selector) {
-		return new Observable<V>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super V> observer) {
-
-				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
-					/** The second source. */
-					final Iterator<? extends U> it = right.iterator();
-
-					@Override
-					public void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void onFinish() {
-						observer.finish();
-					}
-					@Override
-					public void onNext(T t) {
-						if (it.hasNext()) {
-							U u = it.next();
-							observer.next(selector.invoke(t, u));
-						} else {
-							observer.finish();
-							close();
-						}
-					}
-				};
-				return obs.registerWith(left);
-			}
-		};
+		return new Zip.ObservableAndIterable<T, U, V>(left, right, selector);
 	}
 	/**
 	 * Creates an observable which waits for events from left
@@ -9669,92 +8954,20 @@ public final class Reactive {
 	 * Basically it emits a T when both an U and V is available.
 	 * The output stream throws error or terminates if any of the streams
 	 * throws or terminates.
-	 * FIXME not sure how to implement this, and how to close and signal
-	 * @param <T> the resulting element type
-	 * @param <U> the value type streamed on the left observable
-	 * @param <V> the value type streamed on the right iterable
+	 * @param <T> the value type streamed on the left observable
+	 * @param <U> the value type streamed on the right iterable
+	 * @param <V> the resulting element type
 	 * @param left the left observables of Us
 	 * @param right the right iterable of Vs
 	 * @param selector the selector taking the left Us and right Vs.
 	 * @return the resulting observable
 	 */
 	@Nonnull
-	public static <T, U, V> Observable<T> zip(
-			@Nonnull final Observable<? extends U> left,
-			@Nonnull final Observable<? extends V> right,
-			@Nonnull final Func2<U, V, T> selector) {
-		return new Observable<T>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super T> observer) {
-				final LinkedBlockingQueue<U> queueU = new LinkedBlockingQueue<U>();
-				final LinkedBlockingQueue<V> queueV = new LinkedBlockingQueue<V>();
-				final CompositeCloseable closeBoth = new CompositeCloseable();
-				final AtomicInteger wip = new AtomicInteger(2);
-				final Lock lockBoth = new ReentrantLock(true);
-
-				DefaultObserverEx<U> oU = new DefaultObserverEx<U>(lockBoth, false) {
-					@Override
-					public void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-						Closeables.closeSilently(closeBoth);
-					}
-
-					@Override
-					public void onFinish() {
-						if (wip.decrementAndGet() == 0) {
-							observer.finish();
-							Closeables.closeSilently(closeBoth);
-						}
-					}
-					@Override
-					public void onNext(U u) {
-						V v = queueV.poll();
-						if (v != null) {
-							observer.next(selector.invoke(u, v));
-						} else {
-							if (wip.get() == 2) {
-								queueU.add(u);
-							} else {
-								this.finish();
-							}
-						}
-					}
-				};
-				DefaultObserverEx<V> oV = new DefaultObserverEx<V>(lockBoth, false) {
-					@Override
-					public void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-						Closeables.closeSilently(closeBoth);
-					}
-
-					@Override
-					public void onFinish() {
-						if (wip.decrementAndGet() == 0) {
-							observer.finish();
-							Closeables.closeSilently(closeBoth);
-						}
-					}
-					@Override
-					public void onNext(V v) {
-						U u = queueU.poll();
-						if (u != null) {
-							observer.next(selector.invoke(u, v));
-						} else {
-							if (wip.get() == 2) {
-								queueV.add(v);
-							} else {
-								this.finish();
-							}
-						}
-					}
-				};
-				closeBoth.add(oU, oV);
-				oU.registerWith(left);
-				oV.registerWith(right);
-				return closeBoth;
-			}
-		};
+	public static <T, U, V> Observable<V> zip(
+			@Nonnull final Observable<? extends T> left,
+			@Nonnull final Observable<? extends U> right,
+			@Nonnull final Func2<? super T, ? super U, ? extends V> selector) {
+		return new Zip.TwoObservable<T, U, V>(left, right, selector);
 	}
 	/**
 	 * Returns an observable which uses a selector function
@@ -9854,6 +9067,130 @@ public final class Reactive {
 			@Nonnull final Func0<Boolean> condition) {
 		return new Repeat.WhileDo<T>(source, condition);
 	}
+	/**
+	 * Returns an observable which delivers the
+	 * result of the future object on the default scheduler.
+	 * @param <T> the return type
+	 * @param future the future to wrap
+	 * @return the observable
+	 */
+	public static <T> Observable<T> toObservable(
+			@Nonnull final Future<? extends T> future) {
+		return toObservable(future, Schedulers.getDefault());
+	}
+	/**
+	 * Returns an observable which delivers the
+	 * result of the future object on the given scheduler.
+	 * @param <T> the return type
+	 * @param future the future to wrap
+	 * @param pool the scheduler pool to wait on
+	 * @return the observable
+	 */
+	public static <T> Observable<T> toObservable(
+			@Nonnull final Future<? extends T> future,
+			@Nonnull final Scheduler pool) {
+		return new Observable<T>() {
+			@Override
+			@Nonnull
+			public Closeable register(@Nonnull final Observer<? super T> observer) {
+				return pool.schedule(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							T v = future.get();
+							observer.next(v);
+							observer.finish();
+						} catch (InterruptedException e) {
+							observer.error(e);
+						} catch (ExecutionException e) {
+							observer.error(e.getCause() != null ? e.getCause() : e);
+						}
+					}
+				});
+			}
+		};
+	}
+	/**
+	 * Buffer parts of the source until the window observable finishes.
+	 * A new buffer is started when the window observable finishes.
+	 * @param <T> the source and result element type
+	 * @param <U> the window's own type (ignored)
+	 * @param source the source sequence
+	 * @param bufferCloseSelector the function that returns a buffer close observable
+	 * per registering party.
+	 * @return the observable for the buffered items
+	 * @since 0.97
+	 */
+	public static <T, U> Observable<List<T>> buffer(
+			@Nonnull Observable<? extends T> source,
+			@Nonnull Func0<? extends Observable<U>> bufferCloseSelector) {
+		return new Buffer.WithClosing<T, U>(source, bufferCloseSelector);
+	}
+	/**
+	 * Projects the incoming values into multiple buffers based on
+	 * when a window-open fires an event and a window-close finishes.
+	 * An incoming value might end up in multiple buffers if their window
+	 * overlaps.
+	 * <p>Exception semantics: if any Observable throws an error, the whole
+	 * process terminates with error.</p>
+	 * @param <T> the source and result element type
+	 * @param <U> the buffer opening selector type
+	 * @param <V> the buffer closing element type (irrelevant)
+	 * @param source the source sequence
+	 * @param windowOpening the window-open observable
+	 * @param windowClosing the function that returns a window-close observable
+	 * for a value from the window-open
+	 * @return the observable for the buffered items
+	 * @since 0.97
+	 */
+	public static <T, U, V> Observable<List<T>> buffer(
+			@Nonnull Observable<? extends T> source,
+			@Nonnull Observable<? extends U> windowOpening,
+			@Nonnull Func1<? super U, ? extends Observable<V>> windowClosing
+		) {
+		return new Buffer.WithOpenClose<T, U, V>(source, windowOpening, windowClosing);
+	}
+	/**
+	 * Buffers the source elements into non-overlapping lists separated
+	 * by notification values from the boundary observable and its finish event.
+	 * <p>Exception semantics: if any Observable throws an error, the whole
+	 * process terminates with error.</p>
+	 * @param <T> the source and result element type
+	 * @param <U> the window's own type (ignored)
+	 * @param source the source sequence
+	 * @param boundary the notification source of the boundary
+	 * @return the observable for the buffered items
+	 * @since 0.97
+	 */
+	public static <T, U> Observable<List<T>> buffer(
+			@Nonnull Observable<? extends T> source,
+			@Nonnull Observable<U> boundary
+			) {
+		return new Buffer.WithBoundary<T, U>(source, boundary);
+	}
+	/**
+	 * Continues the observable sequence in case of exception
+	 * whith the sequence provided by the function for that particular
+	 * exception.
+	 * <p>Exception semantics: in case of an exception in source,
+	 * the exception is turned into a continuation, but the second
+	 * observable's error now terminates the sequence.
+	 * <p>Note: Rx calls this Catch.</p>
+	 * @author akarnokd, 2013.01.14.
+	 * @param <T> the source and result element type
+	 * @param source The source sequence
+	 * @param handler The exception handler
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public static <T> Observable<T> resumeConditionally(
+			@Nonnull Observable<? extends T> source,
+			@Nonnull Func1<? super Throwable, ? extends Observable<? extends T>> handler) {
+		return new Resume.Conditionally<T>(source, handler);
+	}
+	/*
+	 * TODO merge() with concurrency limit.
+	 */
 	/** Utility class. */
 	private Reactive() {
 		// utility class

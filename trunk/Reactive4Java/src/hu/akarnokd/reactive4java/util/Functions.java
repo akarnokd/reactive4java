@@ -1910,6 +1910,24 @@ public final class Functions {
 			}
 		};
 	}
+	/**
+	 * Returns a function which calls the supplied
+	 * function with swapped parameter order.
+	 * @param <T> the first parameter, becomes second in func
+	 * @param <U> the second parameter, becomes first in func
+	 * @param <V> the result type
+	 * @param func the function to swap around.
+	 * @return the swapping function.
+	 * @since 0.97
+	 */
+	public static <T, U, V> Func2<T, U, V> swap(final Func2<U, T, V> func) {
+		return new Func2<T, U, V>() {
+			@Override
+			public V invoke(T param1, U param2) {
+				return func.invoke(param2, param1);
+			}
+		};
+	}
 	/** Utility class. */
 	private Functions() {
 	}

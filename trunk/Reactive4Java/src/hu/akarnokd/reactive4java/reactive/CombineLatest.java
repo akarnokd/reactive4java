@@ -40,29 +40,32 @@ public final class CombineLatest {
 	/** Helper class. */
 	private CombineLatest() { }
 	/**
+	 * Returns an observable which combines the latest values of
+	 * both streams whenever one sends a new value, but only after both sent a value.
+	 * <p><b>Exception semantics:</b> if any stream throws an exception, the output stream
+	 * throws an exception and all registrations are terminated.</p>
+	 * <p><b>Completion semantics:</b> The output stream terminates
+	 * after both streams terminate.</p>
+	 * <p>The function will start combining the values only when both sides have already sent
+	 * a value.</p>
+	 * @param <T> the left element type
+	 * @param <U> the right element type
+	 * @param <V> the result element type
 	 * @author akarnokd, 2013.01.13.
-	 * @param <V>
-	 * @param <T>
-	 * @param <U>
 	 */
 	public static final class NullStart<V, T, U> implements Observable<V> {
-		/**
-		 * 
-		 */
+		/** The result selector. */
 		private final Func2<? super T, ? super U, ? extends V> selector;
-		/**
-		 * 
-		 */
+		/** The left sequence. */
 		private final Observable<? extends T> left;
-		/**
-		 * 
-		 */
+		/** The right sequence. */
 		private final Observable<? extends U> right;
 
 		/**
-		 * @param selector
-		 * @param left
-		 * @param right
+		 * Constructor.
+		 * @param left the left stream
+		 * @param right the right stream
+		 * @param selector the function which combines values from both streams and returns a new value
 		 */
 		public NullStart(
 				Observable<? extends T> left, 
@@ -135,29 +138,33 @@ public final class CombineLatest {
 		}
 	}
 	/**
+	 * Returns an observable which combines the latest values of
+	 * both streams whenever one sends a new value.
+	 * <p><b>Exception semantics:</b> if any stream throws an exception, the output stream
+	 * throws an exception and all registrations are terminated.</p>
+	 * <p><b>Completion semantics:</b> The output stream terminates
+	 * after both streams terminate.</p>
+	 * <p>Note that at the beginning, when the left or right fires first, the selector function
+	 * will receive (value, null) or (null, value). If you want to react only in cases when both have sent
+	 * a value, use the {@link #combineLatest(Observable, Observable, Func2)} method.</p>
+	 * @param <T> the left element type
+	 * @param <U> the right element type
+	 * @param <V> the result element type
 	 * @author akarnokd, 2013.01.13.
-	 * @param <V>
-	 * @param <T>
-	 * @param <U>
 	 */
 	public static final class Sent<V, T, U> implements Observable<V> {
-		/**
-		 * 
-		 */
-		private final Observable<? extends U> right;
-		/**
-		 * 
-		 */
-		private final Func2<? super T, ? super U, ? extends V> selector;
-		/**
-		 * 
-		 */
+		/** The left source. */
 		private final Observable<? extends T> left;
+		/** The right source. */
+		private final Observable<? extends U> right;
+		/** The result selector. */
+		private final Func2<? super T, ? super U, ? extends V> selector;
 
 		/**
-		 * @param right
-		 * @param selector
-		 * @param left
+		 * Constructor.
+		 * @param left the left stream
+		 * @param right the right stream
+		 * @param selector the function which combines values from both streams and returns a new value
 		 */
 		public Sent(
 				Observable<? extends T> left,

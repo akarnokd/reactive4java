@@ -241,7 +241,7 @@ public final class Concat {
 						
 						Observable<? extends U> source = resultSelector.invoke(value);
 						
-						replace("source", "source", source.register(new DefaultObserver<U>(lock, true) {
+						add("source", source.register(new DefaultObserver<U>(lock, true) {
 							@Override
 							public void onError(@Nonnull Throwable ex) {
 								innerError(ex);
@@ -347,7 +347,7 @@ public final class Concat {
 						
 						Observable<? extends U> source = resultSelector.invoke(index++, value);
 						
-						replace("source", "source", source.register(new DefaultObserver<U>(lock, true) {
+						add("source", source.register(new DefaultObserver<U>(lock, true) {
 							@Override
 							public void onError(@Nonnull Throwable ex) {
 								innerError(ex);

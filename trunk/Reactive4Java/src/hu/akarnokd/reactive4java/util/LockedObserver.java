@@ -37,14 +37,14 @@ import javax.annotation.Nonnull;
  */
 public class LockedObserver<T> implements Observer<T>, Closeable {
 	/** The wrapped observer. */
-	protected final Observer<T> observer;
+	protected final Observer<? super T> observer;
 	/** The lock object. */
 	protected final Lock lock;
 	/**
 	 * Constructor, sets the wrapped observer and uses a fair ReentrantLock.
 	 * @param o the observer
 	 */
-	public LockedObserver(@Nonnull Observer<T> o) {
+	public LockedObserver(@Nonnull Observer<? super T> o) {
 		this(o, new ReentrantLock(true));
 	}
 	/**
@@ -52,7 +52,7 @@ public class LockedObserver<T> implements Observer<T>, Closeable {
 	 * @param o the observer
 	 * @param l the lock
 	 */
-	public LockedObserver(@Nonnull Observer<T> o, @Nonnull Lock l) {
+	public LockedObserver(@Nonnull Observer<? super T> o, @Nonnull Lock l) {
 		this.observer = o;
 		this.lock = l;
 	}
