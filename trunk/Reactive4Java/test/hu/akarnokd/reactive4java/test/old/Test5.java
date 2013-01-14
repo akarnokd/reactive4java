@@ -57,7 +57,7 @@ public final class Test5 {
 			}
 		}), Observers.print());
 		
-		Reactive.run(Reactive.scan0(Reactive.range(1, 5), 1,
+		Reactive.run(Reactive.scan(Reactive.range(1, 5), 1,
 				new Func2<Integer, Integer, Integer>() {
 			@Override
 			public Integer invoke(Integer param1, Integer param2) {

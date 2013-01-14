@@ -27,8 +27,10 @@ import hu.akarnokd.reactive4java.util.Unique;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -125,7 +127,7 @@ public final class Buffer {
 	}
 	/**
 	 * Buffer the Ts of the source until the buffer reaches its capacity or the current time unit runs out.
-	 * Might result in empty list of Ts and might complete early when the source finishes before the time runs out.
+	 * Might result in empty list of Ts and might complete early when the source finishes before the buffer runs out.
 	 * @param <T> the type of the values
 	 * @return the observable of list of Ts
 	 * @author akarnokd, 2013.01.13.
@@ -214,62 +216,89 @@ public final class Buffer {
 		}
 	}
 	/**
-	 * Buffer the nodes as they become available and send them out in bufferSize chunks.
-	 * The observers return a new and modifiable list of T on every next() call.
+	 * Project the source sequence to
+	 * potentially overlapping buffers whose
+	 * start is determined by skip and lengths
+	 * by size.
 	 * @param <T> the type of the elements
 	 * @author akarnokd, 2013.01.13.
 	 */
-	public static final class WithSize<T> implements Observable<List<T>> {
+	public static final class WithSizeSkip<T> implements Observable<List<T>> {
 		/** The buffer max size. */
 		private final int bufferSize;
 		/** The source sequence. */
 		private final Observable<? extends T> source;
-
+		/** The skip count. */
+		protected final int skip;
 		/**
 		 * Constructor.
 		 * @param source the source observable
 		 * @param bufferSize the target buffer size
+		 * @param skip the number of items to skip between buffers
 		 */
-		public WithSize(
+		public WithSizeSkip(
 				Observable<? extends T> source, 
-				int bufferSize) {
+				int bufferSize,
+				int skip) {
 			this.bufferSize = bufferSize;
 			this.source = source;
+			this.skip = skip;
 		}
 
 		@Override
 		@Nonnull 
 		public Closeable register(@Nonnull final Observer<? super List<T>> observer) {
-			return source.register(new Observer<T>() {
-				/** The current buffer. */
-				List<T> buffer;
+			return (new DefaultObserverEx<T>() {
+				/** The queue of open windows. */
+				@GuardedBy("lock")
+				final Queue<List<T>> queue = new LinkedList<List<T>>();
+				/** The current element index. */
+				@GuardedBy("lock")
+				int i;
+				@Override
+				protected void onNext(T value) {
+					for (List<T> s : queue) {
+						s.add(value);
+					}
+					int c = i - bufferSize + 1;
+					if (c >= 0 && c % skip == 0) {
+						List<T> s = queue.poll();
+						if (!s.isEmpty()) {
+							observer.next(s);
+						}
+					}
+					
+					i++;
+					if (i % skip == 0) {
+						List<T> s = new ArrayList<T>(bufferSize);
+						queue.add(s);
+						observer.next(s);
+					}
+				}
 
 				@Override
-				public void error(@Nonnull Throwable ex) {
+				protected void onError(Throwable ex) {
+					queue.clear();
 					observer.error(ex);
 				}
 
 				@Override
-				public void finish() {
-					if (buffer != null && buffer.size() > 0) {
-						observer.next(buffer);
+				protected void onFinish() {
+					while (!queue.isEmpty()) {
+						List<T> s = queue.poll();
+						if (!s.isEmpty()) {
+							observer.next(s);
+						}
 					}
 					observer.finish();
 				}
-
 				@Override
-				public void next(T value) {
-					if (buffer == null) {
-						buffer = new ArrayList<T>(bufferSize);
-					}
-					buffer.add(value);
-					if (buffer.size() == bufferSize) {
-						observer.next(buffer);
-						buffer = new ArrayList<T>(bufferSize);
-					}
+				protected void onRegister() {
+					List<T> s = new ArrayList<T>(bufferSize);
+					queue.add(s);
+					observer.next(s);
 				}
-
-			});
+			}).registerWith(source);
 		}
 	}
 	/**
