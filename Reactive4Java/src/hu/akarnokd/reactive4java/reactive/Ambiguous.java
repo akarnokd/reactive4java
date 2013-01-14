@@ -28,17 +28,19 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 
 /**
+ * Channels the values of the first observable who fires first from the given set of observables.
+ * E.g., <code>O3 = Amb(O1, O2)</code> if O1 starts to submit events first, O3 will relay these events and events of O2 will be completely ignored
+ * @param <T> the type of the observed element
  * @author akarnokd, 2013.01.13.
- * @param <T>
+ * @since 0.97
  */
 public final class Ambiguous<T> implements Observable<T> {
-	/**
-	 * 
-	 */
+	/** The available source sequences. */
 	private final Iterable<? extends Observable<? extends T>> sources;
 
 	/**
-	 * @param sources
+	 * Constructor.
+	 * @param sources the available source sequences
 	 */
 	public Ambiguous(Iterable<? extends Observable<? extends T>> sources) {
 		this.sources = sources;

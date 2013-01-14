@@ -3187,175 +3187,6 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return from(Reactive.window(o, windowClosing));
 	}
 	/**
-	 * Splits the source stream into separate observables on
-	 * each windowClosing event.
-	 * @param <U> the closing event type, irrelevant
-	 * @param windowClosing the source of the window splitting events
-	 * @param pool the pool where the first group is signalled from directly after
-	 * the registration
-	 * @return the observable on sequences of observables of Ts
-	 */
-	@Nonnull
-	public <U> ObservableBuilder<Observable<T>> window(
-			@Nonnull final Func0<? extends Observable<U>> windowClosing,
-			@Nonnull final Scheduler pool) {
-		return from(Reactive.window(o, windowClosing, pool));
-	}
-	/**
-	 * Project the source elements into observable windows of size <code>count</code>
-	 * and skip some initial values.
-	 * @param count the count of elements
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public ObservableBuilder<Observable<T>> window(
-			int count
-	) {
-		return from(Reactive.window(o, count));
-	}
-	/**
-	 * Project the source elements into observable windows of size <code>count</code>
-	 * and skip some initial values.
-	 * @param count the count of elements
-	 * @param skip the elements to skip
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public ObservableBuilder<Observable<T>> window(
-			int count,
-			int skip
-	) {
-		return from(Reactive.window(o, count, skip));
-	}
-	/**
-	 * Project the source elements into observable windows of size <code>count</code>
-	 * and skip some initial values.
-	 * @param count the count of elements
-	 * @param skip the elements to skip
-	 * @param scheduler the scheduler
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public ObservableBuilder<Observable<T>> window(
-			final int count,
-			final int skip,
-			@Nonnull final Scheduler scheduler
-	) {
-		return from(Reactive.window(o, count, skip, scheduler));
-	}
-	/**
-	 * Projects each value of T into an observable which are closed by
-	 * either the <code>count</code> limit or the ellapsed timespan.
-	 * @param count the maximum count of the elements in each window
-	 * @param timeSpan the maximum time for each window
-	 * @param unit the time unit
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public ObservableBuilder<Observable<T>> window(
-		final int count,
-		final long timeSpan,
-		@Nonnull final TimeUnit unit
-	) {
-		return from(Reactive.window(o, count, timeSpan, unit));
-	}
-	/**
-	 * Projects each value of T into an observable which are closed by
-	 * either the <code>count</code> limit or the ellapsed timespan.
-	 * @param count the maximum count of the elements in each window
-	 * @param timeSpan the maximum time for each window
-	 * @param unit the time unit
-	 * @param scheduler the scheduler
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public ObservableBuilder<Observable<T>> window(
-		final int count,
-		final long timeSpan,
-		@Nonnull final TimeUnit unit,
-		@Nonnull final Scheduler scheduler
-	) {
-		return from(Reactive.window(o, count, timeSpan, unit, scheduler));
-	}
-	/**
-	 * Project the source elements into observable windows of size <code>count</code>
-	 * and skip some initial values.
-	 * @param count the count of elements
-	 * @param scheduler the scheduler
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public ObservableBuilder<Observable<T>> window(
-			int count,
-			@Nonnull Scheduler scheduler
-	) {
-		return from(Reactive.window(o, count, scheduler));
-	}
-	/**
-	 * Project each of the source Ts into observable sequences separated by
-	 * the timespan and initial timeskip values.
-	 * @param timeSpan the timespan between window openings
-	 * @param timeSkip the initial delay to open the first window
-	 * @param unit the time unit
-	 * @return the observable
-	 */
-	@Nonnull 
-	public ObservableBuilder<Observable<T>> window(
-		final long timeSpan,
-		final long timeSkip,
-		@Nonnull final TimeUnit unit
-	) {
-		return from(Reactive.window(o, timeSpan, timeSkip, unit));
-	}
-	/**
-	 * Project each of the source Ts into observable sequences separated by
-	 * the timespan and initial timeskip values.
-	 * @param timeSpan the timespan between window openings
-	 * @param timeSkip the initial delay to open the first window
-	 * @param unit the time unit
-	 * @param scheduler the scheduler
-	 * @return the observable
-	 */
-	@Nonnull 
-	public ObservableBuilder<Observable<T>> window(
-		final long timeSpan,
-		final long timeSkip,
-		@Nonnull final TimeUnit unit,
-		@Nonnull final Scheduler scheduler
-	) {
-		return from(Reactive.window(o, timeSpan, timeSkip, unit, scheduler));
-	}
-	/**
-	 * Project each of the source Ts into observable sequences separated by
-	 * the timespan and initial timeskip values.
-	 * @param timeSpan the timespan between window openings
-	 * @param unit the time unit
-	 * @return the observable
-	 */
-	@Nonnull 
-	public ObservableBuilder<Observable<T>> window(
-		final long timeSpan,
-		@Nonnull final TimeUnit unit
-	) {
-		return from(Reactive.window(o, timeSpan, unit));
-	}
-	/**
-	 * Project each of the source Ts into observable sequences separated by
-	 * the timespan and initial timeskip values.
-	 * @param timeSpan the timespan between window openings
-	 * @param unit the time unit
-	 * @param scheduler the scheduler
-	 * @return the observable
-	 */
-	@Nonnull 
-	public ObservableBuilder<Observable<T>> window(
-		final long timeSpan,
-		@Nonnull final TimeUnit unit,
-		@Nonnull final Scheduler scheduler
-	) {
-		return from(Reactive.window(o, timeSpan, unit, scheduler));
-	}
-	/**
 	 * Splits the source stream into separate observables
 	 * by starting at windowOpening events and closing at windowClosing events.
 	 * @param <U> the opening event type, irrelevant
@@ -3369,6 +3200,23 @@ public final class ObservableBuilder<T> implements Observable<T> {
 			@Nonnull final Observable<? extends U> windowOpening,
 			@Nonnull final Func1<? super U, ? extends Observable<V>> windowClosing) {
 		return from(Reactive.window(o, windowOpening, windowClosing));
+	}
+	/**
+	 * Projects the source elements into a non-overlapping consecutive windows.
+	 * <p>The first window opens immediately, The current window is closed when 
+	 * the boundary observable sequence has sent a value. The finish
+	 * of the boundary will finish both inner and outer observables.
+	 * <p>Exception semantics: exception thrown by the source or the
+	 * windowClosingSelector's observable is propagated to both the outer
+	 * and inner observable returned.</p>
+	 * @param <U> the window boundary element type (irrelevant
+	 * @param boundary the window boundary indicator.
+	 * @return the new observable
+	 */
+	public <U> Observable<Observable<T>> window(
+			@Nonnull final Observable<U> boundary
+			) {
+		return Reactive.window(o, boundary);
 	}
 	/**
 	 * Creates an observable which waits for events from left
@@ -4032,5 +3880,69 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	@Nonnull
 	public ObservableBuilder<T> repeat() {
 		return from(Reactive.repeat(o));
+	}
+	/**
+	 * Buffer parts of the source until the window observable finishes.
+	 * @param <U> the window's own type (ignored)
+	 * @param windowClosingSelector the window selector
+	 * @return the observable for the buffered items
+	 * @since 0.97
+	 */
+	public <U> ObservableBuilder<List<T>> buffer(
+			@Nonnull Func0<Observable<U>> windowClosingSelector) {
+		return from(Reactive.buffer(o, windowClosingSelector));
+	}
+	/**
+	 * Projects the incoming values into multiple buffers based on
+	 * when a window-open fires an event and a window-close finishes.
+	 * An incoming value might end up in multiple buffers if their window
+	 * overlaps.
+	 * <p>Exception semantics: if any Observable throws an error, the whole
+	 * process terminates with error.</p>
+	 * @param <U> the buffer opening selector type
+	 * @param <V> the buffer closing element type (irrelevant)
+	 * @param windowOpening the window-open observable
+	 * @param windowClosing the function that returns a window-close observable
+	 * for a value from the window-open
+	 * @return the observable for the buffered items
+	 * @since 0.97
+	 */
+	public <U, V> ObservableBuilder<List<T>> buffer(
+			@Nonnull Observable<? extends U> windowOpening,
+			@Nonnull Func1<? super U, ? extends Observable<V>> windowClosing
+			) {
+		return from(Reactive.buffer(o, windowOpening, windowClosing));
+	}
+	/**
+	 * Buffers the source elements into non-overlapping lists separated
+	 * by notification values from the boundary observable and its finish event.
+	 * <p>Exception semantics: if any Observable throws an error, the whole
+	 * process terminates with error.</p>
+	 * @param <U> the window's own type (ignored)
+	 * @param boundary the notification source of the boundary
+	 * @return the observable for the buffered items
+	 * @since 0.97
+	 */
+	public <U> ObservableBuilder<List<T>> buffer(
+			@Nonnull Observable<U> boundary
+			) {
+		return from(Reactive.buffer(o, boundary));
+	}
+	/**
+	 * Continues the observable sequence in case of exception
+	 * whith the sequence provided by the function for that particular
+	 * exception.
+	 * <p>Exception semantics: in case of an exception in source,
+	 * the exception is turned into a continuation, but the second
+	 * observable's error now terminates the sequence.
+	 * <p>Note: Rx calls this Catch.</p>
+	 * @author akarnokd, 2013.01.14.
+	 * @param handler The exception handler
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> resumeConditionally(
+			@Nonnull Func1<? super Throwable, ? extends Observable<? extends T>> handler) {
+		return from(Reactive.resumeConditionally(o, handler));
 	}
 }

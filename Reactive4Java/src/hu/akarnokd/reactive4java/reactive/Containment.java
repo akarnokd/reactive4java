@@ -33,24 +33,23 @@ public final class Containment {
 	/** Helper class. */
 	private Containment() { }
 	/**
+	 * Signals a single true if the source observable contains any element.
+	 * It might return early for a non-empty source but waits for the entire observable to return false.
+	 * @param <T> the type of the source data
 	 * @author akarnokd, 2013.01.13.
-	 * @param <T>
 	 */
 	public static final class Any<T> implements Observable<Boolean> {
-		/**
-		 * 
-		 */
-		private final Observable<T> source;
-		/**
-		 * 
-		 */
+		/** Source sequence. */
+		private final Observable<? extends T> source;
+		/** The predicate. */
 		private final Func1<? super T, Boolean> predicate;
 
 		/**
-		 * @param source
-		 * @param predicate
+		 * Constructor.
+		 * @param source the source observable
+		 * @param predicate the predicate to satisfy
 		 */
-		public Any(Observable<T> source, Func1<? super T, Boolean> predicate) {
+		public Any(Observable<? extends T> source, Func1<? super T, Boolean> predicate) {
 			this.source = source;
 			this.predicate = predicate;
 		}
@@ -86,25 +85,26 @@ public final class Containment {
 		}
 	}
 	/**
+	 * Signals a single true or false if all elements of the observable match the predicate.
+	 * It may return early with a result of false if the predicate simply does not match the current element.
+	 * For a true result, it waits for all elements of the source observable.
 	 * @author akarnokd, 2013.01.13.
-	 * @param <T>
+	 * @param <T> the source element type
 	 */
 	public static final class All<T> implements Observable<Boolean> {
-		/**
-		 * 
-		 */
+		/** The predicate. */
 		private final Func1<? super T, Boolean> predicate;
-		/**
-		 * 
-		 */
+		/** The source sequence. */
 		private final Observable<? extends T> source;
 
 		/**
-		 * @param predicate
-		 * @param source
+		 * Constructor.
+		 * @param source Ths source
+		 * @param predicate the predicate function
 		 */
-		public All(Observable<? extends T> source,
-				Func1<? super T, Boolean> predicate) {
+		public All(
+				@Nonnull Observable<? extends T> source,
+				@Nonnull Func1<? super T, Boolean> predicate) {
 			this.predicate = predicate;
 			this.source = source;
 		}

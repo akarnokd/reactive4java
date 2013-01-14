@@ -18,8 +18,15 @@ package hu.akarnokd.reactive4java.test;
 import static hu.akarnokd.reactive4java.query.ObservableBuilder.from;
 import static hu.akarnokd.reactive4java.reactive.Reactive.zip;
 import static hu.akarnokd.reactive4java.util.Functions.pairUp;
+import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.query.ObservableBuilder;
+import hu.akarnokd.reactive4java.reactive.Reactive;
+import hu.akarnokd.reactive4java.util.Functions;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
@@ -62,5 +69,35 @@ public class TestReactiveZip {
 		@SuppressWarnings("unchecked")
 		ObservableBuilder<Pair<Integer, Integer>> expected = from(Pair.of(a0, b0), Pair.of(a1, b1));
 		TestUtil.assertEqual(expected, zip(a, b, pairUp()));
+	}
+	/** Run with different speed. */
+	@Test
+	public void zipDifferentSpeed() {
+		
+		Observable<Long> a = Reactive.tick(0, 2, 300, TimeUnit.MILLISECONDS);
+		Observable<Long> b = Reactive.tick(0, 2, 500, TimeUnit.MILLISECONDS);
+		
+		Observable<Pair<Long, Long>> result = Reactive.zip(a, b, Functions.<Long, Long>pairUp());
+		
+		List<Pair<Long, Long>> expected = new ArrayList<Pair<Long, Long>>();
+		expected.add(Pair.of(0L, 0L));
+		expected.add(Pair.of(1L, 1L));
+		
+		
+		TestUtil.assertEqual(expected, result);
+	}
+	/** Run with different speed. */
+	@Test/*(timeout = 1500)*/
+	public void zipTerminateEarly() {
+		
+		Observable<Long> a = Reactive.tick(0, 1, 300, TimeUnit.MILLISECONDS);
+		Observable<Long> b = Reactive.tick(0, 100, 1000, TimeUnit.MILLISECONDS);
+		
+		Observable<Pair<Long, Long>> result = Reactive.zip(a, b, Functions.<Long, Long>pairUp());
+		
+		List<Pair<Long, Long>> expected = new ArrayList<Pair<Long, Long>>();
+		expected.add(Pair.of(0L, 0L));
+		
+		TestUtil.assertEqual(expected, result);
 	}
 }

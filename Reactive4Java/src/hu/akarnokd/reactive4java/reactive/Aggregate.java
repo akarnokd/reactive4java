@@ -32,10 +32,13 @@ public final class Aggregate {
 	/** Helper class. */
 	private Aggregate() { }
 	/**
+	 * Computes an aggregated value of the source Ts by applying a 
+	 * sum function and applying the divide function when the source
+	 * finishes, sending the result to the output.
+	 * @param <T> the type of the values
+	 * @param <U> the type of the intermediate sum value
+	 * @param <V> the type of the final average value
 	 * @author akarnokd, 2013.01.13.
-	 * @param <V>
-	 * @param <T>
-	 * @param <U>
 	 */
 	public static final class SeededIndexedProjected<V, T, U> implements
 			Observable<V> {
@@ -57,10 +60,10 @@ public final class Aggregate {
 		private final U seed;
 
 		/**
-		 * @param divide
-		 * @param accumulator
-		 * @param source
-		 * @param seed
+		 * @param source the source of BigDecimals to aggregate.
+		 * @param seed the initieal value for the aggregation
+		 * @param accumulator the function which accumulates the input Ts. The first received T will be accompanied by a null U.
+		 * @param divide the function which perform the final division based on the number of elements
 		 */
 		public SeededIndexedProjected(
 				Observable<? extends T> source,
@@ -105,9 +108,10 @@ public final class Aggregate {
 		}
 	}
 	/**
+	 * Apply an accumulator function over the observable source and submit the accumulated value to the returned observable.
+	 * @param <T> the input element type
+	 * @param <U> the output element type
 	 * @author akarnokd, 2013.01.13.
-	 * @param <U>
-	 * @param <T>
 	 */
 	public static final class Seeded<U, T> implements Observable<U> {
 		/**
@@ -124,9 +128,10 @@ public final class Aggregate {
 		private final Observable<? extends T> source;
 
 		/**
-		 * @param accumulator
-		 * @param seed
-		 * @param source
+		 * Constructor.
+		 * @param source the source observable
+		 * @param seed the initial value of the accumulator
+		 * @param accumulator the accumulator function where the first parameter is the current accumulated value and the second is the now received value.
 		 */
 		public Seeded(
 				Observable<? extends T> source,
@@ -161,10 +166,12 @@ public final class Aggregate {
 		}
 	}
 	/**
+	 * Computes an aggregated value of the source Ts by applying a sum function and applying the divide function when the source
+	 * finishes, sending the result to the output.
+	 * @param <T> the type of the values
+	 * @param <U> the type of the intermediate sum value
+	 * @param <V> the type of the final average value
 	 * @author akarnokd, 2013.01.13.
-	 * @param <V>
-	 * @param <T>
-	 * @param <U>
 	 */
 	public static final class Projected<V, T, U> implements Observable<V> {
 		/**
@@ -181,9 +188,10 @@ public final class Aggregate {
 		private final Observable<? extends T> source;
 
 		/**
-		 * @param accumulator
-		 * @param divide
-		 * @param source
+		 * Constructor.
+		 * @param source the source of BigDecimals to aggregate.
+		 * @param accumulator the function which accumulates the input Ts. The first received T will be accompanied by a null U.
+		 * @param divide the function which perform the final division based on the number of elements
 		 */
 		public Projected(
 				Observable<? extends T> source,
@@ -226,8 +234,12 @@ public final class Aggregate {
 		}
 	}
 	/**
+	 * Apply an accumulator function over the observable source 
+	 * and submit the accumulated value to the returned observable at each incoming value.
+	 * <p>If the source observable terminates before sending a single value,
+	 * the output observable terminates as well. The first incoming value is relayed as-is.</p>
+	 * @param <T> the element type
 	 * @author akarnokd, 2013.01.13.
-	 * @param <T>
 	 */
 	public static final class Simple<T> implements Observable<T> {
 		/**
@@ -240,8 +252,9 @@ public final class Aggregate {
 		private final Func2<? super T, ? super T, ? extends T> accumulator;
 
 		/**
-		 * @param source
-		 * @param accumulator
+		 * Constructor.
+		 * @param source the source observable
+		 * @param accumulator the accumulator function where the first parameter is the current accumulated value and the second is the now received value.
 		 */
 		public Simple(
 				Observable<? extends T> source,

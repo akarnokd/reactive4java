@@ -32,33 +32,32 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 
 /**
+ * Produces an iterable sequence that returns elements
+ * collected/aggregated/whatever from the source
+ * sequence between consequtive iteration.
+ * FIXME not sure how this should work as the return values depend on
+ * when the next() is invoked.
+ * @param <T> the source element type
+ * @param <U> the result element type
  * @author akarnokd, 2013.01.13.
- * @param <U>
- * @param <T>
+ * @since 0.97
  */
 public final class Collect<U, T> implements CloseableIterable<U> {
-	/**
-	 * 
-	 */
-	private final Observable<? extends T> source;
-	/**
-	 * 
-	 */
-	private final Func1<? super U, ? extends U> newCollector;
-	/**
-	 * 
-	 */
-	private final Func0<? extends U> initialCollector;
-	/**
-	 * 
-	 */
-	private final Func2<? super U, ? super T, ? extends U> merge;
+	/** The source sequence. */
+	protected final Observable<? extends T> source;
+	/** The new collector function based on the current collector. */
+	protected final Func1<? super U, ? extends U> newCollector;
+	/** The initial collector function. */
+	protected final Func0<? extends U> initialCollector;
+	/** The merger function. */
+	protected final Func2<? super U, ? super T, ? extends U> merge;
 
 	/**
-	 * @param source
-	 * @param newCollector
-	 * @param initialCollector
-	 * @param merge
+	 * Constructor.
+	 * @param source the source sequence
+	 * @param initialCollector the initial collector factory
+	 * @param merge the merger operator
+	 * @param newCollector the factory to replace the current collector
 	 */
 	public Collect(
 			Observable<? extends T> source,
