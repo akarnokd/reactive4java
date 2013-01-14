@@ -26,7 +26,9 @@ import hu.akarnokd.reactive4java.util.Unique;
 
 import java.io.Closeable;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.locks.Lock;
 
 import javax.annotation.Nonnull;
@@ -392,6 +394,86 @@ public final class Windowing {
 				}
 			}
 			return (new SourceObserver()).registerWith(source);
+		}
+	}
+	/**
+	 * Project the source sequence to
+	 * potentially overlapping windows whose
+	 * start is determined by skip and lengths
+	 * by size.
+	 * @author akarnokd, 2013.01.14.
+	 * @param <T> the element type
+	 */
+	public static class WithSizeSkip<T> implements Observable<Observable<T>> {
+		/** */
+		protected final Observable<? extends T> source;
+		/** */
+		protected final int size;
+		/** */
+		protected final int skip;
+		/**
+		 * Constructor.
+		 * @param source the source sequence
+		 * @param size the window size
+		 * @param skip skip between windows
+		 */
+		public WithSizeSkip(Observable<? extends T> source, int size, int skip) {
+			this.source = source;
+			this.size = size;
+			this.skip = skip;
+			
+		}
+		@Override
+		@Nonnull
+		public Closeable register(@Nonnull final Observer<? super Observable<T>> observer) {
+			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
+				/** The queue of open windows. */
+				@GuardedBy("lock")
+				final Queue<Subject<T, T>> queue = new LinkedList<Subject<T, T>>();
+				/** The current element index. */
+				@GuardedBy("lock")
+				int i;
+				@Override
+				protected void onNext(T value) {
+					for (Subject<T, T> s : queue) {
+						s.next(value);
+					}
+					int c = i - size + 1;
+					if (c >= 0 && c % skip == 0) {
+						queue.poll().finish();
+					}
+					
+					i++;
+					if (i % skip == 0) {
+						Subject<T, T> s = new DefaultObservable<T>();
+						queue.add(s);
+						observer.next(s);
+					}
+				}
+
+				@Override
+				protected void onError(Throwable ex) {
+					while (!queue.isEmpty()) {
+						queue.poll().error(ex);
+					}
+					observer.error(ex);
+				}
+
+				@Override
+				protected void onFinish() {
+					while (!queue.isEmpty()) {
+						queue.poll().finish();
+					}
+					observer.finish();
+				}
+				@Override
+				protected void onRegister() {
+					Subject<T, T> s = new DefaultObservable<T>();
+					queue.add(s);
+					observer.next(s);
+				}
+			};
+			return obs.registerWith(source);
 		}
 	}
 }

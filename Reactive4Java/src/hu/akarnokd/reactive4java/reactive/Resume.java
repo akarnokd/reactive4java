@@ -196,4 +196,96 @@ public final class Resume {
 			return close;
 		}
 	}
+	/**
+	 * Restarts the observation until the source observable terminates normally 
+	 * or the <code>count</code> retry count was used up.
+	 * @param <T> the type of elements
+	 * @author akarnokd, 2013.01.14.
+	 */
+	public static final class RetryCount<T> implements Observable<T> {
+		/** */
+		protected final Observable<? extends T> source;
+		/** */
+		protected final int count;
+
+		/**
+		 * Constructor.
+		 * @param source the source sequence
+		 * @param count the number of retries
+		 */
+		public RetryCount(Observable<? extends T> source, int count) {
+			this.source = source;
+			this.count = count;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
+				/** The remaining retry count. */
+				int remainingCount = count;
+				@Override
+				public void onError(@Nonnull Throwable ex) {
+					if (remainingCount-- > 0) {
+						registerWith(source);
+					} else {
+						observer.error(ex);
+						close();
+					}
+				}
+
+				@Override
+				public void onFinish() {
+					observer.finish();
+					close();
+				}
+
+				@Override
+				public void onNext(T value) {
+					observer.next(value);
+				}
+
+			};
+			return obs.registerWith(source);
+		}
+	}
+	/**
+	 * Restarts the observation until the source observable terminates normally.
+	 * @param <T> the type of elements
+	 * @author akarnokd, 2013.01.14.
+	 */
+	public static final class Retry<T> implements Observable<T> {
+		/** */
+		protected final Observable<? extends T> source;
+
+		/**
+		 * Constructor.
+		 * @param source the source sequence
+		 */
+		public Retry(Observable<? extends T> source) {
+			this.source = source;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
+				@Override
+				public void onError(@Nonnull Throwable ex) {
+					registerWith(source);
+				}
+
+				@Override
+				public void onFinish() {
+					observer.finish();
+					close();
+				}
+				@Override
+				public void onNext(T value) {
+					observer.next(value);
+				}
+			};
+			return obs.registerWith(source);
+		}
+	}
 }

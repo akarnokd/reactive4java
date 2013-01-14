@@ -19,10 +19,10 @@ import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
-import hu.akarnokd.reactive4java.base.Pair;
 import hu.akarnokd.reactive4java.util.Closeables;
 import hu.akarnokd.reactive4java.util.CompositeCloseable;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
+import hu.akarnokd.reactive4java.util.Observers;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -30,14 +30,14 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.GuardedBy;
 
 /**
  * Helper class for zip operators.
@@ -301,99 +301,152 @@ public final class Zip {
 		@Nonnull
 		public Closeable register(@Nonnull final Observer<? super U> observer) {
 
-			final Lock lock = new ReentrantLock(true);
-			
 			final CompositeCloseable composite = new CompositeCloseable();
 			
-			final Object nullSentinel = new Object();
+			final ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
 			
-			final List<BlockingQueue<T>> itemQueues = new ArrayList<BlockingQueue<T>>();
-
-			final AtomicInteger wip = new AtomicInteger();
+			final List<ItemObserver<T>> all = new ArrayList<ItemObserver<T>>();
 			
-			final AtomicReference<List<T>> row = new AtomicReference<List<T>>();
+			Observer<? super List<T>> o2 = Observers.select(observer, selector);
 			
-			/** The individual source observer. */
-			class ItemObserver extends DefaultObserverEx<T> {
-				/** The index to work with. */
-				protected final int index;
-				/**
-				 * Constructor.
-				 * @param lock the common lock
-				 * @param index the item index
-				 */
-				public ItemObserver(Lock lock, int index) {
-					super(lock, false);
-					this.index = index;
-				}
-				@Override
-				protected void onNext(T value) {
-				}
-				/**
-				 * Prepare the current row.
-				 */
-				protected void prepareRow() {
-					List<T> r = row.get();
-					if (r == null) {
-						r = new ArrayList<T>();
-						row.set(r);
-					}
-					while (r.size() < index + 1) {
-						r.add(null);
-					}
-				}
-				/** @return Check if the other queues are empty. */
-				protected boolean othersEmpty() {
-					for (int i = 0; i < itemQueues.size(); i++) {
-						if (i != index) {
-							if (!itemQueues.get(i).isEmpty()) {
-								return false;
-							}
-						}
-					}
-					return true;
-				}
-				@Override
-				protected void onError(Throwable ex) {
-					observer.error(ex);
-					Closeables.closeSilently(composite);
-				}
-				/** Notify observer and terminate. */
-				protected void done() {
-					observer.finish();
-					Closeables.closeSilently(composite);
-				}
-				@Override
-				protected void onFinish() {
-					int n = wip.decrementAndGet();
-					if (n == 1 || (n > 1 && othersEmpty())) {
-						done();
-					}
-				}
-				
-			}
-			
-			List<Pair<ItemObserver, ? extends Observable<? extends T>>> regs = new ArrayList<Pair<ItemObserver, ? extends Observable<? extends T>>>();
-			int i = 0;
 			for (Observable<? extends T> o : sources) {
 				
-				ItemObserver io = new ItemObserver(lock, i);
-				BlockingQueue<T> q = new LinkedBlockingQueue<T>(i);
-				
-				itemQueues.add(q);
+				ItemObserver<T> io = new ItemObserver<T>(
+						rwLock, all, o, o2, composite);
 				composite.add(io);
-
-				regs.add(Pair.of(io, o));
-				
-				i++;
+				all.add(io);
 			}
-			
-			for (Pair<ItemObserver, ? extends Observable<? extends T>> p : regs) {
-				p.first.registerWith(p.second);
+
+			for (ItemObserver<T> io : all) {
+				io.connect();
 			}
 			
 			return composite;
 		}
-		
+		/**
+		 * The individual line's observer.
+		 * @author akarnokd, 2013.01.14.
+		 * @param <T> the element type
+		 */
+		public static class ItemObserver<T> extends DefaultObserverEx<T> {
+			/** Reader-writer lock. */
+			protected  final ReadWriteLock rwLock;
+			/** The queue. */
+			@GuardedBy("rwLock")
+			public final Queue<Object> queue = new LinkedList<Object>();
+			/** Indicate completion of this stream. */
+			@GuardedBy("rwLock")
+			public boolean done;
+			/** The list of the other observers. */
+			public final List<ItemObserver<T>> all;
+			/** The null sentinel value. */
+			protected static final Object NULL_SENTINEL = new Object();
+			/** The global cancel. */
+			protected final Closeable cancel;
+			/** The source. */
+			protected final Observable<? extends T> source;
+			/** The observer. */
+			protected final Observer<? super List<T>> observer;
+			/**
+			 * Constructor.
+			 * @param rwLock the reader-writer lock to use
+			 * @param all all observers
+			 * @param source the source sequence
+			 * @param observer the output observer
+			 * @param cancel the cancellation handler
+			 */
+			public ItemObserver(
+					ReadWriteLock rwLock, 
+					List<ItemObserver<T>> all,
+					Observable<? extends T> source,
+					Observer<? super List<T>> observer,
+					Closeable cancel) {
+				this.rwLock = rwLock;
+				this.all = all;
+				this.source = source;
+				this.observer = observer;
+				this.cancel = cancel;
+			}
+			@Override
+			@SuppressWarnings("unchecked")
+			protected void onNext(T value) {
+				rwLock.readLock().lock();
+				try {
+					queue.add(value != null ? value : NULL_SENTINEL);
+				} finally {
+					rwLock.readLock().unlock();
+				}
+				// run collector
+				if (rwLock.writeLock().tryLock()) {
+					try {
+						while (true) {
+							List<T> values = new ArrayList<T>(all.size());
+							for (ItemObserver<T> io : all) {
+								if (io.queue.isEmpty()) {
+									if (io.done) {
+										observer.finish();
+										Closeables.closeSilently(cancel);
+									}
+									return;
+								}
+								Object v = io.queue.peek();
+								if (v == NULL_SENTINEL) {
+									v = null;
+								}
+								values.add((T)v);
+							}
+							if (values.size() == all.size()) {
+								for (ItemObserver<T> io : all) {
+									io.queue.poll();
+								}
+								observer.next(values);
+							}
+						}
+					} finally {
+						rwLock.writeLock().unlock();
+					}
+				}
+				
+			}
+
+			@Override
+			protected void onError(Throwable ex) {
+				rwLock.writeLock().lock();
+				try {
+					observer.error(ex);
+					Closeables.closeSilently(cancel);
+				} finally {
+					rwLock.writeLock().unlock();
+				}
+				
+			}
+
+			@Override
+			protected void onFinish() {
+				rwLock.readLock().lock();
+				try {
+					done = true;
+				} finally {
+					rwLock.readLock().unlock();
+				}
+				if (rwLock.writeLock().tryLock()) {
+					try {
+						for (ItemObserver<T> io : all) {
+							if (io.queue.isEmpty() && io.done) {
+								observer.finish();
+								Closeables.closeSilently(cancel);
+								return;
+							}
+						}
+					} finally {
+						rwLock.writeLock().unlock();
+					}
+				}
+			}
+			/** Connect to the source. */
+			public void connect() {
+				registerWith(source);
+			}
+		}
 	}
 }

@@ -100,4 +100,79 @@ public class TestReactiveZip {
 		
 		TestUtil.assertEqual(expected, result);
 	}
+	/**
+	 * Tests zip().
+	 */
+	@Test
+	public void zipSameCountMany() {
+		ObservableBuilder<Integer> a = from(0, 1, 2);
+		ObservableBuilder<Integer> b = from(10, 11, 12);
+		ObservableBuilder<Integer> c = from(20, 21, 22);
+		
+		List<List<Integer>> expected = new ArrayList<List<Integer>>();
+		expected.add(TestUtil.newList(0, 10, 20));
+		expected.add(TestUtil.newList(1, 11, 21));
+		expected.add(TestUtil.newList(2, 12, 22));
+		
+		@SuppressWarnings("unchecked")
+		List<ObservableBuilder<Integer>> sources = TestUtil.newList(a, b, c);
+		
+		TestUtil.assertEqual(expected, zip(sources));
+	}
+	/**
+	 * Tests zip().
+	 */
+	@Test
+	public void zipDifferentCountMany() {
+		final int a0 = 0;
+		final int b0 = 1;
+		final int a1 = 2;
+		final int b1 = 3;
+		ObservableBuilder<Integer> a = from(a0, a1, 0);
+		ObservableBuilder<Integer> b = from(b0, b1);
+		ObservableBuilder<Integer> c = from(b0, b1);
+		
+		List<List<Integer>> expected = new ArrayList<List<Integer>>();
+		expected.add(TestUtil.newList(a0, b0, b0));
+		expected.add(TestUtil.newList(a1, b1, b1));
+		
+		@SuppressWarnings("unchecked")
+		List<ObservableBuilder<Integer>> sources = TestUtil.newList(a, b, c);
+		
+		TestUtil.assertEqual(expected, zip(sources));
+		
+	}
+	/** Run with different speed. */
+	@Test
+	public void zipDifferentSpeedMany() {
+		
+		Observable<Long> a = Reactive.tick(0, 2, 300, TimeUnit.MILLISECONDS);
+		Observable<Long> b = Reactive.tick(0, 2, 500, TimeUnit.MILLISECONDS);
+		Observable<Long> c = Reactive.tick(0, 2, 700, TimeUnit.MILLISECONDS);
+		
+		List<List<Long>> expected = new ArrayList<List<Long>>();
+		expected.add(TestUtil.newList(0L, 0L, 0L));
+		expected.add(TestUtil.newList(1L, 1L, 1L));
+		
+		@SuppressWarnings("unchecked")
+		List<Observable<Long>> sources = TestUtil.newList(a, b, c);
+		
+		TestUtil.assertEqual(expected, zip(sources));
+	}
+	/** Run with different speed. */
+	@Test/*(timeout = 1500)*/
+	public void zipTerminateEarlyMany() {
+		
+		Observable<Long> a = Reactive.tick(0, 1, 300, TimeUnit.MILLISECONDS);
+		Observable<Long> b = Reactive.tick(0, 1, 400, TimeUnit.MILLISECONDS);
+		Observable<Long> c = Reactive.tick(0, 100, 1000, TimeUnit.MILLISECONDS);
+		
+		List<List<Long>> expected = new ArrayList<List<Long>>();
+		expected.add(TestUtil.newList(0L, 0L, 0L));
+		
+		@SuppressWarnings("unchecked")
+		List<Observable<Long>> sources = TestUtil.newList(a, b, c);
+		
+		TestUtil.assertEqual(expected, zip(sources));
+	}
 }

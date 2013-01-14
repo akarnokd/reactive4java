@@ -295,4 +295,113 @@ public final class Aggregate {
 			});
 		}
 	}
+	/**
+	 * Creates an observable which accumultates the given source and submits each intermediate results to its subscribers.
+	 * Example:<br>
+	 * <code>range(0, 5).accumulate((x, y) -> x + y)</code> produces a sequence of [0, 1, 3, 6, 10];<br>
+	 * basically the first event (0) is just relayed and then every pair of values are simply added together and relayed
+	 * @param <T> the element type to accumulate
+	 * @author akarnokd, 2013.01.14.
+	 */
+	public static final class Scan<T> implements Observable<T> {
+		/** */
+		private final Observable<? extends T> source;
+		/** */
+		private final Func2<? super T, ? super T, ? extends T> accumulator;
+
+		/**
+		 * Constructor.
+		 * @param source the source sequence
+		 * @param accumulator the accumulator
+		 */
+		public Scan(Observable<? extends T> source,
+				Func2<? super T, ? super T, ? extends T> accumulator) {
+			this.source = source;
+			this.accumulator = accumulator;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			return source.register(new Observer<T>() {
+				/** The current accumulated value. */
+				T current;
+				/** Are we waiting for the first value? */
+				boolean first = true;
+				@Override
+				public void error(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+				@Override
+				public void finish() {
+					observer.finish();
+				}
+				@Override
+				public void next(T value) {
+					if (first) {
+						first = false;
+						current = value;
+
+					} else {
+						current = accumulator.invoke(current, value);
+					}
+					observer.next(current);
+				}
+			});
+		}
+	}
+	/**
+	 * Creates an observable which accumultates the given source and submits each intermediate results to its subscribers.
+	 * Example:<br>
+	 * <code>range(0, 5).accumulate(1, (x, y) => x + y)</code> produces a sequence of [1, 2, 4, 7, 11];<br>
+	 * basically the accumulation starts from zero and the first value (0) that comes in is simply added
+	 * @param <T> the element type to accumulate
+	 * @param <U> the accumulation type
+	 * @author akarnokd, 2013.01.14.
+	 */
+	public static final class ScanSeeded<U, T> implements Observable<U> {
+		/** */
+		private final Observable<? extends T> source;
+		/** */
+		private final U seed;
+		/** */
+		private final Func2<? super U, ? super T, ? extends U> accumulator;
+
+		/**
+		 * Construction.
+		 * @param source the source sequence
+		 * @param seed the initinal accumulator seed
+		 * @param accumulator the accumulator function
+		 */
+		public ScanSeeded(
+				Observable<? extends T> source, 
+				U seed,
+				Func2<? super U, ? super T, ? extends U> accumulator) {
+			this.source = source;
+			this.seed = seed;
+			this.accumulator = accumulator;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super U> observer) {
+			return source.register(new Observer<T>() {
+				/** The current accumulated value. */
+				U current = seed;
+				@Override
+				public void error(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+				@Override
+				public void finish() {
+					observer.finish();
+				}
+				@Override
+				public void next(T value) {
+					current = accumulator.invoke(current, value);
+					observer.next(current);
+				}
+			});
+		}
+	}
 }

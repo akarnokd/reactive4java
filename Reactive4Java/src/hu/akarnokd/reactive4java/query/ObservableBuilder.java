@@ -2450,22 +2450,6 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return from(Reactive.scan(o, seed, accumulator));
 	}
 	/**
-	 * Creates an observable which accumultates the given source and submits each intermediate results to its subscribers.
-	 * Example:<br>
-	 * <code>range(1, 5).accumulate0(1, (x, y) => x + y)</code> produces a sequence of [1, 2, 4, 7, 11, 16];<br>
-	 * basically, it submits the seed value (1) and computes the current aggregate with the current value(1).
-	 * @param seed the initial value of the accumulation
-	 * @param accumulator the accumulator which takest the current accumulation value and the current observed value
-	 * and returns a new accumulated value
-	 * @return the observable
-	 */
-	@Nonnull
-	public ObservableBuilder<T> scan0(
-			final T seed,
-			@Nonnull final Func2<? super T, ? super T, ? extends T> accumulator) {
-		return from(Reactive.scan0(o, seed, accumulator));
-	}
-	/**
 	 * Use the mapper to transform the T source into an U source.
 	 * @param <U> the type of the new observable
 	 * @param mapper the mapper from Ts to Us
@@ -2655,19 +2639,6 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	/**
 	 * Start with the given iterable of values before relaying the Ts from the
 	 * source. The iterable values are emmitted on the default pool.
-	 * @param pool the pool where the iterable values should be emitted
-	 * @param values the values to start with
-	 * @return the new observable
-	 */
-	@Nonnull
-	public ObservableBuilder<T> startWith(
-			@Nonnull Scheduler pool,
-			@Nonnull T... values) {
-		return from(Reactive.startWith(o, Interactive.toIterable(values), pool));
-	}
-	/**
-	 * Start with the given iterable of values before relaying the Ts from the
-	 * source. The iterable values are emmitted on the default pool.
 	 * @param values the values to start with
 	 * @return the new observable
 	 */
@@ -2678,27 +2649,17 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	}
 	/**
 	 * Start with the given iterable of values before relaying the Ts from the
-	 * source. The value is emmitted on the default pool.
-	 * @param value the single value to start with
-	 * @return the new observable
-	 */
-	@Nonnull
-	public ObservableBuilder<T> startWith(
-			T value) {
-		return from(Reactive.startWith(o, value));
-	}
-	/**
-	 * Start with the given iterable of values before relaying the Ts from the
 	 * source. The value is emmitted on the given pool.
-	 * @param value the value to start with
 	 * @param pool the pool where the iterable values should be emitted
+	 * @param values the values to start with
 	 * @return the new observable
 	 */
 	@Nonnull
 	public ObservableBuilder<T> startWith(
-			T value,
-			@Nonnull Scheduler pool) {
-		return from(Reactive.startWith(o, value, pool));
+			@Nonnull Scheduler pool,
+			T... values
+			) {
+		return from(Reactive.startWith(o, pool, values));
 	}
 	/**
 	 * Computes and signals the sum of the values of the BigDecimal source.
@@ -2789,6 +2750,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @param sources the source of multiple observables of Ts.
 	 * @return the new observable
 	 */
+	@SuppressWarnings("unchecked")
 	@Nonnull 
 	public ObservableBuilder<T> switchToNext(
 			@Nonnull final Observable<? extends Observable<? extends T>> sources) {
@@ -3888,6 +3850,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the observable for the buffered items
 	 * @since 0.97
 	 */
+	@Nonnull
 	public <U> ObservableBuilder<List<T>> buffer(
 			@Nonnull Func0<Observable<U>> windowClosingSelector) {
 		return from(Reactive.buffer(o, windowClosingSelector));
@@ -3907,6 +3870,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the observable for the buffered items
 	 * @since 0.97
 	 */
+	@Nonnull
 	public <U, V> ObservableBuilder<List<T>> buffer(
 			@Nonnull Observable<? extends U> windowOpening,
 			@Nonnull Func1<? super U, ? extends Observable<V>> windowClosing
@@ -3923,6 +3887,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the observable for the buffered items
 	 * @since 0.97
 	 */
+	@Nonnull
 	public <U> ObservableBuilder<List<T>> buffer(
 			@Nonnull Observable<U> boundary
 			) {
@@ -3941,8 +3906,92 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull
 	public ObservableBuilder<T> resumeConditionally(
 			@Nonnull Func1<? super Throwable, ? extends Observable<? extends T>> handler) {
 		return from(Reactive.resumeConditionally(o, handler));
+	}
+	/**
+	 * Buffer the nodes as they become available and send them out in bufferSize chunks.
+	 * The observers return a new and modifiable list of T on every next() call.
+	 * @param bufferSize the target buffer size
+	 * @param skip the number of elements to skip between buffers.
+	 * @return the observable of the list
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<List<T>> buffer(
+			final int bufferSize,
+			int skip) {
+		return from(Reactive.buffer(o, bufferSize, skip));
+	}
+	/**
+	 * Invokes the given actions while relaying events.
+	 * @param onNext the action for next
+	 * @param onFinish the action for finish
+	 * @return the augmented observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> invoke(
+			@Nonnull Action1<? super T> onNext, 
+			@Nonnull Action0 onFinish) {
+		return from(Reactive.invoke(o, onNext, onFinish));
+	}
+	/**
+	 * Invokes the given actions while relaying events.
+	 * @param onNext the action for next
+	 * @param onError the action for error
+	 * @return the augmented observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public ObservableBuilder<T> invoke(
+			@Nonnull Action1<? super T> onNext, 
+			@Nonnull Action1<? super Throwable> onError) {
+		return from(Reactive.invoke(o, onNext, onError));
+	}
+	/**
+	 * Invokes the given actions while relaying events.
+	 * @param onNext the action for next
+	 * @param onError the action for error
+	 * @param onFinish the action for finish
+	 * @return the augmented observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public ObservableBuilder<T> invoke(
+			@Nonnull Action1<? super T> onNext, 
+			@Nonnull Action1<? super Throwable> onError, 
+			@Nonnull Action0 onFinish) {
+		return from(Reactive.invoke(o, onNext, onError, onFinish));
+	}
+	/**
+	 * Returns an observable which returns the last <code>count</code>
+	 * elements from the source observable and emits them from
+	 * the specified scheduler pool.
+	 * @param count the number elements to return
+	 * @param pool the scheduler where from emit the last values
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public ObservableBuilder<T> takeLast(
+			final int count,
+			@Nonnull final Scheduler pool) {
+		return from(Reactive.takeLast(o, count, pool));
+	}
+	/**
+	 * Returns an observable which returns the last <code>count</code>
+	 * elements from the source observable and
+	 * returns it as a single list.
+	 * @param count the number elements to return
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public ObservableBuilder<List<T>> takeLastBuffer(
+			final int count) {
+		return from(Reactive.takeLastBuffer(o, count));
 	}
 }
