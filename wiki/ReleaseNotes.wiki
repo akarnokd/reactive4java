@@ -98,6 +98,12 @@
   * Reworked {{{Reactive.take}}} to handle zero count.
   * Added {{{Reactive.takeLastBuffer}}}.
   * Added {{{Reactive.window}}} overload with size and skip.
+  * Removed {{{Reactive.typeAs}}} operator.
+  * Added {{{Reactive.cast}}} operator +1 overload to dynamically cast values.
+  * Renamed {{{Interactive.distinctSet}}} to {{{Interactive.distinct}}} and the original {{{Interactive.distinct}}} to {{{Interactive.distinctNext}}}.
+  * Added +2 overload to {{{Reactive.groupBy}}} of allowing a key equality comparator to be specified.
+  * Reworked {{{Reactive.groupJoin}}} behavior.
+  * Added primitive versions {{{int}}}, {{{long}}} and {{{double}}} observable and observer interfaces.
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
