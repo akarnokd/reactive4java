@@ -459,8 +459,8 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 * Creates an iterable which ensures that subsequent values of T are not equal  (reference and equals).
 	 * @return the new iterable
 	 */
-	public IterableBuilder<T> distinct() {
-		return from(Interactive.distinct(it));
+	public IterableBuilder<T> distinctNext() {
+		return from(Interactive.distinctNext(it));
 	}
 	/**
 	 * Creates an iterable which ensures that subsequent values of 
@@ -469,8 +469,8 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 * @param keySelector the function to extract the keys which will be compared
 	 * @return the new iterable
 	 */
-	public <U> IterableBuilder<T> distinct(@Nonnull final Func1<T, U> keySelector) {
-		return from(Interactive.distinct(it, keySelector));
+	public <U> IterableBuilder<T> distinctNext(@Nonnull final Func1<T, U> keySelector) {
+		return from(Interactive.distinctNext(it, keySelector));
 	}
 	/**
 	 * Returns an iterable which filters its elements based if they vere ever seen before in
@@ -478,8 +478,8 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 * Value equality is computed by reference equality and <code>equals()</code>
 	 * @return the new iterable
 	 */
-	public IterableBuilder<T> distinctSet() {
-		return from(Interactive.distinctSet(it));
+	public IterableBuilder<T> distinct() {
+		return from(Interactive.distinct(it));
 	}
 	/**
 	 * Returns an iterable which filters its elements by an unique key
@@ -490,8 +490,8 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 * @param keySelector the key selector for only-once filtering
 	 * @return the new iterable
 	 */
-	public <U> IterableBuilder<T> distinctSet(@Nonnull Func1<? super T, ? extends U> keySelector) {
-		return from(Interactive.distinctSet(it, keySelector, Functions.<T>identity()));
+	public <U> IterableBuilder<T> distinct(@Nonnull Func1<? super T, ? extends U> keySelector) {
+		return from(Interactive.distinct(it, keySelector, Functions.<T>identity()));
 	}
 	/**
 	 * Returns an iterable which reiterates over and over again on <code>source</code>

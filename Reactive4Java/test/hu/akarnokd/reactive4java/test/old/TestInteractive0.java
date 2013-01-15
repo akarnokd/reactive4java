@@ -21,7 +21,7 @@ import static hu.akarnokd.reactive4java.interactive.Interactive.catchException;
 import static hu.akarnokd.reactive4java.interactive.Interactive.concat;
 import static hu.akarnokd.reactive4java.interactive.Interactive.count;
 import static hu.akarnokd.reactive4java.interactive.Interactive.dematerialize;
-import static hu.akarnokd.reactive4java.interactive.Interactive.distinctSet;
+import static hu.akarnokd.reactive4java.interactive.Interactive.distinct;
 import static hu.akarnokd.reactive4java.interactive.Interactive.generate;
 import static hu.akarnokd.reactive4java.interactive.Interactive.groupBy;
 import static hu.akarnokd.reactive4java.interactive.Interactive.materialize;
@@ -112,7 +112,7 @@ public final class TestInteractive0 {
 			}
 		}));
 		
-		run(distinctSet(
+		run(distinct(
 				concat(
 						range(0, 10), 
 						range(5, 10)), 
@@ -133,7 +133,7 @@ public final class TestInteractive0 {
 			run(g);
 		}
 		
-		Iterable<Integer> it = distinctSet(Arrays.asList(1, 2, 3, 2, 1));
+		Iterable<Integer> it = distinct(Arrays.asList(1, 2, 3, 2, 1));
 		
 		run(it);
 		run(it);

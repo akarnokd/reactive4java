@@ -17,14 +17,14 @@
 package hu.akarnokd.reactive4java.base;
 
 /**
- * The observer who receives the notifications of T.
+ * The observer which receives the notifications of primitive int.
  * @author akarnokd
- * @param <T> the type of the notification values.
+ * @since 0.97
  */
-public interface Observer<T> extends BaseObserver {
+public interface IntObserver extends BaseObserver {
 	/** 
 	 * The next value is received. 
 	 * @param value the next value 
 	 */
-	void next(T value);
+	void next(int value);
 }

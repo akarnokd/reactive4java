@@ -44,7 +44,6 @@ import hu.akarnokd.reactive4java.util.CircularBuffer;
 import hu.akarnokd.reactive4java.util.Closeables;
 import hu.akarnokd.reactive4java.util.CompositeCloseable;
 import hu.akarnokd.reactive4java.util.DefaultConnectableObservable;
-import hu.akarnokd.reactive4java.util.DefaultGroupedObservable;
 import hu.akarnokd.reactive4java.util.DefaultObservable;
 import hu.akarnokd.reactive4java.util.DefaultObserver;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
@@ -70,15 +69,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -1323,11 +1319,10 @@ public final class Reactive {
 		}
 	}
 	/**
-	 * Returns an observable which fires next() events only when the subsequent values differ
-	 * in terms of Object.equals().
-	 * @param <T> the type of the values
-	 * @param source the source observable
-	 * @return the observable
+	 * Returns the distinct elements from the source.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @return the new observable
 	 */
 	@Nonnull
 	public static <T> Observable<T> distinct(
@@ -1335,52 +1330,53 @@ public final class Reactive {
 		return distinct(source, Functions.<T>identity());
 	}
 	/**
-	 * Returns Ts from the source observable if the subsequent keys extracted by <code>keyExtractor</code> are different.
-	 * @param <T> the type of the values to observe
-	 * @param <U> the key type check for distinction
-	 * @param source the source of Ts
-	 * @param keyExtractor the extractor for the keys
-	 * @return the new filtered observable
+	 * Returns the distinct elements from the source according
+	 * to the given comparator function.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param comparer the element comparer
+	 * @return the new observable
+	 * @since 0.97 
+	 */
+	@Nonnull
+	public static <T> Observable<T> distinct(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func2<? super T, ? super T, Boolean> comparer) {
+		return distinct(source, Functions.<T>identity(), comparer);
+	}
+	/**
+	 * Returns a sequence of elements distinct in
+	 * terms of the key extracted from them.
+	 * @param <T> the source and result element type
+	 * @param <U> the key type
+	 * @param source the source sequence
+	 * @param keyExtractor the key extractor
+	 * @return the new observer
 	 */
 	@Nonnull
 	public static <T, U> Observable<T> distinct(
 			@Nonnull final Observable<? extends T> source,
-			@Nonnull final Func1<T, U> keyExtractor) {
-		return new Observable<T>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super T> observer) {
-				return source.register(new Observer<T>() {
-					/** Indication as the first. */
-					boolean first = true;
-					/** The last value. */
-					U lastKey;
-					@Override
-					public void error(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						U key = keyExtractor.invoke(value);
-						if (first) {
-							first = false;
-							observer.next(value);
-						} else
-						if (lastKey != value && (lastKey == null || !lastKey.equals(key))) {
-							observer.next(value);
-						}
-						lastKey = key;
-					}
-
-				});
-			}
-		};
+			@Nonnull final Func1<? super T, ? extends U> keyExtractor) {
+		return distinct(source, keyExtractor, Functions.<U>equals());
+	}
+	/**
+	 * Returns a sequence of elements who are distinct
+	 * in terms of the given key extracted by a function
+	 * and compared against each other via the comparer function.
+	 * @param <T> the source and result element type
+	 * @param <U> the key type
+	 * @param source the source sequence
+	 * @param keyExtractor the key extractor function
+	 * @param keyComparer the key comparer function.
+	 * @return the new observer
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, U> Observable<T> distinct(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super T, ? extends U> keyExtractor,
+			@Nonnull final Func2<? super U, ? super U, Boolean> keyComparer) {
+		return new Distinct<T, U>(source, keyExtractor, keyComparer);
 	}
 	/**
 	 * Repeats the given source so long as the condition returns true.
@@ -2308,6 +2304,27 @@ public final class Reactive {
 	 * The resulting observable gets notified once a new group is encountered.
 	 * Each previously encountered group by itself receives updates along the way.
 	 * If the source finish(), all encountered group will finish().
+	 * @param <T> the type of the source element
+	 * @param <Key> the key type of the group
+	 * @param source the source of Ts
+	 * @param keyExtractor the key extractor which creates Keys from Ts
+	 * @param keyComparer the key equality comparer
+	 * @return the observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, Key> Observable<GroupedObservable<Key, T>> groupBy(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super T, ? extends Key> keyExtractor,
+			@Nonnull final Func2<? super Key, ? super Key, Boolean> keyComparer
+			) {
+		return groupBy(source, keyExtractor, keyComparer, Functions.<T>identity());
+	}
+	/**
+	 * Group the specified source according to the keys provided by the extractor function.
+	 * The resulting observable gets notified once a new group is encountered.
+	 * Each previously encountered group by itself receives updates along the way.
+	 * If the source finish(), all encountered group will finish().
 	 * <p>Exception semantics: if the source sends an exception, the group observable and the individual groups'
 	 * observables receive this error.</p>
 	 * @param <T> the type of the source element
@@ -2323,47 +2340,32 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Func1<? super T, ? extends Key> keyExtractor,
 			@Nonnull final Func1<? super T, ? extends U> valueExtractor) {
-		return new Observable<GroupedObservable<Key, U>>() {
-			@Override
-			@Nonnull 
-			public Closeable register(
-					@Nonnull final Observer<? super GroupedObservable<Key, U>> observer) {
-				final ConcurrentMap<Key, DefaultGroupedObservable<Key, U>> knownGroups = new ConcurrentHashMap<Key, DefaultGroupedObservable<Key, U>>();
-				return source.register(new Observer<T>() {
-					@Override
-					public void error(@Nonnull Throwable ex) {
-						for (Observer<U> group : knownGroups.values()) {
-							group.error(ex);
-						}
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						for (Observer<U> group : knownGroups.values()) {
-							group.finish();
-						}
-						observer.finish();
-					}
-
-					@Override
-					public void next(T value) {
-						final Key key = keyExtractor.invoke(value);
-						DefaultGroupedObservable<Key, U> group = knownGroups.get(key);
-						if (group == null) {
-							group = new DefaultGroupedObservable<Key, U>(key);
-							DefaultGroupedObservable<Key, U> group2 = knownGroups.putIfAbsent(key, group);
-							if (group2 != null) {
-								group = group2;
-							}
-							observer.next(group);
-						}
-						group.next(valueExtractor.invoke(value));
-					}
-
-				});
-			}
-		};
+		return groupBy(source, keyExtractor, Functions.equals(), valueExtractor);
+	}
+	/**
+	 * Group the specified source according to the keys provided by the extractor function.
+	 * The resulting observable gets notified once a new group is encountered.
+	 * Each previously encountered group by itself receives updates along the way.
+	 * If the source finish(), all encountered group will finish().
+	 * <p>Exception semantics: if the source sends an exception, the group observable and the individual groups'
+	 * observables receive this error.</p>
+	 * @param <T> the type of the source element
+	 * @param <U> the type of the output element
+	 * @param <Key> the key type of the group
+	 * @param source the source of Ts
+	 * @param keyExtractor the key extractor which creates Keys from Ts
+	 * @param keyComparer the key equality comparer
+	 * @param valueExtractor the extractor which makes Us from Ts
+	 * @return the observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, U, Key> Observable<GroupedObservable<Key, U>> groupBy(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func1<? super T, ? extends Key> keyExtractor,
+			@Nonnull final Func2<? super Key, ? super Key, Boolean> keyComparer,
+			@Nonnull final Func1<? super T, ? extends U> valueExtractor) {
+		return new GroupBy<Key, U, T>(source, keyExtractor, keyComparer, valueExtractor);
 	}
 	/**
 	 * Groups the source sequence of Ts until the specified duration for that group fires.
@@ -2436,73 +2438,8 @@ public final class Reactive {
 			@Nonnull final Func1<? super T, ? extends V> valueSelector,
 			@Nonnull final Func1<? super GroupedObservable<K, V>, ? extends Observable<D>> durationSelector
 	) {
-		return new Observable<GroupedObservable<K, V>>() {
-			@Override
-			@Nonnull 
-			public Closeable register(
-					@Nonnull final Observer<? super GroupedObservable<K, V>> observer) {
-				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
-					/** The active groups. */
-					final Map<K, DefaultGroupedObservable<K, V>> groups = new HashMap<K, DefaultGroupedObservable<K, V>>();
-					@Override
-					protected void onError(@Nonnull Throwable ex) {
-						for (Observer<V> o : groups.values()) {
-							o.error(ex);
-						}
-						observer.error(ex);
-					}
-
-					@Override
-					protected void onFinish() {
-						for (Observer<V> o : groups.values()) {
-							o.finish();
-						}
-						observer.finish();
-					}
-
-					@Override
-					protected void onNext(T value) {
-						final K k = keySelector.invoke(value);
-						final V v = valueSelector.invoke(value);
-						DefaultGroupedObservable<K, V> gr = groups.get(k);
-						if (gr == null) {
-							gr = new DefaultGroupedObservable<K, V>(k);
-							final DefaultGroupedObservable<K, V> fgr = gr;
-							groups.put(k, gr);
-							add(fgr, durationSelector.invoke(gr).register(new DefaultObserver<D>(lock, true) {
-
-								@Override
-								protected void onError(@Nonnull Throwable ex) {
-									fgr.error(ex); // FIXME error propagation
-									groups.remove(k);
-									remove(fgr);
-								}
-
-								@Override
-								protected void onFinish() {
-									fgr.finish();
-									groups.remove(k);
-									remove(fgr);
-								}
-
-								@Override
-								protected void onNext(D value) {
-									fgr.finish();
-									groups.remove(k);
-									remove(fgr);
-								}
-
-							}));
-							observer.next(gr);
-						}
-						gr.next(v);
-					}
-
-				};
-				o.registerWith(source);
-				return o;
-			}
-		};
+		return new GroupByUntil.Default<K, V, T, D>(source, keySelector, valueSelector,
+				durationSelector);
 	}
 	/**
 	 * Groups the source sequence of Ts until the specified duration for that group fires.
@@ -2529,102 +2466,12 @@ public final class Reactive {
 			@Nonnull final Func1<? super GroupedObservable<K, V>, ? extends Observable<D>> durationSelector,
 			@Nonnull final Func2<? super K, ? super K, Boolean> keyComparer
 	) {
-		return new Observable<GroupedObservable<K, V>>() {
-			@Override
-			@Nonnull 
-			public Closeable register(
-					@Nonnull final Observer<? super GroupedObservable<K, V>> observer) {
-				DefaultObserverEx<T> o = new DefaultObserverEx<T>(true) {
-					/** The key class with custom equality comparer. */
-					class Key {
-						/** The key value. */
-						final K key;
-						/**
-						 * Constructor.
-						 * @param key the key
-						 */
-						Key(K key) {
-							this.key = key;
-						}
-						@Override
-						public boolean equals(Object obj) {
-							if (obj instanceof Key) {
-								return keyComparer.invoke(key, ((Key)obj).key);
-							}
-							return false;
-						}
-						@Override
-						public int hashCode() {
-							return key != null ? key.hashCode() : 0;
-						}
-					}
-					/** The active groups. */
-					final Map<Key, DefaultGroupedObservable<K, V>> groups = new HashMap<Key, DefaultGroupedObservable<K, V>>();
-					@Override
-					protected void onError(@Nonnull Throwable ex) {
-						for (Observer<V> o : groups.values()) {
-							o.error(ex);
-						}
-						observer.error(ex);
-					}
-
-					@Override
-					protected void onFinish() {
-						for (Observer<V> o : groups.values()) {
-							o.finish();
-						}
-						observer.finish();
-					}
-
-					@Override
-					protected void onNext(T value) {
-						final K kv = keySelector.invoke(value);
-						final Key k = new Key(kv);
-						final V v = valueSelector.invoke(value);
-						DefaultGroupedObservable<K, V> gr = groups.get(k);
-						if (gr == null) {
-							gr = new DefaultGroupedObservable<K, V>(kv);
-							final DefaultGroupedObservable<K, V> fgr = gr;
-							groups.put(k, gr);
-							add(fgr, durationSelector.invoke(gr).register(new DefaultObserver<D>(lock, true) {
-
-								@Override
-								protected void onError(@Nonnull Throwable ex) {
-									fgr.error(ex); // FIXME error propagation
-									groups.remove(k);
-									remove(fgr);
-								}
-
-								@Override
-								protected void onFinish() {
-									fgr.finish();
-									groups.remove(k);
-									remove(fgr);
-								}
-
-								@Override
-								protected void onNext(D value) {
-									fgr.finish();
-									groups.remove(k);
-									remove(fgr);
-								}
-
-							}));
-							observer.next(gr);
-						}
-						gr.next(v);
-					}
-
-				};
-				o.registerWith(source);
-				return o;
-			}
-		};
+		return new GroupByUntil.WithComparer<K, V, T, D>(source, keySelector, valueSelector,
+				durationSelector, keyComparer);
 	}
 	/**
 	 * Returns an observable which correlates two streams of values based on
 	 * their time when they overlapped and groups the results.
-	 * FIXME not sure how to implement it
 	 * @param <Left> the element type of the left stream
 	 * @param <Right> the element type of the right stream
 	 * @param <LeftDuration> the overlapping duration indicator for the left stream (e.g., the event when it leaves)
@@ -2646,137 +2493,9 @@ public final class Reactive {
 			@Nonnull final Func1<? super Right, ? extends Observable<RightDuration>> rightDurationSelector,
 			@Nonnull final Func2<? super Left, ? super Observable<? extends Right>, ? extends Result> resultSelector
 	) {
-		return new Observable<Result>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super Result> observer) {
-				final Lock lock = new ReentrantLock(true);
-				final HashSet<Left> leftActive = new HashSet<Left>();
-				final HashSet<Right> rightActive = new HashSet<Right>();
-				final Map<Right, DefaultObservable<Right>> rightGroups = new IdentityHashMap<Right, DefaultObservable<Right>>();
-
-				final CompositeCloseable closeBoth = new CompositeCloseable();
-
-				DefaultObserverEx<Left> o1 = new DefaultObserverEx<Left>(lock, true) {
-					/** Relay the inner error to the outer. */
-					void innerError(Throwable ex) {
-						error(ex);
-					}
-					@Override
-					protected void onClose() {
-						super.onClose();
-						Closeables.closeSilently(closeBoth);
-					}
-
-					@Override
-					protected void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					protected void onFinish() {
-						observer.finish();
-					}
-					@Override
-					protected void onNext(final Left value) {
-						leftActive.add(value);
-
-						Observable<LeftDuration> completion = leftDurationSelector.invoke(value);
-						final Object token = new Object();
-						add(token, completion.register(new DefaultObserver<LeftDuration>(lock, true) {
-
-							@Override
-							protected void onClose() {
-								remove(token);
-							}
-
-							@Override
-							protected void onError(@Nonnull Throwable ex) {
-								innerError(ex);
-							}
-
-							@Override
-							protected void onFinish() {
-								leftActive.remove(value);
-							}
-							@Override
-							protected void onNext(LeftDuration value) {
-								// FIXME NO OP?
-							}
-						}));
-						for (Right r : rightActive) {
-							observer.next(resultSelector.invoke(value, rightGroups.get(r)));
-						}
-					}
-				};
-				DefaultObserverEx<Right> o2 = new DefaultObserverEx<Right>(lock, true) {
-					/** Relay the inner error to the outer. */
-					void innerError(Throwable ex) {
-						error(ex);
-					}
-					@Override
-					protected void onClose() {
-						super.onClose();
-						Closeables.closeSilently(closeBoth);
-					}
-					@Override
-					protected void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					protected void onFinish() {
-						observer.finish();
-					}
-					@Override
-					protected void onNext(final Right value) {
-						rightActive.add(value);
-
-						Observable<RightDuration> completion = rightDurationSelector.invoke(value);
-						final Object token = new Object();
-						add(token, completion.register(new DefaultObserver<RightDuration>(lock, true) {
-
-							@Override
-							protected void onClose() {
-								remove(token);
-								DefaultObservable<Right> rg = rightGroups.remove(value);
-								if (rg != null) {
-									rg.finish();
-								}
-							}
-
-							@Override
-							protected void onError(@Nonnull Throwable ex) {
-								innerError(ex);
-							}
-
-							@Override
-							protected void onFinish() {
-								rightActive.remove(value);
-							}
-							@Override
-							protected void onNext(RightDuration value) {
-								// FIXME NO OP?!
-							}
-						}));
-						DefaultObservable<Right> r = rightGroups.get(value);
-						if (r == null) {
-							r = new DefaultObservable<Right>();
-							rightGroups.put(value, r);
-						}
-						for (Left left : leftActive) {
-							observer.next(resultSelector.invoke(left, r));
-						}
-						r.next(value);
-					}
-				};
-				closeBoth.add(o1);
-				closeBoth.add(o2);
-				o1.registerWith(left);
-				o2.registerWith(right);
-				return closeBoth;
-			}
-		};
+		return new GroupJoin<Result, Left, Right, LeftDuration, RightDuration>(
+				left, right, leftDurationSelector, rightDurationSelector,  
+				resultSelector);
 	}
 	/**
 	 * Returns an observable where the submitted condition decides whether 
@@ -8384,43 +8103,39 @@ public final class Reactive {
 		};
 	}
 	/**
-	 * Filters objects from source which are assignment compatible with T.
-	 * Note that due java erasure complex generic types can't be filtered this way in runtime (e.g., List&lt;String>.class is just List.class).
-	 * FIXME is this what cast stands for?
+	 * Casts the values of the source sequence into the
+	 * given type via the type token. ClassCastExceptions
+	 * are relayed through the error method and the stream
+	 * is stopped.
 	 * @param <T> the type of the expected values
 	 * @param source the source of unknown elements
 	 * @param token the token to test agains the elements
 	 * @return the observable containing Ts
+	 * @since 0.97
 	 */
 	@Nonnull
-	public static <T> Observable<T> typedAs(
+	public static <T> Observable<T> cast(
 			@Nonnull final Observable<?> source,
 			@Nonnull final Class<T> token) {
-		return new Observable<T>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super T> observer) {
-				return source.register(new Observer<Object>() {
-					@Override
-					public void error(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void finish() {
-						observer.finish();
-					}
-
-					@Override
-					public void next(Object value) {
-						if (token.isInstance(value)) {
-							observer.next(token.cast(value));
-						}
-					}
-
-				});
-			}
-		};
+		return new Select.CastToken<T>(source, token);
+	}
+	/**
+	 * Casts the values of the source sequence into the target type. 
+	 * ClassCastExceptions
+	 * are relayed through the error method and the stream
+	 * is stopped.
+	 * <p>Note that generics information is erased, the
+	 * actual exception might come from much deeper of the
+	 * operator chain.</p>
+	 * @param <T> the type of the expected values
+	 * @param source the source of unknown elements
+	 * @return the observable containing Ts
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> cast(
+			@Nonnull final Observable<?> source) {
+		return new Select.Cast<T>(source);
 	}
 	/**
 	 * A convenience function which unwraps the T from a TimeInterval of T.
@@ -8860,6 +8575,48 @@ public final class Reactive {
 	public static <T> Observable<Observable<T>> window(
 			@Nonnull Observable<? extends T> source, int size, int skip) {
 		return new Windowing.WithSizeSkip<T>(source, size, skip);
+	}
+	/**
+	 * Returns the default value if the source
+	 * sequence is empty.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param defaultValue the default value
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> defaultIfEmpty(
+			@Nonnull final Observable<? extends T> source, 
+			T defaultValue) {
+		return defaultIfEmpty(source, Functions.constant0(defaultValue));
+	}
+	/**
+	 * Returns the default value provided by
+	 * the function if the source sequence is empty.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param defaultValueFunc the default value factory
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> defaultIfEmpty(
+			@Nonnull final Observable<? extends T> source, 
+			Func0<? extends T> defaultValueFunc) {
+		return new Select.DefaultIfEmptyFunc<T>(source, defaultValueFunc);
+	}
+	/**
+	 * Filters the elements of the source sequence which
+	 * is assignable to the provided type.
+	 * @param <T> the target element type
+	 * @param source the source sequence
+	 * @param clazz the class token
+	 * @return the filtering obserable
+	 * since 0.97
+	 */
+	public static <T> Observable<T> ofType(@Nonnull Observable<?> source, @Nonnull Class<T> clazz) {
+		return new Where.OfType<T>(source, clazz);
 	}
 	/*
 	 * TODO merge() with concurrency limit.

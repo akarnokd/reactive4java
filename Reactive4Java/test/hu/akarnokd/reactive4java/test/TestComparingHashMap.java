@@ -13,18 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package hu.akarnokd.reactive4java.test;
 
-package hu.akarnokd.reactive4java.base;
+import hu.akarnokd.reactive4java.util.ComparingHashMap;
+
+import java.util.Arrays;
+
+import org.junit.Test;
 
 /**
- * The observer who receives the notifications of T.
- * @author akarnokd
- * @param <T> the type of the notification values.
+ * Test the ComparingHashMap behavior.
+ * @author akarnokd, 2013.01.15.
  */
-public interface Observer<T> extends BaseObserver {
-	/** 
-	 * The next value is received. 
-	 * @param value the next value 
-	 */
-	void next(T value);
+public class TestComparingHashMap {
+	/** Simple test. */
+	@Test
+	public void test() {
+		ComparingHashMap<Integer, Integer> map = new ComparingHashMap<Integer, Integer>();
+		map.put(0, 0);
+		map.put(1, 1);
+		map.put(2, 2);
+		
+		TestUtil.assertEqual(Arrays.asList(0, 1, 2), map.values());
+	}
+
 }

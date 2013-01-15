@@ -957,7 +957,7 @@ public final class Interactive {
 	 * @return the new iterable
 	 */
 	@Nonnull
-	public static <T> Iterable<T> distinct(
+	public static <T> Iterable<T> distinctNext(
 			@Nonnull final Iterable<? extends T> source) {
 		return where(source,
 		new Func0<Func2<Integer, T, Boolean>>() {
@@ -996,7 +996,7 @@ public final class Interactive {
 	 * @return the new iterable
 	 */
 	@Nonnull
-	public static <T, U> Iterable<T> distinct(
+	public static <T, U> Iterable<T> distinctNext(
 			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<T, U> keyExtractor) {
 		return where(source,
@@ -1036,9 +1036,9 @@ public final class Interactive {
 	 * @return the new iterable
 	 */
 	@Nonnull
-	public static <T> Iterable<T> distinctSet(
+	public static <T> Iterable<T> distinct(
 			@Nonnull final Iterable<? extends T> source) {
-		return distinctSet(source, Functions.<T>identity(), Functions.<T>identity());
+		return distinct(source, Functions.<T>identity(), Functions.<T>identity());
 	}
 	/**
 	 * Returns an iterable which filters its elements by an unique key
@@ -1054,7 +1054,7 @@ public final class Interactive {
 	 * @return the new iterable
 	 */
 	@Nonnull
-	public static <T, U, V> Iterable<V> distinctSet(
+	public static <T, U, V> Iterable<V> distinct(
 			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, ? extends U> keySelector,
 			@Nonnull final Func1<? super T, ? extends V> valueSelector) {
@@ -1440,7 +1440,7 @@ public final class Interactive {
 			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, ? extends V> keySelector,
 			@Nonnull final Func1<? super T, ? extends U> valueSelector) {
-		return distinctSet(new Iterable<GroupedIterable<V, U>>() {
+		return distinct(new Iterable<GroupedIterable<V, U>>() {
 			@Override
 			public Iterator<GroupedIterable<V, U>> iterator() {
 				final Map<V, DefaultGroupedIterable<V, U>> groups = new LinkedHashMap<V, DefaultGroupedIterable<V, U>>();

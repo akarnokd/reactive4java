@@ -13,18 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package hu.akarnokd.reactive4java.base;
 
+import javax.annotation.Nonnull;
+
 /**
- * The observer who receives the notifications of T.
- * @author akarnokd
- * @param <T> the type of the notification values.
+ * Common superclass for all observers
+ * defining the error and finish methods.
+ * @author akarnokd, 2013.01.15.
+ * @since 0.97
  */
-public interface Observer<T> extends BaseObserver {
+public interface BaseObserver {
 	/** 
-	 * The next value is received. 
-	 * @param value the next value 
+	 * An exception is received.
+	 * @param ex the exception 
 	 */
-	void next(T value);
+	void error(@Nonnull Throwable ex);
+	/** 
+	 * No more values to expect. 
+	 */
+	void finish();
 }
