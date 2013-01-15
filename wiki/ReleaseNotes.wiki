@@ -94,6 +94,10 @@
   * Reworked the {{{Reactive.skipLast}}}.
   * Added varargs overload to many operators.
     * {{{Reactive.startWith}}}
+    * Reactive.amb
+    * Reactive.concat
+    * Reactive.merge
+    * Reactive.join
   * Added overload to {{{Reactive.takeLast}}}.
   * Reworked {{{Reactive.take}}} to handle zero count.
   * Added {{{Reactive.takeLastBuffer}}}.
@@ -104,6 +108,7 @@
   * Added +2 overload to {{{Reactive.groupBy}}} of allowing a key equality comparator to be specified.
   * Reworked {{{Reactive.groupJoin}}} behavior.
   * Added primitive versions {{{int}}}, {{{long}}} and {{{double}}} observable and observer interfaces.
+  * Added Long-indexed overloads to {{{Reactive.select}}} and {{{Reactive.where}}}.
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
