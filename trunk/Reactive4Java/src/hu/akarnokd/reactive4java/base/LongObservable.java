@@ -16,15 +16,23 @@
 
 package hu.akarnokd.reactive4java.base;
 
+import java.io.Closeable;
+
+import javax.annotation.Nonnull;
+
+
 /**
- * The observer who receives the notifications of T.
+ * Defines a provider of primitive long
+ * values for push-based streaming.
  * @author akarnokd
- * @param <T> the type of the notification values.
+ * @since 0.97
  */
-public interface Observer<T> extends BaseObserver {
-	/** 
-	 * The next value is received. 
-	 * @param value the next value 
+public interface LongObservable {
+	/**
+	 * Registers an observer for the notification of Ts.
+	 * @param observer the observer of Ts or any supertype of it
+	 * @return the way of deregister the observer from this provider
 	 */
-	void next(T value);
+	@Nonnull 
+	Closeable register(@Nonnull LongObserver observer);
 }

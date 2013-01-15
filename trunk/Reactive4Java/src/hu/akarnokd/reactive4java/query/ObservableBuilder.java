@@ -1136,24 +1136,51 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return from(Reactive.dematerialize((Observable<Option<T>>)o));
 	}
 	/**
-	 * Returns an observable which fires next() events only when the subsequent values differ
-	 * in terms of Object.equals().
-	 * @return the observable
+	 * Returns the distinct elements from the source.
+	 * @return the new observable
 	 */
 	@Nonnull
 	public ObservableBuilder<T> distinct() {
 		return from(Reactive.distinct(o));
 	}
 	/**
-	 * Returns Ts from the source observable if the subsequent keys extracted by <code>keyExtractor</code> are different.
-	 * @param <U> the key type check for distinction
-	 * @param keyExtractor the etractor for the keys
-	 * @return the new filtered observable
+	 * Returns a sequence of elements distinct in
+	 * terms of the key extracted from them.
+	 * @param <U> the key type
+	 * @param keyExtractor the key extractor
+	 * @return the new observer
 	 */
 	@Nonnull
 	public <U> ObservableBuilder<T> distinct(
 			@Nonnull final Func1<T, U> keyExtractor) {
 		return from(Reactive.distinct(o, keyExtractor));
+	}
+	/**
+	 * Returns the distinct elements from the source according
+	 * to the given comparator function.
+	 * @param comparer the element comparer
+	 * @return the new observable
+	 * @since 0.97 
+	 */
+	@Nonnull
+	public ObservableBuilder<T> distinct(Func2<? super T, ? super T, Boolean> comparer) {
+		return from(Reactive.distinct(o, comparer));
+	}
+	/**
+	 * Returns a sequence of elements who are distinct
+	 * in terms of the given key extracted by a function
+	 * and compared against each other via the comparer function.
+	 * @param <U> the key type
+	 * @param keyExtractor the key extractor function
+	 * @param keyComparer the key comparer function.
+	 * @return the new observer
+	 * @since 0.97
+	 */
+	@Nonnull
+	public <U> ObservableBuilder<T> distinct(
+			@Nonnull final Func1<? super T, ? extends U> keyExtractor,
+			Func2<? super U, ? super U, Boolean> keyComparer) {
+		return from(Reactive.distinct(o, keyExtractor, keyComparer));
 	}
 	/**
 	 * Maintains a queue of Ts which is then drained by the pump. Uses the default pool.
@@ -3092,15 +3119,28 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return from(Reactive.toMultiMap(o, keySelector, collectionSupplier, valueSelector, keyComparer));
 	}
 	/**
-	 * Filters objects from source which are assignment compatible with T.
-	 * Note that due java erasure complex generic types can't be filtered this way in runtime (e.g., List&lt;String>.class is just List.class).
+	 * Casts the values of this observable via the given type token
+	 * or forwards a ClassCastException.
+	 * @param <U> the output type
 	 * @param token the token to test agains the elements
 	 * @return the observable containing Ts
+	 * @since 0.97
 	 */
 	@Nonnull
-	public ObservableBuilder<T> typedAs(
-			@Nonnull final Class<T> token) {
-		return from(Reactive.typedAs(o, token));
+	public <U> ObservableBuilder<U> cast(
+			@Nonnull final Class<U> token) {
+		return from(Reactive.cast(o, token));
+	}
+	/**
+	 * Casts the values of this observable implicitly
+	 * and forwards a ClassCastException if it occurs.
+	 * @param <U> the output type
+	 * @return the observable containing Ts
+	 * @since 0.97
+	 */
+	@Nonnull
+	public <U> ObservableBuilder<U> cast() {
+		return from(Reactive.<U>cast(o));
 	}
 	/**
 	 * Creates a filtered observable where only Ts are relayed which satisfy the clause.
@@ -3591,17 +3631,6 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		return clazz.isInstance(o);
 	}
 	/**
-	 * Casts the wrapped observable into the supplied type via clazz.cast().
-	 * @param <U> the target type
-	 * @param clazz the target class
-	 * @return the cast value of the wrapped Observable
-	 * @since 0.97
-	 */
-	@Nonnull 
-	public <U> U cast(@Nonnull Class<U> clazz) {
-		return clazz.cast(o);
-	}
-	/**
 	 * @return Unwraps the underlying Observable in case it is wrapped
 	 * multiple times with the ObservableBuilder class.
 	 * @since 0.97
@@ -3993,5 +4022,36 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public ObservableBuilder<List<T>> takeLastBuffer(
 			final int count) {
 		return from(Reactive.takeLastBuffer(o, count));
+	}
+	/**
+	 * Returns the default value if the source
+	 * sequence is empty.
+	 * @param defaultValue the default value
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> defaultIfEmpty(T defaultValue) {
+		return from(Reactive.defaultIfEmpty(o, defaultValue));
+	}
+	/**
+	 * Returns the default value provided by
+	 * the function if the source sequence is empty.
+	 * @param defaultValueFunc the default value factory
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public ObservableBuilder<T> defaultIfEmpty(Func0<? extends T> defaultValueFunc) {
+		return from(Reactive.defaultIfEmpty(o, defaultValueFunc));
+	}
+	/**
+	 * Filters the elements of the source sequence which
+	 * is assignable to the provided type.
+	 * @param <U> the target element type
+	 * @param clazz the class token
+	 * @return the filtering obserable
+	 * since 0.97
+	 */
+	public <U> Observable<U> ofType(@Nonnull Class<U> clazz) {
+		return Reactive.ofType(o, clazz);
 	}
 }

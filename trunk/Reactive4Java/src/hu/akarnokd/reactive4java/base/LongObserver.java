@@ -16,15 +16,26 @@
 
 package hu.akarnokd.reactive4java.base;
 
+import javax.annotation.Nonnull;
+
 /**
- * The observer who receives the notifications of T.
+ * The observer which receives the notifications of primitive long.
  * @author akarnokd
- * @param <T> the type of the notification values.
+ * @since 0.97
  */
-public interface Observer<T> extends BaseObserver {
+public interface LongObserver {
 	/** 
 	 * The next value is received. 
 	 * @param value the next value 
 	 */
-	void next(T value);
+	void next(long value);
+	/** 
+	 * An exception is received.
+	 * @param ex the exception 
+	 */
+	void error(@Nonnull Throwable ex);
+	/** 
+	 * No more values to expect. 
+	 */
+	void finish();
 }
