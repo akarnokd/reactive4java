@@ -53,7 +53,7 @@ public final class CombineLatest {
 	 * @param <V> the result element type
 	 * @author akarnokd, 2013.01.13.
 	 */
-	public static final class NullStart<V, T, U> implements Observable<V> {
+	public static final class NullStart<T, U, V> implements Observable<V> {
 		/** The result selector. */
 		private final Func2<? super T, ? super U, ? extends V> selector;
 		/** The left sequence. */

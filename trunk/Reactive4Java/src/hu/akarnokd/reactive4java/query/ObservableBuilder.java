@@ -2487,7 +2487,6 @@ public final class ObservableBuilder<T> implements Observable<T> {
 			@Nonnull final Func1<? super T, ? extends U> mapper) {
 		return from(Reactive.select(o, mapper));
 	}
-
 	/**
 	 * Transforms the elements of the source observable into Us by using a selector which receives an index indicating
 	 * how many elements have been transformed this far.
@@ -2499,6 +2498,20 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public <U> ObservableBuilder<U> select(
 			@Nonnull final Func2<? super Integer, ? super T, ? extends U> selector) {
 		return from(Reactive.select(o, selector));
+	}
+	/**
+	 * Transforms the elements of the source observable 
+	 * into Us by using a selector which receives a long index indicating
+	 * how many elements have been transformed this far.
+	 * @param <U> the output element type
+	 * @param selector the selector taking an index and the current T
+	 * @return the transformed observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public <U> ObservableBuilder<U> selectLong(
+			@Nonnull final Func2<? super Long, ? super T, ? extends U> selector) {
+		return from(Reactive.selectLong(o, selector));
 	}
 	/**
 	 * Transform the given source of Ts into Us in a way that the
@@ -2553,6 +2566,22 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public <U> ObservableBuilder<U> selectManyIterable(
 			@Nonnull final Func1<? super T, ? extends Iterable<? extends U>> selector) {
 		return from(Reactive.selectManyIterable(o, selector));
+	}
+	/**
+	 * Transform the given source of Ts into Us in a way that the selector might return zero to multiple elements of Us for a single T.
+	 * The iterable is flattened and submitted to the output
+	 * @param <U> the intermediate type of
+	 * @param <V> the output type
+	 * @param selector the selector to return an Iterable of Us
+	 * @param resultSelector the selector for a pair of T and U
+	 * @return the observable of Vs
+	 * @since 0.97
+	 */
+	@Nonnull
+	public <U, V> Observable<V> selectManyIterable(
+			@Nonnull final Func1<? super T, ? extends Iterable<? extends U>> selector,
+			@Nonnull final Func2<? super T, ? super U, ? extends V> resultSelector) {
+		return from(Reactive.selectManyIterable(o, selector, resultSelector));
 	}
 	/**
 	 * Compares two sequences and returns whether they are produce the same

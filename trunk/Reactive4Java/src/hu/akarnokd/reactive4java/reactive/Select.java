@@ -16,6 +16,8 @@
 package hu.akarnokd.reactive4java.reactive;
 
 import hu.akarnokd.reactive4java.base.Func0;
+import hu.akarnokd.reactive4java.base.Func1;
+import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
@@ -178,6 +180,153 @@ public final class Select {
 					observer.finish();
 				}
 				
+			});
+		}
+	}
+	/**
+	 * Transforms the elements of the source observable into 
+	 * Us by using a selector which receives an index indicating
+	 * how many elements have been transformed this far.
+	 * @author akarnokd, 2013.01.15.
+	 * @param <T> the source element type
+	 * @param <U> the output element type
+	 */
+	public static final class Indexed<T, U> implements Observable<U> {
+		/** */
+		private final Func2<? super Integer, ? super T, ? extends U> selector;
+		/** */
+		private final Observable<? extends T> source;
+
+		/**
+		 * Constructor.
+		 * @param source the source observable
+		 * @param selector the selector taking an index and the current T
+		 */
+		public Indexed(
+				Observable<? extends T> source,
+				Func2<? super Integer, ? super T, ? extends U> selector) {
+			this.selector = selector;
+			this.source = source;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super U> observer) {
+			return source.register(new Observer<T>() {
+				/** The running index. */
+				int index;
+				@Override
+				public void error(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				public void finish() {
+					observer.finish();
+				}
+
+				@Override
+				public void next(T value) {
+					observer.next(selector.invoke(index++, value));
+				}
+
+			});
+		}
+	}
+	/**
+	 * Use the mapper to transform the T source into an U source.
+	 * @param <T> the type of the original observable
+	 * @param <U> the type of the new observable
+	 * @author akarnokd, 2013.01.15.
+	 */
+	public static final class Simple<T, U> implements Observable<U> {
+		/** */
+		private final Func1<? super T, ? extends U> mapper;
+		/** */
+		private final Observable<? extends T> source;
+
+		/**
+		 * Constructor.
+		 * @param source the source of Ts
+		 * @param mapper the mapper from Ts to Us
+		 */
+		public Simple(
+				Observable<? extends T> source,
+				Func1<? super T, ? extends U> mapper
+				) {
+			this.mapper = mapper;
+			this.source = source;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super U> observer) {
+			return source.register(new Observer<T>() {
+				@Override
+				public void error(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				public void finish() {
+					observer.finish();
+				}
+
+				@Override
+				public void next(T value) {
+					observer.next(mapper.invoke(value));
+				}
+
+			});
+		}
+	}
+	/**
+	 * Transforms the elements of the source observable into 
+	 * Us by using a selector which receives an index indicating
+	 * how many elements have been transformed this far.
+	 * @author akarnokd, 2013.01.15.
+	 * @param <T> the source element type
+	 * @param <U> the output element type
+	 */
+	public static final class LongIndexed<T, U> implements Observable<U> {
+		/** */
+		private final Func2<? super Long, ? super T, ? extends U> selector;
+		/** */
+		private final Observable<? extends T> source;
+
+		/**
+		 * Constructor.
+		 * @param source the source observable
+		 * @param selector the selector taking an index and the current T
+		 */
+		public LongIndexed(
+				Observable<? extends T> source,
+				Func2<? super Long, ? super T, ? extends U> selector) {
+			this.selector = selector;
+			this.source = source;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super U> observer) {
+			return source.register(new Observer<T>() {
+				/** The running index. */
+				long index;
+				@Override
+				public void error(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				public void finish() {
+					observer.finish();
+				}
+
+				@Override
+				public void next(T value) {
+					observer.next(selector.invoke(index++, value));
+				}
+
 			});
 		}
 	}
