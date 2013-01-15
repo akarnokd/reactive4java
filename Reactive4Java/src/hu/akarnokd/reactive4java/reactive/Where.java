@@ -19,6 +19,9 @@ import java.io.Closeable;
 
 import javax.annotation.Nonnull;
 
+import hu.akarnokd.reactive4java.base.Func0;
+import hu.akarnokd.reactive4java.base.Func1;
+import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 
@@ -73,6 +76,212 @@ public final class Where {
 					observer.finish();
 				}
 				
+			});
+		}
+	}
+	/**
+	 * Creates a filtered observable where only Ts are relayed which satisfy the clause.
+	 * The clause receives the index and the current element to test.
+	 * @param <T> the element type
+	 * @author akarnokd, 2013.01.15.
+	 */
+	public static final class Indexed<T> implements
+			Observable<T> {
+		/** */
+		private final Observable<? extends T> source;
+		/** */
+		private final Func2<? super Integer, ? super T, Boolean> clause;
+
+		/**
+		 * Constructor.
+		 * @param source the source of Ts
+		 * @param clause the filter clause, the first parameter receives the current index, the second receives the current element
+		 */
+		public Indexed(
+				Observable<? extends T> source,
+				Func2<? super Integer, ? super T, Boolean> clause) {
+			this.source = source;
+			this.clause = clause;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			return source.register(new Observer<T>() {
+				/** The current element index. */
+				int index;
+				@Override
+				public void error(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				public void finish() {
+					observer.finish();
+				}
+
+				@Override
+				public void next(T value) {
+					if (clause.invoke(index, value)) {
+						observer.next(value);
+					}
+					index++;
+				}
+
+			});
+		}
+	}
+	/**
+	 * Creates a filtered observable where only Ts are relayed which satisfy the clause.
+	 * The clause receives the index and the current element to test.
+	 * @param <T> the element type
+	 * @author akarnokd, 2013.01.15.
+	 */
+	public static final class LongIndexed<T> implements
+			Observable<T> {
+		/** */
+		private final Observable<? extends T> source;
+		/** */
+		private final Func2<? super Long, ? super T, Boolean> clause;
+
+		/**
+		 * Constructor.
+		 * @param source the source of Ts
+		 * @param clause the filter clause, the first parameter receives the current index, the second receives the current element
+		 */
+		public LongIndexed(
+				Observable<? extends T> source,
+				Func2<? super Long, ? super T, Boolean> clause) {
+			this.source = source;
+			this.clause = clause;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			return source.register(new Observer<T>() {
+				/** The current element index. */
+				long index;
+				@Override
+				public void error(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				public void finish() {
+					observer.finish();
+				}
+
+				@Override
+				public void next(T value) {
+					if (clause.invoke(index, value)) {
+						observer.next(value);
+					}
+					index++;
+				}
+
+			});
+		}
+	}
+	/**
+	 * Creates a filtered observable where only Ts are relayed which satisfy the clause.
+	 * @param <T> the element type
+	 * @author akarnokd, 2013.01.15.
+	 */
+	public static final class Simple<T> implements
+			Observable<T> {
+		/** */
+		private final Observable<? extends T> source;
+		/** */
+		private final Func1<? super T, Boolean> clause;
+
+		/**
+		 * Constructor.
+		 * @param source the source of Ts
+		 * @param clause the filter clause
+		 */
+		public Simple(Observable<? extends T> source,
+				Func1<? super T, Boolean> clause) {
+			this.source = source;
+			this.clause = clause;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			return source.register(new Observer<T>() {
+				@Override
+				public void error(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				public void finish() {
+					observer.finish();
+				}
+
+				@Override
+				public void next(T value) {
+					if (clause.invoke(value)) {
+						observer.next(value);
+					}
+				}
+
+			});
+		}
+	}
+	/**
+	 * Creates a filtered observable where only Ts are relayed which satisfy the clause.
+	 * The clause receives the index and the current element to test.
+	 * The clauseFactory is used for each individual registering observer.
+	 * This can be used to create memorizing filter functions such as distinct.
+	 * @param <T> the element type
+	 * @author akarnokd, 2013.01.15.
+	 */
+	public static final class IndexedFactory<T> implements Observable<T> {
+		/** */
+		private final Observable<? extends T> source;
+		/** */
+		private final Func0<? extends Func2<? super Integer, ? super T, Boolean>> clauseFactory;
+
+		/**
+		 * Constructor.
+		 * @param source the source of Ts
+		 * @param clauseFactory the filter clause, the first parameter receives the current index, the second receives the current element
+		 */
+		public IndexedFactory(
+				Observable<? extends T> source,
+				Func0<? extends Func2<? super Integer, ? super T, Boolean>> clauseFactory) {
+			this.source = source;
+			this.clauseFactory = clauseFactory;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			return source.register(new Observer<T>() {
+				/** The current element index. */
+				int index;
+				/** The clause instance to use. */
+				final Func2<? super Integer, ? super T, Boolean> clause = clauseFactory.invoke();
+				@Override
+				public void error(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				public void finish() {
+					observer.finish();
+				}
+
+				@Override
+				public void next(T value) {
+					if (clause.invoke(index, value)) {
+						observer.next(value);
+					}
+					index++;
+				}
+
 			});
 		}
 	}
