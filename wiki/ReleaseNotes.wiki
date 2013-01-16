@@ -107,8 +107,13 @@
   * Renamed {{{Interactive.distinctSet}}} to {{{Interactive.distinct}}} and the original {{{Interactive.distinct}}} to {{{Interactive.distinctNext}}}.
   * Added +2 overload to {{{Reactive.groupBy}}} of allowing a key equality comparator to be specified.
   * Reworked {{{Reactive.groupJoin}}} behavior.
+  * Reworked {{{Reactive.join}}} behavior.
   * Added primitive versions {{{int}}}, {{{long}}} and {{{double}}} observable and observer interfaces.
   * Added Long-indexed overloads to {{{Reactive.select}}} and {{{Reactive.where}}}.
+  * Added {{{Producer}}} and {{{Sink}}} base classes which might help implementing observable operators.
+  * Added {{{RefCountCloseable}}}.
+  * Added {{{R4JConfig}}} and {{{R4JConfigManager}}} for global or thread-local defaults for fair locks and silent exception handling.
+  * Reworked all indexed function calls (e.g., indexed selector, indexed predicate, etc.) to have the index as the second parameter to be consistent across all operators. This affects mainly select and where.
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
