@@ -19,15 +19,21 @@ import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
+import hu.akarnokd.reactive4java.base.Scheduler;
+import hu.akarnokd.reactive4java.base.TimeInterval;
 import hu.akarnokd.reactive4java.util.CompositeCloseable;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
+import hu.akarnokd.reactive4java.util.DefaultRunnable;
 
 import java.io.Closeable;
+import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.GuardedBy;
 
 /**
  * Helper class for skip-like operators.
@@ -385,6 +391,150 @@ public final class Skip {
 					}
 				}
 			});
+		}
+	}
+	/**
+	 * Skips elements of the source observable for the
+	 * specified amount of time.
+	 * <p>Exceptions are always forwarded immediately, even
+	 * if it occurs before the skip time runs out.</p> 
+	 * @author akarnokd, 2013.01.16.
+	 * @param <T> the element type
+	 */
+	public static class FirstTimed<T> implements Observable<T> {
+		/** */
+		private Observable<? extends T> source;
+		/** */
+		private long time;
+		/** */
+		private TimeUnit unit;
+		/** */
+		private Scheduler pool;
+		/**
+		 * Constructor.
+		 * @param source the source sequence
+		 * @param time the time to wait
+		 * @param unit the unit
+		 * @param pool the scheduler
+		 */
+		public FirstTimed(
+				Observable<? extends T> source,
+				long time,
+				TimeUnit unit,
+				Scheduler pool) {
+			this.source = source;
+			this.time = time;
+			this.unit = unit;
+			this.pool = pool;
+		}
+		@Override
+		@Nonnull
+		public Closeable register(final Observer<? super T> observer) {
+			final AtomicBoolean go = new AtomicBoolean();
+			DefaultObserverEx<T> obs = new DefaultObserverEx<T>() {
+				/** The relay status. */
+				boolean canRelay;
+				@Override
+				protected void onNext(T value) {
+					if (!canRelay) {
+						canRelay = go.get();
+					}
+					if (canRelay) {
+						observer.next(value);
+					}
+				}
+
+				@Override
+				protected void onError(Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				protected void onFinish() {
+					observer.finish();
+				}
+			};
+			obs.add("timer", pool.schedule(new DefaultRunnable() {
+				@Override
+				protected void onRun() {
+					go.set(true);
+				}
+			}, time, unit));
+			return obs.registerWith(source);
+		}
+	}
+	/**
+	 * Skips the elements from the end for the specified amount of time.
+	 * <p>Since there is no way to know the total duration of the sequence,
+	 * the operator queues elements unit they become older than the
+	 * specified time, causing the elements to be delayed by time.</p>
+	 * @author akarnokd, 2013.01.16.
+	 * @param <T> the element type
+	 */
+	public static class LastTimed<T> implements Observable<T> {
+		/** */
+		private Observable<? extends T> source;
+		/** */
+		private long time;
+		/** */
+		private TimeUnit unit;
+		/**
+		 * Constructor.
+		 * @param source the source sequence
+		 * @param time the time to skip from last
+		 * @param unit the time unit
+		 */
+		public LastTimed(
+				Observable<? extends T> source,
+				long time,
+				TimeUnit unit
+				) {
+			this.source = source;
+			this.time = time;
+			this.unit = unit;
+		}
+		@Override
+		@Nonnull
+		public Closeable register(final Observer<? super T> observer) {
+			final long start = System.nanoTime();
+			final long delta = unit.toNanos(time);
+			
+			DefaultObserverEx<T> obs = new DefaultObserverEx<T>() {
+				/** The delayed queue. */
+				@GuardedBy("lock")
+				protected final Queue<TimeInterval<T>> queue = new LinkedList<TimeInterval<T>>();
+				@Override
+				protected void onNext(T value) {
+					long elapsed = System.nanoTime() - start;
+					queue.add(TimeInterval.of(value, elapsed));
+
+					flush(elapsed);
+				}
+				/**
+				 * Flush the elements of the last time interval.
+				 * @param elapsed the elapsed time in nanoseconds
+				 */
+				protected void flush(long elapsed) {
+					while (!queue.isEmpty() && elapsed - queue.peek().interval() >= delta) {
+						observer.next(queue.poll().value());
+					}
+				}
+				@Override
+				protected void onError(Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				protected void onFinish() {
+					long elapsed = System.nanoTime() - start;
+
+					flush(elapsed);
+					observer.finish();
+				}
+				
+			};
+			
+			return obs.registerWith(source);
 		}
 	}
 }

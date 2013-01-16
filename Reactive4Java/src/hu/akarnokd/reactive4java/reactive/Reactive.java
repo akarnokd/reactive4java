@@ -1320,8 +1320,12 @@ public final class Reactive {
 		return delay(source, time, unit, scheduler());
 	}
 	/**
-	 * Delays the propagation of events of the source by the given amount. It uses the pool for the scheduled waits.
-	 * The delay preserves the relative time difference between subsequent notifications
+	 * Delays the propagation of events of the source by the given amount. 
+	 * It uses the pool for the scheduled waits.
+	 * The delay preserves the relative time difference between 
+	 * subsequent notifications.
+	 * <p>Exceptions are delivered to observers without delay and any
+	 * outstanding next events will be discarded.</p>
 	 * @param <T> the type of elements
 	 * @param source the source of Ts
 	 * @param time the time value
@@ -1335,7 +1339,7 @@ public final class Reactive {
 			final long time,
 			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
-		return new Delay<T>(source, time, unit, pool);
+		return new Delay.ByTime<T>(source, time, unit, pool, true);
 	}
 	/**
 	 * Returns an observable which converts all option messages
@@ -4483,26 +4487,7 @@ public final class Reactive {
 			final int count,
 			@Nonnull final BigDecimal step,
 			@Nonnull final Scheduler pool) {
-		return new Observable<BigDecimal>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super BigDecimal> observer) {
-				DefaultRunnable s = new DefaultRunnable() {
-					@Override
-					public void onRun() {
-						BigDecimal value = start;
-						for (int i = 0; i < count && !cancelled(); i++) {
-							observer.next(value);
-							value = value.add(step);
-						}
-						if (!cancelled()) {
-							observer.finish();
-						}
-					}
-				};
-				return pool.schedule(s);
-			}
-		};
+		return new Range.AsBigDecimal(start, count, step, pool);
 	}
 	/**
 	 * Creates an observable which generates numbers from start.
@@ -4528,26 +4513,7 @@ public final class Reactive {
 			@Nonnull final BigInteger start,
 			@Nonnull final BigInteger count,
 			@Nonnull final Scheduler pool) {
-		return new Observable<BigInteger>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super BigInteger> observer) {
-				DefaultRunnable s = new DefaultRunnable() {
-					@Override
-					public void onRun() {
-						BigInteger end = start.add(count);
-						for (BigInteger i = start; i.compareTo(end) < 0
-						&& !cancelled(); i = i.add(BigInteger.ONE)) {
-							observer.next(i);
-						}
-						if (!cancelled()) {
-							observer.finish();
-						}
-					}
-				};
-				return pool.schedule(s);
-			}
-		};
+		return new Range.AsBigInteger(start, count, pool);
 	}
 	/**
 	 * Creates an observable which generates numbers from start.
@@ -4578,24 +4544,7 @@ public final class Reactive {
 			final int count,
 			final double step,
 			@Nonnull final Scheduler pool) {
-		return new Observable<Double>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super Double> observer) {
-				DefaultRunnable s = new DefaultRunnable() {
-					@Override
-					public void onRun() {
-						for (int i = 0; i < count && !cancelled(); i++) {
-							observer.next(start + i * step);
-						}
-						if (!cancelled()) {
-							observer.finish();
-						}
-					}
-				};
-				return pool.schedule(s);
-			}
-		};
+		return new Range.AsDouble(start, count, step, pool);
 
 	}
 	/**
@@ -4627,24 +4576,7 @@ public final class Reactive {
 			final int count,
 			final float step,
 			@Nonnull final Scheduler pool) {
-		return new Observable<Float>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super Float> observer) {
-				DefaultRunnable s = new DefaultRunnable() {
-					@Override
-					public void onRun() {
-						for (int i = 0; i < count && !cancelled(); i++) {
-							observer.next(start + i * step);
-						}
-						if (!cancelled()) {
-							observer.finish();
-						}
-					}
-				};
-				return pool.schedule(s);
-			}
-		};
+		return new Range.AsFloat(start, count, step, pool);
 
 	}
 	/**
@@ -4671,24 +4603,35 @@ public final class Reactive {
 			final int start,
 			final int count,
 			@Nonnull final Scheduler pool) {
-		return new Observable<Integer>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super Integer> observer) {
-				DefaultRunnable s = new DefaultRunnable() {
-					@Override
-					public void onRun() {
-						for (int i = start; i < start + count && !cancelled(); i++) {
-							observer.next(i);
-						}
-						if (!cancelled()) {
-							observer.finish();
-						}
-					}
-				};
-				return pool.schedule(s);
-			}
-		};
+		return new Range.AsInt(start, count, pool);
+	}
+	/**
+	 * Creates an observable which generates numbers from start.
+	 * @param start the start value.
+	 * @param count the count
+	 * @return the observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static Observable<Long> range(
+			final long start,
+			final long count) {
+		return range(start, count, scheduler());
+	}
+	/**
+	 * Creates an observable which generates numbers from start.
+	 * @param start the start value.
+	 * @param count the count
+	 * @param pool the execution thread pool.
+	 * @return the observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static Observable<Long> range(
+			final long start,
+			final long count,
+			@Nonnull final Scheduler pool) {
+		return new Range.AsLong(start, count, pool);
 	}
 	/**
 	 * Returns an observable sequence which 
@@ -5970,40 +5913,25 @@ public final class Reactive {
 			final long time,
 			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
-		return new Observable<T>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super T> observer) {
-				final AtomicReference<T> current = new AtomicReference<T>();
-				final AtomicBoolean first = new AtomicBoolean(true);
-				
-				final DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
-					@Override
-					public void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void onFinish() {
-						observer.finish();
-					}
-					@Override
-					public void onNext(T value) {
-						first.set(false);
-						current.set(value);
-					}
-				};
-				obs.add("timer", pool.schedule(new DefaultRunnable() {
-						@Override
-						protected void onRun() {
-							if (!first.get()) {
-								observer.next(current.get());
-							}
-						}
-					}, time, time, unit));
-				return obs.registerWith(source);
-			}
-		};
+		return new Sample.ByTime<T>(source, time, unit, pool);
+	}
+	/**
+	 * Samples the observable sequence when the other sequence
+	 * fires an event. The sampling is terminated if any of
+	 * the sequences finish.
+	 * <p>Exception semantics: exceptions raised anywhere will
+	 * terminate the sequences.</p>
+	 * @param <T> the element type
+	 * @param <U> the sampler's element type, irrelevant
+	 * @param source the source sequence
+	 * @param sampler the sampler sequence
+	 * @return the sampled value sequence
+	 * @since 0.97
+	 */
+	public static <T, U> Observable<T> sample(
+			Observable<? extends T> source, 
+			Observable<? extends U> sampler) {
+		return new Sample.ByObservable<T, U>(source, sampler);
 	}
 	/**
 	 * Creates an observable which accumultates the given source and submits each intermediate results to its subscribers.
@@ -7185,8 +7113,10 @@ public final class Reactive {
 	/**
 	 * Creates and observable which fires the last value
 	 * from source when the given timespan elapsed without a new
-	 * value occurring from the source. It is basically how Content Assistant
-	 * popup works after the user pauses in its typing. Uses the default scheduler.
+	 * value occurring from the source. 
+	 * <p>It is basically how Content Assistant
+	 * popup works after the user pauses in its typing. 
+	 * Uses the default scheduler.</p>
 	 * @param <T> the value type
 	 * @param source the source of Ts
 	 * @param delay how much time should elapse since the last event to actually forward that event
@@ -7203,8 +7133,9 @@ public final class Reactive {
 	/**
 	 * Creates and observable which fires the last value
 	 * from source when the given timespan elapsed without a new
-	 * value occurring from the source. It is basically how Content Assistant
-	 * popup works after the user pauses in its typing.
+	 * value occurring from the source. 
+	 * <p>It is basically how Content Assistant
+	 * popup works after the user pauses in its typing.</p>
 	 * @param <T> the value type
 	 * @param source the source of Ts
 	 * @param delay how much time should elapse since the last event to actually forward that event
@@ -7218,47 +7149,7 @@ public final class Reactive {
 			final long delay,
 			@Nonnull final TimeUnit unit,
 			@Nonnull final Scheduler pool) {
-		return new Observable<T>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super T> observer) {
-				final DefaultObserver<T> obs = new DefaultObserver<T>(true) {
-					/** The last seen value. */
-					T last;
-					/** The closeable. */
-					Closeable c;
-					/** The timeout action. */
-					final DefaultRunnable r = new DefaultRunnable(lock) {
-						@Override
-						public void onRun() {
-							if (!cancelled()) {
-								observer.next(last);
-							}
-						}
-					};
-					@Override
-					protected void onClose() {
-						Closeables.closeSilently(c);
-					}
-					@Override
-					public void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					public void onFinish() {
-						observer.finish();
-					}
-					@Override
-					public void onNext(T value) {
-						last = value;
-						Closeables.closeSilently(c);
-						c = pool.schedule(r, delay, unit);
-					}
-				};
-				return Closeables.newCloseable(obs, source.register(obs));
-			}
-		};
+		return new Throttle.ByTime<T>(source, delay, unit, pool);
 	}
 	/**
 	 * Creates an observable which instantly sends the exception 
@@ -8508,6 +8399,302 @@ public final class Reactive {
 	 */
 	public static DoubleObservable toDoubleObservable(@Nonnull final Observable<Double> source) {
 		return new ToPrimitive.ToDouble(source);
+	}
+	/**
+	 * Delays (ties) the event delivery of the source,
+	 * for each source value T, to the firing of the observable returned
+	 * by the delay selector.
+	 * <p>Exception semantics: Exceptions appearing through any observable
+	 * will terminate the sequence immediately.</p>
+	 * @param <T> the source and result element type
+	 * @param <U> the element type of the registration delaying observable, irrelevant
+	 * @param source the source sequence
+	 * @param delaySelector for each source value T, it returns an observable
+	 * whose next or finish events will deliver the original value T.
+	 * @return the delayed observable.
+	 * @since 0.97
+	 */
+	public static <T, U> Observable<T> delay(
+			@Nonnull Observable<? extends T> source, 
+			@Nonnull Func1<? super T, ? extends Observable<U>> delaySelector) {
+		return delay(source, null, delaySelector);
+	}
+	/**
+	 * Delays (ties) the event delivery of the source
+	 * to the firing of registerDelay (optionally) and
+	 * for each source value T, to the firing of the observable returned
+	 * by the delay selector.
+	 * <p>Exception semantics: Exceptions appearing through any observable
+	 * will terminate the sequence immediately.</p>
+	 * @param <T> the source and result element type
+	 * @param <U> the element type of the registration delaying observable, irrelevant
+	 * @param <V> the element type of the value delivery observables, irrelevant
+	 * @param source the source sequence
+	 * @param registerDelay the actual registration to the source
+	 * is delayed by the first next or finish event from this observable.
+	 * @param delaySelector for each source value T, it returns an observable
+	 * whose next or finish events will deliver the original value T.
+	 * @return the delayed observable.
+	 * @since 0.97
+	 */
+	public static <T, U, V> Observable<T> delay(
+			@Nonnull Observable<? extends T> source, 
+			@Nonnull Observable<U> registerDelay, 
+			@Nonnull Func1<? super T, ? extends Observable<V>> delaySelector) {
+		return new Delay.ByObservable<T, U, V>(source, registerDelay, delaySelector);
+	}
+	/**
+	 * Delays the registration to the underlying observable by
+	 * a given amount. Uses the default scheduler.
+	 * @param <T> the element type
+	 * @param source the source observable.
+	 * @param time the time to wait
+	 * @param unit the time unit
+	 * @return the observable with the delayed register
+	 * @since 0.97
+	 */
+	public static <T> Observable<T> delayRegister(
+			@Nonnull Observable<? extends T> source, 
+			long time, 
+			@Nonnull TimeUnit unit) {
+		return delayRegister(source, time, unit, scheduler());
+	}
+	/**
+	 * Delays the registration to the underlying observable by
+	 * a given amount.
+	 * @param <T> the element type
+	 * @param source the source observable.
+	 * @param time the time to wait
+	 * @param unit the time unit
+	 * @param pool the scheduler pool where to wait.
+	 * @return the observable with the delayed register
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> delayRegister(
+			@Nonnull Observable<? extends T> source, 
+			long time, 
+			@Nonnull TimeUnit unit,
+			@Nonnull Scheduler pool) {
+		return new Delay.Registration<T>(source, time, unit, pool);
+	}
+	/**
+	 * Skips elements of the source observable for the
+	 * specified amount of time.
+	 * <p>Exceptions are always forwarded immediately, even
+	 * if it occurs before the skip time runs out.</p> 
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param time the time to wait
+	 * @param unit the unit
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> skip(
+			@Nonnull Observable<? extends T> source,
+			long time,
+			@Nonnull TimeUnit unit
+			) {
+		return skip(source, time, unit, scheduler());
+	}
+	/**
+	 * Skips elements of the source observable for the
+	 * specified amount of time.
+	 * <p>Exceptions are always forwarded immediately, even
+	 * if it occurs before the skip time runs out.</p> 
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param time the time to wait
+	 * @param unit the unit
+	 * @param pool the scheduler
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> skip(
+			@Nonnull Observable<? extends T> source,
+			long time,
+			@Nonnull TimeUnit unit,
+			@Nonnull Scheduler pool
+			) {
+		return new Skip.FirstTimed<T>(source, time, unit, pool);
+	}
+	/**
+	 * Skips the elements from the end for the specified amount of time.
+	 * <p>Since there is no way to know the total duration of the sequence,
+	 * the operator queues elements unit they become older than the
+	 * specified time, causing the elements to be delayed by time.</p>
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param time the time to skip from last
+	 * @param unit the time unit
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> skipLast(
+			@Nonnull Observable<? extends T> source,
+			long time,
+			@Nonnull TimeUnit unit
+			) {
+		return new Skip.LastTimed<T>(source, time, unit);
+	}
+	/**
+	 * Takes the elements from the source sequence
+	 * until the time runs out.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param time the time
+	 * @param unit the unit
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> take(
+			@Nonnull Observable<? extends T> source,
+			long time,
+			@Nonnull TimeUnit unit
+	) {
+		return take(source, time, unit, scheduler());
+	}
+	/**
+	 * Takes the elements from the source sequence
+	 * until the time runs out.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param time the time
+	 * @param unit the unit
+	 * @param pool the pool for timed operation
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> take(
+			@Nonnull Observable<? extends T> source,
+			long time,
+			@Nonnull TimeUnit unit,
+			@Nonnull Scheduler pool
+	) {
+		return new Take.FirstTimed<T>(source, time, unit, pool);
+	}
+	/**
+	 * Skips the elements from the end for the specified amount of time.
+	 * <p>These last elements are drained in the 
+	 * caller's thread of the finish event.</p>
+	 * <p>Since there is no way to know the total duration of the sequence,
+	 * the operator queues elements unit they become older than the
+	 * specified time, causing the elements to be delayed by time.</p>
+	 * @author akarnokd, 2013.01.16.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param time the time
+	 * @param unit the unit
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> Observable<T> takeLast(
+			@Nonnull Observable<? extends T> source,
+			long time,
+			@Nonnull TimeUnit unit
+	) {
+		return takeLast(source, time, unit, null);
+	}
+	/**
+	 * Skips the elements from the end for the specified amount of time.
+	 * <p>These last elements are drained in the 
+	 * given scheduler.</p>
+	 * <p>Since there is no way to know the total duration of the sequence,
+	 * the operator queues elements unit they become older than the
+	 * specified time, causing the elements to be delayed by time.</p>
+	 * @author akarnokd, 2013.01.16.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param time the time
+	 * @param unit the unit
+	 * @param drainPool the optional pool to drain the accumulated values,
+	 * if null, the thread of the finish caller is used.
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> Observable<T> takeLast(
+			@Nonnull Observable<? extends T> source,
+			long time,
+			@Nonnull TimeUnit unit,
+			@Nonnull Scheduler drainPool
+	) {
+		return new Take.LastTimed<T>(source, time, unit, drainPool);
+	}
+	/**
+	 * Skips the elements from the end for the specified amount of time
+	 * as one list.
+	 * <p>These last elements are drained in the 
+	 * caller's thread of the finish event.</p>
+	 * <p>Since there is no way to know the total duration of the sequence,
+	 * the operator queues elements unit they become older than the
+	 * specified time, causing the elements to be delayed by time.</p>
+	 * @author akarnokd, 2013.01.16.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param time the time
+	 * @param unit the unit
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> Observable<List<T>> takeLastBuffer(
+			@Nonnull Observable<? extends T> source,
+			long time,
+			@Nonnull TimeUnit unit
+	) {
+		return takeLastBuffer(source, time, unit, null);
+	}
+	/**
+	 * Skips the elements from the end for the specified amount of time
+	 * as one list.
+	 * <p>These last elements are drained in the 
+	 * given scheduler.</p>
+	 * <p>Since there is no way to know the total duration of the sequence,
+	 * the operator queues elements unit they become older than the
+	 * specified time, causing the elements to be delayed by time.</p>
+	 * @author akarnokd, 2013.01.16.
+	 * @param <T> the element type
+	 * @param source the source sequence
+	 * @param time the time
+	 * @param unit the unit
+	 * @param drainPool the optional pool to drain the accumulated values,
+	 * if null, the thread of the finish caller is used.
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static <T> Observable<List<T>> takeLastBuffer(
+			@Nonnull Observable<? extends T> source,
+			long time,
+			@Nonnull TimeUnit unit,
+			@Nonnull Scheduler drainPool
+	) {
+		return new Take.LastBufferTimed<T>(source, time, unit, drainPool);
+	}
+	/**
+	 * Fires the last event from the source observable if
+	 * no events are fired during a selector-returned observable window.
+	 * <p>Exception semantics: exceptions from the source and windows
+	 * are forwarded immediately and the sequence is terminated.</p>
+	 * <p>The window close is triggered by either a next or finish event.</p>
+	 * @author akarnokd, 2013.01.17.
+	 * @param <T> the source and result element type
+	 * @param <U> the window observable's type, irrelevant
+	 * @param source the source sequence
+	 * @param durationSelector the duration selector.
+	 * @return the new observable
+	 */
+	public static <T, U> Observable<T> throttle(
+			@Nonnull Observable<? extends T> source,
+			@Nonnull Func1<? super T, ? extends Observable<U>> durationSelector) {
+		return new Throttle.ByObservable<T, U>(source, durationSelector);
 	}
 	/*
 	 * TODO merge() with concurrency limit.

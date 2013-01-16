@@ -20,14 +20,19 @@ import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Scheduler;
+import hu.akarnokd.reactive4java.base.TimeInterval;
 import hu.akarnokd.reactive4java.util.CircularBuffer;
+import hu.akarnokd.reactive4java.util.CompositeCloseable;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
 import hu.akarnokd.reactive4java.util.DefaultRunnable;
 import hu.akarnokd.reactive4java.util.R4JConfigManager;
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -47,11 +52,11 @@ public final class Take {
 	 * @param <T> the element type
 	 * @author akarnokd, 2013.01.14.
 	 */
-	public static final class While<T> implements Observable<T> {
+	public static class While<T> implements Observable<T> {
 		/** */
-		private final Observable<? extends T> source;
+		protected final Observable<? extends T> source;
 		/** */
-		private final Func1<? super T, Boolean> predicate;
+		protected final Func1<? super T, Boolean> predicate;
 
 		/**
 		 * Constructor.
@@ -96,11 +101,11 @@ public final class Take {
 	 * @param <T> the element type
 	 * @author akarnokd, 2013.01.14.
 	 */
-	public static final class WhileIndexed<T> implements Observable<T> {
+	public static class WhileIndexed<T> implements Observable<T> {
 		/** */
-		private final Observable<? extends T> source;
+		protected final Observable<? extends T> source;
 		/** */
-		private final Func2<? super T, ? super Integer, Boolean> predicate;
+		protected final Func2<? super T, ? super Integer, Boolean> predicate;
 
 		/**
 		 * Constructor.
@@ -147,11 +152,11 @@ public final class Take {
 	 * @param <T> the element type
 	 * @author akarnokd, 2013.01.14.
 	 */
-	public static final class WhileLongIndexed<T> implements Observable<T> {
+	public static class WhileLongIndexed<T> implements Observable<T> {
 		/** */
-		private final Observable<? extends T> source;
+		protected final Observable<? extends T> source;
 		/** */
-		private final Func2<? super T, ? super Long, Boolean> predicate;
+		protected final Func2<? super T, ? super Long, Boolean> predicate;
 
 		/**
 		 * Constructor.
@@ -200,11 +205,11 @@ public final class Take {
 	 * @param <U> the signaller element type, irrelevant
 	 * @author akarnokd, 2013.01.14.
 	 */
-	public static final class Until<T, U> implements Observable<T> {
+	public static class Until<T, U> implements Observable<T> {
 		/** */
-		private final Observable<U> signaller;
+		protected final Observable<U> signaller;
 		/** */
-		private final Observable<? extends T> source;
+		protected final Observable<? extends T> source;
 
 		/**
 		 * Constructor.
@@ -272,11 +277,11 @@ public final class Take {
 	 * @param <T> the element type
 	 * @author akarnokd, 2013.01.14.
 	 */
-	public static final class Last<T> implements Observable<T> {
+	public static class Last<T> implements Observable<T> {
 		/** */
-		private final Observable<? extends T> source;
+		protected final Observable<? extends T> source;
 		/** */
-		private final int count;
+		protected final int count;
 
 		/**
 		 * Constructor.
@@ -321,11 +326,11 @@ public final class Take {
 	 * @param <T> the element type
 	 * @author akarnokd, 2013.01.14.
 	 */
-	public static final class LastScheduled<T> implements Observable<T> {
+	public static class LastScheduled<T> implements Observable<T> {
 		/** */
-		private final Observable<? extends T> source;
+		protected final Observable<? extends T> source;
 		/** */
-		private final int count;
+		protected final int count;
 		/** */
 		protected final Scheduler pool;
 
@@ -382,11 +387,11 @@ public final class Take {
 	 * @param <T> the element type
 	 * @author akarnokd, 2013.01.14.
 	 */
-	public static final class First<T> implements Observable<T> {
+	public static class First<T> implements Observable<T> {
 		/** */
-		private final Observable<? extends T> source;
+		protected final Observable<? extends T> source;
 		/** */
-		private final int count;
+		protected final int count;
 
 		/**
 		 * Construction.
@@ -436,11 +441,11 @@ public final class Take {
 	 * @param <T> the element type
 	 * @author akarnokd, 2013.01.14.
 	 */
-	public static final class LastBuffer<T> implements Observable<List<T>> {
+	public static class LastBuffer<T> implements Observable<List<T>> {
 		/** */
-		private final Observable<? extends T> source;
+		protected final Observable<? extends T> source;
 		/** */
-		private final int count;
+		protected final int count;
 
 		/**
 		 * Constructor.
@@ -478,6 +483,261 @@ public final class Take {
 					buffer.add(value);
 				}
 			});
+		}
+	}
+	/**
+	 * Takes the elements from the source sequence
+	 * until the time runs out.
+	 * @author akarnokd, 2013.01.16.
+	 * @param <T> the element type
+	 */
+	public static class FirstTimed<T> implements Observable<T> {
+		/** */
+		protected final Observable<? extends T> source;
+		/** */
+		protected final long time;
+		/** */
+		protected final TimeUnit unit;
+		/** */
+		protected final Scheduler pool;
+		/**
+		 * Constructor.
+		 * @param source the source sequence
+		 * @param time the time
+		 * @param unit the unit
+		 * @param pool the pool for timed operation
+		 */
+		public FirstTimed(
+				Observable<? extends T> source,
+				long time,
+				TimeUnit unit,
+				Scheduler pool
+		) {
+			this.source = source;
+			this.time = time;
+			this.unit = unit;
+			this.pool = pool;
+			
+		}
+		@Override
+		@Nonnull
+		public Closeable register(final Observer<? super T> observer) {
+			final DefaultObserverEx<T> obs = new DefaultObserverEx<T>() {
+
+				@Override
+				protected void onNext(T value) {
+					observer.next(value);
+				}
+
+				@Override
+				protected void onError(Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				protected void onFinish() {
+					observer.finish();
+				}
+				
+			};
+			obs.add("timer", pool.schedule(new DefaultRunnable(obs.getLock()) {
+				@Override
+				public void onRun() {
+					observer.finish();
+					obs.close();
+				}
+			}, time, unit));
+			return obs.registerWith(source);
+		}
+	}
+	/**
+	 * Returns elements from the end of the sequence during the specified
+	 * time interval.
+	 * <p>Exception semantics: exceptions are immediately forwarded.</p>
+	 * @author akarnokd, 2013.01.16.
+	 * @param <T> the element type
+	 */
+	public static class LastTimed<T> implements Observable<T> {
+		/** */
+		protected final Observable<? extends T> source;
+		/** */
+		protected final long time;
+		/** */
+		protected final TimeUnit unit;
+		/** */
+		protected final Scheduler drainPool;
+		/**
+		 * Constructor.
+		 * @param source the source sequence
+		 * @param time the time
+		 * @param unit the unit
+		 * @param drainPool the optional pool to drain the accumulated values
+		 */
+		public LastTimed(
+				Observable<? extends T> source,
+				long time,
+				TimeUnit unit,
+				Scheduler drainPool
+		) {
+			this.source = source;
+			this.time = time;
+			this.unit = unit;
+			this.drainPool = drainPool;
+		}
+		@Override
+		@Nonnull
+		public Closeable register(final Observer<? super T> observer) {
+			final long delta = unit.toNanos(time);
+			final CompositeCloseable c = new CompositeCloseable();
+			DefaultObserverEx<T> obs = new DefaultObserverEx<T>() {
+				/** The queue. */
+				final Queue<TimeInterval<T>> queue = new LinkedList<TimeInterval<T>>();
+				@Override
+				protected void onNext(T value) {
+					long now = System.nanoTime();
+					queue.add(TimeInterval.of(value, now));
+					trim(now);
+				}
+
+				@Override
+				protected void onError(Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				protected void onFinish() {
+					long now = System.nanoTime();
+					// remove too old elements
+					trim(now);
+					if (drainPool == null) {
+						flush();
+					} else {
+						c.add(drainPool.schedule(new Runnable() {
+							@Override
+							public void run() {
+								flush();
+							}
+						}));
+					}
+				}
+				/** Flush the contents of the queue.*/
+				protected void flush() {
+					while (!queue.isEmpty()) {
+						observer.next(queue.poll().value());
+					}
+					observer.finish();
+				}
+				/** Trim the queue. */
+				private void trim(long now) {
+					while (!queue.isEmpty() && queue.peek().interval() < now - delta) {
+						queue.poll();
+					}
+				}
+				
+			};
+			
+			c.add(obs);
+			
+			obs.registerWith(source);
+			
+			return c;
+		}
+	}
+	/**
+	 * Returns elements from the end of the sequence during the specified
+	 * time interval in one list.
+	 * <p>Exception semantics: exceptions are immediately forwarded.</p>
+	 * @author akarnokd, 2013.01.16.
+	 * @param <T> the element type
+	 */
+	public static class LastBufferTimed<T> implements Observable<List<T>> {
+		/** */
+		protected final Observable<? extends T> source;
+		/** */
+		protected final long time;
+		/** */
+		protected final TimeUnit unit;
+		/** */
+		protected final Scheduler drainPool;
+		/**
+		 * Constructor.
+		 * @param source the source sequence
+		 * @param time the time
+		 * @param unit the unit
+		 * @param drainPool the optional pool to drain the accumulated values
+		 */
+		public LastBufferTimed(
+				Observable<? extends T> source,
+				long time,
+				TimeUnit unit,
+				Scheduler drainPool
+		) {
+			this.source = source;
+			this.time = time;
+			this.unit = unit;
+			this.drainPool = drainPool;
+		}
+		@Override
+		@Nonnull
+		public Closeable register(final Observer<? super List<T>> observer) {
+			final long delta = unit.toNanos(time);
+			final CompositeCloseable c = new CompositeCloseable();
+			DefaultObserverEx<T> obs = new DefaultObserverEx<T>() {
+				/** The queue. */
+				final Queue<TimeInterval<T>> queue = new LinkedList<TimeInterval<T>>();
+				@Override
+				protected void onNext(T value) {
+					long now = System.nanoTime();
+					queue.add(TimeInterval.of(value, now));
+					trim(now);
+				}
+
+				@Override
+				protected void onError(Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				protected void onFinish() {
+					long now = System.nanoTime();
+					// remove too old elements
+					trim(now);
+					if (drainPool == null) {
+						flush();
+					} else {
+						c.add(drainPool.schedule(new Runnable() {
+							@Override
+							public void run() {
+								flush();
+							}
+						}));
+					}
+				}
+				/** Flush the contents of the queue.*/
+				protected void flush() {
+					List<T> result = new ArrayList<T>(queue.size());
+					
+					while (!queue.isEmpty()) {
+						result.add(queue.poll().value());
+					}
+					
+					observer.next(result);
+					observer.finish();
+				}
+				/** Trim the queue. */
+				private void trim(long now) {
+					while (!queue.isEmpty() && queue.peek().interval() < now - delta) {
+						queue.poll();
+					}
+				}
+				
+			};
+			
+			c.add(obs);
+			
+			obs.registerWith(source);
+			
+			return c;
 		}
 	}
 }

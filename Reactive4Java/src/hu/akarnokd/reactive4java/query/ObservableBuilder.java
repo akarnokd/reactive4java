@@ -4163,5 +4163,306 @@ public final class ObservableBuilder<T> implements Observable<T> {
 			@Nonnull final Func2<? super T, ? super Long, Boolean> predicate) {
 		return from(Reactive.takeWhileLong(o, predicate));
 	}
-
+	/**
+	 * Delays (ties) the event delivery of the source,
+	 * for each source value T, to the firing of the observable returned
+	 * by the delay selector.
+	 * <p>Exception semantics: Exceptions appearing through any observable
+	 * will terminate the sequence immediately.</p>
+	 * @param <U> the element type of the value delivery observables, irrelevant
+	 * @param delaySelector for each source value T, it returns an observable
+	 * whose next or finish events will deliver the original value T.
+	 * @return the delayed observable.
+	 * @since 0.97
+	 */
+	@Nonnull
+	public <U> ObservableBuilder<T> delay(
+			@Nonnull Func1<? super T, ? extends Observable<U>> delaySelector) {
+		return from(Reactive.delay(o, delaySelector));
+	}
+	/**
+	 * Delays (ties) the event delivery of the source
+	 * to the firing of registerDelay (optionally) and
+	 * for each source value T, to the firing of the observable returned
+	 * by the delay selector.
+	 * <p>Exception semantics: Exceptions appearing through any observable
+	 * will terminate the sequence immediately.</p>
+	 * @param <U> the element type of the registration delaying observable, irrelevant
+	 * @param <V> the element type of the value delivery observables, irrelevant
+	 * @param registerDelay if not null, the actual registration to the source
+	 * is delayed by the first next or finish event from this observable.
+	 * @param delaySelector for each source value T, it returns an observable
+	 * whose next or finish events will deliver the original value T.
+	 * @return the delayed observable.
+	 * @since 0.97
+	 */
+	@Nonnull
+	public <U, V> ObservableBuilder<T> delay(
+			@Nonnull Observable<U> registerDelay, 
+			@Nonnull Func1<? super T, ? extends Observable<V>> delaySelector) {
+		return from(Reactive.delay(o, registerDelay, delaySelector));
+	}
+	/**
+	 * Creates an observable which generates numbers from start.
+	 * @param start the start value.
+	 * @param count the count
+	 * @return the observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static ObservableBuilder<Long> range(
+			final long start,
+			final long count) {
+		return from(Reactive.range(start, count));
+	}
+	/**
+	 * Creates an observable which generates numbers from start.
+	 * @param start the start value.
+	 * @param count the count
+	 * @param pool the execution thread pool.
+	 * @return the observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public static ObservableBuilder<Long> range(
+			final long start,
+			final long count,
+			@Nonnull final Scheduler pool) {
+		return from(Reactive.range(start, count, pool));
+	}
+	/**
+	 * Delays the registration to the underlying observable by
+	 * a given amount. Uses the default scheduler.
+	 * @param time the time to wait
+	 * @param unit the time unit
+	 * @return the observable with the delayed register
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> delayRegister(
+			long time, 
+			@Nonnull TimeUnit unit) {
+		return from(Reactive.delayRegister(o, time, unit));
+	}
+	/**
+	 * Delays the registration to the underlying observable by
+	 * a given amount.
+	 * @param time the time to wait
+	 * @param unit the time unit
+	 * @param pool the scheduler pool where to wait.
+	 * @return the observable with the delayed register
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> delayRegister(
+			long time, 
+			@Nonnull TimeUnit unit,
+			@Nonnull Scheduler pool) {
+		return from(Reactive.delayRegister(o, time, unit, pool));
+	}
+	/**
+	 * Samples the observable sequence when the other sequence
+	 * fires an event. The sampling is terminated if any of
+	 * the sequences finish.
+	 * <p>Exception semantics: exceptions raised anywhere will
+	 * terminate the sequences.</p>
+	 * @param <U> the sampler's element type, irrelevant
+	 * @param sampler the sampler sequence
+	 * @return the sampled value sequence
+	 * @since 0.97
+	 */
+	@Nonnull
+	public <U> ObservableBuilder<T> sample(
+			@Nonnull Observable<? extends U> sampler) {
+		return from(Reactive.sample(o, sampler));
+	}
+	/**
+	 * Skips elements of the source observable for the
+	 * specified amount of time.
+	 * <p>Exceptions are always forwarded immediately, even
+	 * if it occurs before the skip time runs out.</p> 
+	 * @param time the time to wait
+	 * @param unit the unit
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> skip(
+			long time,
+			@Nonnull TimeUnit unit
+			) {
+		return from(Reactive.skip(o, time, unit));
+	}
+	/**
+	 * Skips elements of the source observable for the
+	 * specified amount of time.
+	 * <p>Exceptions are always forwarded immediately, even
+	 * if it occurs before the skip time runs out.</p> 
+	 * @param time the time to wait
+	 * @param unit the unit
+	 * @param pool the scheduler
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> skip(
+			long time,
+			@Nonnull TimeUnit unit,
+			@Nonnull Scheduler pool
+			) {
+		return from(Reactive.skip(o, time, unit, pool));
+	}
+	/**
+	 * Skips the elements from the end for the specified amount of time.
+	 * <p>Since there is no way to know the total duration of the sequence,
+	 * the operator queues elements unit they become older than the
+	 * specified time, causing the elements to be delayed by time.</p>
+	 * @param time the time to skip from last
+	 * @param unit the time unit
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> skipLast(
+			long time,
+			@Nonnull TimeUnit unit
+	) {
+		return from(Reactive.skipLast(o, time, unit));
+	}
+	/**
+	 * Takes the elements from the source sequence
+	 * until the time runs out.
+	 * @param time the time
+	 * @param unit the unit
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> take(
+			long time,
+			@Nonnull TimeUnit unit
+	) {
+		return from(Reactive.take(o, time, unit));
+	}
+	/**
+	 * Takes the elements from the source sequence
+	 * until the time runs out.
+	 * @param time the time
+	 * @param unit the unit
+	 * @param pool the pool for timed operation
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> take(
+			long time,
+			@Nonnull TimeUnit unit,
+			@Nonnull Scheduler pool
+	) {
+		return from(Reactive.take(o, time, unit, pool));
+	}
+	/**
+	 * Skips the elements from the end for the specified amount of time.
+	 * <p>These last elements are drained in the 
+	 * caller's thread of the finish event.</p>
+	 * <p>Since there is no way to know the total duration of the sequence,
+	 * the operator queues elements unit they become older than the
+	 * specified time, causing the elements to be delayed by time.</p>
+	 * @author akarnokd, 2013.01.16.
+	 * @param time the time
+	 * @param unit the unit
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public ObservableBuilder<T> takeLast(
+			long time,
+			@Nonnull TimeUnit unit
+	) {
+		return from(Reactive.takeLast(o, time, unit));
+	}
+	/**
+	 * Skips the elements from the end for the specified amount of time.
+	 * <p>These last elements are drained in the 
+	 * given scheduler.</p>
+	 * <p>Since there is no way to know the total duration of the sequence,
+	 * the operator queues elements unit they become older than the
+	 * specified time, causing the elements to be delayed by time.</p>
+	 * @author akarnokd, 2013.01.16.
+	 * @param time the time
+	 * @param unit the unit
+	 * @param drainPool the optional pool to drain the accumulated values,
+	 * if null, the thread of the finish caller is used.
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public ObservableBuilder<T> takeLast(
+			long time,
+			@Nonnull TimeUnit unit,
+			@Nonnull Scheduler drainPool
+	) {
+		return from(Reactive.takeLast(o, time, unit, drainPool));
+	}
+	/**
+	 * Skips the elements from the end for the specified amount of time
+	 * as one list.
+	 * <p>These last elements are drained in the 
+	 * caller's thread of the finish event.</p>
+	 * <p>Since there is no way to know the total duration of the sequence,
+	 * the operator queues elements unit they become older than the
+	 * specified time, causing the elements to be delayed by time.</p>
+	 * @author akarnokd, 2013.01.16.
+	 * @param time the time
+	 * @param unit the unit
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public ObservableBuilder<List<T>> takeLastBuffer(
+			long time,
+			@Nonnull TimeUnit unit
+	) {
+		return from(Reactive.takeLastBuffer(o, time, unit));
+	}
+	/**
+	 * Skips the elements from the end for the specified amount of time
+	 * as one list.
+	 * <p>These last elements are drained in the 
+	 * given scheduler.</p>
+	 * <p>Since there is no way to know the total duration of the sequence,
+	 * the operator queues elements unit they become older than the
+	 * specified time, causing the elements to be delayed by time.</p>
+	 * @author akarnokd, 2013.01.16.
+	 * @param time the time
+	 * @param unit the unit
+	 * @param drainPool the optional pool to drain the accumulated values,
+	 * if null, the thread of the finish caller is used.
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull 
+	public ObservableBuilder<List<T>> takeLastBuffer(
+			long time,
+			@Nonnull TimeUnit unit,
+			@Nonnull Scheduler drainPool
+	) {
+		return from(Reactive.takeLastBuffer(o, time, unit, drainPool));
+	}
+	/**
+	 * Fires the last event from the source observable if
+	 * no events are fired during a selector-returned observable window.
+	 * <p>Exception semantics: exceptions from the source and windows
+	 * are forwarded immediately and the sequence is terminated.</p>
+	 * <p>The window close is triggered by either a next or finish event.</p>
+	 * @author akarnokd, 2013.01.17.
+	 * @param <U> the window observable's type, irrelevant
+	 * @param durationSelector the duration selector.
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	public <U> ObservableBuilder<T> throttle(
+			@Nonnull Func1<? super T, ? extends Observable<U>> durationSelector) {
+		return from(Reactive.throttle(o, durationSelector));
+	}
 }

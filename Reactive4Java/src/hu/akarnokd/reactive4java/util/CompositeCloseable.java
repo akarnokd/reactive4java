@@ -230,4 +230,10 @@ public class CompositeCloseable implements Closeable, Cancelable {
 	public void closeSilently() {
 		Closeables.closeSilently(this);
 	}
+	/**
+	 * @return true if the closeable is empty.
+	 */
+	public boolean isEmpty() {
+		return size() == 0;
+	}
 }

@@ -16,15 +16,12 @@
 package hu.akarnokd.reactive4java.test;
 
 import static hu.akarnokd.reactive4java.query.ObservableBuilder.from;
-import static hu.akarnokd.reactive4java.reactive.Reactive.concat;
-import static hu.akarnokd.reactive4java.reactive.Reactive.count;
-import static hu.akarnokd.reactive4java.reactive.Reactive.empty;
-import static hu.akarnokd.reactive4java.reactive.Reactive.single;
-import static hu.akarnokd.reactive4java.reactive.Reactive.take;
-import static hu.akarnokd.reactive4java.reactive.Reactive.takeLast;
-import static hu.akarnokd.reactive4java.reactive.Reactive.takeWhile;
 import static hu.akarnokd.reactive4java.util.Functions.equal;
 import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.reactive.Reactive;
+
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
@@ -41,9 +38,9 @@ public class TestReactiveTake {
 	public void takeOk() {
 		Observable<Integer> prefix = from(1, 2);
 		Observable<Integer> postfix = from(3, 4);
-		Observable<Integer> o = concat(prefix, postfix);
-		Integer count = single(count(prefix));
-		TestUtil.assertEqual(prefix, take(o, count));
+		Observable<Integer> o = Reactive.concat(prefix, postfix);
+		Integer count = Reactive.single(Reactive.count(prefix));
+		TestUtil.assertEqual(prefix, Reactive.take(o, count));
 	}
 	/**
 	 * Tests takeLast().
@@ -52,9 +49,9 @@ public class TestReactiveTake {
 	public void takeLastOk() {
 		Observable<Integer> prefix = from(1, 2);
 		Observable<Integer> postfix = from(3, 4);
-		Observable<Integer> o = concat(prefix, postfix);
-		Integer count = single(count(postfix));
-		TestUtil.assertEqual(postfix, takeLast(o, count));
+		Observable<Integer> o = Reactive.concat(prefix, postfix);
+		Integer count = Reactive.single(Reactive.count(postfix));
+		TestUtil.assertEqual(postfix, Reactive.takeLast(o, count));
 	}
 	/**
 	 * Tests takeWhile() with some elements taken.
@@ -64,8 +61,8 @@ public class TestReactiveTake {
 		Integer value = 42;
 		Observable<Integer> prefix = from(value, value);
 		Observable<Integer> postfix = from(0, value);
-		Observable<Integer> o = concat(prefix, postfix);
-		TestUtil.assertEqual(prefix, takeWhile(o, equal(value)));
+		Observable<Integer> o = Reactive.concat(prefix, postfix);
+		TestUtil.assertEqual(prefix, Reactive.takeWhile(o, equal(value)));
 	}
 	/**
 	 * Tests takeWhile() with all elements taken.
@@ -74,7 +71,7 @@ public class TestReactiveTake {
 	public void takeWhileAll() {
 		Integer value = 42;
 		Observable<Integer> o = from(value, value);
-		TestUtil.assertEqual(o, takeWhile(o, equal(value)));
+		TestUtil.assertEqual(o, Reactive.takeWhile(o, equal(value)));
 	}
 	/**
 	 * Tests takeWhile() with no elements taken.
@@ -82,7 +79,16 @@ public class TestReactiveTake {
 	@Test
 	public void takeWhileNone() {
 		Integer value = 42;
-		TestUtil.assertEqual(empty(), takeWhile(from(0, value), equal(value)));
+		TestUtil.assertEqual(Reactive.empty(), Reactive.takeWhile(from(0, value), equal(value)));
+	}
+	/** TakeLast with time. */
+	@Test(timeout = 1500)
+	public void takeLastTimed() {
+		Observable<Long> source = Reactive.tick(0, 10, 100, TimeUnit.MILLISECONDS);
+		
+		Observable<Long> result = Reactive.takeLast(source, 450, TimeUnit.MILLISECONDS);
+		
+		TestUtil.assertEqual(Arrays.asList(5L, 6L, 7L, 8L, 9L), result);
 	}
 }
 

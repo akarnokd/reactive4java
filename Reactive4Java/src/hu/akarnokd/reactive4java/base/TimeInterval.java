@@ -71,7 +71,7 @@ public final class TimeInterval<T> {
 	}
 	@Override
 	public String toString() {
-		return value + " delta " + interval;
+		return String.format("%s delta %,d", value, interval);
 	}
 	@Override
 	public boolean equals(Object obj) {
