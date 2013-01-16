@@ -23,6 +23,7 @@ import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.util.CircularBuffer;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
 import hu.akarnokd.reactive4java.util.DefaultRunnable;
+import hu.akarnokd.reactive4java.util.R4JConfigManager;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -218,7 +219,7 @@ public final class Take {
 		@Override
 		@Nonnull 
 		public Closeable register(@Nonnull final Observer<? super T> observer) {
-			final Lock lock0 = new ReentrantLock(true);
+			final Lock lock0 = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 			DefaultObserverEx<T> o = new DefaultObserverEx<T>(lock0, true) {
 				/** Error call from the inner. */
 				protected void innerError(Throwable t) {

@@ -70,22 +70,10 @@ public final class Closeables {
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
-				try {
-					c0.close();
-				} catch (IOException ex) {
-					
-				}
-				try {
-					c1.close();
-				} catch (IOException ex) {
-					
-				}
+				closeSilently(c0);
+				closeSilently(c1);
 				for (Closeable c : closeables) {
-					try {
-						c.close();
-					} catch (IOException ex) {
-						
-					}
+					closeSilently(c);
 				}
 			}
 		};

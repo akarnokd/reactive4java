@@ -81,7 +81,7 @@ public final class R4JConfigManager {
 		}
 		@Override
 		public Action1<? super IOException> silentExceptionHandler() {
-			return Actions.noAction1();
+			return null;
 		}
 	}
 }

@@ -15,15 +15,15 @@
  */
 package hu.akarnokd.reactive4java.reactive;
 
-import java.io.Closeable;
-
-import javax.annotation.Nonnull;
-
 import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
+
+import java.io.Closeable;
+
+import javax.annotation.Nonnull;
 
 /**
  * Helper class for where like operations.

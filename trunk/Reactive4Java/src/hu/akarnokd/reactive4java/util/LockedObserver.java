@@ -45,7 +45,7 @@ public class LockedObserver<T> implements Observer<T>, Closeable {
 	 * @param o the observer
 	 */
 	public LockedObserver(@Nonnull Observer<? super T> o) {
-		this(o, new ReentrantLock(true));
+		this(o, new ReentrantLock(R4JConfigManager.get().useFairLocks()));
 	}
 	/**
 	 * Constructor, sets the wrapped observer and uses the provided lock.

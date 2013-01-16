@@ -23,6 +23,7 @@ import hu.akarnokd.reactive4java.util.Closeables;
 import hu.akarnokd.reactive4java.util.CompositeCloseable;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
 import hu.akarnokd.reactive4java.util.Observers;
+import hu.akarnokd.reactive4java.util.R4JConfigManager;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -154,7 +155,7 @@ public final class Zip {
 		@Nonnull
 		public Closeable register(@Nonnull final Observer<? super V> observer) {
 			
-			final Lock lock = new ReentrantLock(true);
+			final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 			final CompositeCloseable composite = new CompositeCloseable();
 			
 			final Object nullSentinel = new Object();

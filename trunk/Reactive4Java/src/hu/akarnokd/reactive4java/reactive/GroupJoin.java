@@ -26,6 +26,7 @@ import hu.akarnokd.reactive4java.util.CompositeCloseable;
 import hu.akarnokd.reactive4java.util.DefaultObservable;
 import hu.akarnokd.reactive4java.util.Observers;
 import hu.akarnokd.reactive4java.util.Producer;
+import hu.akarnokd.reactive4java.util.R4JConfigManager;
 import hu.akarnokd.reactive4java.util.RefCountCloseable;
 import hu.akarnokd.reactive4java.util.RefCountObservable;
 import hu.akarnokd.reactive4java.util.SingleCloseable;
@@ -101,7 +102,7 @@ extends Producer<Result> {
 	 */
 	class ResultSink extends Sink<Result> {
 		/** The global guard lock. */
-		protected final Lock lock = new ReentrantLock(true);
+		protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 		/** The group closeable. */
 		protected final CompositeCloseable group = new CompositeCloseable();
 		/** The reference counting closeable. */
