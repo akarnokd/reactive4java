@@ -15,6 +15,7 @@
  */
 package hu.akarnokd.reactive4java.base;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.annotation.Nonnull;
@@ -95,7 +96,7 @@ public final class Timestamped<T> implements Comparable<Timestamped<T>> {
 	}
 	@Override
 	public String toString() {
-		return value + " @ " + new Date(timestamp);
+		return value + " @ " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(timestamp));
 	}
 	@Override
 	public boolean equals(Object obj) {
