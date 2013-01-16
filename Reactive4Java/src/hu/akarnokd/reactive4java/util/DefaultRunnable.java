@@ -35,7 +35,7 @@ public abstract class DefaultRunnable implements Runnable {
 	 * Creates a new instance with a fair reentrant lock.
 	 */
 	public DefaultRunnable() {
-		this(new ReentrantLock(true));
+		this(new ReentrantLock(R4JConfigManager.get().useFairLocks()));
 	}
 	/**
 	 * Creates a new instance with the supplied lock.

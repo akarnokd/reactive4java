@@ -61,7 +61,7 @@ public class DefaultConnectableObservable<T, U> implements
 	public DefaultConnectableObservable(
 			@Nonnull Observable<? extends T> source, 
 			@Nonnull Subject<? super T, ? extends U> subject) {
-		this(source, subject, new ReentrantLock(true));
+		this(source, subject, new ReentrantLock(R4JConfigManager.get().useFairLocks()));
 	}
 	/**
 	 * Creates an observable which can be connected and disconnected from the source.

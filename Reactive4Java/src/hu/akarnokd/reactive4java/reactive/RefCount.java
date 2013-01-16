@@ -19,6 +19,7 @@ import hu.akarnokd.reactive4java.base.ConnectableObservable;
 import hu.akarnokd.reactive4java.base.MultiIOException;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
+import hu.akarnokd.reactive4java.util.R4JConfigManager;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -55,7 +56,7 @@ public class RefCount<T> implements Observable<T> {
 	 * @param source the source of Ts
 	 */
 	public RefCount(ConnectableObservable<? extends T> source) {
-		this(source, new ReentrantLock(true));
+		this(source, new ReentrantLock(R4JConfigManager.get().useFairLocks()));
 	}
 	/**
 	 * Constructor.

@@ -67,7 +67,7 @@ public class AsyncSubject<T> implements Subject<T, T> {
 	 * Creates an AsyncSubject with a fair reentrant lock.
 	 */
 	public AsyncSubject() {
-		this(new ReentrantLock(true));
+		this(new ReentrantLock(R4JConfigManager.get().useFairLocks()));
 	}
 	/**
 	 * Creates an AsyncSubject with the supplied lock.

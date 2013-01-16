@@ -36,7 +36,7 @@ import javax.annotation.concurrent.GuardedBy;
  */
 public class SequentialCloseable implements Closeable, Cancelable {
 	/** The lock guarding the contents. */
-	protected final Lock lock = new ReentrantLock(true);
+	protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 	/** The current closeable. */
 	@GuardedBy("lock")
 	protected Closeable current;

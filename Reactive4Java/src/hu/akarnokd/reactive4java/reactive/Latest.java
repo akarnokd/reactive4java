@@ -19,6 +19,7 @@ import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.ObservationKind;
 import hu.akarnokd.reactive4java.util.ObservableToIterableAdapter;
 import hu.akarnokd.reactive4java.util.ObserverToIteratorSink;
+import hu.akarnokd.reactive4java.util.R4JConfigManager;
 import hu.akarnokd.reactive4java.util.SingleOption;
 
 import java.io.Closeable;
@@ -57,7 +58,7 @@ public final class Latest<T> extends
 			/** The signal that value is available. */
 			protected final Semaphore semaphore = new Semaphore(0, true);
 			/** The lock protecting the fields. */
-			protected final Lock lock = new ReentrantLock(true);
+			protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 			@GuardedBy("lock")
 			/** There is an event already received but not processed? */
 			protected boolean eventAvailable;

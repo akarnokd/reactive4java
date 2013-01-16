@@ -19,6 +19,7 @@ import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.ObservationKind;
 import hu.akarnokd.reactive4java.util.ObservableToIterableAdapter;
 import hu.akarnokd.reactive4java.util.ObserverToIteratorSink;
+import hu.akarnokd.reactive4java.util.R4JConfigManager;
 import hu.akarnokd.reactive4java.util.SingleOption;
 
 import java.io.Closeable;
@@ -59,7 +60,7 @@ public class Next<T> extends ObservableToIterableAdapter<T, T> {
 		return new ObserverToIteratorSink<T, T>(handle) {
 			/** The lock guarding the data exchange. */
 			@Nonnull 
-			protected final Lock lock = new ReentrantLock(true);
+			protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 			/** The notification semaphore. */
 			@Nonnull 
 			protected final Semaphore semaphore = new Semaphore(0);

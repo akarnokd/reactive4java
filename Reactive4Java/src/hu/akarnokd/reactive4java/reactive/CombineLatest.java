@@ -21,6 +21,7 @@ import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.util.Closeables;
 import hu.akarnokd.reactive4java.util.CompositeCloseable;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
+import hu.akarnokd.reactive4java.util.R4JConfigManager;
 
 import java.io.Closeable;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -79,7 +80,7 @@ public final class CombineLatest {
 		@Override
 		@Nonnull 
 		public Closeable register(@Nonnull final Observer<? super V> observer) {
-			final Lock lock = new ReentrantLock(true);
+			final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 			final CompositeCloseable closeBoth = new CompositeCloseable();
 			
 			final AtomicReference<T> leftRef = new AtomicReference<T>();
@@ -179,7 +180,7 @@ public final class CombineLatest {
 		@Override
 		@Nonnull 
 		public Closeable register(@Nonnull final Observer<? super V> observer) {
-			final Lock lock = new ReentrantLock(true);
+			final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 			final CompositeCloseable closeBoth = new CompositeCloseable();
 			final AtomicReference<T> leftRef = new AtomicReference<T>();
 			final AtomicBoolean leftFirst = new AtomicBoolean();

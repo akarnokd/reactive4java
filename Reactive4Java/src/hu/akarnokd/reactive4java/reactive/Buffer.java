@@ -22,6 +22,7 @@ import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
 import hu.akarnokd.reactive4java.util.DefaultRunnable;
+import hu.akarnokd.reactive4java.util.R4JConfigManager;
 import hu.akarnokd.reactive4java.util.Unique;
 
 import java.io.Closeable;
@@ -90,7 +91,7 @@ public final class Buffer {
 		public Closeable register(@Nonnull final Observer<? super List<T>> observer) {
 
 			final BlockingQueue<T> buffer = new LinkedBlockingQueue<T>();
-			final Lock lock = new ReentrantLock(true);
+			final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 
 			final DefaultRunnable r = new DefaultRunnable(lock) {
 				@Override
@@ -170,7 +171,7 @@ public final class Buffer {
 		public Closeable register(@Nonnull final Observer<? super List<T>> observer) {
 			final BlockingQueue<T> buffer = new LinkedBlockingQueue<T>();
 			final AtomicInteger bufferLength = new AtomicInteger();
-			final Lock lock = new ReentrantLock(true);
+			final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 			final DefaultRunnable r = new DefaultRunnable(lock) {
 				@Override
 				public void onRun() {
@@ -427,7 +428,7 @@ public final class Buffer {
 		@Nonnull
 		public Closeable register(@Nonnull final Observer<? super List<T>> observer) {
 			
-			final Lock lock = new ReentrantLock(true);
+			final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 			
 			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(lock, true) {
 				/** The open buffers map. */

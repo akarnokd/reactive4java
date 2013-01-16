@@ -53,7 +53,7 @@ public abstract class DefaultObserver<T> implements Observer<T>, Closeable {
 	 * @param complete should set the completion status on an error or finish?
 	 */
 	public DefaultObserver(boolean complete) {
-		this(new ReentrantLock(true), complete);
+		this(new ReentrantLock(R4JConfigManager.get().useFairLocks()), complete);
 	}
 	/**
 	 * Constructor. Initializes the class with a shared lock instance.
