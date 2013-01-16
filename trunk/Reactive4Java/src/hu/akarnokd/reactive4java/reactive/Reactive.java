@@ -1028,7 +1028,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T, U> Observable<U> concat(
 			@Nonnull final Iterable<? extends T> source, 
-			@Nonnull final Func2<? super Integer, ? super T, ? extends Observable<? extends U>> resultSelector) {
+			@Nonnull final Func2<? super T, ? super Integer, ? extends Observable<? extends U>> resultSelector) {
 		return new Concat.FromIterable.IndexedSelector<T, U>(source, resultSelector);
 	}
 	/**
@@ -1044,7 +1044,7 @@ public final class Reactive {
 	 */
 	@Nonnull
 	public static <T, U> Observable<U> concat(
-			@Nonnull final Func2<? super Integer, ? super T, ? extends Observable<? extends U>> resultSelector,
+			@Nonnull final Func2<? super T, ? super Integer, ? extends Observable<? extends U>> resultSelector,
 			@Nonnull T... source) {
 		return new Concat.FromIterable.IndexedSelector<T, U>(Arrays.asList(source), resultSelector);
 	}
@@ -1094,7 +1094,7 @@ public final class Reactive {
 	@Nonnull 
 	public static <T, U> Observable<U> concat(
 			@Nonnull final Observable<? extends Observable<? extends T>> sources,
-			@Nonnull Func2<? super Integer, ? super Observable<? extends T>, ? extends Observable<? extends U>> resultSelector
+			@Nonnull Func2<? super Observable<? extends T>, ? super Integer, ? extends Observable<? extends U>> resultSelector
 	) {
 		return new Concat.FromObservable.IndexedSelector<T, U>(sources, resultSelector);
 	}
@@ -1703,7 +1703,7 @@ public final class Reactive {
 	 */
 	@Nonnull
 	public static <T> Observable<T> empty() {
-		return empty(scheduler());
+		return empty(Schedulers.constantTimeOperations());
 	}
 	/**
 	 * Returns an empty observable which signals only finish() on the given pool.
@@ -3077,7 +3077,6 @@ public final class Reactive {
 	 * is that in this case, the result selector takes the concrete left and
 	 * right elements, whereas the groupJoin associates an observable of rights
 	 * for each left.</p>
-	 * FIXME not sure how to implement it
 	 * @param <Left> the element type of the left stream
 	 * @param <Right> the element type of the right stream
 	 * @param <LeftDuration> the overlapping duration indicator for the left stream (e.g., the event when it leaves)
@@ -3098,125 +3097,7 @@ public final class Reactive {
 			final Func1<? super Right, ? extends Observable<RightDuration>> rightDurationSelector,
 			final Func2<? super Left, ? super Right, ? extends Result> resultSelector
 	) {
-		return new Observable<Result>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super Result> observer) {
-				final Lock lock = new ReentrantLock(true);
-				final HashSet<Left> leftActive = new HashSet<Left>();
-				final HashSet<Right> rightActive = new HashSet<Right>();
-
-				final CompositeCloseable closeBoth = new CompositeCloseable();
-
-				DefaultObserverEx<Left> o1 = new DefaultObserverEx<Left>(lock, true) {
-					/** Relay the inner error to the outer. */
-					void innerError(@Nonnull Throwable ex) {
-						error(ex);
-					}
-					@Override
-					protected void onClose() {
-						super.onClose();
-						Closeables.closeSilently(closeBoth);
-					}
-
-					@Override
-					protected void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					protected void onFinish() {
-						observer.finish();
-					}
-					@Override
-					protected void onNext(final Left value) {
-						leftActive.add(value);
-
-						Observable<LeftDuration> completion = leftDurationSelector.invoke(value);
-						final Object token = new Object();
-						add(token, completion.register(new DefaultObserver<LeftDuration>(lock, true) {
-
-							@Override
-							protected void onClose() {
-								remove(token);
-							}
-
-							@Override
-							protected void onError(@Nonnull Throwable ex) {
-								innerError(ex);
-							}
-
-							@Override
-							protected void onFinish() {
-								leftActive.remove(value);
-							}
-							@Override
-							protected void onNext(LeftDuration value) {
-								// NO OP?
-							}
-						}));
-						for (Right r : rightActive) {
-							observer.next(resultSelector.invoke(value, r));
-						}
-					}
-				};
-				DefaultObserverEx<Right> o2 = new DefaultObserverEx<Right>(lock, true) {
-					/** Relay the inner error to the outer. */
-					void innerError(Throwable ex) {
-						error(ex);
-					}
-					@Override
-					protected void onClose() {
-						super.onClose();
-						Closeables.closeSilently(closeBoth);
-					}
-					@Override
-					protected void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					protected void onFinish() {
-						observer.finish();
-					}
-					@Override
-					protected void onNext(final Right value) {
-						rightActive.add(value);
-
-						Observable<RightDuration> completion = rightDurationSelector.invoke(value);
-						final Object token = new Object();
-						add(token, completion.register(new DefaultObserver<RightDuration>(lock, true) {
-
-							@Override
-							protected void onClose() {
-								remove(token);
-							}
-
-							@Override
-							protected void onError(@Nonnull Throwable ex) {
-								innerError(ex);
-							}
-
-							@Override
-							protected void onFinish() {
-								rightActive.remove(value);
-							}
-							@Override
-							protected void onNext(RightDuration value) {
-								// NO OP?!
-							}
-						}));
-						for (Left left : leftActive) {
-							observer.next(resultSelector.invoke(left, value));
-						}
-					}
-				};
-				closeBoth.add(o1, o2);
-				o1.registerWith(left);
-				o2.registerWith(right);
-				return closeBoth;
-			}
-		};
+		return new Join<Left, Right, LeftDuration, RightDuration, Result>(left, right, leftDurationSelector, rightDurationSelector, resultSelector);
 	}
 	/**
 	 * Returns the last element of the source observable or throws
@@ -6196,7 +6077,7 @@ public final class Reactive {
 	 */
 	public static <T, U> Observable<U> select(
 			@Nonnull final Observable<? extends T> source,
-			@Nonnull final Func2<? super Integer, ? super T, ? extends U> selector) {
+			@Nonnull final Func2<? super T, ? super Integer, ? extends U> selector) {
 		return new Select.Indexed<T, U>(source, selector);
 	}
 	/**
@@ -6212,7 +6093,7 @@ public final class Reactive {
 	 */
 	public static <T, U> Observable<U> selectLong(
 			@Nonnull final Observable<? extends T> source,
-			@Nonnull final Func2<? super Long, ? super T, ? extends U> selector) {
+			@Nonnull final Func2<? super T, ? super Long, ? extends U> selector) {
 		return new Select.LongIndexed<T, U>(source, selector);
 	}
 	
@@ -6714,6 +6595,40 @@ public final class Reactive {
 		return new Skip.While<T>(source, condition);
 	}
 	/**
+	 * Skips the Ts from source while the specified indexed condition returns true.
+	 * If the condition returns false, all subsequent Ts are relayed,
+	 * ignoring the condition further on. Errors and completion
+	 * is relayed regardless of the condition.
+	 * @param <T> the element types
+	 * @param source the source of Ts
+	 * @param condition the condition that must turn false in order to start relaying
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> skipWhile(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func2<? super T, ? super Integer, Boolean> condition) {
+		return new Skip.WhileIndexed<T>(source, condition);
+	}
+	/**
+	 * Skips the Ts from source while the specified long indexed condition returns true.
+	 * If the condition returns false, all subsequent Ts are relayed,
+	 * ignoring the condition further on. Errors and completion
+	 * is relayed regardless of the condition.
+	 * @param <T> the element types
+	 * @param source the source of Ts
+	 * @param condition the condition that must turn false in order to start relaying
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> skipWhileLong(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func2<? super T, ? super Long, Boolean> condition) {
+		return new Skip.WhileLongIndexed<T>(source, condition);
+	}
+	/**
 	 * Invokes the action asynchronously on the given pool and
 	 * relays its finish() or error() messages.
 	 * @param action the action to invoke
@@ -7137,7 +7052,28 @@ public final class Reactive {
 	public static <T> Observable<T> take(
 			@Nonnull final Observable<? extends T> source,
 			final int count) {
-
+		return take(source, count, Schedulers.constantTimeOperations());
+	}
+	/**
+	 * Creates an observable which takes the specified number of
+	 * Ts from the source, unregisters and completes.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param count the number of elements to relay, setting
+	 * it to zero will finish the output after the reception of 
+	 * the first event.
+	 * @param scheduler the scheduler to emit the finish event
+	 * if the count is zero
+	 * @return the new observable
+	 */
+	@Nonnull
+	public static <T> Observable<T> take(
+			@Nonnull final Observable<? extends T> source,
+			final int count, 
+			@Nonnull Scheduler scheduler) {
+		if (count == 0) {
+			return empty(scheduler);
+		}
 		return new Take.First<T>(source, count);
 	}
 	/**
@@ -7215,6 +7151,36 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final Func1<? super T, Boolean> predicate) {
 		return new Take.While<T>(source, predicate);
+	}
+	/**
+	 * Creates an observable which takes values from source until
+	 * the indexed predicate returns false for the current element, then skips the remaining values.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param predicate the predicate
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> takeWhile(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func2<? super T, ? super Integer, Boolean> predicate) {
+		return new Take.WhileIndexed<T>(source, predicate);
+	}
+	/**
+	 * Creates an observable which takes values from source until
+	 * the long indexed predicate returns false for the current element, then skips the remaining values.
+	 * @param <T> the element type
+	 * @param source the source of Ts
+	 * @param predicate the predicate
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<T> takeWhileLong(
+			@Nonnull final Observable<? extends T> source,
+			@Nonnull final Func2<? super T, ? super Long, Boolean> predicate) {
+		return new Take.WhileLongIndexed<T>(source, predicate);
 	}
 	/**
 	 * Creates and observable which fires the last value
@@ -7307,7 +7273,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T, E extends Throwable> Observable<T> throwException(
 			@Nonnull final Func0<E> supplier) {
-		return throwException(supplier, scheduler());
+		return throwException(supplier, Schedulers.constantTimeOperations());
 	}
 	/**
 	 * Creates an observable which instantly sends the exception 
@@ -8230,7 +8196,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T> Observable<T> where(
 			@Nonnull final Observable<? extends T> source,
-			@Nonnull final Func0<? extends Func2<? super Integer, ? super T, Boolean>> clauseFactory) {
+			@Nonnull final Func0<? extends Func2<? super T, ? super Integer, Boolean>> clauseFactory) {
 		return new Where.IndexedFactory<T>(source, clauseFactory);
 	}
 	/**
@@ -8257,7 +8223,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T> Observable<T> where(
 			@Nonnull final Observable<? extends T> source,
-			@Nonnull final Func2<? super Integer, ? super T, Boolean> clause) {
+			@Nonnull final Func2<? super T, ? super Integer, Boolean> clause) {
 		return new Where.Indexed<T>(source, clause);
 	}
 	/**
@@ -8272,7 +8238,7 @@ public final class Reactive {
 	@Nonnull
 	public static <T> Observable<T> whereLong(
 			@Nonnull final Observable<? extends T> source,
-			@Nonnull final Func2<? super Long, ? super T, Boolean> clause) {
+			@Nonnull final Func2<? super T, ? super Long, Boolean> clause) {
 		return new Where.LongIndexed<T>(source, clause);
 	}
 	/**

@@ -15,6 +15,8 @@
  */
 package hu.akarnokd.reactive4java.util;
 
+import hu.akarnokd.reactive4java.base.Cancelable;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.locks.Lock;
@@ -32,7 +34,7 @@ import javax.annotation.concurrent.GuardedBy;
  * @author akarnokd, 2013.01.12.
  * @since 0.97
  */
-public class SequentialCloseable implements Closeable {
+public class SequentialCloseable implements Closeable, Cancelable {
 	/** The lock guarding the contents. */
 	protected final Lock lock = new ReentrantLock(true);
 	/** The current closeable. */
@@ -95,7 +97,7 @@ public class SequentialCloseable implements Closeable {
 			Closeables.closeSilently(c);
 		}
 	}
-	/** @return true if this container is already closed. */
+	@Override
 	public boolean isClosed() {
 		lock.lock();
 		try {

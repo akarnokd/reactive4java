@@ -20,14 +20,11 @@ import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
-import hu.akarnokd.reactive4java.base.Subject;
 import hu.akarnokd.reactive4java.util.Closeables;
 import hu.akarnokd.reactive4java.util.CompositeCloseable;
-import hu.akarnokd.reactive4java.util.DefaultObservable;
 import hu.akarnokd.reactive4java.util.Observers;
 import hu.akarnokd.reactive4java.util.Producer;
-import hu.akarnokd.reactive4java.util.RefCountCloseable;
-import hu.akarnokd.reactive4java.util.RefCountObservable;
+import hu.akarnokd.reactive4java.util.R4JConfigManager;
 import hu.akarnokd.reactive4java.util.SingleCloseable;
 import hu.akarnokd.reactive4java.util.Sink;
 
@@ -41,32 +38,29 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
- * Returns an observable which correlates two streams of values based on
- * their time when they overlapped and groups the results.
+ * Correlates elements of two sequences based on overlapping durations.
  * <p>Windows are terminated by either a next() or finish call from the duration
  * observables.</p>
+ * @author akarnokd, 2013.01.16.
+ * @since 0.97
  * @param <Left> the element type of the left stream
  * @param <Right> the element type of the right stream
  * @param <LeftDuration> the overlapping duration indicator for the left stream (e.g., the event when it leaves)
  * @param <RightDuration> the overlapping duration indicator for the right stream (e.g., the event when it leaves)
  * @param <Result> the type of the grouping based on the coincidence.
- * @return the new observable
- * @see #join(Observable, Observable, Func1, Func1, Func2)
- * @author akarnokd, 2013.01.15.
- * @since 0.97
  */
-public class GroupJoin<Result, Left, Right, LeftDuration, RightDuration>
-extends Producer<Result> {
+public class Join<Left, Right, LeftDuration, RightDuration, Result> extends
+		Producer<Result> {
 	/** */
-	protected final Func1<? super Right, ? extends Observable<RightDuration>> rightDurationSelector;
+	protected Observable<? extends Left> left;
 	/** */
-	protected final Func1<? super Left, ? extends Observable<LeftDuration>> leftDurationSelector;
+	protected Observable<? extends Right> right;
 	/** */
-	protected final Observable<? extends Left> left;
+	protected Func1<? super Left, ? extends Observable<LeftDuration>> leftDurationSelector;
 	/** */
-	protected final Observable<? extends Right> right;
+	protected Func1<? super Right, ? extends Observable<RightDuration>> rightDurationSelector;
 	/** */
-	protected final Func2<? super Left, ? super Observable<? extends Right>, ? extends Result> resultSelector;
+	protected Func2<? super Left, ? super Right, ? extends Result> resultSelector;
 
 	/**
 	 * Constructor.
@@ -76,18 +70,20 @@ extends Producer<Result> {
 	 * @param rightDurationSelector the duration selector for a right element
 	 * @param resultSelector the selector which will produce the output value
 	 */
-	public GroupJoin(
-			Observable<? extends Left> left,
-			Observable<? extends Right> right,
-			Func1<? super Left, ? extends Observable<LeftDuration>> leftDurationSelector,
-			Func1<? super Right, ? extends Observable<RightDuration>> rightDurationSelector,
-			Func2<? super Left, ? super Observable<? extends Right>, ? extends Result> resultSelector) {
-		this.rightDurationSelector = rightDurationSelector;
-		this.leftDurationSelector = leftDurationSelector;
+	public Join(
+			final Observable<? extends Left> left,
+			final Observable<? extends Right> right,
+			final Func1<? super Left, ? extends Observable<LeftDuration>> leftDurationSelector,
+			final Func1<? super Right, ? extends Observable<RightDuration>> rightDurationSelector,
+			final Func2<? super Left, ? super Right, ? extends Result> resultSelector
+	) {
 		this.left = left;
 		this.right = right;
+		this.leftDurationSelector = leftDurationSelector;
+		this.rightDurationSelector = rightDurationSelector;
 		this.resultSelector = resultSelector;
 	}
+
 	@Override
 	protected Closeable run(Observer<? super Result> observer,
 			Closeable cancel, Action1<Closeable> setSink) {
@@ -95,75 +91,75 @@ extends Producer<Result> {
 		setSink.invoke(sink);
 		return sink.run();
 	}
-	/** 
-	 * The result sink.
-	 * @author akarnokd, 2013.01.16.
-	 */
+	/** The result sink. */
 	class ResultSink extends Sink<Result> {
-		/** The global guard lock. */
-		protected final Lock lock = new ReentrantLock(true);
-		/** The group closeable. */
+		/** The lock protecting the structures. */
+		protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
+		/** The composite closeable. */
 		protected final CompositeCloseable group = new CompositeCloseable();
-		/** The reference counting closeable. */
-		protected final RefCountCloseable refCount = new RefCountCloseable(group);
-		/** The left open windows running identifier. */
+		/** The left source completed. */
+		@GuardedBy("lock")
+		protected boolean leftDone;
+		/** The left window id. */
 		@GuardedBy("lock")
 		protected int leftId;
-		/** The right observer map. */
+		/** The left value map per window. */
 		@GuardedBy("lock")
-		protected Map<Integer, Observer<Right>> leftMap = new HashMap<Integer, Observer<Right>>();
-		/** The right open windows running identifier. */
+		protected final Map<Integer, Left> leftMap = new HashMap<Integer, Left>();
+		/** The right source completed. */
+		@GuardedBy("lock")
+		protected boolean rightDone;
+		/** The right window id. */
 		@GuardedBy("lock")
 		protected int rightId;
-		/** The right value map. */
+		/** The right value map per window. */
 		@GuardedBy("lock")
-		protected Map<Integer, Right> rightMap = new HashMap<Integer, Right>();
+		protected final Map<Integer, Right> rightMap = new HashMap<Integer, Right>();
 		/**
 		 * Constructor.
-		 * @param observer the observer to handle
-		 * @param cancel the cancel handler
+		 * @param observer the original observer
+		 * @param cancel the cancel token
 		 */
 		public ResultSink(Observer<? super Result> observer, Closeable cancel) {
 			super(observer, cancel);
 		}
 		/**
-		 * Performs the composite registration action.
-		 * @return the closeable to terminate the whole stream
+		 * @return the sink body to run
 		 */
 		public Closeable run() {
-			SingleCloseable leftReg = new SingleCloseable();
-			group.add(leftReg);
 			
-			SingleCloseable rightReg = new SingleCloseable();
-			group.add(rightReg);
+			SingleCloseable leftRegistration = new SingleCloseable();
+			SingleCloseable rightRegistration = new SingleCloseable();
 			
-			leftReg.set(Observers.registerSafe(left, new LeftObserver(leftReg)));
-			rightReg.set(Observers.registerSafe(right, new RightObserver(rightReg)));
+			group.add(leftRegistration, rightRegistration);
 			
-			return refCount;
+			leftRegistration.set(Observers.registerSafe(left, new LeftObserver(leftRegistration)));
+			rightRegistration.set(Observers.registerSafe(right, new RightObserver(rightRegistration)));
+			
+			return group;
 		}
-		/** The left value observer. */
+		/** The left sequence observer. */
 		class LeftObserver implements Observer<Left> {
-			/** The self-closing handle. */
-			protected final Closeable handle;
+			/** Close the observer. */
+			protected final Closeable self;
 			/**
 			 * Constructor.
-			 * @param handle the self-closing handle
+			 * @param self the self cancel handler
 			 */
-			public LeftObserver(Closeable handle) {
-				this.handle = handle;
+			public LeftObserver(Closeable self) {
+				this.self = self;
 			}
 			/**
-			 * Terminate the processing of a window and release its resource.
-			 * @param id the identifier
-			 * @param gr the right group observer
-			 * @param resource the resource to close
+			 * Terminate a window.
+			 * @param id the window id
+			 * @param resource the resource
 			 */
-			protected void expire(int id, Observer<Right> gr, Closeable resource) {
+			protected void expire(int id, Closeable resource) {
 				lock.lock();
 				try {
-					if (leftMap.remove(id) != null) {
-						gr.finish();
+					if (leftMap.remove(id) != null && leftMap.isEmpty() && leftDone) {
+						observer.get().finish();
+						ResultSink.this.closeSilently();
 					}
 				} finally {
 					lock.unlock();
@@ -172,57 +168,82 @@ extends Producer<Result> {
 			}
 			@Override
 			public void next(Left value) {
-				Subject<Right, Right> s = new DefaultObservable<Right>();
+				// TODO Auto-generated method stub
+				
 				int id = 0;
 				lock.lock();
 				try {
 					id = leftId++;
-					leftMap.put(id, s);
+					leftMap.put(id, value);
 				} finally {
 					lock.unlock();
 				}
 				
-				Observable<Right> window = new RefCountObservable<Right>(s, refCount);
-				
 				SingleCloseable md = new SingleCloseable();
 				group.add(md);
+				
 				Observable<LeftDuration> duration = null;
+				Observer<? super Result> o = observer.get();
 				try {
 					duration = leftDurationSelector.invoke(value);
 				} catch (Throwable t) {
-					error(t);
+					o.error(t);
+					ResultSink.this.closeSilently();
 					return;
 				}
 				
-				md.set(Observers.registerSafe(duration, new LeftDurationObserver(id, s, md)));
-				
-				Result result = null;
-				try {
-					result = resultSelector.invoke(value, window);
-				} catch (Throwable t) {
-					error(t);
-					return;
-				}
+				md.set(Observers.registerSafe(duration, new LeftDurationObserver(id, md)));
 				
 				lock.lock();
 				try {
-					ResultSink.this.observer.get().next(result);
-					
 					for (Right r : rightMap.values()) {
-						s.next(r);
+						Result result = null;
+						try {
+							result = resultSelector.invoke(value, r);
+						} catch (Throwable t) {
+							o.error(t);
+							ResultSink.this.closeSilently();
+							return;
+						}
+						o.next(result);
 					}
 				} finally {
 					lock.unlock();
 				}
-				
 			}
+			/** The left duration observer. */
+			class LeftDurationObserver implements Observer<LeftDuration> {
+				/** The window id. */
+				protected final int id;
+				/** The close handler. */
+				protected final Closeable handle;
+				/**
+				 * Constructor.
+				 * @param id window id
+				 * @param handle the close handler
+				 */
+				public LeftDurationObserver(int id, Closeable handle) {
+					this.id = id;
+					this.handle = handle;
+				}
+				@Override
+				public void error(@Nonnull Throwable ex) {
+					LeftObserver.this.error(ex);
+				}
+				@Override
+				public void finish() {
+					expire(id, handle);
+				}
+				@Override
+				public void next(LeftDuration value) {
+					expire(id, handle);
+				}
+			}
+			
 			@Override
 			public void error(@Nonnull Throwable ex) {
 				lock.lock();
 				try {
-					for (Observer<Right> or : leftMap.values()) {
-						or.error(ex);
-					}
 					observer.get().error(ex);
 					ResultSink.this.closeSilently();
 				} finally {
@@ -233,66 +254,41 @@ extends Producer<Result> {
 			public void finish() {
 				lock.lock();
 				try {
-					observer.get().finish();
-					ResultSink.this.closeSilently();
+					leftDone = true;
+					if (rightDone || leftMap.isEmpty()) {
+						observer.get().finish();
+						ResultSink.this.closeSilently();
+					} else {
+						Closeables.closeSilently(self);
+					}
 				} finally {
 					lock.unlock();
 				}
-				Closeables.closeSilently(handle);
-			}
-			/** The left duration observer. */
-			class LeftDurationObserver implements Observer<LeftDuration> {
-				/** The identifier of the window. */
-				protected final int id;
-				/** The right value observer. */
-				protected final Observer<Right> gr;
-				/** The self-close handle. */
-				protected final Closeable self;
-				/**
-				 * Constructor.
-				 * @param id The identifier of the window
-				 * @param gr The right value observer.
-				 * @param self The self-close handle.
-				 */
-				public LeftDurationObserver(int id, Observer<Right> gr, Closeable self) {
-					this.id = id;
-					this.gr = gr;
-					this.self = self;
-				}
-				@Override
-				public void error(@Nonnull Throwable ex) {
-					LeftObserver.this.error(ex);
-				}
-				@Override
-				public void finish() {
-					expire(id, gr, self);
-				}
-				@Override
-				public void next(LeftDuration value) {
-					expire(id, gr, self);
-				}
 			}
 		}
-		/** The right value observer. */
+		/** The right sequence observer. */
 		class RightObserver implements Observer<Right> {
-			/** The self-closing handle. */
-			protected final Closeable handle;
+			/** Close the observer. */
+			protected final Closeable self;
 			/**
 			 * Constructor.
-			 * @param handle the self-closing handle
+			 * @param self the self cancel handler
 			 */
-			public RightObserver(Closeable handle) {
-				this.handle = handle;
+			public RightObserver(Closeable self) {
+				this.self = self;
 			}
-			/**
-			 * Terimnate the right window.
+			/** 
+			 * Close a window by the given id.
 			 * @param id the window id
-			 * @param resource the resource to close
+			 * @param resource the resource to close 
 			 */
 			protected void expire(int id, Closeable resource) {
 				lock.lock();
 				try {
-					rightMap.remove(id);
+					if (rightMap.remove(id) != null && rightMap.isEmpty() && rightDone) {
+						observer.get().finish();
+						ResultSink.this.closeSilently();
+					}
 				} finally {
 					lock.unlock();
 				}
@@ -300,7 +296,6 @@ extends Producer<Result> {
 			}
 			@Override
 			public void next(Right value) {
-				// TODO Auto-generated method stub
 				int id = 0;
 				lock.lock();
 				try {
@@ -314,10 +309,12 @@ extends Producer<Result> {
 				group.add(md);
 				
 				Observable<RightDuration> duration = null;
+				Observer<? super Result> o = observer.get();
 				try {
 					duration = rightDurationSelector.invoke(value);
 				} catch (Throwable t) {
-					error(t);
+					o.error(t);
+					ResultSink.this.closeSilently();
 					return;
 				}
 				
@@ -325,30 +322,35 @@ extends Producer<Result> {
 				
 				lock.lock();
 				try {
-					for (Observer<Right> o : leftMap.values()) {
-						o.next(value);
+					for (Left lv : leftMap.values()) {
+						Result result = null;
+						try {
+							result = resultSelector.invoke(lv, value);
+						} catch (Throwable t) {
+							o.error(t);
+							ResultSink.this.closeSilently();
+							return;
+						}
+						o.next(result);
 					}
 				} finally {
 					lock.unlock();
 				}
 			}
-			/**
-			 * The right window termination observer.
-			 * @author akarnokd, 2013.01.16.
-			 */
+			/** The right duration observer. */
 			class RightDurationObserver implements Observer<RightDuration> {
-				/** The right window id. */
+				/** The window id. */
 				protected final int id;
-				/** The self closeable. */
-				protected final Closeable self;
+				/** The close handle. */
+				protected final Closeable handle;
 				/**
 				 * Constructor.
-				 * @param id the right window id
-				 * @param self the self closeable
+				 * @param id the window handle
+				 * @param handle the associated resource close
 				 */
-				public RightDurationObserver(int id, Closeable self) {
+				public RightDurationObserver(int id, Closeable handle) {
 					this.id = id;
-					this.self = self;
+					this.handle = handle;
 				}
 				@Override
 				public void error(@Nonnull Throwable ex) {
@@ -356,20 +358,17 @@ extends Producer<Result> {
 				}
 				@Override
 				public void finish() {
-					expire(id, self);
+					expire(id, handle);
 				}
 				@Override
 				public void next(RightDuration value) {
-					expire(id, self);
+					expire(id, handle);
 				}
 			}
 			@Override
 			public void error(@Nonnull Throwable ex) {
 				lock.lock();
 				try {
-					for (Observer<Right> o : leftMap.values()) {
-						o.error(ex);
-					}
 					observer.get().error(ex);
 					ResultSink.this.closeSilently();
 				} finally {
@@ -378,7 +377,18 @@ extends Producer<Result> {
 			}
 			@Override
 			public void finish() {
-				Closeables.closeSilently(handle);
+				lock.lock();
+				try {
+					rightDone = true;
+					if (leftDone || rightMap.isEmpty()) {
+						observer.get().finish();
+						ResultSink.this.closeSilently();
+					} else {
+						Closeables.closeSilently(self);
+					}
+				} finally {
+					lock.unlock();
+				}
 			}
 		}
 	}

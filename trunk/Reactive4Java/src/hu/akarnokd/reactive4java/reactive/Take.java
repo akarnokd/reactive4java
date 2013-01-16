@@ -16,6 +16,7 @@
 package hu.akarnokd.reactive4java.reactive;
 
 import hu.akarnokd.reactive4java.base.Func1;
+import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Scheduler;
@@ -78,6 +79,108 @@ public final class Take {
 				@Override
 				public void onNext(T value) {
 					if (predicate.invoke(value)) {
+						observer.next(value);
+					} else {
+						observer.finish();
+						close();
+					}
+				}
+			};
+			return obs.registerWith(source);
+		}
+	}
+	/**
+	 * Creates an observable which takes values from source until
+	 * the indexed predicate returns false for the current element, then skips the remaining values.
+	 * @param <T> the element type
+	 * @author akarnokd, 2013.01.14.
+	 */
+	public static final class WhileIndexed<T> implements Observable<T> {
+		/** */
+		private final Observable<? extends T> source;
+		/** */
+		private final Func2<? super T, ? super Integer, Boolean> predicate;
+
+		/**
+		 * Constructor.
+		 * @param source the source of Ts
+		 * @param predicate the predicate
+		 */
+		public WhileIndexed(Observable<? extends T> source,
+				Func2<? super T, ? super Integer, Boolean> predicate) {
+			this.source = source;
+			this.predicate = predicate;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
+				/** The index. */
+				int index;
+				@Override
+				public void onError(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				public void onFinish() {
+					observer.finish();
+				}
+				@Override
+				public void onNext(T value) {
+					if (predicate.invoke(value, index++)) {
+						observer.next(value);
+					} else {
+						observer.finish();
+						close();
+					}
+				}
+			};
+			return obs.registerWith(source);
+		}
+	}
+	/**
+	 * Creates an observable which takes values from source until
+	 * the indexed predicate returns false for the current element, then skips the remaining values.
+	 * @param <T> the element type
+	 * @author akarnokd, 2013.01.14.
+	 */
+	public static final class WhileLongIndexed<T> implements Observable<T> {
+		/** */
+		private final Observable<? extends T> source;
+		/** */
+		private final Func2<? super T, ? super Long, Boolean> predicate;
+
+		/**
+		 * Constructor.
+		 * @param source the source of Ts
+		 * @param predicate the predicate
+		 */
+		public WhileLongIndexed(Observable<? extends T> source,
+				Func2<? super T, ? super Long, Boolean> predicate) {
+			this.source = source;
+			this.predicate = predicate;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
+				/** The index. */
+				long index;
+				@Override
+				public void onError(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				public void onFinish() {
+					observer.finish();
+				}
+				@Override
+				public void onNext(T value) {
+					if (predicate.invoke(value, index++)) {
 						observer.next(value);
 					} else {
 						observer.finish();

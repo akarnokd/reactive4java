@@ -15,33 +15,46 @@
  */
 package hu.akarnokd.reactive4java.util;
 
+import java.io.Closeable;
+
 import javax.annotation.Nonnull;
 
 import hu.akarnokd.reactive4java.base.Observer;
 
 /**
- * A simple class that has empty implementations for all
- * observer methods. 
- * @author akarnokd, 2013.01.11.
- * @since 0.97
+ * A default sink implementation which wraps
+ * an observer and closes a closeable on error
+ * or finish.
+ * @author akarnokd, 2013.01.16.
  * @param <T> the element type
+ * @since 0.97
  */
-public class ObserverAdapter<T> implements Observer<T> {
-
-	@Override
-	public void next(T value) {
-
+public class DefaultSink<T> extends Sink<T> implements Observer<T> {
+	/**
+	 * Constructor.
+	 * @param observer the obserer to wrap
+	 * @param cancel the cancellation callback
+	 */
+	public DefaultSink(Observer<? super T> observer, Closeable cancel) {
+		super(observer, cancel);
 	}
 
 	@Override
 	public void error(@Nonnull Throwable ex) {
-
+		observer.get().error(ex);
+		closeSilently();
 	}
 
 	@Override
 	public void finish() {
+		observer.get().finish();
+		closeSilently();
+	}
+
+	@Override
+	public void next(T value) {
+		// TODO Auto-generated method stub
 
 	}
-	/** The no-operation instance. */
-	public static final ObserverAdapter<Object> INSTANCE = new ObserverAdapter<Object>();
+
 }

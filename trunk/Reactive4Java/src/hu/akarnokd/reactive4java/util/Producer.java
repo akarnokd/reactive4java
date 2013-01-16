@@ -50,7 +50,7 @@ public abstract class Producer<T> implements Observable<T> {
 		CompositeCloseable d = new CompositeCloseable(state.sink, state.registration);
 		
 		if (safeguard) {
-			state.observer = Observers.createSafe(state.observer, d);
+			state.observer = new SafeObserver<T>(state.observer, d);
 		}
 		// Rx: some current thread scheduling stuff here, ignored for now
 		// the else case:

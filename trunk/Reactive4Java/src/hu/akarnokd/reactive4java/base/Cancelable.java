@@ -13,35 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package hu.akarnokd.reactive4java.util;
-
-import javax.annotation.Nonnull;
-
-import hu.akarnokd.reactive4java.base.Observer;
+package hu.akarnokd.reactive4java.base;
 
 /**
- * A simple class that has empty implementations for all
- * observer methods. 
- * @author akarnokd, 2013.01.11.
+ * Base interface used in closeables to tell if they have been
+ * closed.
+ * @author akarnokd, 2013.01.16.
  * @since 0.97
- * @param <T> the element type
  */
-public class ObserverAdapter<T> implements Observer<T> {
-
-	@Override
-	public void next(T value) {
-
-	}
-
-	@Override
-	public void error(@Nonnull Throwable ex) {
-
-	}
-
-	@Override
-	public void finish() {
-
-	}
-	/** The no-operation instance. */
-	public static final ObserverAdapter<Object> INSTANCE = new ObserverAdapter<Object>();
+public interface Cancelable {
+	/** @return true if the object has been closed. */
+	boolean isClosed();
 }

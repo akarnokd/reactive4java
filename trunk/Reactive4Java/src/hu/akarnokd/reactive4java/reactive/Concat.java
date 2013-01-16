@@ -118,7 +118,7 @@ public final class Concat {
 			protected final Iterable<? extends T> source;
 			/** The result selector. */
 			@Nonnull
-			protected final Func2<? super Integer, ? super T, ? extends Observable<? extends U>> resultSelector;
+			protected final Func2<? super T, ? super Integer, ? extends Observable<? extends U>> resultSelector;
 			/**
 			 * Constructor.
 			 * @param source the source sequence
@@ -126,7 +126,7 @@ public final class Concat {
 			 */
 			public IndexedSelector(
 					@Nonnull Iterable<? extends T> source, 
-					@Nonnull Func2<? super Integer, ? super T, ? extends Observable<? extends U>> resultSelector) {
+					@Nonnull Func2<? super T, ? super Integer, ? extends Observable<? extends U>> resultSelector) {
 						this.source = source;
 						this.resultSelector = resultSelector;
 			}
@@ -151,7 +151,7 @@ public final class Concat {
 					@Override
 					protected void onFinish() {
 						if (it.hasNext()) {
-							registerWith(resultSelector.invoke(index++, it.next()));
+							registerWith(resultSelector.invoke(it.next(), index++));
 						} else {
 							observer.finish();
 							close();
@@ -160,7 +160,7 @@ public final class Concat {
 					
 				};
 				if (it.hasNext()) {
-					obs.registerWith(resultSelector.invoke(0, it.next()));
+					obs.registerWith(resultSelector.invoke(it.next(), 0));
 				}
 				return obs;
 			}
@@ -289,7 +289,7 @@ public final class Concat {
 			protected final Observable<? extends Observable<? extends T>> sources;
 			/** The result selector. */
 			@Nonnull
-			protected final Func2<? super Integer, ? super Observable<? extends T>, ? extends Observable<? extends U>> resultSelector;
+			protected final Func2<? super Observable<? extends T>, ? super Integer, ? extends Observable<? extends U>> resultSelector;
 
 			/**
 			 * Constructor.
@@ -298,7 +298,7 @@ public final class Concat {
 			 */
 			public IndexedSelector(
 					Observable<? extends Observable<? extends T>> sources, 
-					Func2<? super Integer, ? super Observable<? extends T>, ? extends Observable<? extends U>> resultSelector) {
+					Func2<? super Observable<? extends T>, ? super Integer, ? extends Observable<? extends U>> resultSelector) {
 				this.sources = sources;
 				this.resultSelector = resultSelector;
 			}
@@ -345,7 +345,7 @@ public final class Concat {
 					void registerOn(@Nonnull Observable<? extends T> value) {
 						wip.incrementAndGet();
 						
-						Observable<? extends U> source = resultSelector.invoke(index++, value);
+						Observable<? extends U> source = resultSelector.invoke(value, index++);
 						
 						add("source", source.register(new DefaultObserver<U>(lock, true) {
 							@Override

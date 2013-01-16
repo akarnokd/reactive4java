@@ -193,7 +193,7 @@ public final class Select {
 	 */
 	public static final class Indexed<T, U> implements Observable<U> {
 		/** */
-		private final Func2<? super Integer, ? super T, ? extends U> selector;
+		private final Func2<? super T, ? super Integer, ? extends U> selector;
 		/** */
 		private final Observable<? extends T> source;
 
@@ -204,7 +204,7 @@ public final class Select {
 		 */
 		public Indexed(
 				Observable<? extends T> source,
-				Func2<? super Integer, ? super T, ? extends U> selector) {
+				Func2<? super T, ? super Integer, ? extends U> selector) {
 			this.selector = selector;
 			this.source = source;
 		}
@@ -227,7 +227,7 @@ public final class Select {
 
 				@Override
 				public void next(T value) {
-					observer.next(selector.invoke(index++, value));
+					observer.next(selector.invoke(value, index++));
 				}
 
 			});
@@ -290,7 +290,7 @@ public final class Select {
 	 */
 	public static final class LongIndexed<T, U> implements Observable<U> {
 		/** */
-		private final Func2<? super Long, ? super T, ? extends U> selector;
+		private final Func2<? super T, ? super Long, ? extends U> selector;
 		/** */
 		private final Observable<? extends T> source;
 
@@ -301,7 +301,7 @@ public final class Select {
 		 */
 		public LongIndexed(
 				Observable<? extends T> source,
-				Func2<? super Long, ? super T, ? extends U> selector) {
+				Func2<? super T, ? super Long, ? extends U> selector) {
 			this.selector = selector;
 			this.source = source;
 		}
@@ -324,7 +324,7 @@ public final class Select {
 
 				@Override
 				public void next(T value) {
-					observer.next(selector.invoke(index++, value));
+					observer.next(selector.invoke(value, index++));
 				}
 
 			});

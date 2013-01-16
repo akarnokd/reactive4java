@@ -2496,7 +2496,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 */
 	@Nonnull 
 	public <U> ObservableBuilder<U> select(
-			@Nonnull final Func2<? super Integer, ? super T, ? extends U> selector) {
+			@Nonnull final Func2<? super T, ? super Integer, ? extends U> selector) {
 		return from(Reactive.select(o, selector));
 	}
 	/**
@@ -2510,7 +2510,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 */
 	@Nonnull 
 	public <U> ObservableBuilder<U> selectLong(
-			@Nonnull final Func2<? super Long, ? super T, ? extends U> selector) {
+			@Nonnull final Func2<? super T, ? super Long, ? extends U> selector) {
 		return from(Reactive.selectLong(o, selector));
 	}
 	/**
@@ -2822,6 +2822,19 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public ObservableBuilder<T> take(
 			final int count) {
 		return from(Reactive.take(o, count));
+	}
+	/**
+	 * Creates an observable which takes the specified number of
+	 * Ts from the source, unregisters and completes.
+	 * @param count the number of elements to relay
+	 * @param scheduler the scheduler to use when emitting a finish if count is zero
+	 * @return the new observable
+	 */
+	@Nonnull
+	public ObservableBuilder<T> take(
+			final int count, 
+			@Nonnull Scheduler scheduler) {
+		return from(Reactive.take(o, count, scheduler));
 	}
 	/**
 	 * Returns an observable which returns the last <code>count</code>
@@ -3181,7 +3194,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 */
 	@Nonnull
 	public ObservableBuilder<T> where(
-			@Nonnull final Func0<Func2<Integer, ? super T, Boolean>> clauseFactory) {
+			@Nonnull final Func0<Func2<? super T, ? super Integer, Boolean>> clauseFactory) {
 		return from(Reactive.where(o, clauseFactory));
 	}
 	/**
@@ -3202,8 +3215,20 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 */
 	@Nonnull
 	public ObservableBuilder<T> where(
-			@Nonnull final Func2<Integer, ? super T, Boolean> clause) {
+			@Nonnull final Func2<? super T, ? super Integer, Boolean> clause) {
 		return from(Reactive.where(o, clause));
+	}
+	/**
+	 * Creates a filtered observable where only Ts are relayed which satisfy the clause.
+	 * The clause receives the index and the current element to test.
+	 * @param clause the filter clause, the first parameter receives the current index, the second receives the current element
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> whereLong(
+			@Nonnull final Func2<? super T, ? super Long, Boolean> clause) {
+		return from(Reactive.whereLong(o, clause));
 	}
 	/**
 	 * Splits the source stream into separate observables once
@@ -4059,6 +4084,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull
 	public ObservableBuilder<T> defaultIfEmpty(T defaultValue) {
 		return from(Reactive.defaultIfEmpty(o, defaultValue));
 	}
@@ -4069,6 +4095,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the new observable
 	 * @since 0.97
 	 */
+	@Nonnull
 	public ObservableBuilder<T> defaultIfEmpty(Func0<? extends T> defaultValueFunc) {
 		return from(Reactive.defaultIfEmpty(o, defaultValueFunc));
 	}
@@ -4080,7 +4107,61 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	 * @return the filtering obserable
 	 * since 0.97
 	 */
-	public <U> Observable<U> ofType(@Nonnull Class<U> clazz) {
-		return Reactive.ofType(o, clazz);
+	@Nonnull
+	public <U> ObservableBuilder<U> ofType(@Nonnull Class<U> clazz) {
+		return from(Reactive.ofType(o, clazz));
 	}
+	/**
+	 * Skips the Ts from source while the specified indexed condition returns true.
+	 * If the condition returns false, all subsequent Ts are relayed,
+	 * ignoring the condition further on. Errors and completion
+	 * is relayed regardless of the condition.
+	 * @param condition the condition that must turn false in order to start relaying
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> skipWhile(
+			@Nonnull final Func2<? super T, ? super Integer, Boolean> condition) {
+		return from(Reactive.skipWhile(o, condition));
+	}
+	/**
+	 * Skips the Ts from source while the specified long indexed condition returns true.
+	 * If the condition returns false, all subsequent Ts are relayed,
+	 * ignoring the condition further on. Errors and completion
+	 * is relayed regardless of the condition.
+	 * @param condition the condition that must turn false in order to start relaying
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> skipWhileLong(
+			@Nonnull final Func2<? super T, ? super Long, Boolean> condition) {
+		return from(Reactive.skipWhileLong(o, condition));
+	}
+	/**
+	 * Creates an observable which takes values from source until
+	 * the indexed predicate returns false for the current element, then skips the remaining values.
+	 * @param predicate the predicate
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> takeWhile(
+			@Nonnull final Func2<? super T, ? super Integer, Boolean> predicate) {
+		return from(Reactive.takeWhile(o, predicate));
+	}
+	/**
+	 * Creates an observable which takes values from source until
+	 * the long indexed predicate returns false for the current element, then skips the remaining values.
+	 * @param predicate the predicate
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public ObservableBuilder<T> takeWhileLong(
+			@Nonnull final Func2<? super T, ? super Long, Boolean> predicate) {
+		return from(Reactive.takeWhileLong(o, predicate));
+	}
+
 }

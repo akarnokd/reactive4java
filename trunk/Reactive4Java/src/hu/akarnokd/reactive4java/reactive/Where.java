@@ -90,7 +90,7 @@ public final class Where {
 		/** */
 		private final Observable<? extends T> source;
 		/** */
-		private final Func2<? super Integer, ? super T, Boolean> clause;
+		private final Func2<? super T, ? super Integer, Boolean> clause;
 
 		/**
 		 * Constructor.
@@ -99,7 +99,7 @@ public final class Where {
 		 */
 		public Indexed(
 				Observable<? extends T> source,
-				Func2<? super Integer, ? super T, Boolean> clause) {
+				Func2<? super T, ? super Integer, Boolean> clause) {
 			this.source = source;
 			this.clause = clause;
 		}
@@ -122,10 +122,9 @@ public final class Where {
 
 				@Override
 				public void next(T value) {
-					if (clause.invoke(index, value)) {
+					if (clause.invoke(value, index++)) {
 						observer.next(value);
 					}
-					index++;
 				}
 
 			});
@@ -142,7 +141,7 @@ public final class Where {
 		/** */
 		private final Observable<? extends T> source;
 		/** */
-		private final Func2<? super Long, ? super T, Boolean> clause;
+		private final Func2<? super T, ? super Long, Boolean> clause;
 
 		/**
 		 * Constructor.
@@ -151,7 +150,7 @@ public final class Where {
 		 */
 		public LongIndexed(
 				Observable<? extends T> source,
-				Func2<? super Long, ? super T, Boolean> clause) {
+				Func2<? super T, ? super Long, Boolean> clause) {
 			this.source = source;
 			this.clause = clause;
 		}
@@ -174,10 +173,9 @@ public final class Where {
 
 				@Override
 				public void next(T value) {
-					if (clause.invoke(index, value)) {
+					if (clause.invoke(value, index++)) {
 						observer.next(value);
 					}
-					index++;
 				}
 
 			});
@@ -242,7 +240,7 @@ public final class Where {
 		/** */
 		private final Observable<? extends T> source;
 		/** */
-		private final Func0<? extends Func2<? super Integer, ? super T, Boolean>> clauseFactory;
+		private final Func0<? extends Func2<? super T, ? super Integer, Boolean>> clauseFactory;
 
 		/**
 		 * Constructor.
@@ -251,7 +249,7 @@ public final class Where {
 		 */
 		public IndexedFactory(
 				Observable<? extends T> source,
-				Func0<? extends Func2<? super Integer, ? super T, Boolean>> clauseFactory) {
+				Func0<? extends Func2<? super T, ? super Integer, Boolean>> clauseFactory) {
 			this.source = source;
 			this.clauseFactory = clauseFactory;
 		}
@@ -263,7 +261,7 @@ public final class Where {
 				/** The current element index. */
 				int index;
 				/** The clause instance to use. */
-				final Func2<? super Integer, ? super T, Boolean> clause = clauseFactory.invoke();
+				final Func2<? super T, ? super Integer, Boolean> clause = clauseFactory.invoke();
 				@Override
 				public void error(@Nonnull Throwable ex) {
 					observer.error(ex);
@@ -276,10 +274,9 @@ public final class Where {
 
 				@Override
 				public void next(T value) {
-					if (clause.invoke(index, value)) {
+					if (clause.invoke(value, index++)) {
 						observer.next(value);
 					}
-					index++;
 				}
 
 			});

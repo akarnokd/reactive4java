@@ -15,6 +15,7 @@
  */
 package hu.akarnokd.reactive4java.util;
 
+import hu.akarnokd.reactive4java.base.Cancelable;
 import hu.akarnokd.reactive4java.base.Scheduler;
 
 import java.io.Closeable;
@@ -30,7 +31,7 @@ import javax.annotation.Nonnull;
  * @author akarnokd, 2013.01.12.
  * @since 0.97
  */
-public class ScheduledCloseable implements Closeable {
+public class ScheduledCloseable implements Closeable, Cancelable {
 	/** The scheduler reference. */
 	@Nonnull
 	protected final Scheduler scheduler;
@@ -77,7 +78,7 @@ public class ScheduledCloseable implements Closeable {
 		
 		return c;
 	}
-	/** @return is the container closed? */
+	@Override
 	public boolean isClosed() {
 		return current.get() == SENTINEL;
 	}
