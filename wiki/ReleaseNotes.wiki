@@ -114,6 +114,17 @@
   * Added {{{RefCountCloseable}}}.
   * Added {{{R4JConfig}}} and {{{R4JConfigManager}}} for global or thread-local defaults for fair locks and silent exception handling.
   * Reworked all indexed function calls (e.g., indexed selector, indexed predicate, etc.) to have the index as the second parameter to be consistent across all operators. This affects mainly select and where.
+  * Reworked {{{Reactive.delay}}} to send out the error immediately to observers.
+  * Added operators:
+    * {{{Reactive.delay}}} with observables
+    * {{{Reactive.delayRegister}}}
+    * {{{Reactive.skip}}} with time
+    * {{{Reactive.sample}}} with another observable
+    * {{{Reactive.skipLast}}} with time
+    * {{{Reactive.take}}} with time
+    * {{{Reactive.takeLast}}} with time
+    * {{{Reactive.takeLastBuffer}}} with time
+    * {{{Reactive.throttle}}} with observable window per item
 
 = 0.96 =
   * Released: 2012-01-26 10:30 CET
