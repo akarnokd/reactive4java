@@ -61,4 +61,8 @@ public final class Schedulers {
 	public static void restoreDefault() {
 		DEFAULT_SCHEDULER.set(new DefaultScheduler());
 	}
+	/** @return the scheduler designated to constant time operations. */
+	public static Scheduler constantTimeOperations() {
+		return getDefault(); // for now
+	}
 }

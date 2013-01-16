@@ -16,6 +16,8 @@
 package hu.akarnokd.reactive4java.util;
 
 
+import hu.akarnokd.reactive4java.base.Cancelable;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,10 +33,11 @@ import javax.annotation.concurrent.GuardedBy;
  * A composite closeable which maintains a list of sub-closeables and has its
  * own alive state. If the composite is closed, any maintained closeable is
  * closed and any subsequently added closeable will be closed instantly.
+ * <p>The class is thread safe.</p>
  * @author akarnokd, 2013.01.07.
  * @since 0.97
  */
-public class CompositeCloseable implements Closeable {
+public class CompositeCloseable implements Closeable, Cancelable {
 	/** The lock guarding the items and done. */
 	protected final Lock lock = new ReentrantLock();
 	/** The list of items. */
@@ -118,7 +121,7 @@ public class CompositeCloseable implements Closeable {
 			Closeables.closeSilently(closeables);
 		}
 	}
-	/** @return test if this closeable is already closed. */
+	@Override
 	public boolean isClosed() {
 		lock.lock();
 		try {
@@ -155,6 +158,27 @@ public class CompositeCloseable implements Closeable {
 			}
 			if (shouldClose) {
 				c.close();
+			}
+		}
+		return shouldClose;
+	}
+	/**
+	 * Removes and closes the specified closeable instance if 
+	 * contained within this composite.
+	 * @param c the closeable
+	 * @return true if the instance was removed
+	 */
+	public boolean removeSilently(Closeable c) {
+		boolean shouldClose = false;
+		if (c != null) {
+			lock.lock();
+			try {
+				shouldClose = items.remove(c);
+			} finally {
+				lock.unlock();
+			}
+			if (shouldClose) {
+				Closeables.closeSilently(c);
 			}
 		}
 		return shouldClose;

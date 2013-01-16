@@ -13,35 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package hu.akarnokd.reactive4java.util;
+package hu.akarnokd.reactive4java.base;
 
-import javax.annotation.Nonnull;
-
-import hu.akarnokd.reactive4java.base.Observer;
+import java.io.IOException;
 
 /**
- * A simple class that has empty implementations for all
- * observer methods. 
- * @author akarnokd, 2013.01.11.
+ * Interface for global or thread-local configuration of
+ * various base objects.
+ * @author akarnokd, 2013.01.16.
  * @since 0.97
- * @param <T> the element type
  */
-public class ObserverAdapter<T> implements Observer<T> {
-
-	@Override
-	public void next(T value) {
-
-	}
-
-	@Override
-	public void error(@Nonnull Throwable ex) {
-
-	}
-
-	@Override
-	public void finish() {
-
-	}
-	/** The no-operation instance. */
-	public static final ObserverAdapter<Object> INSTANCE = new ObserverAdapter<Object>();
+public interface R4JConfig {
+	/** @return true if locks used should be fair. */
+	boolean useFairLocks();
+	/** 
+	 * @return 
+	 * The action to invoke on silently closed Closeables' exceptions.
+	 * May return null indicating a no-op. 
+	 */
+	Action1<? super IOException> silentExceptionHandler();
 }

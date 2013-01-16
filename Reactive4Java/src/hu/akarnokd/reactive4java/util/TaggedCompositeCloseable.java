@@ -15,6 +15,8 @@
  */
 package hu.akarnokd.reactive4java.util;
 
+import hu.akarnokd.reactive4java.base.Cancelable;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,7 +36,7 @@ import javax.annotation.concurrent.GuardedBy;
  * @author akarnokd, 2013.01.14.
  * @since 0.97
  */
-public class TaggedCompositeCloseable implements Closeable {
+public class TaggedCompositeCloseable implements Closeable, Cancelable {
 	/** The lock protecting the inner structures. */
 	protected final Lock lock;
 	/** The sub-observer registration holder. The key is a use-site created object. */
@@ -120,9 +122,7 @@ public class TaggedCompositeCloseable implements Closeable {
 		}
 		Closeables.closeSilently(old);
 	}
-	/**
-	 * @return true if thsi composite is closed
-	 */
+	@Override
 	public boolean isClosed() {
 		lock.lock();
 		try {

@@ -17,6 +17,7 @@ package hu.akarnokd.reactive4java.util;
 
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action0E;
+import hu.akarnokd.reactive4java.base.Action1;
 import hu.akarnokd.reactive4java.base.MultiIOException;
 
 import java.io.Closeable;
@@ -100,7 +101,10 @@ public final class Closeables {
 			try {
 				c.close();
 			} catch (IOException ex) {
-				// ignored
+				Action1<? super IOException> ca = R4JConfigManager.get().silentExceptionHandler();
+				if (ca != null) {
+					ca.invoke(ex);
+				}
 			}
 		}
 	}

@@ -15,6 +15,7 @@
  */
 package hu.akarnokd.reactive4java.util;
 
+import hu.akarnokd.reactive4java.base.Cancelable;
 import hu.akarnokd.reactive4java.base.CloseableObserver;
 import hu.akarnokd.reactive4java.base.Observer;
 
@@ -31,7 +32,7 @@ import javax.annotation.Nonnull;
  * @param <T> the observed element type
  * @since 0.97
  */
-public class DefaultCloseableObserver<T> implements CloseableObserver<T> {
+public class DefaultCloseableObserver<T> implements CloseableObserver<T>, Cancelable {
 	/** The completion indicator. */
 	protected boolean completed;
 	/** The wrapped observer. */
@@ -79,5 +80,9 @@ public class DefaultCloseableObserver<T> implements CloseableObserver<T> {
 				close();
 			}
 		}
+	}
+	@Override
+	public boolean isClosed() {
+		return completed;
 	}
 }

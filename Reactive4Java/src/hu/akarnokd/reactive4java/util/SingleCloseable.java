@@ -15,6 +15,8 @@
  */
 package hu.akarnokd.reactive4java.util;
 
+import hu.akarnokd.reactive4java.base.Cancelable;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -33,7 +35,7 @@ import javax.annotation.Nullable;
  * @author akarnokd, 2013.01.12.
  * @since 0.97
  */
-public class SingleCloseable implements Closeable {
+public class SingleCloseable implements Closeable, Cancelable {
 	/** The reference holder. */
 	@Nonnull 
 	protected final AtomicReference<Closeable> current = new AtomicReference<Closeable>();
@@ -76,7 +78,7 @@ public class SingleCloseable implements Closeable {
 		}
 		return c;
 	}
-	/** @return true if this closeable is closed. */
+	@Override
 	public boolean isClosed() {
 		return current.get() == SENTINEL;
 	}

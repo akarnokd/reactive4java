@@ -542,7 +542,4 @@ public final class Observers {
 		
 		return c;
 	}
-	public static <T> Observer<T> createSafe(Observer<T> observer, Closeable cancel) {
-		return observer; // FIXME
-	}
 }

@@ -16,6 +16,7 @@
 package hu.akarnokd.reactive4java.reactive;
 
 import hu.akarnokd.reactive4java.base.Func1;
+import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.util.CompositeCloseable;
@@ -129,6 +130,124 @@ public final class Skip {
 				public void next(T value) {
 					if (!mayRelay) {
 						mayRelay = !condition.invoke(value);
+						if (mayRelay) {
+							observer.next(value);
+						}
+					} else {
+						observer.next(value);
+					}
+				}
+
+			});
+		}
+	}
+	/**
+	 * Skips the Ts from source while the specified indexed condition returns true.
+	 * If the condition returns false, all subsequent Ts are relayed,
+	 * ignoring the condition further on. Errors and completion
+	 * is relayed regardless of the condition.
+	 * @param <T> the element types
+	 * @author akarnokd, 2013.01.14.
+	 */
+	public static final class WhileIndexed<T> implements Observable<T> {
+		/** */
+		private final Func2<? super T, ? super Integer,  Boolean> condition;
+		/** */
+		private final Observable<? extends T> source;
+
+		/**
+		 * Constructor.
+		 * @param source the source of Ts
+		 * @param condition the condition that must turn false in order to start relaying
+		 */
+		public WhileIndexed(
+				Observable<? extends T> source,
+				Func2<? super T, ? super Integer, Boolean> condition) {
+			this.condition = condition;
+			this.source = source;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			return source.register(new Observer<T>() {
+				/** Can we relay stuff? */
+				boolean mayRelay;
+				/** The current index. */
+				int index;
+				@Override
+				public void error(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				public void finish() {
+					observer.finish();
+				}
+
+				@Override
+				public void next(T value) {
+					if (!mayRelay) {
+						mayRelay = !condition.invoke(value, index++);
+						if (mayRelay) {
+							observer.next(value);
+						}
+					} else {
+						observer.next(value);
+					}
+				}
+
+			});
+		}
+	}
+	/**
+	 * Skips the Ts from source while the specified long indexed condition returns true.
+	 * If the condition returns false, all subsequent Ts are relayed,
+	 * ignoring the condition further on. Errors and completion
+	 * is relayed regardless of the condition.
+	 * @param <T> the element types
+	 * @author akarnokd, 2013.01.14.
+	 */
+	public static final class WhileLongIndexed<T> implements Observable<T> {
+		/** */
+		private final Func2<? super T, ? super Long,  Boolean> condition;
+		/** */
+		private final Observable<? extends T> source;
+
+		/**
+		 * Constructor.
+		 * @param source the source of Ts
+		 * @param condition the condition that must turn false in order to start relaying
+		 */
+		public WhileLongIndexed(
+				Observable<? extends T> source,
+				Func2<? super T, ? super Long, Boolean> condition) {
+			this.condition = condition;
+			this.source = source;
+		}
+
+		@Override
+		@Nonnull 
+		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			return source.register(new Observer<T>() {
+				/** Can we relay stuff? */
+				boolean mayRelay;
+				/** The current index. */
+				long index;
+				@Override
+				public void error(@Nonnull Throwable ex) {
+					observer.error(ex);
+				}
+
+				@Override
+				public void finish() {
+					observer.finish();
+				}
+
+				@Override
+				public void next(T value) {
+					if (!mayRelay) {
+						mayRelay = !condition.invoke(value, index++);
 						if (mayRelay) {
 							observer.next(value);
 						}
