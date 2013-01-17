@@ -20,6 +20,7 @@ You need to add {{{inherits}}} tags to your main {{{gwt.xml}}}:
 
 == Import operators ==
 {{{
+  <inherits name='hu.akarnokd.reactive4java.reactive.Query'/>
   <inherits name='hu.akarnokd.reactive4java.reactive.Reactive'/>
   <inherits name='hu.akarnokd.reactive4java.interactive.Interactive'/>
 }}}
