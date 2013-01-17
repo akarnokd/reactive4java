@@ -279,7 +279,7 @@ public final class Zip {
 	 * propagated as-is.</p>
 	 * @author akarnokd, 2013.01.14.
 	 * @param <T> the common element type
-	 * @param <V> the result element type
+	 * @param <U> the result element type
 	 */
 	public static class ManyObservables<T, U> implements Observable<U> {
 		/** */

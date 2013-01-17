@@ -47,8 +47,9 @@ public final class CombineLatest {
 	 * throws an exception and all registrations are terminated.</p>
 	 * <p><b>Completion semantics:</b> The output stream terminates
 	 * after both streams terminate.</p>
-	 * <p>The function will start combining the values only when both sides have already sent
-	 * a value.</p>
+	 * <p>Note that at the beginning, when the left or right fires first, the selector function
+	 * will receive (value, null) or (null, value). If you want to react only in cases when both have sent
+	 * a value, use the {@link Sent} class and <code>combineLatest</code> operator.</p>
 	 * @param <T> the left element type
 	 * @param <U> the right element type
 	 * @param <V> the result element type
@@ -145,9 +146,8 @@ public final class CombineLatest {
 	 * throws an exception and all registrations are terminated.</p>
 	 * <p><b>Completion semantics:</b> The output stream terminates
 	 * after both streams terminate.</p>
-	 * <p>Note that at the beginning, when the left or right fires first, the selector function
-	 * will receive (value, null) or (null, value). If you want to react only in cases when both have sent
-	 * a value, use the {@link #combineLatest(Observable, Observable, Func2)} method.</p>
+	 * <p>The function will start combining the values only when both sides have already sent
+	 * a value.</p>
 	 * @param <T> the left element type
 	 * @param <U> the right element type
 	 * @param <V> the result element type

@@ -57,7 +57,6 @@ public final class Buffer {
 	 * The last T of the original source triggers an early submission to the output.
 	 * The scheduling is done on the supplied Scheduler.
 	 * @param <T> the type of elements to observe
-	 * @return the observable of list of Ts
 	 * @author akarnokd, 2013.01.13.
 	 */
 	public static final class WithTime<T> implements Observable<List<T>> {
@@ -130,7 +129,6 @@ public final class Buffer {
 	 * Buffer the Ts of the source until the buffer reaches its capacity or the current time unit runs out.
 	 * Might result in empty list of Ts and might complete early when the source finishes before the buffer runs out.
 	 * @param <T> the type of the values
-	 * @return the observable of list of Ts
 	 * @author akarnokd, 2013.01.13.
 	 */
 	public static final class WithSizeOrTime<T> implements Observable<List<T>> {
