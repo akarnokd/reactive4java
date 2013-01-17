@@ -82,6 +82,10 @@ public class SingleCloseable implements Closeable, Cancelable {
 	public boolean isClosed() {
 		return current.get() == SENTINEL;
 	}
+	/** Closes this container silently. */
+	public void closeSilently() {
+		Closeables.closeSilently(this);
+	}
 	/** 
 	 * The empty sentinel to know when we have
 	 * closed the previous instance and keep the 

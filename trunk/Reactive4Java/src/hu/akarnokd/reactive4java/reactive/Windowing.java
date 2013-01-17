@@ -476,4 +476,22 @@ public final class Windowing {
 			return obs.registerWith(source);
 		}
 	}
+	public static class WithTime<T> implements Observable<Observable<T>> {
+		@Override
+		@Nonnull
+		public Closeable register(Observer<? super Observable<T>> observer) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+	}
+
+	public static class WithTimeOrSize<T> implements Observable<Observable<T>> {
+		@Override
+		@Nonnull
+		public Closeable register(Observer<? super Observable<T>> observer) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+	}
+	
 }

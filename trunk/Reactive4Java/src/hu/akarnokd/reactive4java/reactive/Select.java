@@ -21,6 +21,8 @@ import hu.akarnokd.reactive4java.base.Func2;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
+import hu.akarnokd.reactive4java.util.Observers;
+import hu.akarnokd.reactive4java.util.SingleCloseable;
 
 import java.io.Closeable;
 
@@ -212,25 +214,33 @@ public final class Select {
 		@Override
 		@Nonnull 
 		public Closeable register(@Nonnull final Observer<? super U> observer) {
-			return source.register(new Observer<T>() {
+			final SingleCloseable self = new SingleCloseable();
+			self.set(Observers.registerSafe(source, new Observer<T>() {
 				/** The running index. */
 				int index;
 				@Override
 				public void error(@Nonnull Throwable ex) {
 					observer.error(ex);
+					self.closeSilently();
 				}
 
 				@Override
 				public void finish() {
 					observer.finish();
+					self.closeSilently();
 				}
 
 				@Override
 				public void next(T value) {
-					observer.next(selector.invoke(value, index++));
+					try {
+						observer.next(selector.invoke(value, index++));
+					} catch (Throwable t) {
+						error(t);
+					}
 				}
 
-			});
+			}));
+			return self;
 		}
 	}
 	/**
@@ -261,23 +271,31 @@ public final class Select {
 		@Override
 		@Nonnull 
 		public Closeable register(@Nonnull final Observer<? super U> observer) {
-			return source.register(new Observer<T>() {
+			final SingleCloseable self = new SingleCloseable();
+			self.set(Observers.registerSafe(source, new Observer<T>() {
 				@Override
 				public void error(@Nonnull Throwable ex) {
 					observer.error(ex);
+					self.closeSilently();
 				}
 
 				@Override
 				public void finish() {
 					observer.finish();
+					self.closeSilently();
 				}
 
 				@Override
 				public void next(T value) {
-					observer.next(mapper.invoke(value));
+					try {
+						observer.next(mapper.invoke(value));
+					} catch (Throwable t) {
+						error(t);
+					}
 				}
 
-			});
+			}));
+			return self;
 		}
 	}
 	/**
@@ -309,25 +327,33 @@ public final class Select {
 		@Override
 		@Nonnull 
 		public Closeable register(@Nonnull final Observer<? super U> observer) {
-			return source.register(new Observer<T>() {
+			final SingleCloseable self = new SingleCloseable();
+			self.set(Observers.registerSafe(source, new Observer<T>() {
 				/** The running index. */
 				long index;
 				@Override
 				public void error(@Nonnull Throwable ex) {
 					observer.error(ex);
+					self.closeSilently();
 				}
 
 				@Override
 				public void finish() {
 					observer.finish();
+					self.closeSilently();
 				}
 
 				@Override
 				public void next(T value) {
-					observer.next(selector.invoke(value, index++));
+					try {
+						observer.next(selector.invoke(value, index++));
+					} catch (Throwable t) {
+						error(t);
+					}
 				}
 
-			});
+			}));
+			return self;
 		}
 	}
 }
