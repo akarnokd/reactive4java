@@ -375,7 +375,8 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 */
 	public IterableBuilder<List<T>> buffer(int bufferSize) {
 		return from(Interactive.buffer(it, bufferSize));
-	}	
+	}
+	// #GWT-IGNORE-START
 	/**
 	 * Casts the source iterable into a different typ by using a type token.
 	 * If the source contains a wrong element, the <code>next()</code>
@@ -389,6 +390,7 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	public <U> IterableBuilder<U> cast(@Nonnull final Class<U> token) {
 		return from(Interactive.cast(it, token));
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Concatenate this iterable with the other iterable in a way, that calling the second <code>iterator()</code> 
 	 * only happens when there is no more element in the first iterator.

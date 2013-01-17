@@ -36,6 +36,7 @@ import javax.annotation.Nonnull;
 public final class Select {
 	/** Helper class. */
 	private Select() { }
+	// #GWT-IGNORE-START
 	/**
 	 * Casts the values of the source sequence into the
 	 * given type via the type token. ClassCastExceptions
@@ -86,6 +87,7 @@ public final class Select {
 			}).registerWith(source);
 		}
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Casts the values of the source sequence into the target type. 
 	 * ClassCastExceptions

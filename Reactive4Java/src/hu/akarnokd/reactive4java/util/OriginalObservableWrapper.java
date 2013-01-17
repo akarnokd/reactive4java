@@ -36,8 +36,12 @@ import javax.annotation.Nonnull;
  * @since 0.97
  * @param <T> the reactive-observer's type
  */
-public class OriginalObservableWrapper<T> extends Observable 
+public class OriginalObservableWrapper<T> 
+// #GWT-IGNORE-START
+extends Observable 
+// #GWT-IGNORE-END
 implements CloseableObservable<T> {
+	// #GWT-IGNORE-START
 	/** The observable. */
 	@Nonnull 
 	protected final Observable observable;
@@ -175,4 +179,14 @@ implements CloseableObservable<T> {
 		addObserver(observer);
 		return handle;
 	}
+	// #GWT-IGNORE-END
+	// #GWT-ACCEPT-START
+//	@Override
+//	public void close() throws IOException {
+//	}
+//	@Nonnull 
+//	public Closeable register(@Nonnull final Observer observer) {
+//		return Closeables.emptyCloseable();
+//	}	
+	// #GWT-ACCEPT-END
 }

@@ -63,7 +63,7 @@ public class Next<T> extends ObservableToIterableAdapter<T, T> {
 			protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 			/** The notification semaphore. */
 			@Nonnull 
-			protected final Semaphore semaphore = new Semaphore(0);
+			protected final Semaphore semaphore = new Semaphore(0, R4JConfigManager.get().useFairLocks());
 			@GuardedBy("lock")
 			protected boolean iteratorIsWaiting;
 			@GuardedBy("lock")

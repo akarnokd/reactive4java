@@ -269,6 +269,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public static <T> ObservableBuilder<T> from(@Nonnull T... ts) {
 		return from(Interactive.toIterable(ts));
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * Converts the original Java Observable into an reactive-Observable builder instance.
 	 * Since Java Observables had no concept of error and termination, and
@@ -286,6 +287,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public static <T> ObservableBuilder<T> fromOriginal(@Nonnull java.util.Observable javaObservable) {
 		return from(Observables.<T>toObservable(javaObservable));
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Creates an observable sequence from the subarray of values and uses
 	 * the given scheduler to emit these values.
@@ -1186,6 +1188,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public <U> ObservableBuilder<U> cast() {
 		return from(Reactive.<U>cast(o));
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * Casts the values of this observable via the given type token
 	 * or forwards a ClassCastException.
@@ -1199,6 +1202,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 			@Nonnull final Class<U> token) {
 		return from(Reactive.cast(o, token));
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Produces an iterable sequence of consequtive (possibly empty)
 	 * chunks of the source sequence.
@@ -2097,6 +2101,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public ObservableBuilder<Boolean> isEmpty() {
 		return from(Reactive.isEmpty(o));
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * Checks if the wrapped Observable is the instance of the given class or interface
 	 * according to Class.isInstance().
@@ -2107,6 +2112,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public boolean isInstance(@Nonnull Class<?> clazz) {
 		return clazz.isInstance(o);
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Returns an observable which correlates two streams of values based on
 	 * their time when they overlapped.
@@ -2489,6 +2495,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 			@Nonnull final Scheduler pool) {
 		return from(Reactive.observeOn(o, pool));
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * Filters the elements of the source sequence which
 	 * is assignable to the provided type.
@@ -2501,6 +2508,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public <U> ObservableBuilder<U> ofType(@Nonnull Class<U> clazz) {
 		return from(Reactive.ofType(o, clazz));
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Returns an Observable which traverses the entire
 	 * source Observable and creates an ordered list
@@ -2748,6 +2756,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		}
 		throw new UnsupportedOperationException("Requires ConnectableObservable");
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * Registers a java-observer with this reactive-observable instance.
 	 * @param javaObserver the java observer to register
@@ -2757,6 +2766,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public Closeable register(@Nonnull java.util.Observer javaObserver) {
 		return Observers.registerWith(o, javaObserver);
 	}
+	// #GWT-IGNORE-END
 	@Override
 	@Nonnull
 	public Closeable register(@Nonnull Observer<? super T> observer) {
@@ -4372,6 +4382,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	) {
 		return from(Reactive.toMultiMap(o, keySelector, collectionSupplier, valueSelector, keyComparer));
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * @return Wraps this observable into a java-observable.
 	 */
@@ -4379,6 +4390,7 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public java.util.Observable toOriginalObservable() {
 		return Observables.<T>toOriginalObservable(o);
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * @return Unwraps the underlying Observable in case it is wrapped
 	 * multiple times with the ObservableBuilder class.

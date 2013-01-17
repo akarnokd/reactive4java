@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
  */
 public class OriginalObserverWrapper implements
 		Observer<Object> {
+	// #GWT-IGNORE-START
 	/**
 	 * The backing observable object. 
 	 */
@@ -41,8 +42,10 @@ public class OriginalObserverWrapper implements
 	 * The wrapped java-observer.
 	 */
 	protected final java.util.Observer javaObserver;
+	// #GWT-IGNORE-END
 	/** Indicate that the observer run to completion. */
 	protected final AtomicBoolean done = new AtomicBoolean();
+	// #GWT-IGNORE-START
 	/**
 	 * Constructor. Sets up the wrapping fields.
 	 * @param javaObservable the backing observable
@@ -54,6 +57,7 @@ public class OriginalObserverWrapper implements
 		this.javaObservable = javaObservable;
 		this.javaObserver = javaObserver;
 	}
+	// #GWT-IGNORE-END
 
 	@Override
 	public void next(Object value) {

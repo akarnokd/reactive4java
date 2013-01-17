@@ -34,6 +34,7 @@ import javax.annotation.Nonnull;
 public final class Observables {
 	/** Utility class. */
 	private Observables() { }
+	// #GWT-IGNORE-START
 	/**
 	 * Converts the original Java Observable into an reactive-Observable instance.
 	 * Since Java Observables had no concept of error and termination, and
@@ -50,6 +51,7 @@ public final class Observables {
 			@Nonnull final java.util.Observable javaObservable) {
 		return new OriginalObservableWrapper<T>(javaObservable);
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Converts the reactive-observable into the original Java Observable.
 	 * <p>Since java-observables are always active, the source

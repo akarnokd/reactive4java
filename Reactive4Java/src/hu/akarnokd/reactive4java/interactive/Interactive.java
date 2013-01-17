@@ -555,6 +555,7 @@ public final class Interactive {
 			}
 		};
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * Casts the source iterable into a different type by using a type token.
 	 * If the source contains a wrong element, the <code>next()</code>
@@ -595,6 +596,7 @@ public final class Interactive {
 			}
 		};
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Creates an iterable which if iterates over the source and encounters an exception, it simply stops the iteration, consuming the exception.
 	 * @param <T> the element type

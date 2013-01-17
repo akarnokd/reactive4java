@@ -71,7 +71,12 @@ public final class TimeInterval<T> {
 	}
 	@Override
 	public String toString() {
+		// #GWT-IGNORE-START
 		return String.format("%s delta %,d", value, interval);
+		// #GWT-IGNORE-END
+		// #GWT-ACCEPT-START
+		//return value + " delta " + interval;
+		// #GWT-ACCEPT-END
 	}
 	@Override
 	public boolean equals(Object obj) {

@@ -154,6 +154,7 @@ public final class Func0Builder<T> implements Func0<T> {
 	public static Func0Builder<Boolean> alwaysFalse() {
 		return from(Functions.FALSE);
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * Wraps the given reference object into a function call.
 	 * <p>Note that the function may return null if the reference's object
@@ -166,6 +167,7 @@ public final class Func0Builder<T> implements Func0<T> {
 	public static <T> Func0Builder<T> from(@Nonnull final Reference<? extends T> ref) {
 		return from(Functions.asFunc0(ref));
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Returns a function which takes the logical not of the wrapped boolean returning function.
 	 * <p><b>Note: this function will throw a ClassCastException if the current function return type

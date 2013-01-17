@@ -1602,6 +1602,7 @@ public final class Functions {
 			}
 		};
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * Wrap the given reference into a function.
 	 * <p>Note that the references may return null if their
@@ -1619,6 +1620,7 @@ public final class Functions {
 			}
 		};
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * @return curried logical AND
 	 */

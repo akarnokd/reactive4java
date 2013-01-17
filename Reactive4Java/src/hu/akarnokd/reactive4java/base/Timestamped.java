@@ -20,6 +20,9 @@ import java.util.Date;
 
 import javax.annotation.Nonnull;
 
+// #GWT-ACCEPT-START
+//import com.google.gwt.i18n.client.DateTimeFormat;
+// #GWT-ACCEPT-END
 /**
  * An immutable record holding a value and timestamp pairs.
  * @author akarnokd, 2011.01.29.
@@ -96,7 +99,12 @@ public final class Timestamped<T> implements Comparable<Timestamped<T>> {
 	}
 	@Override
 	public String toString() {
+		// #GWT-IGNORE-START
 		return value + " @ " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(timestamp));
+		// #GWT-IGNORE-END
+		// #GWT-ACCEPT-START
+		//return DateTimeFormat.getFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(timestamp));
+		// #GWT-ACCEPT-END
 	}
 	@Override
 	public boolean equals(Object obj) {

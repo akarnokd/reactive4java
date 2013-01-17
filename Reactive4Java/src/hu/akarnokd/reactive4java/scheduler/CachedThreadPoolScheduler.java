@@ -28,6 +28,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
+//#GWT-IGNORE-FILE
+
 /**
  * The scheduler uses a cached thread pool executor (via {@link Executors#newCachedThreadPool()}) as its backing thread pool.
  * Delayed executions are performed via the TimeUnit.sleep() methods on the pool thread (consuming resources).
@@ -35,7 +37,14 @@ import javax.annotation.Nonnull;
  * @author akarnokd, 2011.10.05.
  * @since 0.95
  */
-public class CachedThreadPoolScheduler implements Scheduler {
+public class CachedThreadPoolScheduler 
+// #GWT-ACCEPT-START
+//extends DefaultScheduler {
+// #GWT-ACCEPT-END
+// #GWT-IGNORE-START
+implements Scheduler {
+// #GWT-IGNORE-END
+	// #GWT-IGNORE-START
 	/** The thread pool. */
 	protected final ExecutorService pool;
 	/**
@@ -100,5 +109,5 @@ public class CachedThreadPoolScheduler implements Scheduler {
 		};
 		return schedule(task);
 	}
-
+	// #GWT-IGNORE-END
 }

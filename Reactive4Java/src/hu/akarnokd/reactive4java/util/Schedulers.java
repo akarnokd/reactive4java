@@ -65,4 +65,15 @@ public final class Schedulers {
 	public static Scheduler constantTimeOperations() {
 		return getDefault(); // for now
 	}
+	/**
+	 * @return the value of the nanosecond resolution timer
+	 */
+	public static long now() {
+		// #GWT-IGNORE-START
+		return System.nanoTime();
+		// #GWT-IGNORE-END
+		// #GWT-ACCEPT-START
+		//return System.currentTimeMillis() * 1000000;
+		// #GWT-ACCEPT-END
+	}
 }
