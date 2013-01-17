@@ -13,44 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package javax.script;
+package java.io;
 
 /**
- * The Script Exception class for the GWT version of
- * the javax.script library.
- * @author karnok, 2011.02.20.
+ * The GWT version of the java.io.IOException.
+ * @author karnok, 2013.01.17.
  */
-public class ScriptException extends Exception {
-	/** */
-	private static final long serialVersionUID = -6637917848440342251L;
-
-	/**
-	 * Creates a ScriptException without message.
-	 */
-	public ScriptException() {
+public class IOException extends Exception {
+	/** Default constructor. */
+	public IOException() {
+		super();
 	}
-
 	/**
+	 * Constructor with message.
 	 * @param message the message
 	 */
-	public ScriptException(String message) {
+	public IOException(String message) {
 		super(message);
 	}
-
 	/**
-	 * @param cause the original cause
+	 * Constructor with cause exception.
+	 * @param cause the cause
 	 */
-	public ScriptException(Throwable cause) {
+	public IOException(Throwable cause) {
 		super(cause);
 	}
-
 	/**
+	 * Constructor with message and cause.
 	 * @param message the message
-	 * @param cause the original cause
+	 * @param cause the cause
 	 */
-	public ScriptException(String message, Throwable cause) {
+	public IOException(String message, Throwable cause) {
 		super(message, cause);
 	}
-
 }
