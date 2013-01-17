@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,13 @@
 package hu.akarnokd.reactive4gwt.client;
 
 import hu.akarnokd.reactive4java.base.Func1;
-import hu.akarnokd.reactive4java.reactive.Observable;
-import hu.akarnokd.reactive4java.reactive.Observer;
+import hu.akarnokd.reactive4java.base.Observable;
+import hu.akarnokd.reactive4java.base.Observer;
+import hu.akarnokd.reactive4java.query.IterableBuilder;
+import hu.akarnokd.reactive4java.query.ObservableBuilder;
 import hu.akarnokd.reactive4java.reactive.Reactive;
 
-import javax.script.Bindings;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
-import javax.script.SimpleBindings;
-
 import com.google.gwt.core.client.EntryPoint;
-import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.RootPanel;
 
@@ -70,22 +65,7 @@ public class Reactive4GWT implements EntryPoint {
 			}
 			
 		});
-		
-		ScriptEngine js = new ScriptEngineManager().getEngineByName("js");
-		
-		try {
-			Bindings b = new SimpleBindings();
-			b.put("o", 1);
-			list.addItem("" + js.eval("o", b));
-			
-			b.put("o", "Hello world");
-			list.addItem("" + js.eval("o", b));
-			
-			b.put("o", 2);
-			list.addItem("" + js.eval("o % 2 == 0", b));
-		
-		} catch (ScriptException ex) {
-			Window.alert(ex.toString());
-		}
+		IterableBuilder.from(1);
+		ObservableBuilder.from(1);
 	}
 }
