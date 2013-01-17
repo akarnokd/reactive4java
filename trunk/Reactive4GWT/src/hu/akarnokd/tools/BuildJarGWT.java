@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 David Karnok
+ * Copyright 2011-2013 David Karnok
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,9 @@ import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -99,7 +102,9 @@ public final class BuildJarGWT {
 		String baseProject2 = ".\\";
 		String targetJar = "reactive4java-gwt";
 		String targetJar2 = "reactive4java";
-		String version = "0.94";
+		String version = "0.97";
+		
+		final Set<String> ignores = new HashSet<String>(Arrays.asList(args));
 		
 		ZipOutputStream zout = new ZipOutputStream(new BufferedOutputStream(
 				new FileOutputStream(baseProject2 + targetJar + "-" + version + ".jar"), 1024 * 1024));
@@ -113,9 +118,7 @@ public final class BuildJarGWT {
 					&& path.contains("hu/akarnokd/reactive4java") 
 					&& !path.contains("hu/akarnokd/reactive4java/swing")
 					&& !path.contains("hu/akarnokd/reactive4java/test")
-					&& !name.equals("Reactive.java")
-					&& !name.equals("Interactive.java")
-					&& !name.equals("DefaultScheduler.java")
+					&& !ignores.contains(name)
 					;
 				}
 			});
