@@ -414,6 +414,7 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 * @param others the other iterables
 	 * @return the created iterable
 	 */
+	@SuppressWarnings("unchecked")
 	public IterableBuilder<T> concatAll(@Nonnull Iterable<? extends Iterable<? extends T>> others) {
 		return from(Interactive.concat(Interactive.startWith(others, it)));
 	}
@@ -1044,6 +1045,7 @@ public final class IterableBuilder<T> implements Iterable<T> {
 	 * @param value the value to prefix
 	 * @return the new iterable.
 	 */
+	@SuppressWarnings("unchecked")
 	public IterableBuilder<T> startWith(T value) {
 		return from(Interactive.startWith(it, value));
 	}

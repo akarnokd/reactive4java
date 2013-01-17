@@ -55,7 +55,6 @@ public final class Delay {
 	/**
 	 * Delays the propagation of events of the source by the given amount. It uses the pool for the scheduled waits.
 	 * The delay preserves the relative time difference between subsequent notifications.
-	 * @return the delayed observable of Ts
 	 * @author akarnokd, 2013.01.12.
 	 * @param <T> the element type
 	 * @since 0.97

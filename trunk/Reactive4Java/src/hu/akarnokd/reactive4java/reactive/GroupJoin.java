@@ -51,8 +51,6 @@ import javax.annotation.concurrent.GuardedBy;
  * @param <LeftDuration> the overlapping duration indicator for the left stream (e.g., the event when it leaves)
  * @param <RightDuration> the overlapping duration indicator for the right stream (e.g., the event when it leaves)
  * @param <Result> the type of the grouping based on the coincidence.
- * @return the new observable
- * @see #join(Observable, Observable, Func1, Func1, Func2)
  * @author akarnokd, 2013.01.15.
  * @since 0.97
  */

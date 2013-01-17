@@ -36,12 +36,14 @@ import hu.akarnokd.reactive4java.util.DefaultGroupedIterable;
 import hu.akarnokd.reactive4java.util.Functions;
 import hu.akarnokd.reactive4java.util.Schedulers;
 import hu.akarnokd.reactive4java.util.SingleContainer;
+import hu.akarnokd.reactive4java.util.Throwables;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -629,6 +631,8 @@ public final class Interactive {
 					Iterator<? extends T> itForRemove;
 					/** The peek ahead container. */
 					final SingleContainer<T> peek = new SingleContainer<T>();
+					/** Indicate that we switched to the handler. */
+					boolean usingHandler;
 					@Override
 					public boolean hasNext() {
 						if (peek.isEmpty()) {
@@ -640,7 +644,13 @@ public final class Interactive {
 									}
 									break;
 								} catch (Throwable t) {
-									it = handler.invoke(t).iterator();
+									if (!usingHandler) {
+										Closeables.closeSilently(it);
+										it = handler.invoke(t).iterator();
+										usingHandler = true;
+									} else {
+										Throwables.throwAsUnchecked(t);
+									}
 								}
 							}
 						}
@@ -1099,16 +1109,19 @@ public final class Interactive {
 			@Override
 			public Iterator<T> iterator() {
 				return new Iterator<T>() {
+					/** is this the first pass? */
 					Iterator<? extends T> it = source.iterator();
 					@Override
 					public boolean hasNext() {
-						while (gate.invoke()) {
+						while (true) {
 							if (it.hasNext()) {
 								return true;
-							} else {
-								it = source.iterator();
 							}
-
+							if (gate.invoke()) {
+								it = source.iterator();
+							} else {
+								break;
+							}
 						}
 						return false;
 					}
@@ -1263,11 +1276,7 @@ public final class Interactive {
 	public static <T, U> Iterable<U> forEach(
 			@Nonnull final Iterable<? extends T> source,
 			@Nonnull final Func1<? super T, ? extends Iterable<? extends U>> selector) {
-		List<Iterable<? extends U>> list = new LinkedList<Iterable<? extends U>>();
-		for (Iterable<? extends U> us : select(source, selector)) {
-			list.add(us);
-		}
-		return concat(list);
+		return concat(select(source, selector));
 	}
 	/**
 	 * A generator function which returns Ts based on the termination condition and the way it computes the next values.
@@ -1642,12 +1651,7 @@ public final class Interactive {
 	@Nonnull
 	public static Iterable<Boolean> isEmpty(
 			@Nonnull final Iterable<?> source) {
-		return select(any(source), new Func1<Boolean, Boolean>() {
-			@Override
-			public Boolean invoke(Boolean param1) {
-				return !param1;
-			}
-		});
+		return select(any(source), Functions.negate());
 	}
 	/**
 	 * Concatenates the source strings one after another and uses the given separator.
@@ -2513,6 +2517,7 @@ public final class Interactive {
 	 * @param initial the initial value to append to the output stream
 	 * @return the new iterable
 	 */
+	@SuppressWarnings("unchecked")
 	@Nonnull
 	public static <T, U> Iterable<U> publish(
 			@Nonnull final Iterable<? extends T> source,
@@ -2530,6 +2535,7 @@ public final class Interactive {
 	 * @param source the source of Ts
 	 * @param func invoke the function on the buffering iterable and return an iterator over it.
 	 * @return the new iterable
+	 * TODO check
 	 */
 	@Nonnull
 	public static <T, U> Iterable<U> publish(
@@ -2957,6 +2963,7 @@ public final class Interactive {
 	 * @param source the source of Ts
 	 * @param aggregator the function which takes the current running aggregation value, the current element and produces a new aggregation value.
 	 * @return the new iterable
+	 * TODO rework
 	 */
 	@Nonnull
 	public static <T, U> Iterable<U> scan(
@@ -3144,10 +3151,37 @@ public final class Interactive {
 	public static <T> Iterable<T> share(
 			@Nonnull final Iterable<T> source) {
 		return new Iterable<T>() {
-			final Iterator<T> it = source.iterator();
+			Iterator<T> it;
 			@Override
 			public Iterator<T> iterator() {
+				if (it == null) {
+					it = source.iterator();
+				}
 				return it;
+			}
+		};
+	}
+	/**
+	 * Shares the source sequence within the specified
+	 * selector function where each iterator can fetch
+	 * the next element from the source.
+	 * @param <T> the source element type
+	 * @param <U> the result element type
+	 * @param source the source sequence
+	 * @param selector the selector function
+	 * @return the new iterable
+	 * @since 0.97
+	 * TODO Builder
+	 */
+	@Nonnull
+	public static <T, U> Iterable<U> share(
+			@Nonnull final Iterable<T> source,
+			@Nonnull final Func1<? super Iterable<T>, ? extends Iterable<U>> selector
+			) {
+		return new Iterable<U>() {
+			@Override
+			public Iterator<U> iterator() {
+				return selector.invoke(share(source)).iterator();
 			}
 		};
 	}
@@ -3266,8 +3300,8 @@ public final class Interactive {
 	@Nonnull
 	public static <T> Iterable<T> startWith(
 			@Nonnull Iterable<? extends T> source,
-			final T value) {
-		return concat(singleton(value), source);
+			@Nonnull final T... value) {
+		return concat(Arrays.asList(value), source);
 	}
 	/**
 	 * Sum the source of Integer values and return it as a single element.
@@ -3648,7 +3682,7 @@ public final class Interactive {
 			@Override
 			public Iterator<T> iterator() {
 				final U c = resource.invoke();
-				return new Iterator<T>() {
+				return new CloseableIterator<T>() {
 					/** The iterator. */
 					final Iterator<? extends T> it = usage.invoke(c).iterator();
 					/** Run once the it has no more elements. */
@@ -3676,6 +3710,13 @@ public final class Interactive {
 					@Override
 					public void remove() {
 						it.remove();
+					}
+					@Override
+					public void close() throws IOException {
+						if (once) {
+							once = false;
+							Closeables.closeSilently(c);
+						}
 					}
 
 				};
@@ -4524,6 +4565,59 @@ public final class Interactive {
 			
 		};
 	}
+	
+	// TODO IBuffer publish(Iterable)
+
+	// TODO memoize(Iterable)
+	
+	// TODO memoize(Iterable, Func<Iterable, Iterable>)
+
+	// TODO memoize(Iterable, int, Func<Iterable, Iterable>)
+	
+	// TODO throwException(Func<Throwable>)
+	
+	// TODO catchException(Iterable<Iterable>>)
+	
+	// TODO catchException(Iterable, Iterable)
+
+	// TODO retry(Iterable)
+	
+	// TODO resumeOnError(Iterable...)
+
+	// TODO ifThen(Func<bool>, Iterable)
+
+	// TODO ifThen(Func<bool>, Iterable, Iterable)
+
+	// TODO whileDo(Func<bool>, Iterable)
+
+	// TODO switchCase(Func<T>, Map<T, Iterable<U>>, Iterable<U>)
+
+	// TODO selectMany(Iterable<T>, Iterable<U>)
+	
+	// TODO forEach(Iterable<T>, Action<T>)
+
+	// TODO forEach(Iterable<T>, Action<T, Integer>)
+
+	// TODO invoke(Iterable<T>, Observer<T>)
+	
+	// TODO buffer(Iterable, int, int)
+	
+	// TODO ignoreValues(Iterable)
+
+	// TODO distinct(Iterable, Func2<T, T, Boolean>)
+	
+	// TODO distinct(Iterable, Func<T, U>, Func<U, U, boolean)
+	
+	// TODO distinctNext(Iterable, Func2<T, T, Boolean>)
+	
+	// TODO distinctNext(Iterable, Func<T, U>, Func<U, U, boolean)
+	
+	// TODO expand(Iterable<T>, Func<T, Iterable<T>>)
+	
+	// TODO repeat(Iterable)
+	
+	// TODO repeat(Iterable, count)
+	
 	/** Utility class. */
 	private Interactive() {
 		// utility class
