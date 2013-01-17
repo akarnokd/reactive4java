@@ -1928,6 +1928,47 @@ public final class Functions {
 			}
 		};
 	}
+	/** 
+	 * Casts an integer value to long.
+	 * @since 0.97 
+	 * @see #LONG_TO_INT_CHECKED
+	 * @see #LONG_TO_INT
+	 */
+	public static final Func1<Integer, Long> INT_TO_LONG = new Func1<Integer, Long>() {
+		@Override
+		public Long invoke(Integer param1) {
+			return param1.longValue();
+		}
+	};
+	/**
+	 * Converts a long to integer or throws an ArithmeticException if
+	 * overflow or underflow happens.
+	 * @since 0.97
+	 * @see #LONG_TO_INT
+	 * @see #INT_TO_LONG
+	 */
+	public static final Func1<Long, Integer> LONG_TO_INT_CHECKED = new Func1<Long, Integer>() {
+		@Override
+		public Integer invoke(Long param1) {
+			long v = param1.longValue();
+			if (v > Integer.MAX_VALUE || v < Integer.MIN_VALUE) {
+				throw new ArithmeticException("Integer overflow");
+			}
+			return param1.intValue();
+		}
+	};
+	/**
+	 * Converts a long to integer, ignoring any overflow or underflow.
+	 * @since 0.97
+	 * @see #LONG_TO_INT_CHECKED
+	 * @see #INT_TO_LONG
+	 */
+	public static final Func1<Long, Integer> LONG_TO_INT = new Func1<Long, Integer>() {
+		@Override
+		public Integer invoke(Long param1) {
+			return param1.intValue();
+		}
+	};
 	/** Utility class. */
 	private Functions() {
 	}

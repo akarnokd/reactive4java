@@ -106,4 +106,8 @@ public class SequentialCloseable implements Closeable, Cancelable {
 			lock.unlock();
 		}
 	}
+	/** Closes this container silently. */
+	public void closeSilently() {
+		Closeables.closeSilently(this);
+	}
 }

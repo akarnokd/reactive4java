@@ -4465,4 +4465,94 @@ public final class ObservableBuilder<T> implements Observable<T> {
 			@Nonnull Func1<? super T, ? extends Observable<U>> durationSelector) {
 		return from(Reactive.throttle(o, durationSelector));
 	}
+	/**
+	 * Applies a timeout to each element of the sequence or
+	 * throws a TimeoutException if an element is not followed
+	 * by another within the firing of the timeout selector's
+	 * observable sequence.
+	 * <p>The first element is waited forever, the timeout
+	 * observables fire on both next and finish events.</p>
+	 * <p>Exception semantics: any exceptions thrown are
+	 * immediately forwarded and the sequence terminated.</p>
+	 * @param <V> the per-element timeout type, irrelevant
+	 * @param timeoutSelector the timeout selector for each value
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public <V> ObservableBuilder<T> timeout(
+			@Nonnull Func1<? super T, ? extends Observable<V>> timeoutSelector
+	) {
+		return from(Reactive.timeout(o, timeoutSelector));
+	}
+	/**
+	 * Applies a timeout to each element in the source sequence,
+	 * for each element a separate window is opened in the
+	 * form of observable sequence. If any of these window observables
+	 * fire next or finish, the sequence is switched to the other
+	 * observable.
+	 * <p>The first element is waited forever, the timeout
+	 * observables fire on both next and finish events.</p>
+	 * <p>Exception semantics: any exceptions thrown are
+	 * immediately forwarded and the sequence terminated.</p>
+	 * @param <V> the per-element timeout type, irrelevant
+	 * @param timeoutSelector the timeout selector for each value
+	 * @param other the outer source to switch to in case of timeout
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public <V> ObservableBuilder<T> timeout(
+			@Nonnull Func1<? super T, ? extends Observable<V>> timeoutSelector,
+			@Nonnull Observable<? extends T> other
+	) {
+		return from(Reactive.timeout(o, timeoutSelector, other));
+	}
+	/**
+	 * Applies a timeout to each element of the sequence or
+	 * throws a TimeoutException if an element is not followed
+	 * by another within the firing of the timeout selector's
+	 * observable sequence.
+	 * <p>The first element is until the given firstTimeout observable
+	 * fires. The timeout
+	 * observables fire on both next and finish events.</p>
+	 * <p>Exception semantics: any exceptions thrown are
+	 * immediately forwarded and the sequence terminated.</p>
+	 * @param <U> the initial timeout element type, irrelevant
+	 * @param <V> the per-element timeout type, irrelevant
+	 * @param firstTimeout the timeout for the first element, use never() to wait for it indefinitely
+	 * @param timeoutSelector the timeout selector for each value
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public <U, V> ObservableBuilder<T> timeout(
+			@Nonnull Observable<U> firstTimeout,
+			@Nonnull Func1<? super T, ? extends Observable<V>> timeoutSelector
+	) {
+		return from(Reactive.timeout(o, firstTimeout, timeoutSelector));
+	}
+	/**
+	 * Applies a timeout to each element in the source sequence,
+	 * starting with the timeout from the firsTimeout observabe,
+	 * then, for each element a separate window is opened in the
+	 * form of observable sequence. If any of these window observables
+	 * fire next or finish, the sequence is switched to the other
+	 * observable.
+	 * @param <U> the initial timeout element type, irrelevant
+	 * @param <V> the per-element timeout type, irrelevant
+	 * @param firstTimeout the timeout for the first element, use never() to wait for it indefinitely
+	 * @param timeoutSelector the timeout selector for each value
+	 * @param other the outer source to switch to in case of timeout
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public <U, V> ObservableBuilder<T> timeout(
+			@Nonnull Observable<U> firstTimeout,
+			@Nonnull Func1<? super T, ? extends Observable<V>> timeoutSelector,
+			@Nonnull Observable<? extends T> other
+	) {
+		return from(Reactive.timeout(o, firstTimeout, timeoutSelector, other));
+	}
 }

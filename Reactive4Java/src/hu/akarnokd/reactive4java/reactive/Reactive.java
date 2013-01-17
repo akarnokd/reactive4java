@@ -7362,49 +7362,7 @@ public final class Reactive {
 			@Nonnull final TimeUnit unit,
 			@Nonnull final Observable<? extends T> other,
 			@Nonnull final Scheduler pool) {
-		return new Observable<T>() {
-			@Override
-			@Nonnull 
-			public Closeable register(@Nonnull final Observer<? super T> observer) {
-				DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
-					@Override
-					protected void onError(@Nonnull Throwable ex) {
-						observer.error(ex);
-					}
-
-					@Override
-					protected void onFinish() {
-						observer.finish();
-					}
-
-					@Override
-					protected void onNext(T value) {
-						remove("timer");
-						observer.next(value);
-						registerTimer();
-					}
-					@Override
-					protected void onRegister() {
-						registerTimer();
-					}
-					/**
-					 * Register the timer that when fired, switches to the second
-					 * observable sequence
-					 */
-					private void registerTimer() {
-						add("timer", pool.schedule(new DefaultRunnable(lock) {
-							@Override
-							public void onRun() {
-								if (!cancelled()) {
-									registerWith(other);
-								}
-							}
-						}, time, unit));
-					}
-				};
-				return obs.registerWith(source);
-			}
-		};
+		return new Timeout.Switch<T>(source, time, unit, other, pool);
 	}
 	/**
 	 * Creates an observable which relays events if they arrive
@@ -8690,11 +8648,149 @@ public final class Reactive {
 	 * @param source the source sequence
 	 * @param durationSelector the duration selector.
 	 * @return the new observable
+	 * @since 0.97
 	 */
+	@Nonnull
 	public static <T, U> Observable<T> throttle(
 			@Nonnull Observable<? extends T> source,
 			@Nonnull Func1<? super T, ? extends Observable<U>> durationSelector) {
 		return new Throttle.ByObservable<T, U>(source, durationSelector);
+	}
+	/**
+	 * Applies a timeout to each element of the sequence or
+	 * throws a TimeoutException if an element is not followed
+	 * by another within the firing of the timeout selector's
+	 * observable sequence.
+	 * <p>The first element is waited forever, the timeout
+	 * observables fire on both next and finish events.</p>
+	 * <p>Exception semantics: any exceptions thrown are
+	 * immediately forwarded and the sequence terminated.</p>
+	 * @param <T> the source and result element type
+	 * @param <V> the per-element timeout type, irrelevant
+	 * @param source the source sequence
+	 * @param timeoutSelector the timeout selector for each value
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, V> Observable<T> timeout(
+			@Nonnull Observable<? extends T> source,
+			@Nonnull Func1<? super T, ? extends Observable<V>> timeoutSelector
+	) {
+		return timeout(source, never(), timeoutSelector, Reactive.<T>throwException(new TimeoutException()));
+	}
+	/**
+	 * Applies a timeout to each element in the source sequence,
+	 * for each element a separate window is opened in the
+	 * form of observable sequence. If any of these window observables
+	 * fire next or finish, the sequence is switched to the other
+	 * observable.
+	 * <p>The first element is waited forever, the timeout
+	 * observables fire on both next and finish events.</p>
+	 * <p>Exception semantics: any exceptions thrown are
+	 * immediately forwarded and the sequence terminated.</p>
+	 * @param <T> the source and result element type
+	 * @param <V> the per-element timeout type, irrelevant
+	 * @param source the source sequence
+	 * @param timeoutSelector the timeout selector for each value
+	 * @param other the outer source to switch to in case of timeout
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, V> Observable<T> timeout(
+			@Nonnull Observable<? extends T> source,
+			@Nonnull Func1<? super T, ? extends Observable<V>> timeoutSelector,
+			@Nonnull Observable<? extends T> other
+	) {
+		return timeout(source, never(), timeoutSelector, other);
+	}
+	/**
+	 * Applies a timeout to each element of the sequence or
+	 * throws a TimeoutException if an element is not followed
+	 * by another within the firing of the timeout selector's
+	 * observable sequence.
+	 * <p>The first element is until the given firstTimeout observable
+	 * fires. The timeout
+	 * observables fire on both next and finish events.</p>
+	 * <p>Exception semantics: any exceptions thrown are
+	 * immediately forwarded and the sequence terminated.</p>
+	 * @param <T> the source and result element type
+	 * @param <U> the initial timeout element type, irrelevant
+	 * @param <V> the per-element timeout type, irrelevant
+	 * @param source the source sequence
+	 * @param firstTimeout the timeout for the first element, use never() to wait for it indefinitely
+	 * @param timeoutSelector the timeout selector for each value
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, U, V> Observable<T> timeout(
+			@Nonnull Observable<? extends T> source,
+			@Nonnull Observable<U> firstTimeout,
+			@Nonnull Func1<? super T, ? extends Observable<V>> timeoutSelector
+	) {
+		return timeout(source, firstTimeout, timeoutSelector, Reactive.<T>throwException(new TimeoutException()));
+	}
+	/**
+	 * Applies a timeout to each element in the source sequence,
+	 * starting with the timeout from the firsTimeout observabe,
+	 * then, for each element a separate window is opened in the
+	 * form of observable sequence. If any of these window observables
+	 * fire next or finish, the sequence is switched to the other
+	 * observable.
+	 * @param <T> the source and result element type
+	 * @param <U> the initial timeout element type, irrelevant
+	 * @param <V> the per-element timeout type, irrelevant
+	 * @param source the source sequence
+	 * @param firstTimeout the timeout for the first element, use never() to wait for it indefinitely
+	 * @param timeoutSelector the timeout selector for each value
+	 * @param other the outer source to switch to in case of timeout
+	 * @return the new observable
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T, U, V> Observable<T> timeout(
+			@Nonnull Observable<? extends T> source,
+			@Nonnull Observable<U> firstTimeout,
+			@Nonnull Func1<? super T, ? extends Observable<V>> timeoutSelector,
+			@Nonnull Observable<? extends T> other
+	) {
+		return new Timeout.ByObservables<T, U, V>(source, firstTimeout, timeoutSelector, other);
+	}
+	/**
+	 * Converts a stream of longs into a stream of ints.
+	 * Overflows are reported as exceptions.
+	 * @param source the source sequence
+	 * @return the converted sequence
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static Observable<Integer> longToInt(@Nonnull Observable<Long> source) {
+		return longToInt(source, true);
+	}
+	/**
+	 * Converts a stream of longs into a stream of ints.
+	 * Overflows are reported as exceptions.
+	 * @param source the source sequence
+	 * @param overflow report overflow as exceptions?
+	 * @return the converted sequence
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static Observable<Integer> longToInt(@Nonnull Observable<Long> source, final boolean overflow) {
+		return select(source, overflow ? Functions.LONG_TO_INT_CHECKED : Functions.LONG_TO_INT);
+	}
+	/**
+	 * Converts a stream of ints into a stream of longs.
+	 * Overflows are reported as exceptions.
+	 * @param source the source sequence
+	 * @return the converted sequence
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static Observable<Long> intToLong(@Nonnull Observable<Integer> source) {
+		return select(source, Functions.INT_TO_LONG);
 	}
 	/*
 	 * TODO merge() with concurrency limit.
