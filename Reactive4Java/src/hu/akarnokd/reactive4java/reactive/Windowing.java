@@ -19,9 +19,14 @@ import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
+import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.base.Subject;
+import hu.akarnokd.reactive4java.util.CompositeCloseable;
 import hu.akarnokd.reactive4java.util.DefaultObservable;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
+import hu.akarnokd.reactive4java.util.DefaultRunnable;
+import hu.akarnokd.reactive4java.util.R4JConfigManager;
+import hu.akarnokd.reactive4java.util.SingleCloseable;
 import hu.akarnokd.reactive4java.util.Unique;
 
 import java.io.Closeable;
@@ -29,7 +34,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
@@ -476,21 +483,338 @@ public final class Windowing {
 			return obs.registerWith(source);
 		}
 	}
+	/**
+	 * Projects elements from the source observable
+	 * into zero or more windows which are produced
+	 * based on timing information.
+	 * <p>The implementation ensures that if timespan
+	 * and timeshift are equal, the windows won't overlap.</p>
+	 * @author akarnokd, 2013.01.17.
+	 * @param <T> the source element type
+	 */
 	public static class WithTime<T> implements Observable<Observable<T>> {
+		/** */
+		protected final Observable<? extends T> source;
+		/** */
+		protected final long timespan;
+		/** */
+		protected final long timeshift;
+		/** */
+		protected final TimeUnit unit;
+		/** */
+		protected final Scheduler pool;
+		/**
+		 * Constructor.
+		 * @param source the source sequence
+		 * @param timespan the length of each window
+		 * @param timeshift the interval between the creation of consequtive windows
+		 * @param unit the time unit
+		 * @param pool the scheduler for the timed oeprations
+		 */
+		public WithTime(
+				Observable<? extends T> source,
+				long timespan,
+				long timeshift,
+				TimeUnit unit,
+				Scheduler pool
+		) {
+			this.source = source;
+			this.timespan = timespan;
+			this.timeshift = timeshift;
+			this.unit = unit;
+			this.pool = pool;
+			
+		}
 		@Override
 		@Nonnull
 		public Closeable register(Observer<? super Observable<T>> observer) {
-			// TODO Auto-generated method stub
-			return null;
+			if (timespan == timeshift) {
+				return exactWindow(observer);
+			}
+			return generalWindow(observer);
+		}
+		/**
+		 * Create windows by an exact timing.
+		 * @param observer the observer
+		 * @return the close handle
+		 */
+		protected Closeable exactWindow(final Observer<? super Observable<T>> observer) {
+			final CompositeCloseable c = new CompositeCloseable();
+			final SingleCloseable rc = new SingleCloseable();
+			final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
+			/** The source observer. */
+			class SourceObserver extends DefaultObserverEx<T> {
+				/** The current window. */
+				Subject<T, T> window;
+				/**
+				 * Constructor. 
+				 * @param lock the lock to use
+				 */
+				public SourceObserver(Lock lock) {
+					super(lock, true);
+				}
+				@Override
+				protected void onNext(T value) {
+					window.next(value);
+				}
+
+				@Override
+				protected void onError(Throwable ex) {
+					if (window != null) {
+						window.error(ex);
+					}
+					observer.error(ex);
+				}
+
+				@Override
+				protected void onFinish() {
+					if (window != null) {
+						window.finish();
+					}
+					observer.finish();
+				}
+				@Override
+				protected void onRegister() {
+					newWindow();
+				}
+				/** Create a new window. */
+				@GuardedBy("lock")
+				protected void newWindow() {
+					if (window != null) {
+						window.finish();
+					}
+					window = new DefaultObservable<T>();
+					observer.next(window);
+				}
+			};
+			
+			final SourceObserver obs = new SourceObserver(lock);
+			
+			DefaultRunnable run = new DefaultRunnable(lock) {
+				@Override
+				protected void onRun() {
+					obs.newWindow();
+				}
+			};
+			
+			c.add(obs, rc);
+
+			obs.add("both", c);
+			
+			obs.registerWith(source);
+			rc.set(pool.schedule(run, timespan, timespan, unit));
+			
+			return c;
+		}
+		/**
+		 * Create a general windowing operation.
+		 * @param observer the output observer
+		 * @return the close handler
+		 */
+		protected Closeable generalWindow(final Observer<? super Observable<T>> observer) {
+			final CompositeCloseable c = new CompositeCloseable();
+
+			final SingleCloseable openTimer = new SingleCloseable();
+			
+			final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
+			/** The source observer. */
+			class SourceObserver extends DefaultObserverEx<T> {
+				/** The currently open windows. */
+				public final Queue<Subject<T, T>> openWindows = new LinkedList<Subject<T, T>>();
+				/**
+				 * Constructor.
+				 * @param lock the common lock
+				 */
+				public SourceObserver(Lock lock) {
+					super(lock, true);
+				}
+
+				@Override
+				protected void onNext(T value) {
+					for (Subject<T, T> s : openWindows) {
+						s.next(value);
+					}
+				}
+
+				@Override
+				protected void onError(Throwable ex) {
+					for (Subject<T, T> s : openWindows) {
+						s.error(ex);
+					}
+					observer.error(ex);
+				}
+
+				@Override
+				protected void onFinish() {
+					for (Subject<T, T> s : openWindows) {
+						s.finish();
+					}
+					observer.finish();
+				}
+				/** Opens a new window. */
+				@GuardedBy("lock")
+				protected void openWindow() {
+					final Subject<T, T> s = new DefaultObservable<T>();
+					openWindows.add(s);
+					final Object token = new Object();
+					add(token, pool.schedule(new DefaultRunnable(lock) { 
+						@Override
+						protected void onRun() {
+							closeWindow(token, s);
+						}
+					}, timespan, unit));
+					observer.next(s);
+				}
+				/** 
+				 * Closes the given window and removes the token.
+				 * @param token the token
+				 * @param s the window
+				 */
+				protected void closeWindow(Object token, Subject<T, T> s) {
+					subObservers.delete(token);
+					openWindows.remove(s);
+					s.finish();
+				}
+				@Override
+				protected void onRegister() {
+					openWindow();
+				}
+			}
+			final SourceObserver obs = new SourceObserver(lock);
+			
+			DefaultRunnable openRun = new DefaultRunnable(lock) {
+				@Override
+				protected void onRun() {
+					obs.openWindow();
+				}
+			};
+			
+			c.add(obs, openTimer);
+			obs.add("both", c);
+			
+			obs.registerWith(source);
+			openTimer.set(pool.schedule(openRun, timeshift, unit));
+			
+			return c;
 		}
 	}
-
+	/**
+	 * Projects each element into a window that
+	 * is completed by either its full or the specified
+	 * amount of time elapsed.
+	 * Time periods are absolute from the beginning of
+	 * the streaming.
+	 * @author akarnokd, 2013.01.17.
+	 * @param <T> the element type
+	 */
 	public static class WithTimeOrSize<T> implements Observable<Observable<T>> {
+		/** */
+		protected final Observable<? extends T> source;
+		/** */
+		protected final int size;
+		/** */
+		protected final long timespan;
+		/** */
+		protected final TimeUnit unit;
+		/** */
+		private Scheduler pool;
+		/**
+		 * Constructor.
+		 * @param source the source sequence
+		 * @param size the window size
+		 * @param timespan the window length
+		 * @param unit the time unit
+		 * @param pool the scheduler to run the timed operations
+		 */
+		public WithTimeOrSize(
+				Observable<? extends T> source,
+				int size,
+				long timespan,
+				TimeUnit unit,
+				Scheduler pool
+		) {
+			this.source = source;
+			this.size = size;
+			this.timespan = timespan;
+			this.unit = unit;
+			this.pool = pool;
+			
+		}
 		@Override
 		@Nonnull
-		public Closeable register(Observer<? super Observable<T>> observer) {
-			// TODO Auto-generated method stub
-			return null;
+		public Closeable register(final Observer<? super Observable<T>> observer) {
+			final CompositeCloseable c = new CompositeCloseable();
+			final SingleCloseable rc = new SingleCloseable();
+			final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
+			/** The source observer. */
+			class SourceObserver extends DefaultObserverEx<T> {
+				/** The current window. */
+				Subject<T, T> window;
+				/** The window count. */
+				int count;
+				/**
+				 * Constructor. 
+				 * @param lock the lock to use
+				 */
+				public SourceObserver(Lock lock) {
+					super(lock, true);
+				}
+				@Override
+				protected void onNext(T value) {
+					window.next(value);
+					if (++count == size) {
+						newWindow();
+					}
+				}
+
+				@Override
+				protected void onError(Throwable ex) {
+					if (window != null) {
+						window.error(ex);
+					}
+					observer.error(ex);
+				}
+
+				@Override
+				protected void onFinish() {
+					if (window != null) {
+						window.finish();
+					}
+					observer.finish();
+				}
+				@Override
+				protected void onRegister() {
+					newWindow();
+				}
+				/** Create a new window. */
+				@GuardedBy("lock")
+				protected void newWindow() {
+					if (window != null) {
+						window.finish();
+					}
+					window = new DefaultObservable<T>();
+					observer.next(window);
+					count = 0;
+				}
+			};
+			
+			final SourceObserver obs = new SourceObserver(lock);
+			
+			DefaultRunnable run = new DefaultRunnable(lock) {
+				@Override
+				protected void onRun() {
+					obs.newWindow();
+				}
+			};
+			
+			c.add(obs, rc);
+
+			obs.add("both", c);
+			
+			obs.registerWith(source);
+			rc.set(pool.schedule(run, timespan, timespan, unit));
+			
+			return c;
 		}
 	}
 	

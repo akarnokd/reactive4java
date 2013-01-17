@@ -8792,6 +8792,136 @@ public final class Reactive {
 	public static Observable<Long> intToLong(@Nonnull Observable<Integer> source) {
 		return select(source, Functions.INT_TO_LONG);
 	}
+	/**
+	 * Projects each element into a window that
+	 * is completed by either its full or the specified
+	 * amount of time elapsed.
+	 * Time periods are absolute from the beginning of
+	 * the streaming.
+	 * @param <T> the source element type
+	 * @param source the source sequence
+	 * @param size the window size
+	 * @param timespan the window length
+	 * @param unit the time unit
+	 * @return the observable of the windows of Ts
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<Observable<T>> window(
+			@Nonnull Observable<? extends T> source,
+			int size, 
+			long timespan, 
+			@Nonnull TimeUnit unit) {
+		return window(source, size, timespan, unit, scheduler());
+	}
+	/**
+	 * Projects each element into a window that
+	 * is completed by either its full or the specified
+	 * amount of time elapsed.
+	 * Time periods are absolute from the beginning of
+	 * the streaming.
+	 * @param <T> the source element type
+	 * @param source the source sequence
+	 * @param size the window size
+	 * @param timespan the window length
+	 * @param unit the time unit
+	 * @param pool the scheduler to run the timed operations
+	 * @return the observable of the windows of Ts
+	 * @since 0.97
+	 */
+	@Nonnull
+	public static <T> Observable<Observable<T>> window(
+			@Nonnull Observable<? extends T> source,
+			int size, 
+			long timespan, 
+			@Nonnull TimeUnit unit, 
+			@Nonnull Scheduler pool) {
+		return new Windowing.WithTimeOrSize<T>(source, size, timespan, unit, pool);
+	}
+	/**
+	 * Projects elements from the source observable
+	 * into distinct windows which are produced
+	 * based on timing information.
+	 * <p>Uses the default scheduler.</p>
+	 * @param <T> the source element type
+	 * @param source the source sequence
+	 * @param timespan the length of each window
+	 * @param unit the time unit
+	 * @return the windowed observable sequence
+	 * @since 0.97
+	 */
+	public static <T> Observable<Observable<T>> window(
+			Observable<? extends T> source,
+			long timespan,
+			TimeUnit unit
+	) {
+		return window(source, timespan, timespan, unit, scheduler());
+	}
+	/**
+	 * Projects elements from the source observable
+	 * into zero or more windows which are produced
+	 * based on timing information and run
+	 * on the specified scheduler.
+	 * @param <T> the source element type
+	 * @param source the source sequence
+	 * @param timespan the length of each window
+	 * @param unit the time unit
+	 * @param pool the scheduler for the timed operations
+	 * @return the windowed observable sequence
+	 * @since 0.97
+	 */
+	public static <T> Observable<Observable<T>> window(
+			Observable<? extends T> source,
+			long timespan,
+			TimeUnit unit,
+			Scheduler pool
+	) {
+		return window(source, timespan, timespan, unit, pool);
+	}
+	/**
+	 * Projects elements from the source observable
+	 * into zero or more windows which are produced
+	 * based on timing information.
+	 * <p>Uses the default scheduler.</p>
+	 * @param <T> the source element type
+	 * @param source the source sequence
+	 * @param timespan the length of each window
+	 * @param timeshift the interval between the creation of consequtive windows
+	 * @param unit the time unit
+	 * @return the windowed observable sequence
+	 * @since 0.97
+	 */
+	public static <T> Observable<Observable<T>> window(
+			Observable<? extends T> source,
+			long timespan,
+			long timeshift,
+			TimeUnit unit
+	) {
+		return window(source, timespan, timeshift, unit, scheduler());
+	}
+	/**
+	 * Projects elements from the source observable
+	 * into zero or more windows which are produced
+	 * based on timing information and run
+	 * on the specified scheduler.
+	 * @param <T> the source element type
+	 * @param source the source sequence
+	 * @param timespan the length of each window
+	 * @param timeshift the interval between the creation of consequtive windows
+	 * @param unit the time unit
+	 * @param pool the scheduler for the timed operations
+	 * @return the windowed observable sequence
+	 * @since 0.97
+	 */
+	public static <T> Observable<Observable<T>> window(
+			Observable<? extends T> source,
+			long timespan,
+			long timeshift,
+			TimeUnit unit,
+			Scheduler pool
+	) {
+		return new Windowing.WithTime<T>(source, timespan, timeshift, unit, pool);
+	}
 	/*
 	 * TODO merge() with concurrency limit.
 	 */

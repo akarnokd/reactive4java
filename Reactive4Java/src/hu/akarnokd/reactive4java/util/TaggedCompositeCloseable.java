@@ -122,6 +122,19 @@ public class TaggedCompositeCloseable implements Closeable, Cancelable {
 		}
 		Closeables.closeSilently(old);
 	}
+	/**
+	 * Removes but does not close the given token
+	 * from this composite.
+	 * @param token the token identifying the closeable
+	 */
+	public void delete(@Nonnull Object token) {
+		lock.lock();
+		try {
+			items.remove(token);
+		} finally {
+			lock.unlock();
+		}
+	}
 	@Override
 	public boolean isClosed() {
 		lock.lock();
