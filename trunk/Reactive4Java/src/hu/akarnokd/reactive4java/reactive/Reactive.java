@@ -775,6 +775,7 @@ public final class Reactive {
 			@Nonnull final Observable<?> source) {
 		return new Select.Cast<T>(source);
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * Casts the values of the source sequence into the
 	 * given type via the type token. ClassCastExceptions
@@ -792,6 +793,7 @@ public final class Reactive {
 			@Nonnull final Class<T> token) {
 		return new Select.CastToken<T>(source, token);
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Produces an iterable sequence of consequtive (possibly empty)
 	 * chunks of the source sequence.
@@ -4212,6 +4214,8 @@ public final class Reactive {
 			}
 		};
 	}
+
+	// #GWT-IGNORE-START
 	/**
 	 * Filters the elements of the source sequence which
 	 * is assignable to the provided type.
@@ -4221,9 +4225,12 @@ public final class Reactive {
 	 * @return the filtering obserable
 	 * since 0.97
 	 */
-	public static <T> Observable<T> ofType(@Nonnull Observable<?> source, @Nonnull Class<T> clazz) {
+	public static <T> Observable<T> ofType(@Nonnull Observable<?> source, 
+			@Nonnull Class<T> clazz) {
 		return new Where.OfType<T>(source, clazz);
-	}
+	} 
+	// #GWT-IGNORE-END
+	
 	/**
 	 * Returns an Observable which traverses the entire
 	 * source Observable and creates an ordered list
@@ -7862,7 +7869,9 @@ public final class Reactive {
 	public static <T> Observable<T[]> toArray(
 			@Nonnull final Observable<? extends T> source,
 			@Nonnull final T[] a) {
+		// #GWT-IGNORE-START
 		final Class<?> ct = a.getClass().getComponentType();
+		// #GWT-IGNORE-END
 		return new Observable<T[]>() {
 			@Override
 			@Nonnull 
@@ -7877,8 +7886,14 @@ public final class Reactive {
 
 					@Override
 					public void finish() {
+						// #GWT-IGNORE-START
 						@SuppressWarnings("unchecked") T[] arr = (T[])Array.newInstance(ct, list.size());
 						observer.next(list.toArray(arr));
+						// #GWT-IGNORE-END
+						// #GWT-ACCEPT-START
+						//Object[] arr = new Object[list.size()];
+						//observer.next((T[])list.toArray(arr));
+						// #GWT-ACCEPT-END
 						observer.finish();
 					}
 
@@ -8321,6 +8336,7 @@ public final class Reactive {
 			}
 		};
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * Returns an observable which delivers the
 	 * result of the future object on the default scheduler.
@@ -8332,6 +8348,8 @@ public final class Reactive {
 			@Nonnull final Future<? extends T> future) {
 		return toObservable(future, Schedulers.getDefault());
 	}
+	// #GWT-IGNORE-END
+	// #GWT-IGNORE-START
 	/**
 	 * Returns an observable which delivers the
 	 * result of the future object on the given scheduler.
@@ -8364,6 +8382,7 @@ public final class Reactive {
 			}
 		};
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Wrap the iterable object into an observable and use the
 	 * default pool when generating the iterator sequence.

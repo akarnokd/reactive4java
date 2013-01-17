@@ -22,13 +22,16 @@ import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.base.TimeInterval;
 import hu.akarnokd.reactive4java.util.CompositeCloseable;
+import hu.akarnokd.reactive4java.util.DefaultObserver;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
 import hu.akarnokd.reactive4java.util.DefaultRunnable;
+import hu.akarnokd.reactive4java.util.Observers;
+import hu.akarnokd.reactive4java.util.Schedulers;
+import hu.akarnokd.reactive4java.util.SingleCloseable;
 
 import java.io.Closeable;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -67,27 +70,35 @@ public final class Skip {
 		@Override
 		@Nonnull 
 		public Closeable register(@Nonnull final Observer<? super T> observer) {
-			return source.register(new Observer<T>() {
-				final Queue<T> buffer = new ConcurrentLinkedQueue<T>();
+			final SingleCloseable handle = new SingleCloseable();
+			
+			DefaultObserver<T> obs = new DefaultObserver<T>(true) {
+				final Queue<T> buffer = new LinkedList<T>();
 
 				@Override
-				public void error(@Nonnull Throwable ex) {
+				public void onError(@Nonnull Throwable ex) {
 					observer.error(ex);
+					handle.closeSilently();
 				}
 
 				@Override
-				public void finish() {
+				public void onFinish() {
 					observer.finish();
+					handle.closeSilently();
 				}
 
 				@Override
-				public void next(T value) {
+				public void onNext(T value) {
 					buffer.add(value);
 					while (buffer.size() > count) {
 						observer.next(buffer.poll());
 					}
 				}
-			});
+			};
+			
+			handle.set(Observers.registerSafe(source, obs));
+			
+			return handle;
 		}
 	}
 	/**
@@ -496,7 +507,7 @@ public final class Skip {
 		@Override
 		@Nonnull
 		public Closeable register(final Observer<? super T> observer) {
-			final long start = System.nanoTime();
+			final long start = Schedulers.now();
 			final long delta = unit.toNanos(time);
 			
 			DefaultObserverEx<T> obs = new DefaultObserverEx<T>() {
@@ -505,7 +516,7 @@ public final class Skip {
 				protected final Queue<TimeInterval<T>> queue = new LinkedList<TimeInterval<T>>();
 				@Override
 				protected void onNext(T value) {
-					long elapsed = System.nanoTime() - start;
+					long elapsed = Schedulers.now() - start;
 					queue.add(TimeInterval.of(value, elapsed));
 
 					flush(elapsed);
@@ -526,7 +537,7 @@ public final class Skip {
 
 				@Override
 				protected void onFinish() {
-					long elapsed = System.nanoTime() - start;
+					long elapsed = Schedulers.now() - start;
 
 					flush(elapsed);
 					observer.finish();

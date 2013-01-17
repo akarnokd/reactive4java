@@ -18,6 +18,7 @@ package hu.akarnokd.reactive4java.reactive;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.TimeInterval;
+import hu.akarnokd.reactive4java.util.Schedulers;
 
 import java.io.Closeable;
 
@@ -50,7 +51,7 @@ public final class AddTimeInterval<T> implements
 	@Nonnull 
 	public Closeable register(@Nonnull final Observer<? super TimeInterval<T>> observer) {
 		return source.register(new Observer<T>() {
-			long lastTime = System.nanoTime();
+			long lastTime = Schedulers.now();
 			@Override
 			public void error(@Nonnull Throwable ex) {
 				observer.error(ex);
@@ -63,7 +64,7 @@ public final class AddTimeInterval<T> implements
 
 			@Override
 			public void next(T value) {
-				long t2 = System.nanoTime();
+				long t2 = Schedulers.now();
 				observer.next(TimeInterval.of(value, t2 - lastTime));
 				lastTime = t2;
 			}

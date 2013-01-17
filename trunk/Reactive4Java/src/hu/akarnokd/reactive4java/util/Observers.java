@@ -265,6 +265,7 @@ public final class Observers {
 			}
 		});
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * Creates an observer which signals the condition
 	 * in case of an error() or finish() event.
@@ -288,6 +289,8 @@ public final class Observers {
 			}
 		});
 	}
+	// #GWT-IGNORE-END
+	// #GWT-IGNORE-START
 	/**
 	 * Creates an observer which calls notifyAll on the supplied synchronization object
 	 * in case of an error() or finish() event.
@@ -306,6 +309,7 @@ public final class Observers {
 			}
 		});
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Modifies the source observer to use the selector
 	 * to compute a new value from the received one.
@@ -335,6 +339,7 @@ public final class Observers {
 			}
 		};
 	}
+	// #GWT-IGNORE-START
 	/**
 	 * Converts the original Java Observer into a reactive-observer.
 	 * <p>The observer deregisters from the sender observable 
@@ -349,6 +354,7 @@ public final class Observers {
 			@Nullable final java.util.Observable javaObservable) {
 		return new OriginalObserverWrapper(javaObservable, javaObserver);
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Wraps the reactive-observer into a java-observer.
 	 * <p>Note that since java-observer is non generic,

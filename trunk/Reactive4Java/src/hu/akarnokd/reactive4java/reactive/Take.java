@@ -26,6 +26,7 @@ import hu.akarnokd.reactive4java.util.CompositeCloseable;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
 import hu.akarnokd.reactive4java.util.DefaultRunnable;
 import hu.akarnokd.reactive4java.util.R4JConfigManager;
+import hu.akarnokd.reactive4java.util.Schedulers;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -594,7 +595,7 @@ public final class Take {
 				final Queue<TimeInterval<T>> queue = new LinkedList<TimeInterval<T>>();
 				@Override
 				protected void onNext(T value) {
-					long now = System.nanoTime();
+					long now = Schedulers.now();
 					queue.add(TimeInterval.of(value, now));
 					trim(now);
 				}
@@ -606,7 +607,7 @@ public final class Take {
 
 				@Override
 				protected void onFinish() {
-					long now = System.nanoTime();
+					long now = Schedulers.now();
 					// remove too old elements
 					trim(now);
 					if (drainPool == null) {
@@ -687,7 +688,7 @@ public final class Take {
 				final Queue<TimeInterval<T>> queue = new LinkedList<TimeInterval<T>>();
 				@Override
 				protected void onNext(T value) {
-					long now = System.nanoTime();
+					long now = Schedulers.now();
 					queue.add(TimeInterval.of(value, now));
 					trim(now);
 				}
@@ -699,7 +700,7 @@ public final class Take {
 
 				@Override
 				protected void onFinish() {
-					long now = System.nanoTime();
+					long now = Schedulers.now();
 					// remove too old elements
 					trim(now);
 					if (drainPool == null) {

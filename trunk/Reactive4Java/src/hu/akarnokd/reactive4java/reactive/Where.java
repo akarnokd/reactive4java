@@ -33,6 +33,7 @@ import javax.annotation.Nonnull;
 public final class Where {
 	/** Helper class. */
 	private Where() { }
+	// #GWT-IGNORE-START
 	/**
 	 * Filters the elements of the source sequence which
 	 * is assignable to the provided type.
@@ -79,6 +80,7 @@ public final class Where {
 			});
 		}
 	}
+	// #GWT-IGNORE-END
 	/**
 	 * Creates a filtered observable where only Ts are relayed which satisfy the clause.
 	 * The clause receives the index and the current element to test.

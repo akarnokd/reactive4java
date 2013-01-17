@@ -31,7 +31,14 @@ import javax.annotation.Nonnull;
  * To stop a repeating schedule, throw a CancellationException.
  * @author akarnokd, 2011.10.05.
  */
-public class NewThreadScheduler implements Scheduler {
+public class NewThreadScheduler 
+// #GWT-ACCEPT-START
+//extends DefaultScheduler {
+// #GWT-ACCEPT-END
+// #GWT-IGNORE-START
+implements Scheduler {
+// #GWT-IGNORE-END
+	// #GWT-IGNORE-START
 	/** The tread names. */
 	@Nonnull
 	private String name = "NewThreadScheduler";
@@ -108,5 +115,5 @@ public class NewThreadScheduler implements Scheduler {
 		};
 		return schedule(task);
 	}
-
+	// #GWT-IGNORE-END
 }
