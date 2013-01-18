@@ -4,7 +4,7 @@
 <wiki:toc max_depth="1" />
 
 = 0.97 =
-  * *NOT YET RELEASED, IN PROGRESS*
+  * Released: *2013-01-18 10:30 CET*
   * Fixed Interactive's concat, resumeAlways, resumeOnError not properly forwarning their remove() methods.
   * Added {{{IterableBuilder.into()}}} to consume the stream and store it in the given collection. Added {{{ObservableBuilder.into()}}} with the same purpose.
   * Added {{{IterableBuilder.removeAll()}}} to consume the stream and remove all of its elements.
