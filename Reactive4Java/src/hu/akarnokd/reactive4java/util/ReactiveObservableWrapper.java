@@ -36,7 +36,8 @@ import javax.annotation.concurrent.GuardedBy;
  * @since 0.97
  * @param <T> the wrapped observable's element type
  */
-public class ReactiveObservableWrapper<T> extends java.util.Observable 
+public class ReactiveObservableWrapper<T>
+extends java.util.Observable 
 implements Observable<T> {
 	/** The wrapped reactive-observable. */
 	protected final Observable<T> observable;

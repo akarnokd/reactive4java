@@ -46,14 +46,10 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public class HybridSubject<T> 
-// #GWT-IGNORE-START
 extends
 	java.util.Observable 
-// #GWT-IGNORE-END
 implements 
-// #GWT-IGNORE-START
 	java.util.Observer,
-// #GWT-IGNORE-END
 	Subject<T, T>, CloseableObservable<T> {
 	/** The registration holder for the reactive-observers. */
 	@Nonnull 
@@ -63,14 +59,10 @@ implements
 		for (Observer<? super T> o : observers()) {
 			o.next(value);
 		}
-		// #GWT-IGNORE-START
 		setChanged();
 		super.notifyObservers(value);
-		// #GWT-IGNORE-END
 	}
-	// #GWT-IGNORE-START
 	@Override
-	// #GWT-IGNORE-END
 	@SuppressWarnings("unchecked")
 	public void notifyObservers(Object arg) {
 		next((T)arg);
@@ -110,7 +102,6 @@ implements
 		registry.put(handle, observer);
 		return handle;
 	}
-	// #GWT-IGNORE-START
 	/**
 	 * Registers a java-observer and returns a handle to it.
 	 * The observer can be unregistered via this handle or the regular deleteObserver().
@@ -129,7 +120,6 @@ implements
 		addObserver(observer);
 		return handle;
 	}
-	// #GWT-IGNORE-END
 	/**
 	 * Unregister the given observer by its handle.
 	 * @param handle the handle identifying the observer
@@ -138,14 +128,12 @@ implements
 		registry.remove(handle);
 	}
 
-	// #GWT-IGNORE-START
 	@Override
 	public void update(java.util.Observable o, Object arg) {
 		@SuppressWarnings("unchecked") T t = (T)arg;
 		next(t);
 	}
 	@Override
-	// #GWT-IGNORE-END
 	public void deleteObservers() {
 		close();
 	}
@@ -154,17 +142,10 @@ implements
 		registry.clear();
 		super.deleteObservers();
 	}
-	// #GWT-IGNORE-START
 	@Override
 	public synchronized int countObservers() {
 		return super.countObservers() + registry.size();
 	}
-	// #GWT-IGNORE-END
-	// #GWT-ACCEPT-START
-//	public synchronized int countObservers() {
-//		return registry.size();
-//	}
-	// #GWT-ACCEPT-END
 	/**
 	 * Registers the reactive-observer with this observable.
 	 * <p>The convenience method is to have symmetric means

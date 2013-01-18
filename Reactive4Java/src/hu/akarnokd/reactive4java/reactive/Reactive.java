@@ -8348,8 +8348,6 @@ public final class Reactive {
 			@Nonnull final Future<? extends T> future) {
 		return toObservable(future, Schedulers.getDefault());
 	}
-	// #GWT-IGNORE-END
-	// #GWT-IGNORE-START
 	/**
 	 * Returns an observable which delivers the
 	 * result of the future object on the given scheduler.

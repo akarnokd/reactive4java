@@ -37,11 +37,8 @@ import javax.annotation.Nonnull;
  * @param <T> the reactive-observer's type
  */
 public class OriginalObservableWrapper<T> 
-// #GWT-IGNORE-START
 extends Observable 
-// #GWT-IGNORE-END
 implements CloseableObservable<T> {
-	// #GWT-IGNORE-START
 	/** The observable. */
 	@Nonnull 
 	protected final Observable observable;
@@ -150,16 +147,6 @@ implements CloseableObservable<T> {
 	public synchronized boolean hasChanged() {
 		return observable.hasChanged();
 	}
-	@Override
-	public void close() throws IOException {
-		closeAction.invoke();
-	}
-	@Override
-	@Nonnull
-	public Closeable register(
-			@Nonnull hu.akarnokd.reactive4java.base.Observer<? super T> observer) {
-		return Observers.registerWith(this, observer);
-	}
 	/**
 	 * Registers a java-observer and returns a handle to it.
 	 * The observer can be unregistered via this handle or the regular deleteObserver().
@@ -179,14 +166,14 @@ implements CloseableObservable<T> {
 		addObserver(observer);
 		return handle;
 	}
-	// #GWT-IGNORE-END
-	// #GWT-ACCEPT-START
-//	@Override
-//	public void close() throws IOException {
-//	}
-//	@Nonnull 
-//	public Closeable register(@Nonnull final Observer observer) {
-//		return Closeables.emptyCloseable();
-//	}	
-	// #GWT-ACCEPT-END
+	@Override
+	public void close() throws IOException {
+		closeAction.invoke();
+	}
+	@Override
+	@Nonnull
+	public Closeable register(
+			@Nonnull hu.akarnokd.reactive4java.base.Observer<? super T> observer) {
+		return Observers.registerWith(this, observer);
+	}
 }
