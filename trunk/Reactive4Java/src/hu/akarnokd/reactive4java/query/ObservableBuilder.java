@@ -269,7 +269,6 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public static <T> ObservableBuilder<T> from(@Nonnull T... ts) {
 		return from(Interactive.toIterable(ts));
 	}
-	// #GWT-IGNORE-START
 	/**
 	 * Converts the original Java Observable into an reactive-Observable builder instance.
 	 * Since Java Observables had no concept of error and termination, and
@@ -287,7 +286,6 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public static <T> ObservableBuilder<T> fromOriginal(@Nonnull java.util.Observable javaObservable) {
 		return from(Observables.<T>toObservable(javaObservable));
 	}
-	// #GWT-IGNORE-END
 	/**
 	 * Creates an observable sequence from the subarray of values and uses
 	 * the given scheduler to emit these values.
@@ -2756,7 +2754,6 @@ public final class ObservableBuilder<T> implements Observable<T> {
 		}
 		throw new UnsupportedOperationException("Requires ConnectableObservable");
 	}
-	// #GWT-IGNORE-START
 	/**
 	 * Registers a java-observer with this reactive-observable instance.
 	 * @param javaObserver the java observer to register
@@ -2766,7 +2763,6 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public Closeable register(@Nonnull java.util.Observer javaObserver) {
 		return Observers.registerWith(o, javaObserver);
 	}
-	// #GWT-IGNORE-END
 	@Override
 	@Nonnull
 	public Closeable register(@Nonnull Observer<? super T> observer) {
@@ -4382,7 +4378,6 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	) {
 		return from(Reactive.toMultiMap(o, keySelector, collectionSupplier, valueSelector, keyComparer));
 	}
-	// #GWT-IGNORE-START
 	/**
 	 * @return Wraps this observable into a java-observable.
 	 */
@@ -4390,7 +4385,6 @@ public final class ObservableBuilder<T> implements Observable<T> {
 	public java.util.Observable toOriginalObservable() {
 		return Observables.<T>toOriginalObservable(o);
 	}
-	// #GWT-IGNORE-END
 	/**
 	 * @return Unwraps the underlying Observable in case it is wrapped
 	 * multiple times with the ObservableBuilder class.
