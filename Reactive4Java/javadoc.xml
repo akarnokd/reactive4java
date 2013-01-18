@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="javadoc">
     <target name="javadoc">
-        <javadoc access="protected" additionalparam=" -windowTitle &quot;Reactive and Interactive extensions to Java&quot;" author="true" classpath="lib/jsr305.jar" destdir="docs/javadoc" doctitle="Reactive and Interactive extensions to Java" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" packagenames="hu.akarnokd.reactive4java.util,hu.akarnokd.reactive4java.test,hu.akarnokd.reactive4java.reactive,hu.akarnokd.reactive4java.swing,hu.akarnokd.reactive4java.base,hu.akarnokd.reactive4java.interactive,,hu.akarnokd.reactive4java.scheduler" source="1.6" sourcepath="src" splitindex="true" use="true" version="true">
+        <javadoc access="protected" additionalparam=" -windowTitle &quot;Reactive and Interactive extensions to Java&quot;" author="true" classpath="lib/jsr305.jar" destdir="docs/javadoc-0.97" doctitle="Reactive and Interactive extensions to Java" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" packagenames="hu.akarnokd.reactive4java.util,hu.akarnokd.reactive4java.test,hu.akarnokd.reactive4java.reactive,hu.akarnokd.reactive4java.swing,hu.akarnokd.reactive4java.base,hu.akarnokd.reactive4java.interactive,,hu.akarnokd.reactive4java.scheduler" source="1.6" sourcepath="src" splitindex="true" use="true" version="true">
             <link href="http://java.sun.com/javase/7/docs/api/"/>
         	<!--            <link href="http://jsr-305.googlecode.com/svn/trunk/javadoc/"/> -->
         </javadoc>
