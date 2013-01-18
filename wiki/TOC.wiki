@@ -5,7 +5,6 @@
   * [ReleaseNotes Release notes]
   * [UserGuide User Guide]
   * [DeveloperGuide Developer Guide]
-  * [Marbles Marble diagrams]
   * [HelperMethods Helper methods and classes]
     * [HelperMethods#Functions Functions]
     * [HelperMethods#Actions Actions]
