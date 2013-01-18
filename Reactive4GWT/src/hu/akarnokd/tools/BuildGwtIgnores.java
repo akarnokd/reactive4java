@@ -98,21 +98,24 @@ public final class BuildGwtIgnores {
 							filtered.add("");
 						}
 					}
+
+					Path rel = root.relativize(file.getParent());
+					
+					Path overridePack = override
+							.resolve(rel)
+							.resolve("gwt")
+							.resolve(rel)
+							.resolve(fileName);
 					
 					if (changed) {
-						Path rel = root.relativize(file.getParent());
-						
-						Path overridePack = override
-								.resolve(rel)
-								.resolve("gwt")
-								.resolve(rel)
-								.resolve(fileName);
 						
 						Files.createDirectories(overridePack.getParent());
 						
 						Files.write(overridePack, filtered, Charset.forName("UTF-8"));
 						
 						ignores.add(fileName.toString());
+					} else {
+						Files.deleteIfExists(overridePack);
 					}
 				}
 				return FileVisitResult.CONTINUE;

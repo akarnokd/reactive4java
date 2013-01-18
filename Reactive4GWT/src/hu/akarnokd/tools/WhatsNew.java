@@ -44,8 +44,7 @@ public final class WhatsNew {
 	 */
 	public static void main(String[] args) throws Exception {
 		out = new PrintWriter(new BufferedWriter(new FileWriter("whatsnew_java7.txt")));
-		try {
-			ZipFile zip = new ZipFile("c:\\Program Files\\Java\\jdk1.7.0\\src.zip");
+		try (ZipFile zip = new ZipFile("c:\\Program Files\\Java\\jdk1.7.0\\src.zip")) {
 			Enumeration<? extends ZipEntry> zes1 = zip.entries();
 			
 			List<ZipEntry> zes = new ArrayList<ZipEntry>();
