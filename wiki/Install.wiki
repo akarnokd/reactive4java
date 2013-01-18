@@ -16,13 +16,15 @@ You need to add {{{inherits}}} tags to your main {{{gwt.xml}}}:
 == Import function and action types ==
 {{{
   <inherits name='hu.akarnokd.reactive4java.base.Base'/>
+  <inherits name='hu.akarnokd.reactive4java.util.Util'/>
 }}}
 
 == Import operators ==
 {{{
-  <inherits name='hu.akarnokd.reactive4java.reactive.Query'/>
+  <inherits name='hu.akarnokd.reactive4java.scheduler.Scheduler'/>
   <inherits name='hu.akarnokd.reactive4java.reactive.Reactive'/>
   <inherits name='hu.akarnokd.reactive4java.interactive.Interactive'/>
+  <inherits name='hu.akarnokd.reactive4java.query.Query'/>
 }}}
 
 == Import missing Java base classes and interfaces ==
