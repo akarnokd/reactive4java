@@ -16,9 +16,7 @@
 
 package java.util.concurrent;
 
-import java.util.Collection;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.Semaphore.NonfairSync;
 
 /**
  * Simple GWT version of the semaphore.

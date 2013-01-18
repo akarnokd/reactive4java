@@ -43,5 +43,8 @@ public class ReentrantLock implements Lock {
 		// TODO Auto-generated method stub
 
 	}
-
+	@Override
+	public boolean tryLock() {
+		return true;
+	}
 }

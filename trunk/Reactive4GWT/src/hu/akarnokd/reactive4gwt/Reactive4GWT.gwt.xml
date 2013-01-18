@@ -12,6 +12,7 @@
    <inherits name='hu.akarnokd.reactive4java.base.Base'/>     
    <inherits name='hu.akarnokd.reactive4java.util.Util'/>     
    <inherits name='hu.akarnokd.reactive4java.query.Query'/>     
+   <inherits name='hu.akarnokd.reactive4java.scheduler.Scheduler'/>     
    <inherits name='hu.akarnokd.reactive4java.reactive.Reactive'/>     
    <inherits name='hu.akarnokd.reactive4java.interactive.Interactive'/>     
  
