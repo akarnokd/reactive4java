@@ -424,10 +424,12 @@ public final class Take {
 
 				@Override
 				protected void onNext(T value) {
-					if (i-- > 0) {
+					if (i > 0) {
 						observer.next(value);
-					} else {
-						finish();
+						i--;
+						if (i == 0) {
+							finish();
+						}
 					}
 				}
 
