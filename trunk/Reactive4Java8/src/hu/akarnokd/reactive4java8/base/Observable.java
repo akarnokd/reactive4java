@@ -17,6 +17,9 @@
 
 package hu.akarnokd.reactive4java8.base;
 
+import java.util.function.Function;
+import java.util.function.Predicate;
+
 /**
  * Defines provider for push-based value streaming.
  * <p>reactive4java notes:
@@ -41,4 +44,26 @@ public interface Observable<T> {
      * the observer.
      */
     Registration register(Observer<? super T> observer);
+    
+    // most common operators
+    /**
+     * Apply the mapping function to the observable to produce
+     * new value for each incoming value.
+     * @param <U> the output value type
+     * @param function the function to apply
+     * @return the new observable of Us
+     */
+    default <U> Observable<U> select(Function<? super T, U> function) {
+        return (observer) -> 
+           register(Observer.wrap(observer, 
+                    (v) -> { observer.next(function.apply(v)); }))
+        ;
+    }
+    default Observable<T> where(Predicate<? super T> predicate) {
+        return (observer) ->
+            register(Observer.wrap(observer, 
+                    (v) -> { if (predicate.test(v)) { observer.next(v); } }))
+           
+        ; 
+    }
 }

@@ -19,6 +19,7 @@ package hu.akarnokd.reactive4java8.base;
 /**
  * Interface representing a registration to an observable sequence.
  * Can be used in try-with-resources constructs to cancel a registration.
+ * <p>NOTE: it is possible the interface name will be changed.</p>
  * <p>It extends the {link AutoCloseable} interface and hides the
  * default {@link Exception} type.</p>
  * <p>reactive4java note: the previous library used {@link java.io.Closeable}
@@ -30,4 +31,8 @@ package hu.akarnokd.reactive4java8.base;
 public interface Registration extends AutoCloseable {
     @Override
     void close();
+    /**
+     * An empty registration which does nothing.
+     */
+    Registration EMPTY = () -> { };
 }
