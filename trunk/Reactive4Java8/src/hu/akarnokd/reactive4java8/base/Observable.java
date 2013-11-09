@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -333,6 +334,56 @@ public interface Observable<T> {
                 observer.error(t);
                 return Registration.EMPTY;
             }
+        };
+    }
+    /**
+     * Merges the incoming sequences of the sources into a single observable.
+     * <p>Error condition in one of the sources is immediately propagated,
+     * the last finish will terminate the entire observation.</p>
+     * FIXME not sure about the race condition between the registration's
+     * finish and the inner error.
+     * @param <T>
+     * @param sources
+     * @return 
+     */
+    public static <T> Observable<T> merge(Iterable<? extends Observable<? extends T>> sources) {
+        return (observer) -> {
+            CompositeRegistration creg = new CompositeRegistration();
+            
+            AtomicInteger finishes = new AtomicInteger(1);
+            
+            Observer so = Observer.createSafe(
+                (T v) -> {
+                    observer.next(v);
+                },
+                (e) -> {
+                    try {
+                        observer.error(e);
+                    } finally {
+                        creg.close();
+                    }
+                },
+                () -> {
+                    if (finishes.decrementAndGet() == 0) {
+                        observer.finish();
+                    }
+                }
+            );
+            
+            sources.forEach(o -> {
+                if (!creg.isClosed()) {
+                    finishes.incrementAndGet();
+                    creg.add(o.register(so));
+                }
+            });
+            
+            if (finishes.decrementAndGet() == 0) {
+                if (!creg.isClosed()) {
+                    observer.finish();
+                }
+            }
+            
+            return creg;
         };
     }
 }

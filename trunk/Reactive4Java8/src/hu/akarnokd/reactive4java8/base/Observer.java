@@ -170,64 +170,6 @@ public interface Observer<T> extends BaseObserver {
         return new SafeObserver(this);
     }
     /**
-     * Observer wrapper that ensures the
-     * {@code next* (error|finish)?} event pattern on its wrapped observer.
-     * @param <T> the value type
-     */
-    public static final class SafeObserver<T> implements Observer<T> {
-        private final Observer<T> wrapped;
-        private final Lock lock;
-        private boolean done;
-        /**
-         * Constructor, wraps the observer.
-         * @param observer the observer to wrap
-         */
-        public SafeObserver(Observer<T> observer) {
-            this.wrapped = Objects.requireNonNull(observer);
-            lock = new ReentrantLock();
-        }
-        protected void sync(Runnable run) {
-            lock.lock();
-            try {
-                run.run();
-            } finally {
-                lock.unlock();
-            }
-        }
-        @Override
-        public void next(T value) {
-            sync(() -> {
-                if (!done) {
-                    try {
-                        wrapped.next(value);
-                    } catch (Throwable t) {
-                        error(t);
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void error(Throwable t) {
-            sync(() -> {
-                if (!done) {
-                    done = true;
-                    wrapped.error(t);
-                }
-            });
-        }
-
-        @Override
-        public void finish() {
-            sync(() -> {
-                if (!done) {
-                done = true;
-                    wrapped.finish();
-                }
-            });
-        }
-    }
-    /**
      * Constructs a safe observer from the given lambda
      * expressions as the various event handlers where
      * the next() lambda is given the opportunity to cancel the
