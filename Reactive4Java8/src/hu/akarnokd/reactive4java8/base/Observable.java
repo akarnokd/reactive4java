@@ -259,13 +259,42 @@ public interface Observable<T> {
         };
     }
     /**
-     * Returns an observable which makes sure the events
+     * Returns an observable which makes sure the all events
      * are observed on the given scheduler.
      * @param scheduler the scheduler to use
      * @return the observable
      */
     default Observable<T> observeOn(Scheduler scheduler) {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        return (observer) -> {
+            SingleLaneScheduling sls = new SingleLaneScheduling(scheduler);
+            
+            CompositeRegistration creg = new CompositeRegistration();
+            creg.add(sls);
+            creg.add(register(Observer.createSafe(
+                  (T v) -> { // XXX Inference loop without the T???
+                      sls.schedule(() -> {
+                          try {
+                              observer.next(v);
+                          } catch (Throwable t) {
+                              observer.error(t);
+                          }
+                      });
+                  },
+                  (t) -> {
+                      sls.schedule(() -> {
+                          observer.error(t);
+                      });
+                  },
+                  () -> {
+                      sls.schedule(() -> {
+                          observer.finish();
+                      });
+                  }
+            
+            )));
+            
+            return creg;
+        };
     }
     /**
      * Returns an observable which makes sure the
