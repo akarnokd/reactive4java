@@ -2,7 +2,7 @@
 
 = Introduction =
 
-The new language features of Java 8 make the Reactive4Java library more usable, but unfortunately, it can't exploit all of these features. Therefore, I started reimplementing the library with Java 8 features. To avoid confusion, the new package name is {{{hu.akarnokd.reactive4java8}}}, so both versions of the library can be in the same project.
+The new language features of Java 8 make the !Reactive4Java library more usable, but unfortunately, it can't exploit all of these features. Therefore, I started reimplementing the library with Java 8 features. To avoid confusion, the new package name is {{{hu.akarnokd.reactive4java8}}}, so both versions of the library can be in the same project.
 
 = Details =
 
@@ -24,3 +24,4 @@ The following Java 8 features are extensively used by the framework:
     Observable<Integer> o = Observable.from(1, 2, 3, 4, 5).select(v -> v * v).where(v -> v % 2 == 0);
 }}}
   * *!AutoCloseable*. The {{{register()}}} method on the {{{Observable}}} interface and various other methods now return a {{{Registration}}} object which basically extends the {{{AutoCloseable}}} interface and hides its {{{throws Exception}}} on the {{{close()}}} method.
+  * *Lambda calculus everywhere*. Most operator implementations can make extensive use of lambda functions (inner classes are less required), making the average length of an operation source lines much less.
