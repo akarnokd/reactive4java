@@ -229,7 +229,7 @@ public interface Observer<T> extends BaseObserver {
     }
     /**
      * Constructs a safe observer from the given lambda
-     * expressions as the various event handler where
+     * expressions as the various event handlers where
      * the next() lambda is given the opportunity to cancel the
      * processing (error and finish events naturally stop the observer).
      * @param <T> the value type
@@ -259,8 +259,8 @@ public interface Observer<T> extends BaseObserver {
                             run.run();
                         }
                     } catch (Throwable t) {
-                        done = true;
-                        error(t);
+                        done();
+                        error.accept(t);
                     }
                 } finally {
                     lock.unlock();
@@ -273,6 +273,70 @@ public interface Observer<T> extends BaseObserver {
             public void next(T value) {
                 sync(() -> {
                    next.accept(value, (Registration)this::done); 
+                });
+            }
+
+            @Override
+            public void finish() {
+                sync(() -> {
+                    done();
+                    finish.run();
+                });
+            }
+
+            @Override
+            public void error(Throwable t) {
+                sync(() -> {
+                    done();
+                    error.accept(t);
+                });
+            }
+        };
+    }
+    /**
+     * Constructs a safe observer from the given lambda
+     * expressions as the various event handlers.
+     * @param <T> the value type
+     * @param sharedLock the shared lock instance
+     * @param next
+     * @param error
+     * @param finish
+     * @return the observer
+     */
+    public static <T> Observer<T> createSafe(Lock sharedLock,
+            Consumer<? super T> next,
+            Consumer<? super Throwable> error,
+            Runnable finish) {
+        Objects.requireNonNull(sharedLock);
+        Objects.requireNonNull(next);
+        Objects.requireNonNull(error);
+        Objects.requireNonNull(finish);
+        
+        return new Observer<T>() {
+            private final Lock lock = sharedLock;
+            private boolean done;
+            protected void sync(Runnable run) {
+                lock.lock();
+                try {
+                    try {
+                        if (!done) {
+                            run.run();
+                        }
+                    } catch (Throwable t) {
+                        done();
+                        error.accept(t);
+                    }
+                } finally {
+                    lock.unlock();
+                }
+            }
+            protected void done() {
+                this.done = true;
+            }
+            @Override
+            public void next(T value) {
+                sync(() -> {
+                   next.accept(value); 
                 });
             }
 
@@ -313,6 +377,47 @@ public interface Observer<T> extends BaseObserver {
      * parameters as the observers event handler methods.
      * @param <T>
      * @param next
+     * @param error
+     * @param finish
+     * @return 
+     */
+    public static <T> Observer createSafe(
+            Consumer<? super T> next,
+            Consumer<? super Throwable> error,
+            Runnable finish) {
+        return createSafe(new ReentrantLock(), next, error, finish);
+    }
+    /**
+     * Creates a safe observer with the given lambda
+     * parameters as the observers event handler methods.
+     * @param <T>
+     * @param next
+     * @param finish
+     * @return 
+     */
+    public static <T> Observer createSafe(
+            Consumer<? super T> next,
+            Runnable finish) {
+        return createSafe(new ReentrantLock(), next, (t) -> { }, finish);
+    }
+    /**
+     * Creates a safe observer with the given lambda
+     * parameters as the observers event handler methods.
+     * @param <T>
+     * @param next
+     * @param error
+     * @return 
+     */
+    public static <T> Observer createSafe(
+            Consumer<? super T> next,
+            Consumer<? super Throwable> error) {
+        return createSafe(new ReentrantLock(), next, error, () -> { });
+    }
+    /**
+     * Creates a safe observer with the given lambda
+     * parameters as the observers event handler methods.
+     * @param <T>
+     * @param next
      * @param finish
      * @return 
      */
@@ -343,8 +448,8 @@ public interface Observer<T> extends BaseObserver {
      * @return 
      */
     public static <T> Observer createSafe(
-            Consumer<? super Throwable> error,
-            Runnable finish) {
+            Runnable finish,
+            Consumer<? super Throwable> error) {
         return createSafe(new ReentrantLock(), (Object v, Object u) -> { } , error, finish);
     }
 }
