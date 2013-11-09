@@ -4,6 +4,8 @@
 
 The new language features of Java 8 make the Reactive4Java library more usable, but unfortunately, it can't exploit all of these features. Therefore, I started reimplementing the library with Java 8 features. To avoid confusion, the new package name is {{{hu.akarnokd.reactive4java8}}}, so both versions of the library can be in the same project.
 
+= Details =
+
 The following Java 8 features are extensively used by the framework:
 
   * *Default functional interfaces*. It is not absolutely necessary but since the new Java 8 functional interfaces have useful default methods, allowing them to be used around the framework.
