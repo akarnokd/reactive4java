@@ -27,69 +27,17 @@ import java.util.function.Supplier;
  * @author akarnokd, 2013.11.09.
  */
 public abstract class BaseRegistration implements Registration {
-    private final Lock lock;
+    protected final LockSync ls;
     /** The completion indicator. */
     protected boolean done;
     /**
      * Constructor, initializes the lock object.
      */
     public BaseRegistration() {
-        lock = new ReentrantLock();
-    }
-    /**
-     * Call a supplier while holding a lock.
-     * @param <T> the returned value type
-     * @param supplier the supplier
-     * @return the returned value
-     */
-    protected <T> T sync(Supplier<? extends T> supplier) {
-        lock.lock();
-        try {
-            return supplier.get();
-        } finally {
-            lock.unlock();
-        }        
-    }
-    /**
-     * Call a supplier while holding a lock.
-     * @param supplier the supplier
-     * @return the returned value
-     */
-    protected boolean sync(BooleanSupplier supplier) {
-        lock.lock();
-        try {
-            return supplier.getAsBoolean();
-        } finally {
-            lock.unlock();
-        }        
-    }
-    /**
-     * Call a supplier while holding a lock.
-     * @param supplier the supplier
-     * @return the returned value
-     */
-    protected int sync(IntSupplier supplier) {
-        lock.lock();
-        try {
-            return supplier.getAsInt();
-        } finally {
-            lock.unlock();
-        }        
-    }
-    /**
-     * Execute the runnable while holding a lock.
-     * @param run the runnable to execute
-     */
-    protected void sync(Runnable run) {
-        lock.lock();
-        try {
-        
-        } finally {
-            lock.unlock();
-        }        
+        ls = new LockSync();
     }
     public boolean isClosed() {
-        return sync(() -> done);
+        return ls.sync(() -> done);
     }
 
 }

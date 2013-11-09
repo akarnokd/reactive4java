@@ -1,27 +1,32 @@
 /*
- * Copyright 2013 akarnokd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* Copyright 2013 akarnokd.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 
 
 package hu.akarnokd.reactive4java8.base;
 
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -61,9 +66,9 @@ public interface Observable<T> {
      * @return the new observable of Us
      */
     default <U> Observable<U> select(Function<? super T, U> function) {
-        return (observer) -> 
-           register(observer.compose(function))
-        ;
+        return (observer) ->
+                register(observer.compose(function))
+                ;
     }
     /**
      * Filters the observed value with the given predicate
@@ -73,10 +78,10 @@ public interface Observable<T> {
      */
     default Observable<T> where(Predicate<? super T> predicate) {
         return (observer) ->
-            register(Observer.wrap(observer, 
-                    (v) -> { if (predicate.test(v)) { observer.next(v); } }))
-           
-        ; 
+                register(Observer.wrap(observer,
+                        (v) -> { if (predicate.test(v)) { observer.next(v); } }))
+                
+                ;
     }
     /**
      * Returns an observable sequence of the given values
@@ -120,7 +125,7 @@ public interface Observable<T> {
      * FIXME this method is generally dangerous
      * @param <T>
      * @param stream
-     * @return 
+     * @return
      */
     public static <T> Observable<T> from(Stream<? extends T> stream) {
         Object sync = new Object();
@@ -133,16 +138,16 @@ public interface Observable<T> {
         };
     }
     /**
-     * Runs the given action before pushing the 
+     * Runs the given action before pushing the
      * incoming value to the observer.
      * @param action the action to invoke
      * @return the new observable
      */
     default Observable<T> run(Runnable action) {
-        return (observer) -> 
-            register(Observer.wrap(observer, 
-                    (v) -> { action.run(); observer.next(v); }))
-        ;
+        return (observer) ->
+                register(Observer.wrap(observer,
+                        (v) -> { action.run(); observer.next(v); }))
+                ;
     }
     /**
      * Synchronously consumes the observable sequence and calls
@@ -154,10 +159,10 @@ public interface Observable<T> {
     default void forEach(Consumer<? super T> consumer) {
         CountDownLatch latch = new CountDownLatch(1);
         try (Registration reg = register(Observer.create(
-                consumer::accept, 
+                consumer::accept,
                 (t) -> { latch.countDown(); },
                 () -> { latch.countDown(); }
-            ))) {
+        ))) {
             latch.await();
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
@@ -205,7 +210,7 @@ public interface Observable<T> {
             Ref<T> ref = new Ref<>();
             BoolRef first = new BoolRef();
             first.value = true;
-            return where(v -> { 
+            return where(v -> {
                 if (first.value || !Objects.equals(ref.value, v)) {
                     ref.value = v;
                     first.value = false;
@@ -246,16 +251,16 @@ public interface Observable<T> {
             counter.value = count;
             // FIXME close uplink registration ???
             return register(Observer.create(
-                (v) -> { 
-                    if (counter.value-- > 0) {
-                        observer.next(v);
-                        if (counter.value == 0) {
-                            observer.finish();
+                    (v) -> {
+                        if (counter.value-- > 0) {
+                            observer.next(v);
+                            if (counter.value == 0) {
+                                observer.finish();
+                            }
                         }
-                    }
-                },
-                (t) -> { observer.error(t); },
-                () -> { observer.finish(); }
+                    },
+                    (t) -> { observer.error(t); },
+                    () -> { observer.finish(); }
             ));
         };
     }
@@ -272,26 +277,26 @@ public interface Observable<T> {
             CompositeRegistration creg = new CompositeRegistration();
             creg.add(sls);
             creg.add(register(Observer.createSafe(
-                  (T v) -> { // XXX Inference loop without the T???
-                      sls.schedule(() -> {
-                          try {
-                              observer.next(v);
-                          } catch (Throwable t) {
-                              observer.error(t);
-                          }
-                      });
-                  },
-                  (t) -> {
-                      sls.schedule(() -> {
-                          observer.error(t);
-                      });
-                  },
-                  () -> {
-                      sls.schedule(() -> {
-                          observer.finish();
-                      });
-                  }
-            
+                    (T v) -> { // XXX Inference loop without the T???
+                        sls.schedule(() -> {
+                            try {
+                                observer.next(v);
+                            } catch (Throwable t) {
+                                observer.error(t);
+                            }
+                        });
+                    },
+                    (t) -> {
+                        sls.schedule(() -> {
+                            observer.error(t);
+                        });
+                    },
+                    () -> {
+                        sls.schedule(() -> {
+                            observer.finish();
+                        });
+                    }
+                    
             )));
             
             return creg;
@@ -344,14 +349,14 @@ public interface Observable<T> {
      * finish and the inner error.
      * @param <T>
      * @param sources
-     * @return 
+     * @return
      */
     public static <T> Observable<T> merge(Iterable<? extends Observable<? extends T>> sources) {
         return (observer) -> {
             CompositeRegistration creg = new CompositeRegistration();
             
             AtomicInteger wip = new AtomicInteger(1);
-
+            
             Runnable complete = () -> {
                 if (wip.decrementAndGet() == 0 && !creg.isClosed()) {
                     try {
@@ -363,17 +368,17 @@ public interface Observable<T> {
             };
             
             Observer<T> so = Observer.createSafe(
-                (v) -> {
-                    observer.next(v);
-                },
-                (e) -> {
-                    try {
-                        observer.error(e);
-                    } finally {
-                        creg.close();
-                    }
-                },
-                complete
+                    (v) -> {
+                        observer.next(v);
+                    },
+                    (e) -> {
+                        try {
+                            observer.error(e);
+                        } finally {
+                            creg.close();
+                        }
+                    },
+                    complete
             );
             
             sources.forEach(o -> {
@@ -382,7 +387,7 @@ public interface Observable<T> {
                     creg.add(o.register(so));
                 }
             });
-
+            
             complete.run();
             
             return creg;
@@ -392,17 +397,17 @@ public interface Observable<T> {
      * Merges a dynamic sequence of observables.
      * <p>Error condition coming through any source observable is
      * forwarded immediately and the registrations are terminated.</p>
-     * 
+     *
      * @param <T>
      * @param sources
-     * @return 
+     * @return
      */
     public static <T> Observable<T> merge(Observable<? extends Observable<? extends T>> sources) {
         return (observer) -> {
             CompositeRegistration reg = new CompositeRegistration();
-
+            
             AtomicInteger wip = new AtomicInteger(1);
-
+            
             Runnable complete = () -> {
                 if (wip.decrementAndGet() == 0 && !reg.isClosed()) {
                     try {
@@ -412,42 +417,42 @@ public interface Observable<T> {
                     }
                 }
             };
-
+            
             Observer<Observable<? extends T>> sourceObserver = Observer.createSafe(
-                (o) -> {
-                    wip.incrementAndGet();
-
-                    SingleRegistration itemReg = new SingleRegistration();
-                    
-                    reg.add(itemReg);
-                    
-                    Observer<T> itemObserver = Observer.createSafe(
-                        (v) -> {
-                            observer.next(v);
-                        },
-                        (e) -> {
-                            try {
-                                observer.error(e);
-                            } finally {
-                                reg.close();
-                            }
-                        },
-                        () -> {
-                            reg.remove(itemReg);
-                            complete.run();
+                    (o) -> {
+                        wip.incrementAndGet();
+                        
+                        SingleRegistration itemReg = new SingleRegistration();
+                        
+                        reg.add(itemReg);
+                        
+                        Observer<T> itemObserver = Observer.createSafe(
+                                (v) -> {
+                                    observer.next(v);
+                                },
+                                (e) -> {
+                                    try {
+                                        observer.error(e);
+                                    } finally {
+                                        reg.close();
+                                    }
+                                },
+                                () -> {
+                                    reg.remove(itemReg);
+                                    complete.run();
+                                }
+                        );
+                        
+                        itemReg.set(o.register(itemObserver));
+                    },
+                    (e) -> {
+                        try {
+                            observer.error(e);
+                        } finally {
+                            reg.close();
                         }
-                    );
-
-                    itemReg.set(o.register(itemObserver));
-                },
-                (e) -> {
-                    try {
-                        observer.error(e);
-                    } finally {
-                        reg.close();
-                    }
-                },
-                complete
+                    },
+                    complete
             );
             
             reg.add(sources.register(sourceObserver));
@@ -455,4 +460,176 @@ public interface Observable<T> {
             return reg;
         };
     }
+    @SafeVarargs
+    public static <T> Observable<T> merge(Observable<? extends T>... sources) {
+        return merge(Arrays.asList(sources));
+    }
+    /**
+     * Concatenates the values of the source sequences
+     * one after another.
+     * @param <T>
+     * @param sources
+     * @return
+     */
+    public static <T> Observable<T> concat(Iterable<? extends Observable<? extends T>> sources) {
+        return (observer) -> {
+            Iterator<? extends Observable<? extends T>> it = sources.iterator();
+            
+            SingleRegistration sreg = new SingleRegistration();
+            
+            Observer<T> tobs = new Observer<T>() {
+                boolean done;
+                @Override
+                public void next(T value) {
+                    if (!done) {
+                        observer.next(value);
+                    }
+                }
+                
+                @Override
+                public void error(Throwable t) {
+                    if (!done) {
+                        done = true;
+                        observer.error(t);
+                    }
+                }
+                
+                @Override
+                public void finish() {
+                    if (!done) {
+                        if (it.hasNext()) {
+                            if (!sreg.isClosed()) {
+                                sreg.set(it.next().register(this));
+                            }
+                        } else {
+                            done = true;
+                            try {
+                                observer.finish();
+                            } finally {
+                                sreg.close();
+                            }
+                        }
+                    }
+                }
+            }.toThreadSafe();
+            
+            tobs.finish(); // trigger first item from sources
+            
+            return sreg;
+        };
+    }
+    @SafeVarargs
+    public static <T> Observable<T> concat(Observable<? extends T>... sources) {
+        return concat(Arrays.asList(sources));
+    }
+    /**
+     * Concatenates a dynamic sequence of observable sequences.
+     * FIXME highly complicated concurrency mode, not sure
+     * @param <T>
+     * @param sources
+     * @return
+     */
+    public static <T> Observable<T> concat(Observable<? extends Observable<? extends T>> sources) {
+        return (observer) -> {
+            BlockingQueue<Observable<? extends T>> queue = new LinkedBlockingQueue<>();
+            
+            AtomicInteger wip = new AtomicInteger(1);
+            
+            CompositeRegistration creg = new CompositeRegistration();
+            
+            SingleRegistration sreg = new SingleRegistration();
+            
+            Observer<T> tobs = new Observer<T>() {
+                boolean done;
+                @Override
+                public void next(T value) {
+                    if (!done) {
+                        observer.next(value);
+                    }
+                }
+                
+                @Override
+                public void error(Throwable t) {
+                    if (!done) {
+                        done = true;
+                        try {
+                            observer.error(t);
+                        } finally {
+                            creg.close();
+                        }
+                    }
+                }
+                
+                @Override
+                public void finish() {
+                    if (!done) {
+                        if (wip.decrementAndGet() == 0) {
+                            done = true;
+                            if (!creg.isClosed()) {
+                                try {
+                                    observer.finish();
+                                } finally {
+                                    creg.close();
+                                }
+                            }
+                        } else {
+                            Observable<? extends T> o = queue.poll();
+                            if (o != null) {
+                                sreg.set(o.register(this));
+                            }
+                        }
+                    }
+                }
+            }.toThreadSafe();
+            
+            Observer<Observable<? extends T>> sourceObserver = new Observer<Observable<? extends T>>() {
+                boolean done;
+                @Override
+                public void next(Observable<? extends T> value) {
+                    if (!done) {
+                        queue.add(value);
+                        if (wip.incrementAndGet() == 2) {
+                            wip.incrementAndGet();
+                            tobs.finish();
+                        }
+                    }
+                }
+                
+                @Override
+                public void error(Throwable t) {
+                    if (!done) {
+                        done = true;
+                        try {
+                            observer.error(t);
+                        } finally {
+                            creg.close();
+                        }
+                    }
+                }
+                
+                @Override
+                public void finish() {
+                    if (!done) {
+                        done = true;
+                        if (wip.decrementAndGet() == 0) {
+                            if (!creg.isClosed()) {
+                                try {
+                                    observer.finish();
+                                } finally {
+                                    creg.close();
+                                }
+                            }
+                        }
+                    }
+                }
+                
+            }.toThreadSafe();
+            
+            creg.add(sreg);
+            creg.add(sources.register(sourceObserver));
+            
+            return creg;
+        };
+    }
+    
 }
