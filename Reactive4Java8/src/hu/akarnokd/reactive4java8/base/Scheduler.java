@@ -47,6 +47,8 @@ public interface Scheduler {
             BiFunction<Scheduler, TState, Registration> activity);
     /**
      * Schedules the given activity to run after the given amount of time.
+     * <p>This overload allows the chaining of scheduled activities by using
+     * the same registration object.</p> 
      * @param <TState> the state information type to pass to the activity
      * @param state the state to pass to the activity
      * @param time the time to delay the execution of the activity
@@ -63,13 +65,12 @@ public interface Scheduler {
      * @param <TState> the state information type to pass to the activity
      * @param state the state to pass to the activity
      * @param initialDelay the initial delay
-     * @param betweenDelay the delay between running the tasks: see
-     * TheadPoolExecutor.scheduleAtFixedRate method's semantics.
+     * @param period the frequency to execute the activity
      * @param unit the time unit of the delay time
      * @param activity the activity
      * @return  the registration to cancel the schedule
      */
-    <TState> Registration schedule(TState state, long initialDelay, long betweenDelay, 
+    <TState> Registration schedule(TState state, long initialDelay, long period, 
             TimeUnit unit, BiFunction<Scheduler, TState, Registration> activity);
     /**
      * Schedule a task to run once.
@@ -92,13 +93,12 @@ public interface Scheduler {
     /**
      * Schedule a task to run periodically after the given initial delay.
      * @param initialDelay the initial delay
-     * @param betweenDelay the delay between running the tasks: see
-     * TheadPoolExecutor.scheduleAtFixedRate method's semantics.
+     * @param period the periodicity of the task
      * @param unit the time unit of the delay time
      * @param run the task to run
      * @return the registration to cancel the execution of the task
      */
-    default Registration schedule(long initialDelay, long betweenDelay, TimeUnit unit, Runnable run) {
-        return schedule(new Object(), initialDelay, betweenDelay, unit, (scheduler, state) -> { run.run(); return Registration.EMPTY; });
+    default Registration schedule(long initialDelay, long period, TimeUnit unit, Runnable run) {
+        return schedule(new Object(), initialDelay, period, unit, (scheduler, state) -> { run.run(); return Registration.EMPTY; });
     }
 }
