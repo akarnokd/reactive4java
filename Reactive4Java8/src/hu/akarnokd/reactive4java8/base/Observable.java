@@ -215,4 +215,95 @@ public interface Observable<T> {
             }).register(observer);
         };
     }
+    public static <T> Observable<T> empty() {
+        return (observer) -> {
+            observer.finish();
+            return Registration.EMPTY;
+        };
+    }
+    public static <T> Observable<T> never() {
+        return (observer) -> {
+            Ref<Object> ref = new Ref<>();
+            ref.value = observer;
+            return () -> {
+                ref.value = null;
+            };
+        };
+    }
+    /**
+     * Takes the first {@code count} elements from
+     * this observable sequence and finishes.
+     * @param count the number of elements to take
+     * @return the new observable
+     */
+    default Observable<T> take(int count) {
+        if (count == 0) {
+            return empty();
+        }
+        return (observer) -> {
+            IntRef counter = new IntRef();
+            counter.value = count;
+            // FIXME close uplink registration ???
+            return register(Observer.create(
+                (v) -> { 
+                    if (counter.value-- > 0) {
+                        observer.next(v);
+                        if (counter.value == 0) {
+                            observer.finish();
+                        }
+                    }
+                },
+                (t) -> { observer.error(t); },
+                () -> { observer.finish(); }
+            ));
+        };
+    }
+    /**
+     * Returns an observable which makes sure the events
+     * are observed on the given scheduler.
+     * @param scheduler the scheduler to use
+     * @return the observable
+     */
+    default Observable<T> observeOn(Scheduler scheduler) {
+        throw new UnsupportedOperationException("Not implemented yet.");
+    }
+    /**
+     * Returns an observable which makes sure the
+     * registrations and unregistrations happen on the given
+     * scheduler (but the events are not observed there).
+     * @param scheduler the scheduler to use
+     * @return the observable
+     */
+    default Observable<T> registerOn(Scheduler scheduler) {
+        return (observer) -> {
+            SingleRegistration creg = new SingleRegistration();
+            creg.set(scheduler.schedule(() -> {
+                // FIXME safe register
+                Registration reg = register(observer);
+                creg.set(() -> {
+                    scheduler.schedule(() -> {
+                        reg.close();
+                    });
+                });
+            }));
+            return creg;
+        };
+    }
+    /**
+     * Wraps the current observer which captures
+     * any exception during the register() method
+     * call and immediately forwards it
+     * to the observer's error() method.
+     * @return the observer with safe registration
+     */
+    default Observable<T> registerSafe() {
+        return (observer) -> {
+            try {
+                return register(observer);
+            } catch (Throwable t) {
+                observer.error(t);
+                return Registration.EMPTY;
+            }
+        };
+    }
 }

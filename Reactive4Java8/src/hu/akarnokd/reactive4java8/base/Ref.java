@@ -24,4 +24,9 @@ package hu.akarnokd.reactive4java8.base;
 public final class Ref<T> {
     /** The value. */
     public T value;
+    public static <T> Ref<T> of(T initial) {
+        Ref<T> t = new Ref<>();
+        t.value = initial;
+        return t;
+    }
 }

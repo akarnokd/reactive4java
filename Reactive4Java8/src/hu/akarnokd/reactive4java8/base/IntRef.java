@@ -23,4 +23,9 @@ package hu.akarnokd.reactive4java8.base;
 public final class IntRef {
     /** The value. */
     public int value;
+    public static IntRef of(int initial) {
+        IntRef r = new IntRef();
+        r.value = initial;
+        return r;
+    }
 }

@@ -18,6 +18,7 @@ package hu.akarnokd.reactive4java8.base;
 
 /**
  * Interface representing a registration to an observable sequence.
+ * <p>The close() method should be idempotent.</p>
  * Can be used in try-with-resources constructs to cancel a registration.
  * <p>NOTE: it is possible the interface name will be changed.</p>
  * <p>It extends the {link AutoCloseable} interface and hides the
