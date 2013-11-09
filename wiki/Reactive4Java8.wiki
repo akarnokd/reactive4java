@@ -1,4 +1,5 @@
 #summary Experimental reactive library redesigned for and with Java 8
+#labels Featured
 
 = Introduction =
 
