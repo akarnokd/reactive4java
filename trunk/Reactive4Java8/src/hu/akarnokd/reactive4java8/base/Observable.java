@@ -17,8 +17,14 @@
 
 package hu.akarnokd.reactive4java8.base;
 
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * Defines provider for push-based value streaming.
@@ -55,15 +61,158 @@ public interface Observable<T> {
      */
     default <U> Observable<U> select(Function<? super T, U> function) {
         return (observer) -> 
-           register(Observer.wrap(observer, 
-                    (v) -> { observer.next(function.apply(v)); }))
+           register(observer.compose(function))
         ;
     }
+    /**
+     * Filters the observed value with the given predicate
+     * and pushes values which test true with it.
+     * @param predicate the predicate to use
+     * @return the new observable
+     */
     default Observable<T> where(Predicate<? super T> predicate) {
         return (observer) ->
             register(Observer.wrap(observer, 
                     (v) -> { if (predicate.test(v)) { observer.next(v); } }))
            
         ; 
+    }
+    /**
+     * Returns an observable sequence of the given values
+     * which are immediately pushed to the observers.
+     * @param <T> the value type
+     * @param values the values
+     * @return the created observable
+     */
+    @SafeVarargs
+    public static <T> Observable<T> from(T... values) {
+        return (observer) -> {
+            for (T t : values) {
+                observer.next(t);
+            }
+            observer.finish();
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Returns an observable sequence that iterates over
+     * the source sequence pushes each value immediately
+     * to the observers.
+     * @param <T> the value type
+     * @param src the source value sequence
+     * @return the created observable
+     */
+    public static <T> Observable<T> from(Iterable<? extends T> src) {
+        return (observer) -> {
+            for (T t : src) {
+                observer.next(t);
+            }
+            observer.finish();
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Creates an observable sequence from the given stream.
+     * <p>Warning! Streams are not thread safe and can be
+     * consumed only once so avoid do not register
+     * to the underlying stream twice!</p>
+     * FIXME this method is generally dangerous
+     * @param <T>
+     * @param stream
+     * @return 
+     */
+    public static <T> Observable<T> from(Stream<? extends T> stream) {
+        Object sync = new Object();
+        return (observer) -> {
+            synchronized (sync) {
+                stream.forEach(observer::next);
+            }
+            observer.finish();
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Runs the given action before pushing the 
+     * incoming value to the observer.
+     * @param action the action to invoke
+     * @return the new observable
+     */
+    default Observable<T> run(Runnable action) {
+        return (observer) -> 
+            register(Observer.wrap(observer, 
+                    (v) -> { action.run(); observer.next(v); }))
+        ;
+    }
+    /**
+     * Synchronously consumes the observable sequence and calls
+     * the given consumer with each value observed.
+     * If the current thread is interrupted while this runs,
+     * the observer is deregistered and the interrupted exception consumed.
+     * @param consumer the consumer to use
+     */
+    default void forEach(Consumer<? super T> consumer) {
+        CountDownLatch latch = new CountDownLatch(1);
+        try (Registration reg = register(Observer.create(
+                consumer::accept, 
+                (t) -> { latch.countDown(); },
+                () -> { latch.countDown(); }
+            ))) {
+            latch.await();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            // otherwise ignored
+        }
+    }
+    default void forEach(IndexedConsumer<? super T> consumer) {
+        IntRef count = new IntRef();
+        forEach(v -> consumer.accept(count.value++, v));
+    }
+    default <U> Observable<U> select(IndexedFunction<? super T, ? extends U> function) {
+        return (observer) -> {
+            IntRef count = new IntRef();
+            return register(observer.compose(v -> function.apply(count.value++, v)));
+        };
+    }
+    default Observable<T> where(IndexedPredicate<? super T> predicate) {
+        return (observer) -> {
+            IntRef count = new IntRef();
+            return register(Observer.wrap(observer,
+                    (v) -> { if (predicate.test(count.value++, v)) { observer.next(v); } }));
+        };
+    }
+    /**
+     * Retunrs an observable sequence which contains
+     * distinct values according to Objects.equals().
+     * @return the observable with distinct values
+     */
+    default Observable<T> distinct() {
+        return (observer) -> {
+            Set<T> set = new HashSet<>();
+            return where(set::add).register(observer);
+        };
+    }
+    /**
+     * Returns an observable sequence which pushes
+     * subsequent values only if they are not
+     * equal according to the Objects.equals() method.
+     * <p>For example, a sequence of A, A, B, B, A,  D
+     * will be returned as A, B, A, D.</p>
+     * @return the new observable
+     */
+    default Observable<T> distinctUntilChanged() {
+        return (observer) -> {
+            Ref<T> ref = new Ref<>();
+            BoolRef first = new BoolRef();
+            first.value = true;
+            return where(v -> { 
+                if (first.value || !Objects.equals(ref.value, v)) {
+                    ref.value = v;
+                    first.value = false;
+                    return true;
+                }
+                ref.value = v;
+                return false;
+            }).register(observer);
+        };
     }
 }

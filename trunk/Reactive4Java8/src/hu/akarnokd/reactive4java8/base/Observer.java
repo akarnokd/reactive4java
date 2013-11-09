@@ -17,6 +17,7 @@
 package hu.akarnokd.reactive4java8.base;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Base interface for observing a stream of values.
@@ -45,7 +46,7 @@ public interface Observer<T> extends BaseObserver {
      * @param consumer the consumer of events
      * @return the new observer
      */
-    public static <T> Observer<T> wrap(BaseObserver o, Consumer<? super T> consumer) {
+    static <T> Observer<T> wrap(BaseObserver o, Consumer<? super T> consumer) {
         return new Observer<T>() {
             @Override
             public void next(T value) {
@@ -132,6 +133,17 @@ public interface Observer<T> extends BaseObserver {
                 finish.run();
             }
         };
-        
+    }
+    /**
+     * Creates an observer which translates the
+     * stream of U values via the function into a
+     * stream of T values which is then forwarded
+     * to this observer.
+     * @param <U> the nw observed value type
+     * @param function the function to apply to transform Us into Ts
+     * @return the new observer of Us
+     */
+    default <U> Observer<U> compose(Function<? super U, ? extends T> function) {
+        return wrap(this, (v) -> next(function.apply(v)));
     }
 }
