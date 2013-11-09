@@ -20,13 +20,20 @@ package hu.akarnokd.reactive4java8.base;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -631,5 +638,340 @@ public interface Observable<T> {
             return creg;
         };
     }
-    
+    /**
+     * Returns an observable sequence of the given range of integer values.
+     * @param start the start of the value range, inclusive
+     * @param end the end of the value range, exclusive
+     * @return the observable
+     */
+    public static Observable<Integer> range(int start, int end) {
+        return (observer) -> {
+            int delta = (end >= start) ? 1 : -1;
+            int count = delta * (end - start);
+            int value = start;
+            try {
+                while (count-- > 0) {
+                    observer.next(value);
+                    value += delta;
+                }
+                observer.finish();
+            } catch (Throwable t) {
+                observer.error(t);
+            }
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Returns an observable sequence of the given range of integer values.
+     * @param start the start of the value range, inclusive
+     * @param end the end of the value range, exclusive
+     * @return the observable
+     */
+    public static Observable<Long> range(long start, long end) {
+        return (observer) -> {
+            int delta = (end >= start) ? 1 : -1;
+            long count = delta * (end - start);
+            long value = start;
+            try {
+                while (count-- > 0) {
+                    observer.next(value);
+                    value += delta;
+                }
+                observer.finish();
+            } catch (Throwable t) {
+                observer.error(t);
+            }
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Delays the delivery of all events to the observers.
+     * @param time
+     * @param unit
+     * @param scheduler
+     * @return 
+     */
+    default Observable<T> delay(long time, TimeUnit unit, Scheduler scheduler) {
+        return (observer) -> {
+            SingleLaneScheduling sls = new SingleLaneScheduling(scheduler);
+            
+            CompositeRegistration creg = new CompositeRegistration();
+
+            Observer<T> tobs = new Observer<T>() {
+                @Override
+                public void next(T value) {
+                    SingleRegistration sreg = new SingleRegistration();
+                    creg.add(sreg);
+                    sreg.set(scheduler.schedule(time, unit, () -> {
+                        sreg.set(sls.schedule(() -> {
+                            creg.remove(sreg);
+                            observer.next(value);
+                        }));
+                    }));
+                }
+                @Override
+                public void error(Throwable t) {
+                    SingleRegistration sreg = new SingleRegistration();
+                    creg.add(sreg);
+                    sreg.set(scheduler.schedule(time, unit, () -> {
+                        sreg.set(sls.schedule(() -> {
+                            creg.remove(sreg);
+                            observer.error(t);
+                        }));
+                    }));
+                }
+                @Override
+                public void finish() {
+                    SingleRegistration sreg = new SingleRegistration();
+                    creg.add(sreg);
+                    sreg.set(scheduler.schedule(time, unit, () -> {
+                        sreg.set(sls.schedule(() -> {
+                            creg.remove(sreg);
+                            observer.finish();
+                        }));
+                    }));
+                }
+            };
+            
+            creg.add(register(tobs));
+            return creg;
+        };
+    }
+    /**
+     * Throttles the stream of values by sending out the last observed
+     * value only after the given timeout period.
+     * @param time
+     * @param unit
+     * @param scheduler
+     * @return 
+     */
+    default Observable<T> throttle(long time, TimeUnit unit, Scheduler scheduler) {
+        return (observer) -> {
+            CompositeRegistration creg = new CompositeRegistration();
+            SingleRegistration sreg = new SingleRegistration();
+            
+            Observer<T> tobs = new DefaultObserver<T>(creg) {
+                @Override
+                public void onNext(T value) {
+                    sreg.set(scheduler.schedule(time, unit, () -> {
+                        try {
+                            ls.sync(() -> observer.next(value));
+                        } catch (Throwable t) {
+                            error(t);
+                        }
+                    }));
+                }
+                @Override
+                public void onError(Throwable t) {
+                    observer.error(t);
+                }
+                @Override
+                public void onFinish() {
+                    observer.finish();
+                }
+            };
+            creg.add(sreg);
+            creg.add(register(tobs));
+            return creg;
+        };
+    }
+    /**
+     * Combines the pair of elements from this observable and
+     * the other iterable sequence and applies the given combiner function.
+     * @param <U>
+     * @param <V>
+     * @param other
+     * @param function
+     * @return 
+     */
+    default <U, V> Observable<V> zip(Iterable<? extends U> other, 
+            BiFunction<? super T, ? super U, ? extends V> function) {
+        return (observer) -> {
+            Iterator<? extends U> it = other.iterator();
+            if (it.hasNext()) {
+                SingleRegistration sreg = new SingleRegistration();
+
+                Observer<T> tobs = new DefaultObserver<T>(sreg) {
+                    @Override
+                    public void onNext(T value) {
+                        U u = it.next();
+                        observer.next(function.apply(value, u));
+                        if (!it.hasNext()) {
+                            finish();
+                        }
+                    }
+                    @Override
+                    public void onError(Throwable t) {
+                        observer.error(t);
+                    }
+                    @Override
+                    public void onFinish() {
+                        observer.finish();
+                    }
+                };
+
+                sreg.set(register(tobs));
+                return sreg;
+            }
+            observer.finish();
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Combines the pairs of values of this and the other observable
+     * sequence and applies the given function.
+     * @param <U>
+     * @param <V>
+     * @param other
+     * @param function
+     * @return 
+     */
+    default <U, V> Observable<V> zip(Observable<? extends U> other, 
+            BiFunction<? super T, ? super U, ? extends V> function) {
+        return (observer) -> {
+                CompositeRegistration creg = new CompositeRegistration();
+                
+                Lock shared = new ReentrantLock();
+                
+                BoolRef cdone = new BoolRef();
+                
+                Queue<T> tqueue = new LinkedList<>();
+                Queue<U> uqueue = new LinkedList<>();
+                
+                Observer<T> tobs = new DefaultObserver<T>(creg, shared) {
+                    @Override
+                    protected void onNext(T value) {
+                        if (!cdone.value) {
+                            if (uqueue.isEmpty()) {
+                                tqueue.add(value);
+                            } else {
+                                U u = uqueue.poll();
+                                observer.next(function.apply(value, u));
+                            }
+                        }
+                    }
+                    @Override
+                    protected void onError(Throwable t) {
+                        if (!cdone.value) {
+                            cdone.value = true;
+                            observer.error(t);
+                        }
+                    }
+                    @Override
+                    protected void onFinish() {
+                        if (!cdone.value) {
+                            if (tqueue.isEmpty() && uqueue.isEmpty()) {
+                                cdone.value = true;
+                                observer.finish();
+                            }
+                        }
+                    }
+                };
+                Observer<U> uobs = new DefaultObserver<U>(creg, shared) {
+                    @Override
+                    protected void onNext(U value) {
+                        if (!cdone.value) {
+                            if (tqueue.isEmpty()) {
+                                uqueue.add(value);
+                            } else {
+                                T t = tqueue.poll();
+                                observer.next(function.apply(t, value));
+                            }
+                        }
+                    }
+                    @Override
+                    protected void onError(Throwable t) {
+                        if (!cdone.value) {
+                            cdone.value = true;
+                            observer.error(t);
+                        }
+                    }
+                    @Override
+                    protected void onFinish() {
+                        if (!cdone.value) {
+                            if (tqueue.isEmpty() && uqueue.isEmpty()) {
+                                cdone.value = true;
+                                observer.finish();
+                            }
+                        }
+                    }
+                };
+                
+                creg.add(register(tobs));
+                creg.add(other.register(uobs));
+                
+                return creg;
+            };
+    }
+    default Observable<T> concatWith(Observable<? extends T> other) {
+        return concat(this, other);
+    }
+    default Observable<T> mergeWith(Observable<? extends T> other) {
+        return merge(this, other);
+    }
+    /**
+     * Creates an iterable sequence which synchronously
+     * waits for events from this observable.
+     * The iterator of the returned iterable implements
+     * the Registration interface, therefore, the registration
+     * can be closed.
+     * @return 
+     */
+    default Iterable<T> toIterable() {
+        return () -> {
+            BlockingQueue<Optional<T>> queue = new LinkedBlockingQueue<>();
+
+            SingleRegistration sreg = new SingleRegistration();
+            
+            sreg.set(register(Observer.create(
+                (v) -> queue.add(Optional.of(v)),
+                (e) -> queue.add(Optional.empty()),
+                () -> Optional.empty()
+            )));
+            
+            return new IteratorRegistered<T>() {
+                /** Indicates that there is an untaken value. */
+                boolean has;
+                /** Indicator that the source observable finished. */
+                boolean done;
+                /** The value for next. */
+                T value;
+                @Override
+                public boolean hasNext() {
+                    if (!has) {
+                        if (!done) {
+                            try {
+                                Optional<T> v = queue.take();
+                                if (v.isPresent()) {
+                                    has = true;
+                                } else {
+                                    done = true;
+                                }
+                            } catch (InterruptedException ex) {
+                                Thread.currentThread().interrupt();
+                                done = true;
+                            }
+                        }
+                    }
+                    return has;
+                }
+                @Override
+                public T next() {
+                    if (has || hasNext()) {
+                        has = false;
+                        T v = value;
+                        value = null;
+                        return v;
+                    }
+                    throw new NoSuchElementException();
+                }
+
+                @Override
+                public void close() {
+                    sreg.close();
+                }
+                
+            };
+        };
+    }
 }

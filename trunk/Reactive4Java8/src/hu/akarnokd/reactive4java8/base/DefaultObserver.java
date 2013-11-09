@@ -16,6 +16,7 @@
 
 package hu.akarnokd.reactive4java8.base;
 
+import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -24,6 +25,8 @@ import java.util.concurrent.locks.Lock;
  * "close" itself.
  * <p>You may composte an observable from lambda expressions with
  * the static methods of {@link Observer} such as create or createSafe.</p>
+ * <p>An overloaded constructor gives the opportunity to close a
+ * registration in case an error or finish event occurs.</p>
  * <p>The default observer is an abstract class where the behavior
  * needs to be added through overriding the onNext, onError and
  * onFinish methods. These methods are
@@ -33,75 +36,71 @@ import java.util.concurrent.locks.Lock;
  * @author akarnokd, 2013.11.09.
  */
 public abstract class DefaultObserver<T> implements Observer<T> {
-    /** The lock sync object. */
-    private final LockSync ls;
-    /** Is the observer terminated? */
-    private boolean done;
+    protected final LockSync ls;
+    protected boolean done;
+    protected final Registration reg;
     /**
-     * Constructor, creates a default lock sync object with non-fair
-     * reentrant lock.
+     * Default observer with empty registration and non-fair reentrant lock.
      */
     public DefaultObserver() {
-        ls = new LockSync();
+        this(Registration.EMPTY);
     }
-    /**
-     * Constructor, creates a lock sync object with the supplied
-     * shared lock.
-     * @param sharedLock the shared lock to use
-     */
-    public DefaultObserver(Lock sharedLock) {
-        ls = new LockSync(sharedLock);
+    public DefaultObserver(Lock lock) {
+        this(Registration.EMPTY, lock);
     }
-    protected void done() {
-        this.done = true;
+    public DefaultObserver(Registration reg) {
+        this.ls = new LockSync();
+        this.reg = Objects.requireNonNull(reg);
     }
-    protected boolean isDone() {
-        return done;
+    public DefaultObserver(Registration reg, Lock lock) {
+        this.ls = new LockSync(lock);
+        this.reg = Objects.requireNonNull(reg);
     }
+
     @Override
     public final void next(T value) {
-        ls.sync(() -> { 
+        boolean c = ls.sync(() -> {
             if (!done) {
                 try {
-                    onNext(value); 
+                    onNext(value);
                 } catch (Throwable t) {
                     done = true;
                     onError(t);
                 }
             }
+            return done;
         });
+        if (c) {
+            reg.close();
+        }
     }
-
     @Override
     public final void error(Throwable t) {
-        ls.sync(() -> { 
+        boolean c = ls.sync(() -> {
             if (!done) {
                 done = true;
-                onError(t); 
+                onError(t);
             }
+            return done;
         });
+        if (c) {
+            reg.close();
+        }
     }
     @Override
     public final void finish() {
-        ls.sync(() -> { 
+        boolean c = ls.sync(() -> {
             if (!done) {
                 done = true;
-                onFinish(); 
+                onFinish();
             }
+            return done;
         });
+        if (c) {
+            reg.close();
+        }
     }
-    /**
-     * Receives a value of type T.
-     * @param value the value
-     */
     protected abstract void onNext(T value);
-    /**
-     * Receives an exception.
-     * @param t the exception
-     */
     protected abstract void onError(Throwable t);
-    /**
-     * Receives a completion notification.
-     */
     protected abstract void onFinish();
 }
