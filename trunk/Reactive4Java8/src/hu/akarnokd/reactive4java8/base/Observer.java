@@ -308,7 +308,7 @@ public interface Observer<T> extends BaseObserver {
      * @param finish
      * @return 
      */
-    public static <T> Observer createSafe(
+    public static <T> Observer<T> createSafe(
             BiConsumer<? super T, ? super Registration> next,
             Consumer<? super Throwable> error,
             Runnable finish) {
@@ -323,7 +323,7 @@ public interface Observer<T> extends BaseObserver {
      * @param finish
      * @return 
      */
-    public static <T> Observer createSafe(
+    public static <T> Observer<T> createSafe(
             Consumer<? super T> next,
             Consumer<? super Throwable> error,
             Runnable finish) {
@@ -337,7 +337,7 @@ public interface Observer<T> extends BaseObserver {
      * @param finish
      * @return 
      */
-    public static <T> Observer createSafe(
+    public static <T> Observer<T> createSafe(
             Consumer<? super T> next,
             Runnable finish) {
         return createSafe(new ReentrantLock(), next, (t) -> { }, finish);
@@ -350,7 +350,7 @@ public interface Observer<T> extends BaseObserver {
      * @param error
      * @return 
      */
-    public static <T> Observer createSafe(
+    public static <T> Observer<T> createSafe(
             Consumer<? super T> next,
             Consumer<? super Throwable> error) {
         return createSafe(new ReentrantLock(), next, error, () -> { });
@@ -363,7 +363,7 @@ public interface Observer<T> extends BaseObserver {
      * @param finish
      * @return 
      */
-    public static <T> Observer createSafe(
+    public static <T> Observer<T> createSafe(
             BiConsumer<? super T, ? super Registration> next,
             Runnable finish) {
         return createSafe(new ReentrantLock(), next, (t) -> { }, finish);
@@ -376,7 +376,7 @@ public interface Observer<T> extends BaseObserver {
      * @param error
      * @return 
      */
-    public static <T> Observer createSafe(
+    public static <T> Observer<T> createSafe(
             BiConsumer<? super T, ? super Registration> next,
             Consumer<? super Throwable> error) {
         return createSafe(new ReentrantLock(), next, error, () -> { });
@@ -389,9 +389,9 @@ public interface Observer<T> extends BaseObserver {
      * @param finish
      * @return 
      */
-    public static <T> Observer createSafe(
+    public static <T> Observer<T> createSafe(
             Runnable finish,
             Consumer<? super Throwable> error) {
-        return createSafe(new ReentrantLock(), (Object v, Object u) -> { } , error, finish);
+        return createSafe(new ReentrantLock(), (Object v) -> { } , error, finish);
     }
 }

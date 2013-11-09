@@ -350,10 +350,20 @@ public interface Observable<T> {
         return (observer) -> {
             CompositeRegistration creg = new CompositeRegistration();
             
-            AtomicInteger finishes = new AtomicInteger(1);
+            AtomicInteger wip = new AtomicInteger(1);
+
+            Runnable complete = () -> {
+                if (wip.decrementAndGet() == 0 && !creg.isClosed()) {
+                    try {
+                        observer.finish();
+                    } finally {
+                        creg.close();
+                    }
+                }
+            };
             
-            Observer so = Observer.createSafe(
-                (T v) -> {
+            Observer<T> so = Observer.createSafe(
+                (v) -> {
                     observer.next(v);
                 },
                 (e) -> {
@@ -363,27 +373,86 @@ public interface Observable<T> {
                         creg.close();
                     }
                 },
-                () -> {
-                    if (finishes.decrementAndGet() == 0) {
-                        observer.finish();
-                    }
-                }
+                complete
             );
             
             sources.forEach(o -> {
                 if (!creg.isClosed()) {
-                    finishes.incrementAndGet();
+                    wip.incrementAndGet();
                     creg.add(o.register(so));
                 }
             });
-            
-            if (finishes.decrementAndGet() == 0) {
-                if (!creg.isClosed()) {
-                    observer.finish();
-                }
-            }
+
+            complete.run();
             
             return creg;
+        };
+    }
+    /**
+     * Merges a dynamic sequence of observables.
+     * <p>Error condition coming through any source observable is
+     * forwarded immediately and the registrations are terminated.</p>
+     * 
+     * @param <T>
+     * @param sources
+     * @return 
+     */
+    public static <T> Observable<T> merge(Observable<? extends Observable<? extends T>> sources) {
+        return (observer) -> {
+            CompositeRegistration reg = new CompositeRegistration();
+
+            AtomicInteger wip = new AtomicInteger(1);
+
+            Runnable complete = () -> {
+                if (wip.decrementAndGet() == 0 && !reg.isClosed()) {
+                    try {
+                        observer.finish();
+                    } finally {
+                        reg.close();
+                    }
+                }
+            };
+
+            Observer<Observable<? extends T>> sourceObserver = Observer.createSafe(
+                (o) -> {
+                    wip.incrementAndGet();
+
+                    SingleRegistration itemReg = new SingleRegistration();
+                    
+                    reg.add(itemReg);
+                    
+                    Observer<T> itemObserver = Observer.createSafe(
+                        (v) -> {
+                            observer.next(v);
+                        },
+                        (e) -> {
+                            try {
+                                observer.error(e);
+                            } finally {
+                                reg.close();
+                            }
+                        },
+                        () -> {
+                            reg.remove(itemReg);
+                            complete.run();
+                        }
+                    );
+
+                    itemReg.set(o.register(itemObserver));
+                },
+                (e) -> {
+                    try {
+                        observer.error(e);
+                    } finally {
+                        reg.close();
+                    }
+                },
+                complete
+            );
+            
+            reg.add(sources.register(sourceObserver));
+            
+            return reg;
         };
     }
 }
