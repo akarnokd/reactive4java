@@ -25,14 +25,26 @@ import java.util.Objects;
  * @author akarnokd, 2013.11.09.
  */
 public class SingleRegistration extends BaseRegistration {
+    /** The managed registration. */
     private Registration reg;
+    /**
+     * Default constructor, empty managed registration.
+     */
     public SingleRegistration() {
         super();
     }
+    /**
+     * Constructor with an initial registration to maintain.
+     * @param reg 
+     */
     public SingleRegistration(Registration reg) {
         super();
-        reg = Objects.requireNonNull(reg);
+        this.reg = Objects.requireNonNull(reg);
     }
+    /**
+     * Set a new registration and close the original one.
+     * @param newReg the new registration
+     */
     public void set(Registration newReg) {
         Registration toClose = ls.sync(() -> {
             if (!done) {

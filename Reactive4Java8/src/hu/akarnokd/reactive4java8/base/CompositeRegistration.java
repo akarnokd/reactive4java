@@ -17,6 +17,7 @@
 package hu.akarnokd.reactive4java8.base;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
@@ -33,7 +34,7 @@ public class CompositeRegistration extends BaseRegistration {
     private List<Registration> list;
     public CompositeRegistration() {
         super();
-        this.list = new ArrayList<>();
+        this.list = new LinkedList<>();
     }
     public CompositeRegistration(Registration... regs) {
         super();

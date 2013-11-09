@@ -27,8 +27,9 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author akarnokd, 2013.11.09
  */
 public final class SafeObserver<T> implements Observer<T> {
+    /** The lock synchronizer. */
+    private final LockSync ls;
     private final Observer<T> wrapped;
-    private final Lock lock;
     private boolean done;
 
     /**
@@ -37,26 +38,19 @@ public final class SafeObserver<T> implements Observer<T> {
      */
     public SafeObserver(Observer<T> observer) {
         this.wrapped = Objects.requireNonNull(observer);
-        lock = new ReentrantLock();
+        ls = new LockSync();
     }
 
-    protected void sync(Runnable run) {
-        lock.lock();
-        try {
-            run.run();
-        } finally {
-            lock.unlock();
-        }
-    }
 
     @Override
     public void next(T value) {
-        sync(() -> {
+        ls.sync(() -> {
             if (!done) {
                 try {
                     wrapped.next(value);
                 } catch (Throwable t) {
-                    error(t);
+                    done = true;
+                    wrapped.error(t);
                 }
             }
         });
@@ -64,7 +58,7 @@ public final class SafeObserver<T> implements Observer<T> {
 
     @Override
     public void error(Throwable t) {
-        sync(() -> {
+        ls.sync(() -> {
             if (!done) {
                 done = true;
                 wrapped.error(t);
@@ -74,7 +68,7 @@ public final class SafeObserver<T> implements Observer<T> {
 
     @Override
     public void finish() {
-        sync(() -> {
+        ls.sync(() -> {
             if (!done) {
                 done = true;
                 wrapped.finish();
