@@ -5,6 +5,7 @@
   * [ReleaseNotes Release notes]
   * [UserGuide User Guide]
   * [DeveloperGuide Developer Guide]
+  * [Reactive4Java8 Experimental Java 8 variant]
   * [HelperMethods Helper methods and classes]
     * [HelperMethods#Functions Functions]
     * [HelperMethods#Actions Actions]
