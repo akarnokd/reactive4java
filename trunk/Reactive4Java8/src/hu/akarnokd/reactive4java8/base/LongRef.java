@@ -1,3 +1,5 @@
+package hu.akarnokd.reactive4java8.base;
+
 /*
  * Copyright 2013 akarnokd.
  *
@@ -14,17 +16,15 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java8.base;
-
 /**
- * A simple object holding a boolean value.
+ * A simple reference with a long field.
  * @author akarnokd, 2013.11.09.
  */
-public final class BoolRef {
+public class LongRef {
     /** The value. */
-    public boolean value;
-    public static BoolRef of(boolean initial) {
-        BoolRef r = new BoolRef();
+    public long value;
+    public static LongRef of(long initial) {
+        LongRef r = new LongRef();
         r.value = initial;
         return r;
     }

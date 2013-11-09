@@ -16,6 +16,9 @@
 
 package hu.akarnokd.reactive4java8.base;
 
+import java.util.Objects;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -145,5 +148,78 @@ public interface Observer<T> extends BaseObserver {
      */
     default <U> Observer<U> compose(Function<? super U, ? extends T> function) {
         return wrap(this, (v) -> next(function.apply(v)));
+    }
+    /**
+     * Converts this observer into a safe observer which
+     * ensures the * {@code next* (error|finish)?}
+     * evnet pattern on this observer.
+     * @return the safe observer
+     */
+    default Observer<T> toSafeObserver() {
+        if (this instanceof SafeObserver) {
+            return this;
+        }
+        return new SafeObserver(this);
+    }
+    /**
+     * Observer wrapper that ensures the
+     * {@code next* (error|finish)?} event pattern on its wrapped observer.
+     * @param <T> the value type
+     */
+    public static final class SafeObserver<T> implements Observer<T> {
+        private final Observer<T> wrapped;
+        private final Lock lock;
+        private boolean done;
+        /**
+         * Constructor, wraps the observer.
+         * @param observer the observer to wrap
+         */
+        public SafeObserver(Observer<T> observer) {
+            this.wrapped = Objects.requireNonNull(observer);
+            lock = new ReentrantLock();
+        }
+
+        @Override
+        public void next(T value) {
+            lock.lock();
+            try {
+                if (!done) {
+                    try {
+                        wrapped.next(value);
+                    } catch (Throwable t) {
+                        error(t);
+                    }
+                }
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public void error(Throwable t) {
+            lock.lock();
+            try {
+                if (!done) {
+                    wrapped.error(t);
+                }
+            } finally {
+                done = true;
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public void finish() {
+            lock.lock();
+            try {
+                if (!done) {
+                    wrapped.finish();
+                }
+            } finally {
+                done = true;
+                lock.unlock();
+            }
+        }
+        
     }
 }

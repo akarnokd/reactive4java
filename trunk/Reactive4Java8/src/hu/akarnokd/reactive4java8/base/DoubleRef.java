@@ -17,14 +17,14 @@
 package hu.akarnokd.reactive4java8.base;
 
 /**
- * A simple object holding a boolean value.
+ * A simple reference of a double value.
  * @author akarnokd, 2013.11.09.
  */
-public final class BoolRef {
+public class DoubleRef {
     /** The value. */
-    public boolean value;
-    public static BoolRef of(boolean initial) {
-        BoolRef r = new BoolRef();
+    public double value;
+    public static DoubleRef of(double initial) {
+        DoubleRef r = new DoubleRef();
         r.value = initial;
         return r;
     }
