@@ -21,4 +21,4 @@ The following Java 8 features are extensively used by the framework:
 {{{
     Observable<Integer> o = Observable.from(1, 2, 3, 4, 5).select(v -> v * v).where(v -> v % 2 == 0);
 }}}
-  * *AutoCloseable*. The {{{register()}}} method on the {{{Observable}}} interface and various other methods now return a {{{Registration}}} object which basically extends the {{{AutoCloseable}}} interface and hides its {{{throws Exception}}} on the {{{close()}}} method.
+  * *!AutoCloseable*. The {{{register()}}} method on the {{{Observable}}} interface and various other methods now return a {{{Registration}}} object which basically extends the {{{AutoCloseable}}} interface and hides its {{{throws Exception}}} on the {{{close()}}} method.
