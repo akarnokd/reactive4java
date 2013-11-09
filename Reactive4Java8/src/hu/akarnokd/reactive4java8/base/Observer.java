@@ -191,49 +191,40 @@ public interface Observer<T> extends BaseObserver {
         Objects.requireNonNull(finish);
         
         return new Observer<T>() {
-            private final Lock lock = sharedLock;
             private boolean done;
-            protected void sync(Runnable run) {
-                lock.lock();
-                try {
-                    try {
-                        if (!done) {
-                            run.run();
-                        }
-                    } catch (Throwable t) {
-                        done();
-                        error.accept(t);
-                    }
-                } finally {
-                    lock.unlock();
-                }
-            }
             protected void done() {
-                this.done = true;
+                this.done = done;
             }
             @Override
             public void next(T value) {
-                sync(() -> {
-                   next.accept(value, (Registration)this::done); 
-                });
+                if (!done) {
+                    try {
+                        next.accept(value, (Registration)this::done);
+                    } catch (Throwable t) {
+                        if (!done) {
+                            done = true;
+                            error.accept(t);
+                        }
+                    }
+                }
             }
 
             @Override
             public void finish() {
-                sync(() -> {
-                    done();
+                if (!done) {
+                    done = true;
                     finish.run();
-                });
+                }
             }
 
             @Override
             public void error(Throwable t) {
-                sync(() -> {
-                    done();
+                if (!done) {
+                    done = true;
                     error.accept(t);
-                });
+                }
             }
-        };
+        }.toThreadSafe(sharedLock);
     }
     /**
      * Constructs a safe observer from the given lambda
@@ -255,49 +246,35 @@ public interface Observer<T> extends BaseObserver {
         Objects.requireNonNull(finish);
         
         return new Observer<T>() {
-            private final Lock lock = sharedLock;
             private boolean done;
-            protected void sync(Runnable run) {
-                lock.lock();
-                try {
-                    try {
-                        if (!done) {
-                            run.run();
-                        }
-                    } catch (Throwable t) {
-                        done();
-                        error.accept(t);
-                    }
-                } finally {
-                    lock.unlock();
-                }
-            }
-            protected void done() {
-                this.done = true;
-            }
             @Override
             public void next(T value) {
-                sync(() -> {
-                   next.accept(value); 
-                });
+                if (!done) {
+                    try {
+                        next.accept(value);
+                    } catch (Throwable t) {
+                        done = true;
+                        error.accept(t);
+                    }
+                }
             }
 
             @Override
             public void finish() {
-                sync(() -> {
-                    done();
+                if (!done) {
+                    done = true;
                     finish.run();
-                });
+                }
             }
 
             @Override
             public void error(Throwable t) {
-                sync(() -> {
-                    done();
+                if (!done) {
+                    done = true;
                     error.accept(t);
-                });
+                }
             }
-        };
+        }.toThreadSafe(sharedLock);
     }
     /**
      * Creates a safe observer with the given lambda
@@ -393,5 +370,34 @@ public interface Observer<T> extends BaseObserver {
             Runnable finish,
             Consumer<? super Throwable> error) {
         return createSafe(new ReentrantLock(), (Object v) -> { } , error, finish);
+    }
+    /**
+     * Returns an observer which feauteres exclusive locks between
+     * its next(), error() and finish() method calls, but does
+     * not enforce the event order semantics.
+     * @return 
+     */
+    default Observer<T> toThreadSafe() {
+        LockSync ls = new LockSync();
+        return create(
+            (t) -> ls.sync(() -> next(t)),
+            (e) -> ls.sync(() -> error(e)),
+            () -> ls.sync(() -> finish())
+        );
+    }
+   /**
+     * Returns an observer which feauteres exclusive locks between
+     * its next(), error() and finish() method calls, but does
+     * not enforce the event order semantics.
+     * @param sharedLock the shared lock
+     * @return 
+     */
+    default Observer<T> toThreadSafe(Lock sharedLock) {
+        LockSync ls = new LockSync(sharedLock);
+        return create(
+            (t) -> ls.sync(() -> next(t)),
+            (e) -> ls.sync(() -> error(e)),
+            () -> ls.sync(() -> finish())
+        );
     }
 }

@@ -17,11 +17,8 @@
 package hu.akarnokd.reactive4java8.base;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A composite registration which maintains a list of
@@ -53,7 +50,7 @@ public class CompositeRegistration extends BaseRegistration {
     }
     public void add(Registration reg) {
         Objects.requireNonNull(reg);
-        if (sync(() -> {
+        if (ls.sync(() -> {
             boolean r = done;
             if (!r) {
                 list.add(reg);
@@ -69,18 +66,18 @@ public class CompositeRegistration extends BaseRegistration {
      * @param reg the registration to remove
      */
     public void remove(Registration reg) {
-        sync(() -> { if (!done) { list.remove(reg); } });
+        ls.sync(() -> { if (!done) { list.remove(reg); } });
     }
     /**
      * Clears the contents of this composite registration.
      * Does not close cleared registrations.
      */
     public void clear() {
-        sync(() -> { if (!done) { list = new ArrayList<>(); } });
+        ls.sync(() -> { if (!done) { list = new ArrayList<>(); } });
     }
     @Override
     public void close() {
-        List<Registration> toClose = sync(() -> {
+        List<Registration> toClose = ls.sync(() -> {
             if (!done) {
                 done = true;
                 List<Registration> r = new ArrayList<>(list);
@@ -105,6 +102,6 @@ public class CompositeRegistration extends BaseRegistration {
      * @return the number
      */
     public int size() {
-        return sync(() -> list != null ? list.size() : 0);
+        return ls.sync(() -> list != null ? list.size() : 0);
     }
 }

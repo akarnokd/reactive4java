@@ -34,7 +34,7 @@ public class SingleRegistration extends BaseRegistration {
         reg = Objects.requireNonNull(reg);
     }
     public void set(Registration newReg) {
-        Registration toClose = sync(() -> {
+        Registration toClose = ls.sync(() -> {
             if (!done) {
                 Registration r = reg;
                 reg = newReg;
@@ -46,10 +46,17 @@ public class SingleRegistration extends BaseRegistration {
             toClose.close();
         }
     }
-
+    /**
+     * Removes the current maintained registration without closing it.
+     */
+    public void clear() {
+        ls.sync(() -> {
+            reg = null;
+        });
+    }
     @Override
     public void close() {
-        Registration toClose = sync(() -> {
+        Registration toClose = ls.sync(() -> {
             if (!done) {
                 done = true;
                 Registration r = reg;
