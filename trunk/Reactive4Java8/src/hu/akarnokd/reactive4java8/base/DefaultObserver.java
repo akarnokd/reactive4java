@@ -16,14 +16,14 @@
 
 package hu.akarnokd.reactive4java8.base;
 
-import java.util.Objects;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A default base implementation of the observer interface which
  * ensures the proper event semantics and lets the observer
  * "close" itself.
+ * <p>You may composte an observable from lambda expressions with
+ * the static methods of {@link Observer} such as create or createSafe.</p>
  * <p>The default observer is an abstract class where the behavior
  * needs to be added through overriding the onNext, onError and
  * onFinish methods. These methods are
@@ -33,28 +33,24 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author akarnokd, 2013.11.09.
  */
 public abstract class DefaultObserver<T> implements Observer<T> {
-    private final Lock lock;
+    /** The lock sync object. */
+    private final LockSync ls;
+    /** Is the observer terminated? */
     private boolean done;
+    /**
+     * Constructor, creates a default lock sync object with non-fair
+     * reentrant lock.
+     */
     public DefaultObserver() {
-        lock = new ReentrantLock();
+        ls = new LockSync();
     }
+    /**
+     * Constructor, creates a lock sync object with the supplied
+     * shared lock.
+     * @param sharedLock the shared lock to use
+     */
     public DefaultObserver(Lock sharedLock) {
-        lock = Objects.requireNonNull(sharedLock);
-    }
-    protected final void sync(Runnable run) {
-        lock.lock();
-        try {
-            try {
-                if (!done) {
-                    run.run();
-                }
-            } catch (Throwable t) {
-                done();
-                onError(t);
-            }
-        } finally {
-            lock.unlock();
-        }
+        ls = new LockSync(sharedLock);
     }
     protected void done() {
         this.done = true;
@@ -64,24 +60,48 @@ public abstract class DefaultObserver<T> implements Observer<T> {
     }
     @Override
     public final void next(T value) {
-        sync(() -> { onNext(value); });
+        ls.sync(() -> { 
+            if (!done) {
+                try {
+                    onNext(value); 
+                } catch (Throwable t) {
+                    done = true;
+                    onError(t);
+                }
+            }
+        });
     }
 
     @Override
     public final void error(Throwable t) {
-        sync(() -> { 
-            done();
-            onError(t); 
+        ls.sync(() -> { 
+            if (!done) {
+                done = true;
+                onError(t); 
+            }
         });
     }
     @Override
     public final void finish() {
-        sync(() -> { 
-            done();
-            onFinish(); 
+        ls.sync(() -> { 
+            if (!done) {
+                done = true;
+                onFinish(); 
+            }
         });
     }
+    /**
+     * Receives a value of type T.
+     * @param value the value
+     */
     protected abstract void onNext(T value);
+    /**
+     * Receives an exception.
+     * @param t the exception
+     */
     protected abstract void onError(Throwable t);
+    /**
+     * Receives a completion notification.
+     */
     protected abstract void onFinish();
 }

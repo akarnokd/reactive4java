@@ -375,7 +375,7 @@ public interface Observer<T> extends BaseObserver {
      * Returns an observer which feauteres exclusive locks between
      * its next(), error() and finish() method calls, but does
      * not enforce the event order semantics.
-     * @return 
+     * @return a thread safe observer
      */
     default Observer<T> toThreadSafe() {
         LockSync ls = new LockSync();
