@@ -23,6 +23,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Default implementation of the observable interface which keeps
@@ -57,12 +59,27 @@ public class DefaultObservable<T> implements Subject<T, T> {
         this(false);
     }
     /**
+     * Constructor, works in non-strict mode.
+     * @param sharedLock A shared lock.
+     */
+    public DefaultObservable(Lock sharedLock) {
+        this(false, sharedLock);
+    }
+    /**
      * Constructor, works with the given strictness mode.
      * @param strict the strictness indicator
      */
     public DefaultObservable(boolean strict) {
+        this(strict, new ReentrantLock());
+    }
+    /**
+     * Constructor with strict mode and shared lock object.
+     * @param strict
+     * @param sharedLock 
+     */
+    public DefaultObservable(boolean strict, Lock sharedLock) {
         this.strict = strict;
-        ls = new LockSync();
+        ls = new LockSync(sharedLock);
     }
     @Override
     public Registration register(Observer<? super T> observer) {

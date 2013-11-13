@@ -101,6 +101,9 @@ public interface Observer<T> extends BaseObserver {
             Consumer<? super T> next,
             Consumer<? super Throwable> error,
             Runnable finish) {
+        Objects.requireNonNull(next);
+        Objects.requireNonNull(error);
+        Objects.requireNonNull(finish);
         return new Observer<T>() {
             @Override
             public void next(T value) {
@@ -130,6 +133,8 @@ public interface Observer<T> extends BaseObserver {
             Runnable finish,
             Consumer<? super Throwable> error
             ) {
+        Objects.requireNonNull(error);
+        Objects.requireNonNull(finish);
         return new Observer<T>() {
             @Override
             public void next(T value) { }
@@ -143,6 +148,19 @@ public interface Observer<T> extends BaseObserver {
             public void finish() {
                 finish.run();
             }
+        };
+    }
+    public static <T> Observer<T> create(Runnable finish) {
+        Objects.requireNonNull(finish);
+        return new Observer<T>() {
+            @Override
+            public void next(T value) { }
+
+            @Override
+            public void finish() {
+                finish.run();
+            }
+            
         };
     }
     /**
@@ -160,14 +178,14 @@ public interface Observer<T> extends BaseObserver {
     /**
      * Converts this observer into a safe observer which
      * ensures the * {@code next* (error|finish)?}
-     * evnet pattern on this observer.
+     * event pattern on this observer.
      * @return the safe observer
      */
     default Observer<T> toSafeObserver() {
         if (this instanceof SafeObserver) {
             return this;
         }
-        return new SafeObserver(this);
+        return new SafeObserver<>(this);
     }
     /**
      * Constructs a safe observer from the given lambda

@@ -76,36 +76,6 @@ public class DefaultScheduler implements Scheduler, Registration {
     }
 
     @Override
-    public <TState> Registration schedule(TState state, BiFunction<Scheduler, TState, Registration> activity) {
-        SingleRegistration sreg = new SingleRegistration();
-        Future<?> f = pool.schedule(() -> {
-            sreg.set(activity.apply(this, state));
-        }, 0, TimeUnit.SECONDS);
-        sreg.set(() -> { f.cancel(true); });
-        return sreg;
-    }
-
-    @Override
-    public <TState> Registration schedule(TState state, long time, TimeUnit unit, BiFunction<Scheduler, TState, Registration> activity) {
-        SingleRegistration sreg = new SingleRegistration();
-        Future<?> f = pool.schedule(() -> {
-            sreg.set(activity.apply(this, state));
-        }, time, unit);
-        sreg.set(() -> { f.cancel(true); });
-        return sreg;
-    }
-
-    @Override
-    public <TState> Registration schedule(TState state, long initialDelay, long period, TimeUnit unit, BiFunction<Scheduler, TState, Registration> activity) {
-        SingleRegistration sreg = new SingleRegistration();
-        Future<?> f = pool.scheduleAtFixedRate(() -> {
-            sreg.set(activity.apply(this, state));
-        }, initialDelay, period, unit);
-        sreg.set(() -> { f.cancel(true); });
-        return sreg;
-    }
-
-    @Override
     public void close() {
         pool.shutdown();
     }
