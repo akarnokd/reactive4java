@@ -35,4 +35,4 @@ The following Java 8 features are extensively used by the framework:
 
 The current build is linked on the project's main page (no maven or such yet).
 
-The current library is build with !NetBeans *7.4* and Java 8 *b114*. Lambda support is relatively working in NetBeans and the javac seems to be working correctly. I'm not certain about the binary stability of the produced jar files though, i.e., b115 might not work with class files compiled by b114.
+The current library is build with !NetBeans *7.4* and Java 8 *b115*. Lambda support is relatively working in NetBeans and the javac seems to be working correctly. I'm not certain about the binary stability of the produced jar files though, i.e., b116 might not work with class files compiled by b115.
