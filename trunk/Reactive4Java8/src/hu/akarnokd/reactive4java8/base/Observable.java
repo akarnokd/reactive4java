@@ -35,9 +35,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -395,21 +397,20 @@ public interface Observable<T> {
         };
     }
     /**
-     * Wraps the current observer which captures
-     * any exception during the register() method
-     * call and immediately forwards it
-     * to the observer's error() method.
-     * @return the observer with safe registration
+     * Registers the given observer safely with this observable by
+     * sending any exception of the register method to the
+     * observer's error() method.
+     * @param observer
+     * @return 
      */
-    default Observable<T> registerSafe() {
-        return (observer) -> {
-            try {
-                return register(observer);
-            } catch (Throwable t) {
-                observer.error(t);
-                return Registration.EMPTY;
-            }
-        };
+    default Registration registerSafe(Observer<? super T> observer) {
+        Objects.requireNonNull(observer);
+        try {
+            return register(observer);
+        } catch (Throwable t) {
+            observer.error(t);
+            return Registration.EMPTY;
+        }
     }
     /**
      * Merges the incoming sequences of the sources into a single observable.
@@ -1136,7 +1137,7 @@ public interface Observable<T> {
                 @Override
                 protected void onNext(U value) {
                     Unique<U> token = Unique.of(value);
-                    Subject<T, T> s = new DefaultObservable<>(true);
+                    Subject<T, T> s = new DefaultObservable<>();
                     openWindows.put(token, s);
                     
                     Observable<V> closing = windowClosingSelector.apply(value);
@@ -1403,6 +1404,9 @@ public interface Observable<T> {
      */
     public static Observable<Long> tick(long start, long count, 
             long period, TimeUnit unit, Scheduler scheduler) {
+        if (count == 0) {
+            return empty();
+        }
         return (observer) -> {
             SingleRegistration sreg = new SingleRegistration();
             LongRef counter = LongRef.of(start);
@@ -1538,7 +1542,11 @@ public interface Observable<T> {
                 @Override
                 protected void onFinish() {
                     if (has) {
-                        observer.next(result);
+                        try {
+                            observer.next(result);
+                        } catch (Throwable t) {
+                            error(t);
+                        }
                     }
                     observer.finish();
                 }
@@ -1556,6 +1564,17 @@ public interface Observable<T> {
      * @return 
      */
     default Optional<T> first() {
+        BoolRef has = new BoolRef();
+        Ref<T> ref = new Ref<>();
+        forEachWhile(v -> {
+            has.value = true;
+            ref.value = v;
+            return false;
+        });
+        if (has.value) {
+            return Optional.of(ref.value);
+        }
+        return Optional.empty();
     }
     /**
      * Returns the last value of this observable sequence or
@@ -1563,6 +1582,734 @@ public interface Observable<T> {
      * @return 
      */
     default Optional<T> last() {
-        
+                BoolRef has = new BoolRef();
+        Ref<T> ref = new Ref<>();
+        forEach(v -> {
+            has.value = true;
+            ref.value = v;
+        });
+        if (has.value) {
+            return Optional.of(ref.value);
+        }
+        return Optional.empty();
+    }
+    /**
+     * Aggregates the values of this observable by using
+     * an aggregator function for intermediate values and
+     * a divider function for the final operation.
+     * <p>Note that in case the source is empty, the
+     * divider function receives the seed and zero index.</p>
+     * @param <U>
+     * @param <V>
+     * @param seed
+     * @param aggregator
+     * @param divider
+     * @return 
+     */
+    default <U, V> Observable<V> aggregate(
+            U seed, 
+            BiFunction<? super U, ? super T, ? extends U> aggregator,
+            IndexedFunction<? super U, ? extends V> divider) {
+        return (observer) -> {
+            DefaultObserver<T> tobs = new DefaultObserver<T>() {
+                U accumulator = seed;
+                int count;
+                @Override
+                protected void onNext(T value) {
+                    count++;
+                    accumulator = aggregator.apply(accumulator, value);
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    try {
+                        observer.next(divider.apply(count, accumulator));
+                    } catch (Throwable t) {
+                        error(t);
+                        return;
+                    }
+                    observer.finish();
+                }
+            };
+            
+            return register(tobs);
+        };
+    }
+    /**
+     * Scans this observable and applies an aggregator function
+     * with each element, and the intermediate values are 
+     * emitted.
+     * <p>Empty source yields empty observable.</p>
+     * @param <U>
+     * @param seed
+     * @param aggregator
+     * @return 
+     */
+    default <U> Observable<U> scan(U seed, 
+            BiFunction<? super U, ? super T, ? extends U> aggregator) {
+        return (observer) -> {
+            DefaultObserver<T> tobs = new DefaultObserver<T>() {
+                U accumulator = seed;
+                @Override
+                protected void onNext(T value) {
+                    accumulator = aggregator.apply(accumulator, value);
+                    observer.next(accumulator);
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    observer.finish();
+                }
+            };
+            return register(tobs);
+        };
+    }
+    /**
+     * Aggregates the the sequence of this observable with the given
+     * aggregator function and returns the last aggregated value.
+     * @param <U>
+     * @param seed
+     * @param aggregator
+     * @return 
+     */
+    default <U> Observable<U> aggregate(U seed,
+            BiFunction<? super U, ? super T, ? extends U> aggregator) {
+        return aggregate(seed, aggregator, (i, v) -> v);
+    }
+    /**
+     * Aggregate this observable sequence with the given aggregator function.
+     * <p>If this observable is empty, the resulting observable is also
+     * empty. If this observable contains only one element, that
+     * is returned only.</p>
+     * @param aggregator
+     * @return 
+     */
+    default Observable<T> aggregate(
+            BiFunction<? super T, ? super T, ? extends T> aggregator) {
+        return (observer) -> {
+            DefaultObserver<T> tobs = new DefaultObserver<T>() {
+                T accumulator;
+                int count;
+                @Override
+                protected void onNext(T value) {
+                    count++;
+                    if (count == 1) {
+                        accumulator = value;
+                    } else {
+                        accumulator = aggregator.apply(accumulator, value);
+                    }
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    if (count > 0) {
+                        try {
+                            observer.next(accumulator);
+                        } catch (Throwable t) {
+                            error(t);
+                            return;
+                        }
+                    }
+                    observer.finish();
+                }
+            };
+            return register(tobs);
+        };
+    }
+    /**
+     * Aggregates this source sequence and emits the intermediate values.
+     * @param aggregator
+     * @return 
+     */
+    default Observable<T> scan(
+            BiFunction<? super T, ? super T, ? extends T> aggregator) {
+        return (observer) -> {
+            DefaultObserver<T> tobs = new DefaultObserver<T>() {
+                T accumulator;
+                int count;
+                @Override
+                protected void onNext(T value) {
+                    count++;
+                    if (count == 1) {
+                        accumulator = value;
+                    } else {
+                        accumulator = aggregator.apply(accumulator, value);
+                    }
+                    observer.next(accumulator);
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    observer.finish();
+                }
+            };
+            return register(tobs);
+        };
+    }
+    /**
+     * Channels the events of the observable which fires first.
+     * @param <T>
+     * @param sources
+     * @return 
+     */
+    public static <T> Observable<T> ambiguous(
+            Iterable<? extends Observable<? extends T>> sources) {
+        return (observer) -> {
+            
+            CompositeRegistration creg = new CompositeRegistration();
+            SingleRegistration sreg = new SingleRegistration(creg);
+            
+            AtomicReference<Object> winner = new AtomicReference<>();
+            
+            sources.forEach(o -> {
+                SingleRegistration srego = new SingleRegistration();
+                creg.add(srego);
+                srego.set(o.register(new DefaultObserver<T>() {
+                    boolean once;
+                    boolean wewon;
+                    @Override
+                    protected void onNext(T value) {
+                        if (check()) {
+                            observer.next(value);
+                        }
+                    }
+                    @Override
+                    protected void onError(Throwable t) {
+                        if (check()) {
+                            observer.error(t);
+                        }
+                    }
+                    @Override
+                    protected void onFinish() {
+                        if (check()) {
+                            observer.finish();
+                        }
+                    }
+                    /**
+                     * Check and set the winner, then cancel the others.
+                     * @return 
+                     */
+                    boolean check() {
+                        if (!once) {
+                            once = true;
+                            if (winner.get() == null) {
+                                wewon = winner.compareAndSet(null, this);
+                            } else {
+                                wewon = winner.get() == this;
+                            }
+                            if (wewon) {
+                                creg.remove(srego);
+                                sreg.set(srego);
+                            }
+                        }
+                        return wewon;
+                    }
+                }));
+            });
+            
+            return sreg;
+        };
+    }
+    /**
+     * Channels the events of the observable which fires first.
+     * @param <T>
+     * @param sources
+     * @return 
+     */
+    @SafeVarargs
+    public static <T> Observable<T> ambiguous(
+            Observable<? extends T>... sources) {
+        return ambiguous(Arrays.asList(sources));
+    }
+    /**
+     * Returns the number of elements in this observable.
+     * @return 
+     */
+    default Observable<Integer> count() {
+        return (observer) -> {
+            DefaultObserver<T> tobs = new DefaultObserver<T>() {
+                /** The counter. */
+                int count;
+                @Override
+                protected void onNext(T value) {
+                    count++;
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    try {
+                        observer.next(count);
+                    } catch (Throwable t) {
+                        error(t);
+                        return;
+                    }
+                    observer.finish();
+                }
+            };
+            return register(tobs);
+        };
+    }
+    /**
+     * Returns the number of elements in this observable.
+     * @return 
+     */
+    default Observable<Long> countLong() {
+        return (observer) -> {
+            DefaultObserver<T> tobs = new DefaultObserver<T>() {
+                /** The counter. */
+                long count;
+                @Override
+                protected void onNext(T value) {
+                    count++;
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    try {
+                        observer.next(count);
+                    } catch (Throwable t) {
+                        error(t);
+                        return;
+                    }
+                    observer.finish();
+                }
+            };
+            return register(tobs);
+        };
+    }
+    /**
+     * Groups the values in this observable according to the key
+     * selector.
+     * @param <K>
+     * @param keyExtractor
+     * @return 
+     */
+    default <K> Observable<GroupedObservable<T, K>> groupBy(
+            Function<? super T, ? extends K> keyExtractor
+    ) {
+        return (observer) -> {
+            DefaultObserver<T> tobs = new DefaultObserver<T>() {
+                /** The current groups. */
+                Map<K, DefaultGroupedObservable<T, K>> groups = new LinkedHashMap<>();
+                @Override
+                protected void onNext(T value) {
+                    K key = keyExtractor.apply(value);
+                    DefaultGroupedObservable<T, K> g = groups.computeIfAbsent(key, (k) -> {
+                        DefaultGroupedObservable<T, K> g2 = new DefaultGroupedObservable<>(k);
+                        observer.next(g2);
+                        return g2;
+                    });
+                    g.next(value);
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    groups.values().forEach(g -> g.error(t));
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    groups.values().forEach(Observer::finish);
+                    observer.finish();
+                }
+            };
+            
+            return register(tobs);
+        };
+    }
+    /**
+     * Groups the values of this observable according to the given
+     * key selector and each group has its duration given
+     * by another observable.
+     * @param <K>
+     * @param <D>
+     * @param keySelector
+     * @param durationSelector
+     * @return 
+     */
+    default <K, D> Observable<GroupedObservable<T, K>> groupByUnitl(
+            Function<? super T, ? extends K> keySelector,
+            Function<? super GroupedObservable<T, K>, ? extends Observable<D>> durationSelector
+    ) {
+        return (observer) -> {
+            CompositeRegistration creg = new CompositeRegistration();
+            
+            DefaultObserver<T> tobs = new DefaultObserver<T>(creg) {
+                Map<K, DefaultGroupedObservable<T, K>> groups = new LinkedHashMap<>();
+                @Override
+                protected void onNext(T value) {
+                    K key = keySelector.apply(value);
+                    DefaultGroupedObservable<T, K> g = groups.computeIfAbsent(key, (k) -> {
+                        DefaultGroupedObservable<T, K> g2 = new DefaultGroupedObservable<>(k);
+                        observer.next(g2);
+                        
+                        SingleRegistration sreg = new SingleRegistration();
+                        creg.add(sreg);
+                        
+                        Observable<D> endGroup = durationSelector.apply(g2);
+                        
+                        sreg.set(endGroup.register(Observer.create(
+                             () -> {
+                                 ls.sync(() -> {
+                                     creg.remove(sreg);
+                                     groups.remove(key).finish();
+                                 });
+                             },
+                             (e) -> innerError(e)
+                        )));
+                        
+                        return g2;
+                    });
+                    g.next(value);
+                }
+                /**
+                 * Forward an inner error to an outer error.
+                 * @param t 
+                 */
+                protected void innerError(Throwable t) {
+                    error(t);
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    groups.values().forEach(g -> g.error(t));
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    groups.values().forEach(Observer::finish);
+                    observer.finish();
+                }
+            };
+            
+            return register(tobs);
+        };
+    }
+    /**
+     * Correlates two observable sequences and applies a
+     * function to their value when they overlap.
+     * <p>Durations are determined by either a next or finish call.</p>
+     * @param <L> the value type of the left sequence
+     * @param <R> the value type of the right sequence
+     * @param <LD> the duration type of the left sequence
+     * @param <RD> the duration type of the right sequence
+     * @param <V> the result value type
+     * @param left
+     * @param right
+     * @param leftDuration
+     * @param rightDuration
+     * @param resultSelector
+     * @return 
+     */
+    public static <L, R, LD, RD, V> Observable<V> join(
+            Observable<? extends L> left,
+            Observable<? extends R> right,
+            Function<? super L, ? extends Observable<LD>> leftDuration,
+            Function<? super R, ? extends Observable<RD>> rightDuration,
+            BiFunction<? super L, ? super R, ? extends V> resultSelector
+    ) {
+        return (observer) -> {
+            CompositeRegistration creg = new CompositeRegistration();
+            
+            Lock lock = new ReentrantLock();
+            
+            BoolRef leftDone = new BoolRef();
+            IntRef leftIdx = new IntRef();
+            Map<Integer, L> leftValues = new LinkedHashMap<>();
+            SingleRegistration leftReg = new SingleRegistration();
+
+            BoolRef rightDone = new BoolRef();
+            IntRef rightIdx = new IntRef();
+            Map<Integer, R> rightValues = new LinkedHashMap<>();
+            SingleRegistration rightReg = new SingleRegistration();
+
+            creg.add(leftReg);
+            creg.add(rightReg);
+            
+            DefaultObserver<L> lobs = new DefaultObserver<L>(leftReg, lock) {
+                void expire(int id, Registration reg) {
+                    ls.sync(() -> {
+                       if (leftValues.containsKey(id)) {
+                           leftValues.remove(id);
+                           if (leftValues.isEmpty() && leftDone.value) {
+                               observer.finish();
+                               creg.close();
+                           }
+                       } 
+                    });
+                    creg.remove(reg);
+                    reg.close();
+                }
+                @Override
+                protected void onNext(L value) {
+                    int id = leftIdx.value++;
+                    leftValues.put(id, value);
+                    
+                    SingleRegistration sreg = new SingleRegistration();
+
+                    Observable<LD> duration = leftDuration.apply(value);
+                    
+                    sreg.set(duration.register(Observer.create(
+                        (t) -> expire(id, sreg),
+                        (e) -> innerError(e),
+                        () -> expire(id, sreg)
+                    )));
+                    
+                    rightValues.values().forEach(r -> {
+                        V v = resultSelector.apply(value, r);
+                        observer.next(v);
+                    });
+                }
+                void innerError(Throwable e) {
+                    error(e);
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                    creg.close();
+                }
+                @Override
+                protected void onFinish() {
+                    leftDone.value = true;
+                    if (rightDone.value || leftValues.isEmpty()) {
+                        observer.finish();
+                        creg.close();
+                    } else {
+                        close();
+                    }
+                }
+            };
+            DefaultObserver<R> robs = new DefaultObserver<R>(rightReg, lock) {
+                void expire(int id, Registration reg) {
+                    ls.sync(() -> {
+                       if (rightValues.containsKey(id)) {
+                           rightValues.remove(id);
+                           if (rightValues.isEmpty() && rightDone.value) {
+                               observer.finish();
+                               creg.close();
+                           }
+                       } 
+                    });
+                    creg.remove(reg);
+                    reg.close();
+                }
+                @Override
+                protected void onNext(R value) {
+                    int id = rightIdx.value++;
+                    rightValues.put(id, value);
+                    
+                    SingleRegistration sreg = new SingleRegistration();
+
+                    Observable<RD> duration = rightDuration.apply(value);
+                    
+                    sreg.set(duration.register(Observer.create(
+                        (t) -> expire(id, sreg),
+                        (e) -> innerError(e),
+                        () -> expire(id, sreg)
+                    )));
+                    
+                    leftValues.values().forEach(l -> {
+                        V v = resultSelector.apply(l, value);
+                        observer.next(v);
+                    });
+                }
+                void innerError(Throwable e) {
+                    error(e);
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                    creg.close();
+                }
+                @Override
+                protected void onFinish() {
+                    rightDone.value = true;
+                    if (leftDone.value || rightValues.isEmpty()) {
+                        observer.finish();
+                        creg.close();
+                    } else {
+                        close();
+                    }
+                }
+            };
+            
+            creg.add(left.register(lobs));
+            creg.add(right.register(robs));
+            
+            return creg;
+        };
+    }
+    /**
+     * Repeats the given value indefinitely.
+     * @param <T>
+     * @param value
+     * @return 
+     */
+    public static <T> Observable<T> repeat(T value) {
+        return (observer) -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                observer.next(value);
+            }
+//            observer.error(new InterruptedException());
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Repeats the given value count times.
+     * @param <T>
+     * @param value
+     * @param count
+     * @return 
+     */
+    public static <T> Observable<T> repeat(T value, int count) {
+        return (observer) -> {
+            for (int i = 0; i < count; i++) {
+                observer.next(value);
+            } 
+            observer.finish();
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Repeatedly registers with this observable if finishes normally.
+     * @param condition
+     * @return 
+     */
+    default Observable<T> doWhile(BooleanSupplier condition) {
+        return (observer) -> {
+            SingleRegistration sreg = new SingleRegistration();
+
+            Observer<T> tobs = new Observer<T>() {
+                @Override
+                public void next(T value) {
+                    observer.next(value);
+                }
+                @Override
+                public void error(Throwable t) {
+                    observer.error(t);
+                    sreg.close();
+                }
+                @Override
+                public void finish() {
+                    if (condition.getAsBoolean()) {
+                        sreg.set(register(this));
+                    } else {
+                        observer.finish();
+                        sreg.close();
+                    }
+                }
+            };
+            
+            sreg.set(register(tobs));
+            
+            return sreg;
+        };
+    }
+    /**
+     * Returns an observable sequence which registers
+     * with all of the source observables even if an error
+     * event occurs
+     * @param sources
+     * @return 
+     */
+    public static <T> Observable<T> resumeAlways(Iterable<? extends Observable<? extends T>> sources) {
+        return (observer) -> {
+            Iterator<? extends Observable<? extends T>> it = sources.iterator();
+            
+            if (it.hasNext()) {
+                SingleRegistration sreg = new SingleRegistration();
+                Observer<T> tobs = new Observer<T>() {
+                    @Override
+                    public void next(T value) {
+                        observer.next(value);
+                    }
+                    @Override
+                    public void error(Throwable t) {
+                        next();
+                    }
+                    @Override
+                    public void finish() {
+                        next();
+                    }
+                    /** Register with the next observable. */
+                    void next() {
+                        if (it.hasNext()) {
+                            sreg.set(it.next().register(this));
+                        } else {
+                            observer.finish();
+                            sreg.close();
+                        }
+                    }
+                };
+                
+                sreg.set(it.next().register(tobs));
+                
+                return sreg;
+            }
+            observer.finish();
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Returns an observable sequence which registers
+     * with all of the source observables even if an error
+     * event occurs
+     * @param sources
+     * @return 
+     */
+    public static <T> Observable<T> resumeOnError(Iterable<? extends Observable<? extends T>> sources) {
+        return (observer) -> {
+            Iterator<? extends Observable<? extends T>> it = sources.iterator();
+            
+            if (it.hasNext()) {
+                SingleRegistration sreg = new SingleRegistration();
+                Observer<T> tobs = new Observer<T>() {
+                    @Override
+                    public void next(T value) {
+                        observer.next(value);
+                    }
+                    @Override
+                    public void error(Throwable t) {
+                        next();
+                    }
+                    @Override
+                    public void finish() {
+                        observer.finish();
+                        sreg.close();
+                    }
+                    /** Register with the next observable. */
+                    void next() {
+                        if (it.hasNext()) {
+                            sreg.set(it.next().register(this));
+                        } else {
+                            observer.finish();
+                            sreg.close();
+                        }
+                    }
+                };
+                
+                sreg.set(it.next().register(tobs));
+                
+                return sreg;
+            }
+            observer.finish();
+            return Registration.EMPTY;
+        };
     }
 }
