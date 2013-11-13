@@ -41,11 +41,6 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author akarnokd, 2013.11.09.
  */
 public class DefaultObservable<T> implements Subject<T, T> {
-    /** 
-     * Indicates that the observer behavior should be strictly
-     * adhering to the default event semantics.
-     */
-    protected final boolean strict;
     /** Indicate the completedness of the observer part. */
     protected boolean done;
     /** The lock based synchronizer. */
@@ -56,29 +51,13 @@ public class DefaultObservable<T> implements Subject<T, T> {
      * Constructor, works in non-strict mode.
      */
     public DefaultObservable() {
-        this(false);
+        this(new ReentrantLock());
     }
     /**
      * Constructor, works in non-strict mode.
      * @param sharedLock A shared lock.
      */
     public DefaultObservable(Lock sharedLock) {
-        this(false, sharedLock);
-    }
-    /**
-     * Constructor, works with the given strictness mode.
-     * @param strict the strictness indicator
-     */
-    public DefaultObservable(boolean strict) {
-        this(strict, new ReentrantLock());
-    }
-    /**
-     * Constructor with strict mode and shared lock object.
-     * @param strict
-     * @param sharedLock 
-     */
-    public DefaultObservable(boolean strict, Lock sharedLock) {
-        this.strict = strict;
         ls = new LockSync(sharedLock);
     }
     @Override
@@ -115,7 +94,7 @@ public class DefaultObservable<T> implements Subject<T, T> {
      */
     public List<Pair<Registration, Observer<? super T>>> observers() {
         return ls.sync(() -> {
-           if (done && strict) {
+           if (done) {
                return Collections.emptyList();
            }
            List<Pair<Registration, Observer<? super T>>> list = new ArrayList<>();
@@ -130,9 +109,7 @@ public class DefaultObservable<T> implements Subject<T, T> {
             try {
                 e.second.next(value);
             } catch (Throwable t) {
-                if (strict) {
-                    toRemove.add(e.first);
-                }
+                toRemove.add(e.first);
                 e.second.error(t);
             }
         });
@@ -145,18 +122,14 @@ public class DefaultObservable<T> implements Subject<T, T> {
         observers().forEach((e) -> {
             e.second.error(t);
         });
-        if (strict) {
-            clear();
-        }
+        clear();
     }
     @Override
     public void finish() {
         observers().forEach((e) -> {
             e.second.finish();
         });
-        if (strict) {
-            clear();
-        }
+        clear();
     }
     /** Removes all registered observers. */
     public void clear() {

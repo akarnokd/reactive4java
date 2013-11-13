@@ -67,6 +67,29 @@ public interface Observer<T> extends BaseObserver {
         };
     }
     /**
+     * Composes this observer with another by calling
+     * the other's methods before this.
+     * @param before
+     * @return 
+     */
+    default Observer<T> composeWith(Observer<? super T> before) {
+        Objects.requireNonNull(before);
+        return create(
+            (t) -> {
+                before.next(t);
+                next(t);
+            },
+            (e) -> {
+                before.error(e);
+                error(e);
+            },
+            () -> {
+                before.finish();
+                finish();
+            }
+        );
+    }
+    /**
      * Creates an observer by specifying its next and
      * error methods as the given consumer lambda functions.
      * @param <T>
