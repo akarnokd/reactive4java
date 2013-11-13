@@ -32,10 +32,16 @@ import java.util.function.Supplier;
  * @author akarnokd, 2013.11.09.
  */
 public final class LockSync {
+    /** The lock object. */
     private final Lock lock;
+    /** Constructor, creates a reentrant non-fair lock. */
     public LockSync() {
         lock = new ReentrantLock();
     }
+    /**
+     * Constructor, takes the given shared lock.
+     * @param sharedLock the shared lock
+     */
     public LockSync(Lock sharedLock) {
         lock = Objects.requireNonNull(sharedLock);
     }
