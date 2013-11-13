@@ -41,6 +41,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -1444,5 +1445,124 @@ public interface Observable<T> {
             
             return sreg;
         };
+    }
+    /**
+     * Returns a single observable boolean value if all
+     * elements of this observable satisfy the given predicate.
+     * @param predicate
+     * @return 
+     */
+    default Observable<Boolean> all(Predicate<? super T> predicate) {
+        return (observer) -> {
+            SingleRegistration sreg = new SingleRegistration();
+            
+            sreg.set(register(new DefaultObserver<T>(sreg) {
+                boolean has;
+                boolean result;
+                @Override
+                protected void onNext(T value) {
+                    has = true;
+                    if (!predicate.test(value)) {
+                        result = false;
+                        finish();
+                    } else {
+                        result = true;
+                    }
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    if (has) {
+                        observer.next(result);
+                    }
+                    observer.finish();
+                }
+            }));
+            
+            return sreg;
+        };
+    }
+    /**
+     * Returns an observable sequence which immediately throws
+     * a RuntimeException.
+     * @param <T>
+     * @return 
+     */
+    public static <T> Observable<T> throwError() {
+        return throwError(() -> new RuntimeException());
+    }
+    /**
+     * Returns an observable sequence which throws an exception
+     * supplied by a factory.
+     * @param <T>
+     * @param exceptionFactory
+     * @return 
+     */
+    public static <T> Observable<T> throwError(
+            Supplier<? extends Exception> exceptionFactory) {
+        return (observer) -> {
+            observer.error(exceptionFactory.get());
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Returns an observable with a single true value if the current
+     * observable's any element matches the given predicate.
+     * @param predicate
+     * @return 
+     */
+    default Observable<Boolean> any(Predicate<? super T> predicate) {
+        return (observer) -> {
+            SingleRegistration sreg = new SingleRegistration();
+            
+            DefaultObserver<T> tobs = new DefaultObserver<T>(sreg) {
+                /** There was at least a single value. */
+                boolean has;
+                /** The result to emit. */
+                boolean result;
+                @Override
+                protected void onNext(T value) {
+                    has = true;
+                    if (predicate.test(value)) {
+                        result = true;
+                        finish();
+                    }
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    if (has) {
+                        observer.next(result);
+                    }
+                    observer.finish();
+                }
+                
+            };
+            
+            sreg.set(register(tobs));
+            
+            return sreg;
+        };
+    }
+    /**
+     * Returns the first value of this observable sequence or
+     * the Optional.empty().
+     * @return 
+     */
+    default Optional<T> first() {
+    }
+    /**
+     * Returns the last value of this observable sequence or
+     * the Optional.empty().
+     * @return 
+     */
+    default Optional<T> last() {
+        
     }
 }

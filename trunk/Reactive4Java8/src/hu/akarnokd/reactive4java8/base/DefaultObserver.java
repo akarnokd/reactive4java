@@ -117,7 +117,18 @@ public abstract class DefaultObserver<T> implements Observer<T> {
     protected void close() {
         reg.close();
     }
+    /**
+     * Called when a value arrives.
+     * @param value 
+     */
     protected abstract void onNext(T value);
+    /**
+     * Called when an exception arrives.
+     * @param t 
+     */
     protected abstract void onError(Throwable t);
+    /**
+     * Called when a finish event arrives.
+     */
     protected abstract void onFinish();
 }
