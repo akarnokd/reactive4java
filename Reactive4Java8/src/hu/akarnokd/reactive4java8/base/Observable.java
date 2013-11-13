@@ -17,10 +17,14 @@
 
 package hu.akarnokd.reactive4java8.base;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -165,7 +169,7 @@ public interface Observable<T> {
      */
     default void forEach(Consumer<? super T> consumer) {
         CountDownLatch latch = new CountDownLatch(1);
-        try (Registration reg = register(Observer.create(
+        try (Registration reg = register(Observer.createSafe(
                 consumer::accept,
                 (t) -> { latch.countDown(); },
                 () -> { latch.countDown(); }
@@ -180,12 +184,70 @@ public interface Observable<T> {
         IntRef count = new IntRef();
         forEach(v -> consumer.accept(count.value++, v));
     }
+    /**
+     * Synchronously consumes the stream until the indexed predicate returns
+     * false.
+     * @param stoppableConsumer the indexed predicate/consumer
+     */
+    default void forEachWhile(IndexedPredicate<? super T> stoppableConsumer) {
+        IntRef count = new IntRef();
+        forEachWhile(v -> stoppableConsumer.test(count.value++, v));
+    }
+    /**
+     * Synchronously consumes the stream until the predicate returns
+     * false.
+     * @param stoppableConsumer the predicate/consumer
+     */
+    default void forEachWhile(Predicate<? super T> stoppableConsumer) {
+        CountDownLatch latch = new CountDownLatch(1);
+        
+        try (SingleRegistration reg = new SingleRegistration()) {
+            reg.set(register(new DefaultObserver<T>(reg) {
+
+                @Override
+                protected void onNext(T value) {
+                    if (!stoppableConsumer.test(value)) {
+                        done();
+                        latch.countDown();
+                    }
+                }
+
+                @Override
+                protected void onError(Throwable t) {
+                    latch.countDown();
+                }
+
+                @Override
+                protected void onFinish() {
+                    latch.countDown();
+                }
+                
+            }));
+            latch.await();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            // otherwise ignored
+        }
+    }
+    /**
+     * Projects the sequence of values of this observable via
+     * the supplied indexed mapping function.
+     * @param <U>
+     * @param function
+     * @return 
+     */
     default <U> Observable<U> select(IndexedFunction<? super T, ? extends U> function) {
         return (observer) -> {
             IntRef count = new IntRef();
             return register(observer.compose(v -> function.apply(count.value++, v)));
         };
     }
+    /**
+     * Filters the sequence of values of this observable via
+     * the supplied indexed predicate function.
+     * @param predicate
+     * @return 
+     */
     default Observable<T> where(IndexedPredicate<? super T> predicate) {
         return (observer) -> {
             IntRef count = new IntRef();
@@ -972,6 +1034,415 @@ public interface Observable<T> {
                 }
                 
             };
+        };
+    }
+    /**
+     * Creates an observable sequence which emits increasing values from
+     * zero after each period of time.
+     * @param period
+     * @param unit
+     * @param scheduler
+     * @return 
+     */
+    public static Observable<Long> tick(long period, TimeUnit unit, 
+            Scheduler scheduler) {
+        return (observer) -> {
+            LongRef count = new LongRef();
+            return scheduler.schedule(period, period, unit, () -> {
+                observer.next(count.value++);
+            });
+        };
+    }
+    /**
+     * Returns an observable sequence which buffers the values
+     * of this observable into the specified chunks.
+     * <p>Does not emit empty buffers.</p>
+     * @param count
+     * @return 
+     */
+    default Observable<List<T>> buffer(int count) {
+        if (count <= 0) {
+            throw new IllegalArgumentException("count > 0!");
+        }
+        return (observer) -> {
+            Ref<List<T>> ref = new Ref<>();
+            
+            return register(Observer.create(
+                (v) -> {
+                    if (ref.value == null) {
+                        ref.value = new ArrayList<>(count);
+                    }
+                    ref.value.add(v);
+                    if (ref.value.size() == count) {
+                        List<T> list = ref.value;
+                        ref.value = null;
+                        observer.next(list);
+                    }
+                },
+                (e) -> {
+                    observer.error(e);
+                },
+                () -> {
+                    if (ref.value != null) {
+                        List<T> list = ref.value;
+                        ref.value = null;
+                        observer.next(list);
+                    }
+                    observer.finish();
+                }
+            ));
+        };
+    }
+    /**
+     * Returns an observable sequence of potentially overlapping
+     * windows opened by the opening observable and closed by
+     * the observable returned by the windowClosingSelector function.
+     * @param <U>
+     * @param <V>
+     * @param opening
+     * @param windowClosingSelector
+     * @return 
+     */
+    default <U, V> Observable<Observable<T>> window(Observable<U> opening, 
+            Function<? super U, ? extends Observable<V>> windowClosingSelector) {
+        return (observer) -> {
+            CompositeRegistration creg = new CompositeRegistration();
+            
+            Lock lock = new ReentrantLock();
+
+            Map<Unique<U>, Subject<T, T>> openWindows = new LinkedHashMap<>();
+            
+            DefaultObserver<T> tobs = new DefaultObserver<T>(creg, lock) {
+                @Override
+                protected void onNext(T value) {
+                    openWindows.values().forEach(s -> s.next(value));
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    openWindows.values().forEach(s -> s.error(t));
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    openWindows.values().forEach(Observer::finish);
+                    observer.finish();
+                }
+            };
+
+            SingleRegistration sureg = new SingleRegistration();
+            
+            DefaultObserver<U> uobs = new DefaultObserver<U>(sureg, lock) {
+                @Override
+                protected void onNext(U value) {
+                    Unique<U> token = Unique.of(value);
+                    Subject<T, T> s = new DefaultObservable<>(true);
+                    openWindows.put(token, s);
+                    
+                    Observable<V> closing = windowClosingSelector.apply(value);
+                    
+                    SingleRegistration sreg = new SingleRegistration();
+                    creg.add(sreg);
+                    
+                    sreg.set(closing.register(new DefaultObserver<V>(sreg, lock) {
+                        @Override
+                        protected void onNext(V value) {
+                            // ignored
+                        }
+                        @Override
+                        protected void onError(Throwable t) {
+                            tobs.error(t);
+                        }
+                        @Override
+                        protected void onFinish() {
+                            Subject<T, T> s = openWindows.remove(token);
+                            s.finish();
+                            creg.remove(sreg);
+                        }
+                    }));
+                    observer.next(s);
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    tobs.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    // FIXME no more windows, do we care?
+                }
+            };
+
+            creg.add(sureg);
+            creg.add(register(tobs));
+            sureg.set(opening.register(uobs));
+            
+            return creg;
+        };
+    }
+    /**
+     * Buffers the values of this observable according to the windows
+     * defined by the time and unit.
+     * <p>Does not emit empty buffers.</p>
+     * @param time
+     * @param unit
+     * @param scheduler
+     * @return 
+     */
+    default Observable<List<T>> buffer(long time, TimeUnit unit, Scheduler scheduler) {
+        return (observer) -> {
+            CompositeRegistration creg = new CompositeRegistration();
+
+            Lock lock = new ReentrantLock();
+            LockSync ls = new LockSync(lock);
+            
+            Ref<List<T>> ref = new Ref<>();
+
+            DefaultObserver<T> tobs = new DefaultObserver<T>(creg, lock) {
+                @Override
+                protected void onNext(T value) {
+                    if (ref.value == null) {
+                        ref.value = new ArrayList<>();
+                    }
+                    ref.value.add(value);
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    if (ref.value != null) {
+                        List<T> list = ref.value;
+                        ref.value = null;
+                        observer.next(list);
+                    }
+                    observer.finish();
+                }
+            };
+            
+            creg.add(register(tobs));
+
+            creg.add(scheduler.schedule(time, time, unit, () -> {
+                ls.sync(() -> {
+                    if (ref.value != null && !tobs.isDone()) {
+                        List<T> list = ref.value;
+                        ref.value = null;
+                        observer.next(list);
+                    }
+                });
+            }));
+            return creg;
+        };
+    }
+    /**
+     * Buffers values of potentially overlapping windows opened
+     * by the windowOpening sequence and closed by another
+     * observable sequence selected for the given windowOpening value.
+     * @param <U>
+     * @param <V>
+     * @param opening
+     * @param windowClosingSelector
+     * @return 
+     */
+    default <U, V> Observable<List<T>> buffer(
+            Observable<U> opening,
+            Function<? super U, ? extends Observable<V>> windowClosingSelector) {
+        return (observer) -> {
+            CompositeRegistration creg = new CompositeRegistration();
+            
+            Lock lock = new ReentrantLock();
+
+            Map<Unique<U>, List<T>> openWindows = new LinkedHashMap<>();
+            
+            DefaultObserver<T> tobs = new DefaultObserver<T>(creg, lock) {
+                @Override
+                protected void onNext(T value) {
+                    openWindows.values().forEach(s -> s.add(value));
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    openWindows.values().forEach(s -> observer.next(s));
+                    openWindows.clear();
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    openWindows.values().forEach(s -> observer.next(s));
+                    openWindows.clear();
+                    observer.finish();
+                }
+            };
+
+            SingleRegistration sureg = new SingleRegistration();
+            
+            DefaultObserver<U> uobs = new DefaultObserver<U>(sureg, lock) {
+                @Override
+                protected void onNext(U value) {
+                    Unique<U> token = Unique.of(value);
+                    List<T> s = new ArrayList<>();
+                    openWindows.put(token, s);
+                    
+                    Observable<V> closing = windowClosingSelector.apply(value);
+                    
+                    SingleRegistration sreg = new SingleRegistration();
+                    creg.add(sreg);
+                    
+                    sreg.set(closing.register(new DefaultObserver<V>(sreg, lock) {
+                        @Override
+                        protected void onNext(V value) {
+                            // ignored
+                        }
+                        @Override
+                        protected void onError(Throwable t) {
+                            tobs.error(t);
+                        }
+                        @Override
+                        protected void onFinish() {
+                            observer.next(openWindows.remove(token));
+                            observer.finish();
+                            creg.remove(sreg);
+                        }
+                    }));
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    tobs.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    // FIXME no more windows, do we care?
+                }
+            };
+
+            creg.add(sureg);
+            creg.add(register(tobs));
+            sureg.set(opening.register(uobs));
+            
+            return creg;
+        };
+       
+    }
+    
+    /**
+     * Combines the latest observed values from the source
+     * observables and emits a result produced via the function.
+     * @param <T>
+     * @param <U>
+     * @param <V>
+     * @param first
+     * @param second
+     * @param function
+     * @return 
+     */
+    public static <T, U, V> Observable<V> combineLatest(
+            Observable<T> first,
+            Observable<U> second,
+            BiFunction<? super T, ? super U, ? extends V> function) {
+        return (observer) -> {
+            CompositeRegistration creg = new CompositeRegistration();
+            
+            Lock lock = new ReentrantLock();
+            Ref<T> t = new Ref<>();
+            BoolRef tf = new BoolRef();
+            Ref<U> u = new Ref<>();
+            BoolRef uf = new BoolRef();
+            
+            DefaultObserver<T> tobs = new DefaultObserver<T>(creg, lock) {
+                @Override
+                protected void onNext(T value) {
+                    tf.value = true;
+                    t.value = value;
+                    if (uf.value) {
+                        observer.next(function.apply(value, u.value));
+                    }
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    observer.finish();
+                }
+                
+            };
+            DefaultObserver<U> uobs = new DefaultObserver<U>(creg, lock) {
+                @Override
+                protected void onNext(U value) {
+                    uf.value = true;
+                    u.value = value;
+                    if (tf.value) {
+                        observer.next(function.apply(t.value, value));
+                    }
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                }
+                @Override
+                protected void onFinish() {
+                    observer.finish();
+                }
+            };
+            
+            creg.add(first.register(tobs));
+            creg.add(second.register(uobs));
+            
+            return creg;
+        };
+    }
+    /**
+     * Returns an observable which counts from start to start+count-1
+     * by emitting values in the given periodicity.
+     * @param start
+     * @param count
+     * @param period
+     * @param unit
+     * @param scheduler
+     * @return 
+     */
+    public static Observable<Long> tick(long start, long count, 
+            long period, TimeUnit unit, Scheduler scheduler) {
+        return (observer) -> {
+            SingleRegistration sreg = new SingleRegistration();
+            LongRef counter = LongRef.of(start);
+            
+            sreg.set(scheduler.schedule(period, period, unit, () -> {
+                observer.next(counter.value++);
+                if (counter.value == start + count) {
+                    observer.finish();
+                    sreg.close();
+                }
+            }));
+            
+            return sreg;
+        };
+    }
+    /**
+     * Returns an observable which counts from start to start+count-1
+     * by emitting values in the given periodicity after the initial delay.
+     * @param start
+     * @param count
+     * @param initialDelay
+     * @param period
+     * @param unit
+     * @param scheduler
+     * @return 
+     */
+    public static Observable<Long> tick(long start, long count, 
+            long initialDelay, long period, TimeUnit unit, Scheduler scheduler) {
+        return (observer) -> {
+            SingleRegistration sreg = new SingleRegistration();
+            LongRef counter = LongRef.of(start);
+            
+            sreg.set(scheduler.schedule(initialDelay, period, unit, () -> {
+                observer.next(counter.value++);
+                if (counter.value == start + count) {
+                    observer.finish();
+                    sreg.close();
+                }
+            }));
+            
+            return sreg;
         };
     }
 }

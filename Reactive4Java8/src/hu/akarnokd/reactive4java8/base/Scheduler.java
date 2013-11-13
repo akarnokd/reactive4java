@@ -43,8 +43,14 @@ public interface Scheduler {
      * @param activity the activity
      * @return the registration to cancel the schedule
      */
-    <TState> Registration schedule(TState state, 
-            BiFunction<Scheduler, TState, Registration> activity);
+    default <TState> Registration schedule(TState state, 
+            BiFunction<Scheduler, TState, Registration> activity) {
+        SingleRegistration sreg = new SingleRegistration();
+        sreg.set(schedule(() -> {
+            sreg.set(activity.apply(this, state));
+        }));
+        return sreg;
+    }
     /**
      * Schedules the given activity to run after the given amount of time.
      * <p>This overload allows the chaining of scheduled activities by using
@@ -56,8 +62,14 @@ public interface Scheduler {
      * @param activity the activity
      * @return  the registration to cancel the schedule
      */
-    <TState> Registration schedule(TState state, long time, TimeUnit unit, 
-            BiFunction<Scheduler, TState, Registration> activity);
+    default <TState> Registration schedule(TState state, long time, TimeUnit unit, 
+            BiFunction<Scheduler, TState, Registration> activity) {
+                SingleRegistration sreg = new SingleRegistration();
+        sreg.set(schedule(time, unit, () -> {
+            sreg.set(activity.apply(this, state));
+        }));
+        return sreg;
+    }
     /**
      * Schedules a periodic activity.
      * <p>Note: this method is in separate interface in the Rx, so it might
@@ -70,16 +82,20 @@ public interface Scheduler {
      * @param activity the activity
      * @return  the registration to cancel the schedule
      */
-    <TState> Registration schedule(TState state, long initialDelay, long period, 
-            TimeUnit unit, BiFunction<Scheduler, TState, Registration> activity);
+    default <TState> Registration schedule(TState state, long initialDelay, long period, 
+            TimeUnit unit, BiFunction<Scheduler, TState, Registration> activity) {
+        SingleRegistration sreg = new SingleRegistration();
+        sreg.set(schedule(initialDelay, period, unit, () -> {
+            sreg.set(activity.apply(this, state));
+        }));
+        return sreg;
+    }
     /**
      * Schedule a task to run once.
      * @param run the task to run
      * @return the registration to cancel the execution of the task
      */
-    default Registration schedule(Runnable run) {
-        return schedule(new Object(), (scheduler, state) -> { run.run(); return Registration.EMPTY; });
-    }
+    Registration schedule(Runnable run);
     /**
      * Schedule a task to run after the given time.
      * @param time the time to delay the execution of the activity
@@ -87,9 +103,7 @@ public interface Scheduler {
      * @param run the task to run
      * @return the registration to cancel the execution of the task
      */
-    default Registration schedule(long time, TimeUnit unit, Runnable run) {
-        return schedule(new Object(), time, unit, (scheduler, state) -> { run.run(); return Registration.EMPTY; });
-    }
+    Registration schedule(long time, TimeUnit unit, Runnable run);
     /**
      * Schedule a task to run periodically after the given initial delay.
      * @param initialDelay the initial delay
@@ -98,7 +112,5 @@ public interface Scheduler {
      * @param run the task to run
      * @return the registration to cancel the execution of the task
      */
-    default Registration schedule(long initialDelay, long period, TimeUnit unit, Runnable run) {
-        return schedule(new Object(), initialDelay, period, unit, (scheduler, state) -> { run.run(); return Registration.EMPTY; });
-    }
+    Registration schedule(long initialDelay, long period, TimeUnit unit, Runnable run);
 }

@@ -63,7 +63,7 @@ public final class LockSync {
         try {
             return supplier.get();
         } finally {
-            lock.lock();
+            lock.unlock();
         }        
     }
     /**
@@ -77,7 +77,7 @@ public final class LockSync {
         try {
             return supplier.getAsInt();
         } finally {
-            lock.lock();
+            lock.unlock();
         }        
     }
     /**
@@ -91,7 +91,7 @@ public final class LockSync {
         try {
             return supplier.getAsBoolean();
         } finally {
-            lock.lock();
+            lock.unlock();
         }        
     }
     /**
@@ -105,7 +105,7 @@ public final class LockSync {
         try {
             return supplier.getAsLong();
         } finally {
-            lock.lock();
+            lock.unlock();
         }        
     }
     /**
@@ -119,7 +119,7 @@ public final class LockSync {
         try {
             return supplier.getAsDouble();
         } finally {
-            lock.lock();
+            lock.unlock();
         }        
     }
 }

@@ -37,7 +37,7 @@ import java.util.concurrent.locks.Lock;
  */
 public abstract class DefaultObserver<T> implements Observer<T> {
     protected final LockSync ls;
-    protected boolean done;
+    private boolean done;
     protected final Registration reg;
     /**
      * Default observer with empty registration and non-fair reentrant lock.
@@ -56,7 +56,20 @@ public abstract class DefaultObserver<T> implements Observer<T> {
         this.ls = new LockSync(lock);
         this.reg = Objects.requireNonNull(reg);
     }
-
+    /** 
+     * Set the done flag to true, preventing further delivery
+     * of events.
+     */
+    protected void done() {
+        this.done = true;
+    }
+    /**
+     * Returns the done flag value.
+     * @return 
+     */
+    protected boolean isDone() {
+        return done;
+    }
     @Override
     public final void next(T value) {
         boolean c = ls.sync(() -> {
@@ -99,6 +112,10 @@ public abstract class DefaultObserver<T> implements Observer<T> {
         if (c) {
             reg.close();
         }
+    }
+    /** Closes the associated registration. */
+    protected void close() {
+        reg.close();
     }
     protected abstract void onNext(T value);
     protected abstract void onError(Throwable t);
