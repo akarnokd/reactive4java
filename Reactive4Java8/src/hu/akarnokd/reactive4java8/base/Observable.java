@@ -1034,6 +1034,15 @@ public interface Observable<T> {
                 public void close() {
                     sreg.close();
                 }
+
+                @Override
+                protected void finalize() throws Throwable {
+                    try {
+                        sreg.close();
+                    } finally {
+                        super.finalize();
+                    }
+                }
                 
             };
         };
@@ -1048,12 +1057,7 @@ public interface Observable<T> {
      */
     public static Observable<Long> tick(long period, TimeUnit unit, 
             Scheduler scheduler) {
-        return (observer) -> {
-            LongRef count = new LongRef();
-            return scheduler.schedule(period, period, unit, () -> {
-                observer.next(count.value++);
-            });
-        };
+        return ObservableOps.tick(period, unit, scheduler);
     }
     /**
      * Returns an observable sequence which buffers the values
@@ -1339,58 +1343,7 @@ public interface Observable<T> {
             Observable<T> first,
             Observable<U> second,
             BiFunction<? super T, ? super U, ? extends V> function) {
-        return (observer) -> {
-            CompositeRegistration creg = new CompositeRegistration();
-            
-            Lock lock = new ReentrantLock();
-            Ref<T> t = new Ref<>();
-            BoolRef tf = new BoolRef();
-            Ref<U> u = new Ref<>();
-            BoolRef uf = new BoolRef();
-            
-            DefaultObserver<T> tobs = new DefaultObserver<T>(creg, lock) {
-                @Override
-                protected void onNext(T value) {
-                    tf.value = true;
-                    t.value = value;
-                    if (uf.value) {
-                        observer.next(function.apply(value, u.value));
-                    }
-                }
-                @Override
-                protected void onError(Throwable t) {
-                    observer.error(t);
-                }
-                @Override
-                protected void onFinish() {
-                    observer.finish();
-                }
-                
-            };
-            DefaultObserver<U> uobs = new DefaultObserver<U>(creg, lock) {
-                @Override
-                protected void onNext(U value) {
-                    uf.value = true;
-                    u.value = value;
-                    if (tf.value) {
-                        observer.next(function.apply(t.value, value));
-                    }
-                }
-                @Override
-                protected void onError(Throwable t) {
-                    observer.error(t);
-                }
-                @Override
-                protected void onFinish() {
-                    observer.finish();
-                }
-            };
-            
-            creg.add(first.register(tobs));
-            creg.add(second.register(uobs));
-            
-            return creg;
-        };
+        return ObservableOps.combineLatest(first, second, function);
     }
     /**
      * Returns an observable which counts from start to start+count-1
@@ -1404,23 +1357,7 @@ public interface Observable<T> {
      */
     public static Observable<Long> tick(long start, long count, 
             long period, TimeUnit unit, Scheduler scheduler) {
-        if (count == 0) {
-            return empty();
-        }
-        return (observer) -> {
-            SingleRegistration sreg = new SingleRegistration();
-            LongRef counter = LongRef.of(start);
-            
-            sreg.set(scheduler.schedule(period, period, unit, () -> {
-                observer.next(counter.value++);
-                if (counter.value == start + count) {
-                    observer.finish();
-                    sreg.close();
-                }
-            }));
-            
-            return sreg;
-        };
+        return ObservableOps.tick(start, count, period, unit, scheduler);
     }
     /**
      * Returns an observable which counts from start to start+count-1
@@ -1435,20 +1372,7 @@ public interface Observable<T> {
      */
     public static Observable<Long> tick(long start, long count, 
             long initialDelay, long period, TimeUnit unit, Scheduler scheduler) {
-        return (observer) -> {
-            SingleRegistration sreg = new SingleRegistration();
-            LongRef counter = LongRef.of(start);
-            
-            sreg.set(scheduler.schedule(initialDelay, period, unit, () -> {
-                observer.next(counter.value++);
-                if (counter.value == start + count) {
-                    observer.finish();
-                    sreg.close();
-                }
-            }));
-            
-            return sreg;
-        };
+        return ObservableOps.tick(start, count, initialDelay, period, unit, scheduler);
     }
     /**
      * Returns a single observable boolean value if all
@@ -1766,61 +1690,7 @@ public interface Observable<T> {
      */
     public static <T> Observable<T> ambiguous(
             Iterable<? extends Observable<? extends T>> sources) {
-        return (observer) -> {
-            
-            CompositeRegistration creg = new CompositeRegistration();
-            SingleRegistration sreg = new SingleRegistration(creg);
-            
-            AtomicReference<Object> winner = new AtomicReference<>();
-            
-            sources.forEach(o -> {
-                SingleRegistration srego = new SingleRegistration();
-                creg.add(srego);
-                srego.set(o.register(new DefaultObserver<T>() {
-                    boolean once;
-                    boolean wewon;
-                    @Override
-                    protected void onNext(T value) {
-                        if (check()) {
-                            observer.next(value);
-                        }
-                    }
-                    @Override
-                    protected void onError(Throwable t) {
-                        if (check()) {
-                            observer.error(t);
-                        }
-                    }
-                    @Override
-                    protected void onFinish() {
-                        if (check()) {
-                            observer.finish();
-                        }
-                    }
-                    /**
-                     * Check and set the winner, then cancel the others.
-                     * @return 
-                     */
-                    boolean check() {
-                        if (!once) {
-                            once = true;
-                            if (winner.get() == null) {
-                                wewon = winner.compareAndSet(null, this);
-                            } else {
-                                wewon = winner.get() == this;
-                            }
-                            if (wewon) {
-                                creg.remove(srego);
-                                sreg.set(srego);
-                            }
-                        }
-                        return wewon;
-                    }
-                }));
-            });
-            
-            return sreg;
-        };
+        return ObservableOps.ambiguous(sources);
     }
     /**
      * Channels the events of the observable which fires first.
@@ -2024,136 +1894,7 @@ public interface Observable<T> {
             Function<? super R, ? extends Observable<RD>> rightDuration,
             BiFunction<? super L, ? super R, ? extends V> resultSelector
     ) {
-        return (observer) -> {
-            CompositeRegistration creg = new CompositeRegistration();
-            
-            Lock lock = new ReentrantLock();
-            
-            BoolRef leftDone = new BoolRef();
-            IntRef leftIdx = new IntRef();
-            Map<Integer, L> leftValues = new LinkedHashMap<>();
-            SingleRegistration leftReg = new SingleRegistration();
-
-            BoolRef rightDone = new BoolRef();
-            IntRef rightIdx = new IntRef();
-            Map<Integer, R> rightValues = new LinkedHashMap<>();
-            SingleRegistration rightReg = new SingleRegistration();
-
-            creg.add(leftReg);
-            creg.add(rightReg);
-            
-            DefaultObserver<L> lobs = new DefaultObserver<L>(leftReg, lock) {
-                void expire(int id, Registration reg) {
-                    ls.sync(() -> {
-                       if (leftValues.containsKey(id)) {
-                           leftValues.remove(id);
-                           if (leftValues.isEmpty() && leftDone.value) {
-                               observer.finish();
-                               creg.close();
-                           }
-                       } 
-                    });
-                    creg.remove(reg);
-                    reg.close();
-                }
-                @Override
-                protected void onNext(L value) {
-                    int id = leftIdx.value++;
-                    leftValues.put(id, value);
-                    
-                    SingleRegistration sreg = new SingleRegistration();
-
-                    Observable<LD> duration = leftDuration.apply(value);
-                    
-                    sreg.set(duration.register(Observer.create(
-                        (t) -> expire(id, sreg),
-                        (e) -> innerError(e),
-                        () -> expire(id, sreg)
-                    )));
-                    
-                    rightValues.values().forEach(r -> {
-                        V v = resultSelector.apply(value, r);
-                        observer.next(v);
-                    });
-                }
-                void innerError(Throwable e) {
-                    error(e);
-                }
-                @Override
-                protected void onError(Throwable t) {
-                    observer.error(t);
-                    creg.close();
-                }
-                @Override
-                protected void onFinish() {
-                    leftDone.value = true;
-                    if (rightDone.value || leftValues.isEmpty()) {
-                        observer.finish();
-                        creg.close();
-                    } else {
-                        close();
-                    }
-                }
-            };
-            DefaultObserver<R> robs = new DefaultObserver<R>(rightReg, lock) {
-                void expire(int id, Registration reg) {
-                    ls.sync(() -> {
-                       if (rightValues.containsKey(id)) {
-                           rightValues.remove(id);
-                           if (rightValues.isEmpty() && rightDone.value) {
-                               observer.finish();
-                               creg.close();
-                           }
-                       } 
-                    });
-                    creg.remove(reg);
-                    reg.close();
-                }
-                @Override
-                protected void onNext(R value) {
-                    int id = rightIdx.value++;
-                    rightValues.put(id, value);
-                    
-                    SingleRegistration sreg = new SingleRegistration();
-
-                    Observable<RD> duration = rightDuration.apply(value);
-                    
-                    sreg.set(duration.register(Observer.create(
-                        (t) -> expire(id, sreg),
-                        (e) -> innerError(e),
-                        () -> expire(id, sreg)
-                    )));
-                    
-                    leftValues.values().forEach(l -> {
-                        V v = resultSelector.apply(l, value);
-                        observer.next(v);
-                    });
-                }
-                void innerError(Throwable e) {
-                    error(e);
-                }
-                @Override
-                protected void onError(Throwable t) {
-                    observer.error(t);
-                    creg.close();
-                }
-                @Override
-                protected void onFinish() {
-                    rightDone.value = true;
-                    if (leftDone.value || rightValues.isEmpty()) {
-                        observer.finish();
-                        creg.close();
-                    } else {
-                        close();
-                    }
-                }
-            };
-            
-            creg.add(left.register(lobs));
-            creg.add(right.register(robs));
-            
-            return creg;
-        };
+        return ObservableOps.join(left, right, leftDuration, rightDuration, resultSelector);
     }
     /**
      * Repeats the given value indefinitely.
@@ -2178,13 +1919,7 @@ public interface Observable<T> {
      * @return 
      */
     public static <T> Observable<T> repeat(T value, int count) {
-        return (observer) -> {
-            for (int i = 0; i < count; i++) {
-                observer.next(value);
-            } 
-            observer.finish();
-            return Registration.EMPTY;
-        };
+        return ObservableOps.repeat(value, count);
     }
     /**
      * Repeatedly registers with this observable if finishes normally.
@@ -2229,42 +1964,7 @@ public interface Observable<T> {
      * @return 
      */
     public static <T> Observable<T> resumeAlways(Iterable<? extends Observable<? extends T>> sources) {
-        return (observer) -> {
-            Iterator<? extends Observable<? extends T>> it = sources.iterator();
-            
-            if (it.hasNext()) {
-                SingleRegistration sreg = new SingleRegistration();
-                Observer<T> tobs = new Observer<T>() {
-                    @Override
-                    public void next(T value) {
-                        observer.next(value);
-                    }
-                    @Override
-                    public void error(Throwable t) {
-                        next();
-                    }
-                    @Override
-                    public void finish() {
-                        next();
-                    }
-                    /** Register with the next observable. */
-                    void next() {
-                        if (it.hasNext()) {
-                            sreg.set(it.next().register(this));
-                        } else {
-                            observer.finish();
-                            sreg.close();
-                        }
-                    }
-                };
-                
-                sreg.set(it.next().register(tobs));
-                
-                return sreg;
-            }
-            observer.finish();
-            return Registration.EMPTY;
-        };
+        return ObservableOps.resumeAlways(sources);
     }
     /**
      * Returns an observable sequence which registers
@@ -2274,42 +1974,6 @@ public interface Observable<T> {
      * @return 
      */
     public static <T> Observable<T> resumeOnError(Iterable<? extends Observable<? extends T>> sources) {
-        return (observer) -> {
-            Iterator<? extends Observable<? extends T>> it = sources.iterator();
-            
-            if (it.hasNext()) {
-                SingleRegistration sreg = new SingleRegistration();
-                Observer<T> tobs = new Observer<T>() {
-                    @Override
-                    public void next(T value) {
-                        observer.next(value);
-                    }
-                    @Override
-                    public void error(Throwable t) {
-                        next();
-                    }
-                    @Override
-                    public void finish() {
-                        observer.finish();
-                        sreg.close();
-                    }
-                    /** Register with the next observable. */
-                    void next() {
-                        if (it.hasNext()) {
-                            sreg.set(it.next().register(this));
-                        } else {
-                            observer.finish();
-                            sreg.close();
-                        }
-                    }
-                };
-                
-                sreg.set(it.next().register(tobs));
-                
-                return sreg;
-            }
-            observer.finish();
-            return Registration.EMPTY;
-        };
+        return ObservableOps.resumeOnError(sources);
     }
 }
