@@ -17,8 +17,10 @@
 package hu.akarnokd.reactive4java8.base;
 
 import static hu.akarnokd.reactive4java8.base.Observable.empty;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
@@ -31,6 +33,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 
 /**
  * Implementation of various static observable operators
@@ -978,6 +981,200 @@ final class ObservableOps {
             uobs.finish();
             
             return sreg;
+        };
+    }
+    /**
+     * Delays the delivery of the events of this observable to
+     * when the observable returned by the delaySelector fires
+     * a value or finishes.
+     * 
+     * @param <T>
+     * @param <U>
+     * @param <V>
+     * @param registerDelay
+     * @param delaySelector
+     * @return 
+     */
+    static <T, U, V> Observable<T> delay(
+            Observable<? extends T> source,
+            @Nullable Observable<U> registerDelay,
+            Function<? super T, ? extends Observable<V>> delaySelector) {
+        Objects.requireNonNull(source);
+        Objects.requireNonNull(delaySelector);
+        return (observer) -> {
+            SingleRegistration sreg = new SingleRegistration();
+            CompositeRegistration creg = new CompositeRegistration();
+            SingleRegistration rreg = new SingleRegistration();
+            
+            DefaultObserver<T> tobs = new DefaultObserver<T>() {
+                boolean atEnd;
+                @Override
+                protected void onNext(T value) {
+                    Observable<V> delay;
+                    try {
+                        delay = delaySelector.apply(value);
+                    } catch (Throwable t) {
+                        error(t);
+                        return;
+                    }
+                    SingleRegistration dreg = new SingleRegistration();
+                    
+                    creg.add(dreg);
+                    
+                    dreg.set(delay.registerSafe(new Observer<V>() {
+                        @Override
+                        public void next(V v0) {
+                            deliver(dreg, value);
+                        }
+                        @Override
+                        public void error(Throwable t) {
+                            innerError(t);
+                        }
+                        @Override
+                        public void finish() {
+                            deliver(dreg, value);
+                        }
+                    }));
+                }
+                /**
+                 * Deliver the given value and unregister the closeable.
+                 * @param reg
+                 * @param value 
+                 */
+                protected void deliver(Registration reg, T value) {
+                    creg.close(reg);
+                    try {
+                        ls.sync(() -> {
+                            if (!isDone()) {
+                                observer.next(value);
+                            }
+                            checkDone();
+                        });
+                    } catch (Throwable t) {
+                        error(t);
+                    }
+                }
+                /** 
+                 * Forward the internal error.
+                 * @param t 
+                 */
+                protected void innerError(Throwable t) {
+                    error(t);
+                }
+                @Override
+                protected void onError(Throwable t) {
+                    observer.error(t);
+                    creg.close();
+                    sreg.close();
+                }
+                @Override
+                protected void onFinish() {
+                    atEnd = true;
+                    rreg.close();
+                    checkDone();
+                }
+                /** Check if the end is reached and signal a finish. */
+                void checkDone() {
+                    if (atEnd && creg.isEmpty()) {
+                        observer.finish();
+                        sreg.close();
+                    }
+                }
+            };
+            
+            if (registerDelay == null) {
+                sreg.set(source.registerSafe(tobs));
+            } else {
+                rreg.set(registerDelay.registerSafe(new Observer<U>() {
+                    boolean once;
+                    @Override
+                    public void next(U value) {
+                        finish();
+                    }
+                    @Override
+                    public void error(Throwable t) {
+                        tobs.error(t);
+                        rreg.close();
+                    }
+                    @Override
+                    public void finish() {
+                        if (!once) {
+                            once = true;
+                            rreg.close();
+                            sreg.set(source.registerSafe(tobs));
+                        }
+                    }
+                }.toThreadSafe()));
+            }
+            
+            return new CompositeRegistration(rreg, sreg, creg);
+        };
+    }
+    /**
+     * Runs the observables in parallel and combines their last
+     * values when all finishes.
+     * @param <T>
+     * @param sources
+     * @return 
+     */
+    public static <T> Observable<List<T>> forkJoin(
+            Iterable<? extends Observable<? extends T>> sources) {
+        return (observer) -> {
+            CompositeRegistration creg = new CompositeRegistration();
+            
+            AtomicInteger wip = new AtomicInteger(1);
+            
+            LockSync lsb = new LockSync();
+            List<T> buffer = new ArrayList<>();
+            
+            Runnable onDone = () -> {
+                if (wip.decrementAndGet() == 0) {
+                    try {
+                        observer.next(buffer);
+                    } catch (Throwable t) {
+                        observer.error(t);
+                        return;
+                    }
+                    observer.finish();
+                }
+            };
+            
+            int i = 0;
+            for (Observable<? extends T> o : sources) {
+                SingleRegistration sreg = new SingleRegistration();
+                creg.add(sreg);
+                
+                wip.incrementAndGet();
+                lsb.sync(() -> buffer.add(null));
+                
+                int j = i;
+                DefaultObserver<T> tobs = new DefaultObserver<T>(sreg) {
+                    T last;
+                    @Override
+                    protected void onNext(T value) {
+                        this.last = value;
+                    }
+                    @Override
+                    protected void onError(Throwable t) {
+                        observer.error(t);
+                        creg.close();
+                    }
+                    @Override
+                    protected void onFinish() {
+                        lsb.sync(() -> {
+                            buffer.set(j, last);
+                        });
+                        onDone.run();
+                    }
+                };
+                
+                sreg.set(o.registerSafe(tobs));
+                i++;
+            }
+            
+            onDone.run();
+            
+            return creg;
         };
     }
 }

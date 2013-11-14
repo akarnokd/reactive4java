@@ -157,4 +157,11 @@ public class CompositeRegistration extends BaseRegistration {
     public int size() {
         return ls.sync(() -> list != null ? list.size() : 0);
     }
+    /**
+     * Returns true if there are no sub-registrations in this composite.
+     * @return 
+     */
+    public boolean isEmpty() {
+        return ls.sync(() -> list == null || list.isEmpty());
+    }
 }
