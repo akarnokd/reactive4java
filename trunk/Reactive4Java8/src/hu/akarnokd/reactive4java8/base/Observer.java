@@ -24,15 +24,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * Base interface for observing a stream of values.
- * <p>reactive4java note: the interface has default empty
- * implementation for the error() and finish methods
- * to allow simple lambda expressions to register with
- * the {@link Observable} implementations.</p>
+ * Base interface for observing a stream of events.
  * @author akarnokd, 2013.11.08
  * @param <T> the value type to be observed
  */
-@FunctionalInterface
 public interface Observer<T> extends BaseObserver {
     /**
      * Receive a value.
