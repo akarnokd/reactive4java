@@ -20,12 +20,17 @@ import static hu.akarnokd.reactive4java8.base.Observable.empty;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * Implementation of various static observable operators
@@ -501,6 +506,478 @@ final class ObservableOps {
             return scheduler.schedule(period, period, unit, () -> {
                 observer.next(count.value++);
             });
+        };
+    }
+    /**
+     * Concatenates a dynamic sequence of observable sequences.
+     * FIXME highly complicated concurrency mode, not sure
+     * @param <T>
+     * @param sources
+     * @return
+     */
+    static <T> Observable<T> concat(Observable<? extends Observable<? extends T>> sources) {
+        return (observer) -> {
+            BlockingQueue<Observable<? extends T>> queue = new LinkedBlockingQueue<>();
+            
+            AtomicInteger wip = new AtomicInteger(1);
+            
+            CompositeRegistration creg = new CompositeRegistration();
+            
+            SingleRegistration sreg = new SingleRegistration();
+            
+            Observer<T> tobs = new Observer<T>() {
+                boolean done;
+                @Override
+                public void next(T value) {
+                    if (!done) {
+                        observer.next(value);
+                    }
+                }
+                
+                @Override
+                public void error(Throwable t) {
+                    if (!done) {
+                        done = true;
+                        try {
+                            observer.error(t);
+                        } finally {
+                            creg.close();
+                        }
+                    }
+                }
+                
+                @Override
+                public void finish() {
+                    if (!done) {
+                        if (wip.decrementAndGet() == 0) {
+                            done = true;
+                            if (!creg.isClosed()) {
+                                try {
+                                    observer.finish();
+                                } finally {
+                                    creg.close();
+                                }
+                            }
+                        } else {
+                            Observable<? extends T> o = queue.poll();
+                            if (o != null) {
+                                sreg.set(o.register(this));
+                            }
+                        }
+                    }
+                }
+            }.toThreadSafe();
+            
+            Observer<Observable<? extends T>> sourceObserver = new Observer<Observable<? extends T>>() {
+                boolean done;
+                @Override
+                public void next(Observable<? extends T> value) {
+                    if (!done) {
+                        queue.add(value);
+                        if (wip.incrementAndGet() == 2) {
+                            wip.incrementAndGet();
+                            tobs.finish();
+                        }
+                    }
+                }
+                
+                @Override
+                public void error(Throwable t) {
+                    if (!done) {
+                        done = true;
+                        try {
+                            observer.error(t);
+                        } finally {
+                            creg.close();
+                        }
+                    }
+                }
+                
+                @Override
+                public void finish() {
+                    if (!done) {
+                        done = true;
+                        if (wip.decrementAndGet() == 0) {
+                            if (!creg.isClosed()) {
+                                try {
+                                    observer.finish();
+                                } finally {
+                                    creg.close();
+                                }
+                            }
+                        }
+                    }
+                }
+                
+            }.toThreadSafe();
+            
+            creg.add(sreg);
+            creg.add(sources.register(sourceObserver));
+            
+            return creg;
+        };
+    }
+    /**
+     * Returns an observable sequence of the given range of integer values.
+     * @param start the start of the value range, inclusive
+     * @param end the end of the value range, exclusive
+     * @return the observable
+     */
+    static Observable<Integer> range(int start, int end) {
+        return (observer) -> {
+            int delta = (end >= start) ? 1 : -1;
+            int count = delta * (end - start);
+            int value = start;
+            try {
+                while (count-- > 0) {
+                    observer.next(value);
+                    value += delta;
+                }
+                observer.finish();
+            } catch (Throwable t) {
+                observer.error(t);
+            }
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Returns an observable sequence of the given range of integer values.
+     * @param start the start of the value range, inclusive
+     * @param end the end of the value range, exclusive
+     * @return the observable
+     */
+    static Observable<Long> range(long start, long end) {
+        return (observer) -> {
+            int delta = (end >= start) ? 1 : -1;
+            long count = delta * (end - start);
+            long value = start;
+            try {
+                while (count-- > 0) {
+                    observer.next(value);
+                    value += delta;
+                }
+                observer.finish();
+            } catch (Throwable t) {
+                observer.error(t);
+            }
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Concatenates the values of the source sequences
+     * one after another.
+     * @param <T>
+     * @param sources
+     * @return
+     */
+    static <T> Observable<T> concat(Iterable<? extends Observable<? extends T>> sources) {
+        return (observer) -> {
+            Iterator<? extends Observable<? extends T>> it = sources.iterator();
+            
+            SingleRegistration sreg = new SingleRegistration();
+            
+            Observer<T> tobs = new Observer<T>() {
+                boolean done;
+                @Override
+                public void next(T value) {
+                    if (!done) {
+                        observer.next(value);
+                    }
+                }
+                
+                @Override
+                public void error(Throwable t) {
+                    if (!done) {
+                        done = true;
+                        observer.error(t);
+                    }
+                }
+                
+                @Override
+                public void finish() {
+                    if (!done) {
+                        if (it.hasNext()) {
+                            if (!sreg.isClosed()) {
+                                sreg.set(it.next().register(this));
+                            }
+                        } else {
+                            done = true;
+                            try {
+                                observer.finish();
+                            } finally {
+                                sreg.close();
+                            }
+                        }
+                    }
+                }
+            }.toThreadSafe();
+            
+            tobs.finish(); // trigger first item from sources
+            
+            return sreg;
+        };
+    }
+    /**
+     * Merges the incoming sequences of the sources into a single observable.
+     * <p>Error condition in one of the sources is immediately propagated,
+     * the last finish will terminate the entire observation.</p>
+     * FIXME not sure about the race condition between the registration's
+     * finish and the inner error.
+     * @param <T>
+     * @param sources
+     * @return
+     */
+    static <T> Observable<T> merge(Iterable<? extends Observable<? extends T>> sources) {
+        return (observer) -> {
+            CompositeRegistration creg = new CompositeRegistration();
+            
+            AtomicInteger wip = new AtomicInteger(1);
+            
+            Runnable complete = () -> {
+                if (wip.decrementAndGet() == 0 && !creg.isClosed()) {
+                    try {
+                        observer.finish();
+                    } finally {
+                        creg.close();
+                    }
+                }
+            };
+            
+            Observer<T> so = Observer.createSafe(
+                    (v) -> {
+                        observer.next(v);
+                    },
+                    (e) -> {
+                        try {
+                            observer.error(e);
+                        } finally {
+                            creg.close();
+                        }
+                    },
+                    complete
+            );
+            
+            sources.forEach(o -> {
+                if (!creg.isClosed()) {
+                    wip.incrementAndGet();
+                    creg.add(o.register(so));
+                }
+            });
+            
+            complete.run();
+            
+            return creg;
+        };
+    }
+    /**
+     * Merges a dynamic sequence of observables.
+     * <p>Error condition coming through any source observable is
+     * forwarded immediately and the registrations are terminated.</p>
+     *
+     * @param <T>
+     * @param sources
+     * @return
+     */
+    static <T> Observable<T> merge(Observable<? extends Observable<? extends T>> sources) {
+        return (observer) -> {
+            CompositeRegistration reg = new CompositeRegistration();
+            
+            AtomicInteger wip = new AtomicInteger(1);
+            
+            Runnable complete = () -> {
+                if (wip.decrementAndGet() == 0 && !reg.isClosed()) {
+                    try {
+                        observer.finish();
+                    } finally {
+                        reg.close();
+                    }
+                }
+            };
+            
+            Observer<Observable<? extends T>> sourceObserver = Observer.createSafe(
+                    (o) -> {
+                        wip.incrementAndGet();
+                        
+                        SingleRegistration itemReg = new SingleRegistration();
+                        
+                        reg.add(itemReg);
+                        
+                        Observer<T> itemObserver = Observer.createSafe(
+                                (v) -> {
+                                    observer.next(v);
+                                },
+                                (e) -> {
+                                    try {
+                                        observer.error(e);
+                                    } finally {
+                                        reg.close();
+                                    }
+                                },
+                                () -> {
+                                    reg.remove(itemReg);
+                                    complete.run();
+                                }
+                        );
+                        
+                        itemReg.set(o.register(itemObserver));
+                    },
+                    (e) -> {
+                        try {
+                            observer.error(e);
+                        } finally {
+                            reg.close();
+                        }
+                    },
+                    complete
+            );
+            
+            reg.add(sources.register(sourceObserver));
+            
+            return reg;
+        };
+    }
+    /**
+     * Creates an observable which periodically emits
+     * timer values regardless of the registered observers
+     * (like a wall clock).
+     * @param start
+     * @param count
+     * @param period
+     * @param unit
+     * @param scheduler
+     * @return 
+     */
+    public static ObservableRegistration<Long> activeTick(long start, long count, long period,
+    TimeUnit unit, Scheduler scheduler) {
+        DefaultObservable<Long> obs = new DefaultObservable<>();
+        
+        LongRef counter = LongRef.of(start);
+        long end = start + count;
+        
+        SingleRegistration sreg = new SingleRegistration();
+        sreg.set(scheduler.schedule(period, period, unit, () -> {
+           if (counter.value < end) {
+               obs.next(counter.value);
+               counter.value++;
+           } else {
+               sreg.close();
+           }
+        }));
+        
+        return new ObservableRegistration<Long>() {
+            @Override
+            public Registration register(Observer<? super Long> observer) {
+                return obs.register(observer);
+            }
+
+            @Override
+            public void close() {
+                obs.clear();
+                sreg.close();
+            }
+        };
+    }
+    /**
+     * Concatenates the observable sequences produced by a selector
+     * function for the specified parameter values.
+     * @param <T>
+     * @param <U>
+     * @param selector
+     * @param values
+     * @return 
+     */
+    static <T, U> Observable<U> concat(
+            Iterable<? extends T> values,
+            Function<? super T, ? extends Observable<? extends U>> selector
+            ) {
+        Objects.requireNonNull(selector);
+        Objects.requireNonNull(values);
+        return (observer) -> {
+            
+            Iterator<? extends T> it = values.iterator();
+            
+            SingleRegistration sreg = new SingleRegistration();
+            
+            Observer<U> uobs = new Observer<U>() {
+                @Override
+                public void next(U value) {
+                    observer.next(value);
+                }
+                @Override
+                public void error(Throwable t) {
+                    observer.error(t);
+                    sreg.close();
+                }
+                @Override
+                public void finish() {
+                    if (it.hasNext()) {
+                        try {
+                            sreg.set(selector.apply(it.next()).register(this));
+                        } catch (Throwable t) {
+                            error(t);
+                        }
+                    } else {
+                        observer.finish();
+                        sreg.close();
+                    }
+                }
+            }.toThreadSafe();
+            
+            uobs.finish();
+            
+            return sreg;
+        };
+    }
+    /**
+     * Concatenates the observable sequences produced by a selector
+     * function for the specified parameter values.
+     * @param <T>
+     * @param <U>
+     * @param selector
+     * @param values
+     * @return 
+     */
+    static <T, U> Observable<U> concat(
+            Iterable<? extends T> values,
+            IndexedFunction<? super T, ? extends Observable<? extends U>> selector 
+            ) {
+        Objects.requireNonNull(selector);
+        Objects.requireNonNull(values);
+        return (observer) -> {
+            Iterator<? extends T> it = values.iterator();
+            
+            SingleRegistration sreg = new SingleRegistration();
+            
+            Observer<U> uobs = new Observer<U>() {
+                /** The index counter. */
+                int index;
+                @Override
+                public void next(U value) {
+                    observer.next(value);
+                }
+                @Override
+                public void error(Throwable t) {
+                    observer.error(t);
+                    sreg.close();
+                }
+                @Override
+                public void finish() {
+                    if (it.hasNext()) {
+                        try {
+                            sreg.set(selector.apply(index++, it.next()).register(this));
+                        } catch (Throwable t) {
+                            error(t);
+                        }
+                    } else {
+                        observer.finish();
+                        sreg.close();
+                    }
+                }
+            }.toThreadSafe();
+            
+            uobs.finish();
+            
+            return sreg;
         };
     }
 }

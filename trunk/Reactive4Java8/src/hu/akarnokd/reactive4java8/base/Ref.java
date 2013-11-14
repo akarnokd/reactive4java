@@ -24,9 +24,35 @@ package hu.akarnokd.reactive4java8.base;
 public final class Ref<T> {
     /** The value. */
     public T value;
+    /**
+     * Create an instance with the given initial value.
+     * @param <T>
+     * @param initial
+     * @return 
+     */
     public static <T> Ref<T> of(T initial) {
         Ref<T> t = new Ref<>();
         t.value = initial;
         return t;
+    }
+    /**
+     * Returns the current value and nulls it afterwards.
+     * @return 
+     */
+    public T remove() {
+        T v = value;
+        value = null;
+        return v;
+    }
+    /**
+     * Replaces the current value with the new value
+     * and returns the old value.
+     * @param newValue
+     * @return 
+     */
+    public T replace(T newValue) {
+        T v = value;
+        value = newValue;
+        return v;
     }
 }

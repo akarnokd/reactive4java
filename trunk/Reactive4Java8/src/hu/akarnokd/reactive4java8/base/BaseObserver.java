@@ -25,10 +25,10 @@ public interface BaseObserver {
      * Receive an exception.
      * @param t a throwable exception
      */
-    default void error(Throwable t) { }
+    void error(Throwable t);
     /**
      * Receive a completion signal.
      */
-    default void finish() { }
+    void finish();
 
 }

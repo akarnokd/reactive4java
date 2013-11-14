@@ -17,6 +17,7 @@
 package hu.akarnokd.reactive4java8.base;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -31,11 +32,19 @@ import java.util.Objects;
  * @author akarnokd, 2013.11.09.
  */
 public class CompositeRegistration extends BaseRegistration {
+    /** The list of registrations. */
     private List<Registration> list;
+    /**
+     * Constructor with empty list of registrations.
+     */
     public CompositeRegistration() {
         super();
         this.list = new LinkedList<>();
     }
+    /**
+     * Constructor with optional starting registrations.
+     * @param regs 
+     */
     public CompositeRegistration(Registration... regs) {
         super();
         Objects.requireNonNull(regs);
@@ -44,11 +53,19 @@ public class CompositeRegistration extends BaseRegistration {
             list.add(Objects.requireNonNull(reg));
         }
     }
-    public CompositeRegistration(Iterable<Registration> regs) {
+    /**
+     * Constructor with a sequence of starting registrations.
+     * @param regs 
+     */
+    public CompositeRegistration(Iterable<? extends Registration> regs) {
         super();
         Objects.requireNonNull(regs);
         regs.forEach((v) -> list.add(Objects.requireNonNull(v)));
     }
+    /**
+     * Add a new registration to this composite.
+     * @param reg 
+     */
     public void add(Registration reg) {
         Objects.requireNonNull(reg);
         if (ls.sync(() -> {
@@ -62,12 +79,47 @@ public class CompositeRegistration extends BaseRegistration {
         }
     }
     /**
+     * Adds all elements to this composite unless the current
+     * state is already done.
+     * @param regs 
+     */
+    public void addAll(Iterable<? extends Registration> regs) {
+        Objects.requireNonNull(regs);
+        if (ls.sync(() -> {
+            boolean r = done;
+            if (!r) {
+                regs.forEach(list::add);
+            }
+            return r;
+        })) {
+            regs.forEach(Registration::close);
+        }
+    }
+    /**
+     * Adds all elements to this composite unless the current
+     * state is already done.
+     * @param regs 
+     */
+    public void addAll(Registration... regs) {
+        addAll(Arrays.asList(regs));
+    }
+    /**
      * Removes the given registration from this composite,
      * but does not close it.
      * @param reg the registration to remove
      */
     public void remove(Registration reg) {
         ls.sync(() -> { if (!done) { list.remove(reg); } });
+    }
+    /**
+     * Removes and closes the given registration.
+     * @param reg 
+     */
+    public void close(Registration reg) {
+        remove(reg);
+        if (reg != null) {
+            reg.close();
+        }
     }
     /**
      * Clears the contents of this composite registration.
