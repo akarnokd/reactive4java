@@ -104,6 +104,10 @@ public interface Observer<T> extends BaseObserver {
             public void error(Throwable t) {
                 error.accept(t);
             }
+
+            @Override
+            public void finish() {
+            }            
         };
     }
     /**
@@ -173,7 +177,8 @@ public interface Observer<T> extends BaseObserver {
         return new Observer<T>() {
             @Override
             public void next(T value) { }
-
+            @Override
+            public void error(Throwable t) { }
             @Override
             public void finish() {
                 finish.run();

@@ -128,4 +128,16 @@ public final class LockSync {
             lock.unlock();
         }        
     }
+    /**
+     * Lock.
+     */
+    public void lock() {
+        lock.lock();
+    }
+    /**
+     * Unlock.
+     */
+    public void unlock() {
+        lock.unlock();
+    }
 }
