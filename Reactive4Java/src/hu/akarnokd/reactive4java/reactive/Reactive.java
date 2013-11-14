@@ -634,7 +634,7 @@ public final class Reactive {
 			@Nonnull final Observable<? extends T> source,
 			final int bufferSize,
 			int skip) {
-		return new Buffer.WithSizeSkip<T>(source, bufferSize, 0);
+		return new Buffer.WithSizeSkip<T>(source, bufferSize, skip);
 	}
 	/**
 	 * Buffer the Ts of the source until the buffer reaches its capacity or the current time unit runs out.
