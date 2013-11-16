@@ -113,10 +113,11 @@ public interface Observable<T> {
                 for (T t : values) {
                     observer.next(t);
                 }
-                observer.finish();
             } catch (Throwable t) {
                 observer.error(t);
+                return Registration.EMPTY;
             }
+            observer.finish();
             return Registration.EMPTY;
         };
     }
@@ -134,10 +135,11 @@ public interface Observable<T> {
                 for (T t : src) {
                     observer.next(t);
                 }
-                observer.finish();
             } catch (Throwable t) {
                 observer.error(t);
+                return Registration.EMPTY;
             }
+            observer.finish();
             return Registration.EMPTY;
         };
     }
@@ -155,10 +157,11 @@ public interface Observable<T> {
         return (observer) -> {
             try {
                 stream.forEach(observer::next);
-                observer.finish();
             } catch (Throwable t) {
                 observer.error(t);
+                return Registration.EMPTY;
             }
+            observer.finish();
             return Registration.EMPTY;
         };
     }
@@ -183,7 +186,7 @@ public interface Observable<T> {
      */
     default void forEach(Consumer<? super T> consumer) {
         CountDownLatch latch = new CountDownLatch(1);
-        try (Registration reg = register(Observer.createSafe(
+        try (Registration reg = register(Observer.create(
                 consumer::accept,
                 (t) -> { latch.countDown(); },
                 () -> { latch.countDown(); }
@@ -385,8 +388,8 @@ public interface Observable<T> {
             
             CompositeRegistration creg = new CompositeRegistration();
             creg.add(sls);
-            creg.add(register(Observer.createSafe(
-                    (T v) -> { // XXX Inference loop without the T???
+            creg.add(register(Observer.create(
+                    (T v) -> {
                         sls.schedule(() -> {
                             try {
                                 observer.next(v);
@@ -1663,13 +1666,19 @@ public interface Observable<T> {
                         Observable<D> endGroup = durationSelector.apply(g2);
                         
                         sreg.set(endGroup.register(Observer.create(
-                                () -> {
+                                (v) -> {
                                     ls.sync(() -> {
                                         creg.remove(sreg);
                                         groups.remove(key).finish();
                                     });
                                 },
-                                (e) -> innerError(e)
+                                (e) -> innerError(e),
+                                () -> {
+                                    ls.sync(() -> {
+                                        creg.remove(sreg);
+                                        groups.remove(key).finish();
+                                    });
+                                }
                         )));
                         
                         return g2;
@@ -2144,19 +2153,19 @@ public interface Observable<T> {
      */
     default Observable<T> ifEmpty(Supplier<? extends T> supplier) {
         return (observer) -> {
-            Observer<T> tobs = new Observer<T>() {
+            DefaultObserver<T> tobs = new DefaultObserver<T>() {
                 boolean has;
                 @Override
-                public void next(T value) {
+                public void onNext(T value) {
                     has = true;
                     observer.next(value);
                 }
                 @Override
-                public void error(Throwable t) {
+                public void onError(Throwable t) {
                     observer.error(t);
                 }
                 @Override
-                public void finish() {
+                public void onFinish() {
                     if (!has) {
                         try {
                             observer.next(supplier.get());
@@ -2168,8 +2177,8 @@ public interface Observable<T> {
                     observer.finish();
                 }
                 
-            }.toThreadSafe();
-            return register(tobs);
+            };
+            return tobs.registerWith(this);
         };
     }
     /**
@@ -2410,5 +2419,60 @@ public interface Observable<T> {
         });
         
         return as;
+    }
+    /**
+     * Returns an observable which generates values like a generalized
+     * for loop.
+     * @param <T>
+     * @param start
+     * @param test
+     * @param next
+     * @return 
+     */
+    public static <T> Observable<T> generate(T start, Predicate<? super T> test, Function<? super T, ? extends T> next) {
+        return (observer) -> {
+            try {
+                T value = start;
+                while (test.test(value)) {
+                    observer.next(value);
+                    value = next.apply(value);
+                }
+                observer.finish();
+            } catch (Throwable t) {
+                observer.error(t);
+            }
+            return Registration.EMPTY;
+        };
+    }
+    /**
+     * Registers a simple consumer and ignores error or finish events.
+     * @param consumer
+     * @return 
+     */
+    default Registration register(Consumer<? super T> consumer) {
+        return registerSafe(new Observer<T>() {
+            @Override
+            public void next(T value) {
+                consumer.accept(value);
+            }
+            @Override
+            public void error(Throwable t) {
+            }
+            @Override
+            public void finish() {
+            }
+        });
+    }
+    /**
+     * Ignores the values of this observable.
+     * @return 
+     */
+    default Observable<T> ignoreValues() {
+        return (observer) -> 
+            SimpleObserver.builder()
+                .error(observer::error)
+                .finish(observer::finish)
+                .createAndRegister(this)
+        ;
     }
 }

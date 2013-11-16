@@ -17,6 +17,7 @@
 package hu.akarnokd.reactive4java8.base;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A registration which maintains a single sub-registration
@@ -24,62 +25,69 @@ import java.util.Objects;
  * The previous registration is then closed.
  * @author akarnokd, 2013.11.09.
  */
-public class SingleRegistration extends BaseRegistration {
+public class SingleRegistration implements Registration {
     /** The managed registration. */
-    private Registration reg;
+    private final AtomicReference<Registration> reg;
+    /** The closed registration token. */
+    private static final Registration SENTINEL = () -> { };
     /**
      * Default constructor, empty managed registration.
      */
     public SingleRegistration() {
-        super();
+        this.reg = new AtomicReference<>();
     }
     /**
      * Constructor with an initial registration to maintain.
      * @param reg 
      */
     public SingleRegistration(Registration reg) {
-        super();
-        this.reg = Objects.requireNonNull(reg);
+        this.reg = new AtomicReference<>(Objects.requireNonNull(reg));
     }
     /**
      * Set a new registration and close the original one.
      * @param newReg the new registration
      */
     public void set(Registration newReg) {
-        Registration toClose = ls.sync(() -> {
-            if (!done) {
-                Registration r = reg;
-                reg = newReg;
-                return r;
+        Registration q = null;
+        do {
+            Registration r = reg.get();
+            if (r == SENTINEL) {
+                q = newReg;
+                break;
             }
-            return newReg;
-        });
-        if (toClose != null) {
-            toClose.close();
+            if (reg.compareAndSet(r, newReg)) {
+                q = r;
+                break;
+            }
+        } while (true);
+        if (q != null) {
+            q.close();
+        }
+    }
+
+    @Override
+    public void close() {
+        Registration r = reg.getAndSet(SENTINEL);
+        if (r != null) {
+            r.close();
         }
     }
     /**
-     * Removes the current maintained registration without closing it.
+     * Is this registration closed?
+     * @return 
      */
-    public void clear() {
-        ls.sync(() -> {
-            reg = null;
-        });
+    public boolean isClosed() {
+        return reg.get() == SENTINEL;
     }
-    @Override
-    public void close() {
-        Registration toClose = ls.sync(() -> {
-            if (!done) {
-                done = true;
-                Registration r = reg;
-                reg = null;
-                return r;
-            }
-            return null;
-        });
-        if (toClose != null) {
-            toClose.close();
+    /**
+     * Returns the current contained registration.
+     * @return 
+     */
+    public Registration get() {
+        Registration r = reg.get();
+        if (r == SENTINEL) {
+            return Registration.EMPTY;
         }
+        return r;
     }
-    
 }

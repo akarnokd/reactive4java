@@ -16,6 +16,8 @@
 
 package hu.akarnokd.reactive4java8.base;
 
+import java.util.Objects;
+
 /**
  * Interface representing a registration to an observable sequence.
  * <p>The close() method should be idempotent.</p>
@@ -36,4 +38,13 @@ public interface Registration extends AutoCloseable {
      * An empty registration which does nothing.
      */
     Registration EMPTY = () -> { };
+    /**
+     * Closes the other registration after closing this.
+     * @param other
+     * @return 
+     */
+    default Registration then(Registration other) {
+        Objects.requireNonNull(other);
+        return () -> { close(); other.close(); };
+    }
 }
