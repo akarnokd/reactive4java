@@ -40,9 +40,9 @@ import javax.annotation.Nullable;
  * to reduce the length of the Observable interface.
  * @author karnok
  */
-final class ObservableOps {
+final class ObservableImpl {
     /** No instances. */
-    private ObservableOps() { throw new UnsupportedOperationException(); }
+    private ObservableImpl() { throw new UnsupportedOperationException(); }
     /**
      * Returns an observable sequence which registers
      * with all of the source observables even if an error

@@ -31,10 +31,13 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
@@ -457,7 +460,7 @@ public interface Observable<T> {
      * @return
      */
     public static <T> Observable<T> merge(Iterable<? extends Observable<? extends T>> sources) {
-        return ObservableOps.merge(sources);
+        return ObservableImpl.merge(sources);
     }
     /**
      * Merges a dynamic sequence of observables.
@@ -469,7 +472,7 @@ public interface Observable<T> {
      * @return
      */
     public static <T> Observable<T> merge(Observable<? extends Observable<? extends T>> sources) {
-        return ObservableOps.merge(sources);
+        return ObservableImpl.merge(sources);
     }
     @SafeVarargs
     public static <T> Observable<T> merge(Observable<? extends T>... sources) {
@@ -483,7 +486,7 @@ public interface Observable<T> {
      * @return
      */
     public static <T> Observable<T> concat(Iterable<? extends Observable<? extends T>> sources) {
-        return ObservableOps.concat(sources);
+        return ObservableImpl.concat(sources);
     }
     /**
      * Concatenates the values of the source sequences
@@ -504,7 +507,7 @@ public interface Observable<T> {
      * @return
      */
     public static <T> Observable<T> concat(Observable<? extends Observable<? extends T>> sources) {
-        return ObservableOps.concat(sources);
+        return ObservableImpl.concat(sources);
     }
     /**
      * Returns an observable sequence of the given range of integer values.
@@ -513,7 +516,7 @@ public interface Observable<T> {
      * @return the observable
      */
     public static Observable<Integer> range(int start, int end) {
-        return ObservableOps.range(start, end);
+        return ObservableImpl.range(start, end);
     }
     /**
      * Returns an observable sequence of the given range of integer values.
@@ -522,7 +525,7 @@ public interface Observable<T> {
      * @return the observable
      */
     public static Observable<Long> range(long start, long end) {
-        return ObservableOps.range(start, end);
+        return ObservableImpl.range(start, end);
     }
     /**
      * Delays the delivery of all events to the observers.
@@ -833,7 +836,7 @@ public interface Observable<T> {
      */
     public static Observable<Long> tick(long period, TimeUnit unit,
             Scheduler scheduler) {
-        return ObservableOps.tick(period, unit, scheduler);
+        return ObservableImpl.tick(period, unit, scheduler);
     }
     /**
      * Returns an observable sequence which buffers the values
@@ -1119,7 +1122,7 @@ public interface Observable<T> {
             Observable<T> first,
             Observable<U> second,
             BiFunction<? super T, ? super U, ? extends V> function) {
-        return ObservableOps.combineLatest(first, second, function);
+        return ObservableImpl.combineLatest(first, second, function);
     }
     /**
      * Returns an observable which counts from start to start+count-1
@@ -1133,7 +1136,7 @@ public interface Observable<T> {
      */
     public static Observable<Long> tick(long start, long count,
             long period, TimeUnit unit, Scheduler scheduler) {
-        return ObservableOps.tick(start, count, period, unit, scheduler);
+        return ObservableImpl.tick(start, count, period, unit, scheduler);
     }
     /**
      * Returns an observable which counts from start to start+count-1
@@ -1148,7 +1151,7 @@ public interface Observable<T> {
      */
     public static Observable<Long> tick(long start, long count,
             long initialDelay, long period, TimeUnit unit, Scheduler scheduler) {
-        return ObservableOps.tick(start, count, initialDelay, period, unit, scheduler);
+        return ObservableImpl.tick(start, count, initialDelay, period, unit, scheduler);
     }
     /**
      * Returns a single observable boolean value if all
@@ -1514,7 +1517,7 @@ public interface Observable<T> {
      */
     public static <T> Observable<T> ambiguous(
             Iterable<? extends Observable<? extends T>> sources) {
-        return ObservableOps.ambiguous(sources);
+        return ObservableImpl.ambiguous(sources);
     }
     /**
      * Channels the events of the observable which fires first.
@@ -1718,7 +1721,7 @@ public interface Observable<T> {
             Function<? super R, ? extends Observable<RD>> rightDuration,
             BiFunction<? super L, ? super R, ? extends V> resultSelector
     ) {
-        return ObservableOps.join(left, right, leftDuration, rightDuration, resultSelector);
+        return ObservableImpl.join(left, right, leftDuration, rightDuration, resultSelector);
     }
     /**
      * Repeats the given value indefinitely.
@@ -1743,7 +1746,7 @@ public interface Observable<T> {
      * @return
      */
     public static <T> Observable<T> repeat(T value, int count) {
-        return ObservableOps.repeat(value, count);
+        return ObservableImpl.repeat(value, count);
     }
     /**
      * Repeatedly registers with this observable if finishes normally
@@ -1790,7 +1793,7 @@ public interface Observable<T> {
      * @return
      */
     public static <T> Observable<T> resumeAlways(Iterable<? extends Observable<? extends T>> sources) {
-        return ObservableOps.resumeAlways(sources);
+        return ObservableImpl.resumeAlways(sources);
     }
     /**
      * Returns an observable sequence which registers
@@ -1801,7 +1804,7 @@ public interface Observable<T> {
      * @return
      */
     public static <T> Observable<T> resumeOnError(Iterable<? extends Observable<? extends T>> sources) {
-        return ObservableOps.resumeOnError(sources);
+        return ObservableImpl.resumeOnError(sources);
     }
     /**
      * Creates an observable which periodically emits
@@ -1816,7 +1819,7 @@ public interface Observable<T> {
      */
     public static ObservableRegistration<Long> activeTick(long start, long count, long period,
             TimeUnit unit, Scheduler scheduler) {
-        return ObservableOps.activeTick(start, count, period, unit, scheduler);
+        return ObservableImpl.activeTick(start, count, period, unit, scheduler);
     }
     /**
      * Adds a millisecond-based timestamp to each observed value.
@@ -2099,7 +2102,7 @@ public interface Observable<T> {
     public static <T, U> Observable<U> concat(
             Iterable<? extends T> values,
             Function<? super T, ? extends Observable<? extends U>> selector) {
-        return ObservableOps.concat(values, selector);
+        return ObservableImpl.concat(values, selector);
     }
     /**
      * Concatenates the observable sequences produced by a selector
@@ -2113,7 +2116,7 @@ public interface Observable<T> {
     public static <T, U> Observable<U> concat(
             Iterable<? extends T> values,
             IndexedFunction<? super T, ? extends Observable<? extends U>> selector) {
-        return ObservableOps.concat(values, selector);
+        return ObservableImpl.concat(values, selector);
     }
     /**
      * Returns an observable which contains a single value
@@ -2200,7 +2203,7 @@ public interface Observable<T> {
             Observable<U> registerDelay,
             Function<? super T, ? extends Observable<V>> delaySelector) {
         Objects.requireNonNull(registerDelay);
-        return ObservableOps.delay(this, registerDelay, delaySelector);
+        return ObservableImpl.delay(this, registerDelay, delaySelector);
     }
     /**
      * Delays the delivery of the events of this observable to
@@ -2213,7 +2216,7 @@ public interface Observable<T> {
      */
     default <U, V> Observable<T> delay(
             Function<? super T, ? extends Observable<V>> delaySelector) {
-        return ObservableOps.delay(this, null, delaySelector);
+        return ObservableImpl.delay(this, null, delaySelector);
     }
     /**
      * Delays the registration on this observable to when
@@ -2344,7 +2347,7 @@ public interface Observable<T> {
      */
     public static <T> Observable<List<T>> forkJoin(
             Iterable<? extends Observable<? extends T>> sources) {
-        return ObservableOps.forkJoin(sources);
+        return ObservableImpl.forkJoin(sources);
     }
     /**
      * Runs the observables in parallel and combines their
@@ -2357,5 +2360,55 @@ public interface Observable<T> {
     public static <T> Observable<List<T>> forkJoin(
             Observable<? extends T>... sources) {
         return forkJoin(Arrays.asList(sources));
+    }
+    /**
+     * Creates an observable which tracks the result of the given
+     * completable future.
+     * <p>Cancelled futures appear as empty observables.</p>
+     * @param <T>
+     * @param cfuture
+     * @return 
+     */
+    public static <T> Observable<T> create(CompletableFuture<? extends T> cfuture) {
+        AsyncSubject<T> as = new AsyncSubject<>();
+        
+        cfuture.whenComplete((v, e) -> {
+            boolean c = cfuture.isCancelled();
+            if (e != null && !c) {
+                as.error(e);
+            } else {
+                if (!c) {
+                    as.next(v);
+                }
+                as.finish();
+            }
+        });
+        
+        return as;
+    }
+    /**
+     * Creates an observable which awaits the completion of the
+     * future on a scheduler.
+     * <p>Interrupted or cancelled tasks appear as empty.</p>
+     * @param <T>
+     * @param future
+     * @param scheduler
+     * @return 
+     */
+    public static <T> Observable<T> create(Future<? extends T> future, Scheduler scheduler) {
+        AsyncSubject<T> as = new AsyncSubject<>();
+        
+        scheduler.schedule(() -> {
+            try {
+                as.next(future.get());
+                as.finish();
+            } catch (InterruptedException | CancellationException ex) {
+                as.finish();
+            } catch (ExecutionException ex) {
+                as.error(ex);
+            }
+        });
+        
+        return as;
     }
 }
