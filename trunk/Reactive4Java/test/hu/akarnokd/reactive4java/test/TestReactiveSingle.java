@@ -26,7 +26,7 @@ import hu.akarnokd.reactive4java.util.Functions;
 
 import java.util.NoSuchElementException;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.junit.Test;
 

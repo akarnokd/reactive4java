@@ -174,7 +174,7 @@ public final class Timeout {
 		@Nonnull
 		public Closeable register(final Observer<? super T> observer) {
 			final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
-			final SingleCloseable first = new SingleCloseable();
+			final SingleCloseable firstClose = new SingleCloseable();
 			final CompositeCloseable c = new CompositeCloseable();
 			
 			final DefaultObserverEx<T> obs = new DefaultObserverEx<T>(lock, true) {
@@ -272,13 +272,13 @@ public final class Timeout {
 				}
 				@Override
 				protected void onClose() {
-					first.closeSilently();
+					firstClose.closeSilently();
 				}
 			};
 			
-			first.set(Observers.registerSafe(firstTimeout, firstObs));
+			firstClose.set(Observers.registerSafe(firstTimeout, firstObs));
 			
-			c.add(first, obs);
+			c.add(firstClose, obs);
 			
 			return c;
 		}

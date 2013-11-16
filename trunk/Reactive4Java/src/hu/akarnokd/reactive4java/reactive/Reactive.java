@@ -2469,6 +2469,7 @@ public final class Reactive {
 					Pair<Long, TimeUnit> toWait = delay.invoke(initial);
 					return pool.schedule(s, toWait.first, toWait.second);
 				}
+				observer.finish();
 				return Closeables.emptyCloseable();
 			}
 		};

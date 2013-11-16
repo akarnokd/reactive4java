@@ -59,12 +59,12 @@ public class MostRecent<T> extends ObservableToIterableAdapter<T, T> {
 			@Nonnull 
 			protected volatile ObservationKind kind = ObservationKind.NEXT;
 			/** The current value. */
-			protected volatile T current = initialValue;
+			protected volatile T curr = initialValue;
 			/** The current error. */
 			protected volatile Throwable error;
 			@Override
 			public void next(T value) {
-				this.current = value;
+				this.curr = value;
 				kind = ObservationKind.NEXT;
 			}
 
@@ -87,7 +87,7 @@ public class MostRecent<T> extends ObservableToIterableAdapter<T, T> {
 			public boolean tryNext(@Nonnull SingleOption<? super T> out) {
 				switch (kind) {
 				case NEXT:
-					out.add(current);
+					out.add(curr);
 					return true;
 				case ERROR:
 					out.addError(error);
