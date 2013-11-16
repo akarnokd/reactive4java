@@ -38,7 +38,7 @@ import java.util.concurrent.locks.Lock;
 public abstract class DefaultObserver<T> implements Observer<T> {
     protected final LockSync ls;
     private boolean done;
-    protected final Registration reg;
+    protected final SingleRegistration reg;
     /**
      * Default observer with empty registration and non-fair reentrant lock.
      */
@@ -50,11 +50,11 @@ public abstract class DefaultObserver<T> implements Observer<T> {
     }
     public DefaultObserver(Registration reg) {
         this.ls = new LockSync();
-        this.reg = Objects.requireNonNull(reg);
+        this.reg = new SingleRegistration(Objects.requireNonNull(reg));
     }
     public DefaultObserver(Registration reg, Lock lock) {
         this.ls = new LockSync(lock);
-        this.reg = Objects.requireNonNull(reg);
+        this.reg = new SingleRegistration(Objects.requireNonNull(reg));
     }
     /** 
      * Set the done flag to true, preventing further delivery
@@ -116,6 +116,17 @@ public abstract class DefaultObserver<T> implements Observer<T> {
     /** Closes the associated registration. */
     protected void close() {
         reg.close();
+    }
+    /**
+     * Registers with the given observable and stores
+     * the registration.
+     * @param observable
+     * @return 
+     */
+    public Registration registerWith(Observable<? extends T> observable) {
+        Registration r = observable.registerSafe(this);
+        reg.set(r);
+        return reg;
     }
     /**
      * Called when a value arrives.
