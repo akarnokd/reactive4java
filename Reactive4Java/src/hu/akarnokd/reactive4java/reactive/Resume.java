@@ -87,6 +87,7 @@ public final class Resume {
 				};
 				return obs.registerWith(it.next());
 			}
+			observer.finish();
 			return Closeables.emptyCloseable();
 		}
 	}
@@ -138,6 +139,7 @@ public final class Resume {
 				};
 				return obs.registerWith(it.next());
 			}
+			observer.finish();
 			return Closeables.emptyCloseable();
 		}
 	}

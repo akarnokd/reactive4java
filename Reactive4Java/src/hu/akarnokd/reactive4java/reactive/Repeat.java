@@ -122,6 +122,7 @@ public final class Repeat {
 			if (condition.invoke()) {
 				return obs.registerWith(source);
 			}
+			observer.finish();
 			return Closeables.emptyCloseable();
 		}
 	}

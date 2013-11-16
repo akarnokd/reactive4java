@@ -23,7 +23,7 @@ import hu.akarnokd.reactive4java.util.ObserverAdapter;
 
 import java.io.Closeable;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 /**
  * Utility class to test a hybrid java-reactive observable implementation on all

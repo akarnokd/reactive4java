@@ -22,7 +22,7 @@ import hu.akarnokd.reactive4java.reactive.Reactive;
 
 import java.util.concurrent.TimeUnit;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.junit.Test;
 

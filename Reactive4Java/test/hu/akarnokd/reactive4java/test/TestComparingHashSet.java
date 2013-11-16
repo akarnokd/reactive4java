@@ -15,10 +15,10 @@
  */
 package hu.akarnokd.reactive4java.test;
 
-import junit.framework.Assert;
 import hu.akarnokd.reactive4java.util.ComparingHashSet;
 import hu.akarnokd.reactive4java.util.Functions;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 /**

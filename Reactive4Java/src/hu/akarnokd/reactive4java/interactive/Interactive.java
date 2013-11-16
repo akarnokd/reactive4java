@@ -17,6 +17,7 @@ package hu.akarnokd.reactive4java.interactive;
 
 import hu.akarnokd.reactive4java.base.Action0;
 import hu.akarnokd.reactive4java.base.Action1;
+import hu.akarnokd.reactive4java.base.Action2;
 import hu.akarnokd.reactive4java.base.CloseableIterable;
 import hu.akarnokd.reactive4java.base.CloseableIterator;
 import hu.akarnokd.reactive4java.base.Enumerable;
@@ -4619,7 +4620,124 @@ public final class Interactive {
 	// TODO repeat(Iterable)
 	
 	// TODO repeat(Iterable, count)
-	
+
+	/**
+	 * Aggregates subsequent elements (in place) as long as <code>isDifferent</code> returns false.
+	 * Once two different subsequent elements are found or the stream terminates, a single, aggregated value
+	 * is emitted.
+	 * <p>For example, given a stream of [1, 1, 2, 2, 3, 3], the output
+	 * will be [2, 4, 6].</p>
+	 * <p>The returned iterator does not support <code>remove()</code>.</p>
+	 * @param <T> the source and result type
+	 * @param src the source sequence
+	 * @param isDifferent the difference
+	 * @param aggregate the aggregator
+	 * @return the iterator sequence containing the aggregated values
+	 * @since 0.97.1
+	 */
+	@Nonnull 
+	public static <T> Iterator<T> differentAggregator(
+			@Nonnull final Iterator<? extends T> src, 
+			@Nonnull final Func2<? super T, ? super T, Boolean> isDifferent, 
+			@Nonnull final Action2<T, ? super T> aggregate) {
+		return new Iterator<T>() {
+			/** The result. */
+			T r;
+			/** The aggregator. */
+			T g;
+			@Override
+			public boolean hasNext() {
+				if (r == null) {
+					while (src.hasNext()) {
+						T s = src.next();
+						if (g == null) {
+							g = s;
+							r = g;
+							continue;
+						} else
+						if (isDifferent.invoke(g, s)) {
+							r = g;
+							g = s;
+							break;
+						}
+						aggregate.invoke(g, s);
+					}
+				}
+				return r != null;
+			}
+			@Override
+			public T next() {
+				if (hasNext()) {
+					T rr = r;
+					r = null;
+					return rr;
+				}
+				throw new NoSuchElementException();
+			}
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException();
+			}
+		};
+	}
+	/**
+	 * Wraps the given source iterator into a closeable iterable
+	 * with the given closeable reference.
+	 * @param <T> the source and result type
+	 * @param source the source iterator
+	 * @param closer the close handle
+	 * @return the new closeable iterator
+	 * @since 0.97.1
+	 */
+	@Nonnull 
+	public static <T> CloseableIterator<T> withClosing(
+			@Nonnull final Iterator<? extends T> source, 
+			@Nonnull final Closeable closer) {
+		return new CloseableIterator<T>() {
+
+			@Override
+			public boolean hasNext() {
+				return source.hasNext();
+			}
+
+			@Override
+			public T next() {
+				return source.next();
+			}
+
+			@Override
+			public void remove() {
+				source.remove();
+			}
+
+			@Override
+			public void close() throws IOException {
+				closer.close();
+			}
+			
+		};
+	}
+	/**
+	 * Wraps the given source iterator into a closeable iterable
+	 * with the given closeable reference.
+	 * @param <T> the source and result type
+	 * @param source the source iterator
+	 * @param closer the close handle
+	 * @return the new closeable iterator
+	 * @since 0.97.1
+	 */
+	@Nonnull 
+	public static <T> CloseableIterable<T> withClosing(
+			@Nonnull final Iterable<? extends T> source, 
+			@Nonnull final Closeable closer) {
+		return new CloseableIterable<T>() {
+			@Override
+			public CloseableIterator<T> iterator() {
+				return withClosing(source.iterator(), closer);
+			}
+		};
+	}
+
 	/** Utility class. */
 	private Interactive() {
 		// utility class

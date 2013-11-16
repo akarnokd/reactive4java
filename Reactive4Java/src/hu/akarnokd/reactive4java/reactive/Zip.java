@@ -113,6 +113,7 @@ public final class Zip {
 				}
 				return new LeftObserver().registerWith(left);
 			}
+			observer.finish();
 			return Closeables.emptyCloseable();
 		}
 	}
