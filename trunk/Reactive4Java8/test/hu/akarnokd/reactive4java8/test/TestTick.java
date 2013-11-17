@@ -16,9 +16,9 @@
 
 package hu.akarnokd.reactive4java8.test;
 
-import hu.akarnokd.reactive4java8.base.IndexedPredicate;
-import hu.akarnokd.reactive4java8.base.NewThreadScheduler;
-import hu.akarnokd.reactive4java8.base.Observable;
+import hu.akarnokd.reactive4java8.util.IndexedPredicate;
+import hu.akarnokd.reactive4java8.schedulers.NewThreadScheduler;
+import hu.akarnokd.reactive4java8.Observable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;

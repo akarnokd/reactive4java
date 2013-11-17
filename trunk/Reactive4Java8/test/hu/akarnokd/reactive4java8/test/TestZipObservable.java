@@ -16,7 +16,7 @@
 
 package hu.akarnokd.reactive4java8.test;
 
-import hu.akarnokd.reactive4java8.base.Observable;
+import hu.akarnokd.reactive4java8.Observable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
