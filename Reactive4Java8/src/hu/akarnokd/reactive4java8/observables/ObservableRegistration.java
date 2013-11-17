@@ -14,22 +14,16 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java8.test;
+package hu.akarnokd.reactive4java8.observables;
 
+import hu.akarnokd.reactive4java8.Registration;
 import hu.akarnokd.reactive4java8.Observable;
-import org.junit.Test;
 
 /**
- *
+ * Composite observable with the ability to close
+ * its registration.
  * @author karnok
  */
-public class TestAverage {
-    @Test
-    public void testMixedAverage() {
-        Observable<Number> src = Observable.from(1, 2L, 3F, 4D);
-        
-        Observable<Double> r = Observable.averageNumber(src);
-        
-        TestUtil.assertEquals(r, 2.5);
-    }
+public interface ObservableRegistration<T> extends Observable<T>, Registration {
+    
 }

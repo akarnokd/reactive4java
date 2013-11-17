@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-package hu.akarnokd.reactive4java8.test;
+package hu.akarnokd.reactive4java8.observables;
 
 import hu.akarnokd.reactive4java8.Observable;
-import org.junit.Test;
 
 /**
- *
+ * An observable with a group key.
  * @author karnok
+ * @param <T> the value type
+ * @param <K> the group key type
  */
-public class TestAverage {
-    @Test
-    public void testMixedAverage() {
-        Observable<Number> src = Observable.from(1, 2L, 3F, 4D);
-        
-        Observable<Double> r = Observable.averageNumber(src);
-        
-        TestUtil.assertEquals(r, 2.5);
-    }
+public interface GroupedObservable<T, K> extends Observable<T> {
+    /** @return The key. */
+    K key();
 }

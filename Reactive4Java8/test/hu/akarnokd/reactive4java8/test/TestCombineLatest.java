@@ -16,9 +16,9 @@
 
 package hu.akarnokd.reactive4java8.test;
 
-import hu.akarnokd.reactive4java8.base.NewThreadScheduler;
-import hu.akarnokd.reactive4java8.base.Observable;
-import hu.akarnokd.reactive4java8.base.Scheduler;
+import hu.akarnokd.reactive4java8.schedulers.NewThreadScheduler;
+import hu.akarnokd.reactive4java8.Observable;
+import hu.akarnokd.reactive4java8.Scheduler;
 import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 

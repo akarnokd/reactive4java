@@ -16,8 +16,8 @@
 
 package hu.akarnokd.reactive4java8.test;
 
-import hu.akarnokd.reactive4java8.base.Observer;
-import hu.akarnokd.reactive4java8.base.ReplaySubject;
+import hu.akarnokd.reactive4java8.Observer;
+import hu.akarnokd.reactive4java8.subjects.ReplaySubject;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
