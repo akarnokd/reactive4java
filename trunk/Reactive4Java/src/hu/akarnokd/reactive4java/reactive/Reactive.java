@@ -4779,7 +4779,7 @@ public final class Reactive {
 	 */
 	@Nonnull
 	public static <T> Observable<T> registerOn(
-			@Nonnull final Observable<T> observable,
+			@Nonnull final Observable<? extends T> observable,
 			@Nonnull final Scheduler pool) {
 		return new Observable<T>() {
 			@Override

@@ -16,13 +16,17 @@
 package hu.akarnokd.reactive4java.scheduler;
 
 import hu.akarnokd.reactive4java.base.Scheduler;
+import hu.akarnokd.reactive4java.util.R4JConfigManager;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nonnull;
 
@@ -79,7 +83,9 @@ public class CurrentThreadScheduler implements Scheduler {
 		}
 	}
 	/** The in progress value. */
-	protected int wip;
+	protected final AtomicInteger wip = new AtomicInteger();
+	/** The lock protecting the queue. */
+	protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
 	/** The priority queue for the tasks. */
 	protected PriorityQueue<DelayedRunnable> tasks = new PriorityQueue<DelayedRunnable>(128, new Comparator<DelayedRunnable>() {
 		@Override
@@ -92,44 +98,79 @@ public class CurrentThreadScheduler implements Scheduler {
 	});
 	/** The main scheduler loop. */
 	void schedulerLoop() {
-		if (wip == 1) {
-			try {
-				while (true) {
-					DelayedRunnable dr = tasks.poll();
-					if (dr == null) {
+		try {
+			while (true) {
+				DelayedRunnable dr = poll();
+				if (dr.delay > 0) {
+					dr.unit.sleep(dr.delay);
+				}
+				try {
+					dr.run.run();
+					if (dr instanceof RepeatedRunnable) {
+						RepeatedRunnable rr = (RepeatedRunnable) dr;
+						wip.incrementAndGet();
+						add(new RepeatedRunnable(rr.run, rr.betweenDelay, rr.betweenDelay, rr.unit));
+					}
+				} catch (Throwable ex) {
+					// any exception interpreted as cancel running
+				} finally {
+					if (wip.decrementAndGet() == 0) {
 						break;
 					}
-					if (dr.delay > 0) {
-						dr.unit.sleep(dr.delay);
-					}
-					try {
-						dr.run.run();
-						if (dr instanceof RepeatedRunnable) {
-							RepeatedRunnable rr = (RepeatedRunnable) dr;
-							tasks.add(new RepeatedRunnable(rr.run, rr.betweenDelay, rr.betweenDelay, rr.unit));
-						}
-					} catch (Throwable ex) {
-						// any exception interpreted as cancel running
-					} finally {
-						wip--;
-					}
 				}
-			} catch (InterruptedException ex) {
-				
 			}
+		} catch (InterruptedException ex) {
+			
+		}
+	}
+	/**
+	 * Adds the given task.
+	 * @param dr the task
+	 */
+	protected void add(DelayedRunnable dr) {
+		lock.lock();
+		try {
+			tasks.add(dr);
+		} finally {
+			lock.unlock();
+		}
+	}
+	/**
+	 * Removes the given task.
+	 * @param dr the task
+	 */
+	protected void remove(DelayedRunnable dr) {
+		lock.lock();
+		try {
+			tasks.remove(dr);
+		} finally {
+			lock.unlock();
+		}
+	}
+	/**
+	 * Takes a task from the queue.
+	 * @return the task or null if no more tasks
+	 */
+	protected DelayedRunnable poll() {
+		lock.lock();
+		try {
+			return tasks.poll();
+		} finally {
+			lock.unlock();
 		}
 	}
 	@Override
 	@Nonnull 
 	public Closeable schedule(@Nonnull Runnable run) {
 		final DelayedRunnable dr = new DelayedRunnable(run, 0, TimeUnit.MILLISECONDS);
-		tasks.add(dr);
-		wip++;
-		schedulerLoop();
+		add(dr);
+		if (wip.incrementAndGet() == 1) {
+			schedulerLoop();
+		}
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
-				tasks.remove(dr);
+				remove(dr);
 			}
 		};
 	}
@@ -141,13 +182,14 @@ public class CurrentThreadScheduler implements Scheduler {
 			long delay, 
 			@Nonnull TimeUnit unit) {
 		final DelayedRunnable dr = new DelayedRunnable(run, delay, unit);
-		tasks.add(dr);
-		wip++;
-		schedulerLoop();
+		add(dr);
+		if (wip.incrementAndGet() == 1) {
+			schedulerLoop();
+		}
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
-				tasks.remove(dr);
+				remove(dr);
 			}
 		};
 	}
@@ -160,13 +202,14 @@ public class CurrentThreadScheduler implements Scheduler {
 			long betweenDelay, 
 			@Nonnull TimeUnit unit) {
 		final RepeatedRunnable dr = new RepeatedRunnable(run, initialDelay, betweenDelay, unit);
-		tasks.add(dr);
-		wip++;
-		schedulerLoop();
+		add(dr);
+		if (wip.incrementAndGet() == 1) {
+			schedulerLoop();
+		}
 		return new Closeable() {
 			@Override
 			public void close() throws IOException {
-				tasks.remove(dr);
+				remove(dr);
 			}
 		};
 	}

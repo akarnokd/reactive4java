@@ -35,7 +35,7 @@ import org.junit.Test;
  * Test the Reactive.doWhile operator.
  * @author akarnokd, 2013.01.13.
  */
-public class TestReactiveDoWhile {
+public class TestReactiveWhileDo {
 	/** Simple test. */
 	@Test
 	public void testSimple() {
@@ -43,14 +43,14 @@ public class TestReactiveDoWhile {
 		
 		Pred0 twice = new Pred0() {
 			/** Count backwards. */
-			int count = 1;
+			int count = 2;
 			@Override
 			public Boolean invoke() {
 				return count-- > 0;
 			}
 		};
 		
-		Observable<Integer> result = Reactive.doWhile(source, twice);
+		Observable<Integer> result = Reactive.whileDo(source, twice);
 		
 		List<Integer> expected = Arrays.asList(0, 1, 2, 3, 4, 0, 1, 2, 3, 4);
 		
@@ -71,7 +71,7 @@ public class TestReactiveDoWhile {
 			}
 		};
 		
-		Observable<Integer> result = Reactive.doWhile(source, twice);
+		Observable<Integer> result = Reactive.whileDo(source, twice);
 		
 		List<Integer> expected = Arrays.asList(0, 1, 2, 3, 4, 0, 1, 2, 3, 4);
 		
@@ -84,12 +84,21 @@ public class TestReactiveDoWhile {
 	 */
 	@Test
 	public void testLongRepeat() throws InterruptedException, IOException {
-		int n = 10000;
+		final int n = 10000;
 		Observable<Integer> source = Reactive.singleton(1);
-		
+
+		Pred0 twice = new Pred0() {
+			/** Count backwards. */
+			int count = n;
+			@Override
+			public Boolean invoke() {
+				return count-- > 0;
+			}
+		};
+
 		final AtomicInteger cnt = new AtomicInteger();
 		final CountDownLatch compl = new CountDownLatch(1);
-		Reactive.repeat(source, n)
+		Reactive.whileDo(source, twice)
 				.register(new Observer<Integer>() {
 					@Override
 					public void error(Throwable ex) {
@@ -118,8 +127,16 @@ public class TestReactiveDoWhile {
 	 */
 	@Test
 	public void testLongRepeat2() throws InterruptedException, IOException {
-		int n = 10000;
-		
+		final int n = 10000;
+
+		Pred0 twice = new Pred0() {
+			/** Count backwards. */
+			int count = n;
+			@Override
+			public Boolean invoke() {
+				return count-- > 0;
+			}
+		};
 		Observable<Integer> source = new Observable<Integer>() {
 			@Override
 			public Closeable register(Observer<? super Integer> observer) {
@@ -132,7 +149,7 @@ public class TestReactiveDoWhile {
 		final CountDownLatch compl = new CountDownLatch(1);
 		
 		final AtomicInteger cnt = new AtomicInteger();
-		Reactive.repeat(source, n)
+		Reactive.whileDo(source, twice)
 				.register(new Observer<Integer>() {
 					@Override
 					public void error(Throwable ex) {

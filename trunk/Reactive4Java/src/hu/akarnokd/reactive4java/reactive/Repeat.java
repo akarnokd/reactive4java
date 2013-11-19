@@ -19,6 +19,7 @@ import hu.akarnokd.reactive4java.base.Func0;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Scheduler;
+import hu.akarnokd.reactive4java.scheduler.CurrentThreadScheduler;
 import hu.akarnokd.reactive4java.util.Closeables;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
 import hu.akarnokd.reactive4java.util.DefaultRunnable;
@@ -94,6 +95,7 @@ public final class Repeat {
 		@Override
 		@Nonnull
 		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			final Observable<T> ssource = Reactive.registerOn(source, new CurrentThreadScheduler());
 			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 				@Override
 				protected void onNext(T value) {
@@ -110,7 +112,7 @@ public final class Repeat {
 				@Override
 				protected void onFinish() {
 					if (condition.invoke()) {
-						registerWith(source);
+						registerWith(ssource);
 					} else {
 						observer.finish();
 						
@@ -120,7 +122,7 @@ public final class Repeat {
 				
 			};
 			if (condition.invoke()) {
-				return obs.registerWith(source);
+				return obs.registerWith(ssource);
 			}
 			observer.finish();
 			return Closeables.emptyCloseable();
@@ -153,6 +155,9 @@ public final class Repeat {
 		@Override
 		@Nonnull
 		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			// avoid recursive registration on the finish method
+			final Observable<T> ssource = Reactive.registerOn(source, new CurrentThreadScheduler());
+			
 			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 				@Override
 				protected void onNext(T value) {
@@ -169,7 +174,7 @@ public final class Repeat {
 				@Override
 				protected void onFinish() {
 					if (condition.invoke()) {
-						registerWith(source);
+						registerWith(ssource);
 					} else {
 						observer.finish();
 						
@@ -178,7 +183,7 @@ public final class Repeat {
 				}
 				
 			};
-			return obs.registerWith(source);
+			return obs.registerWith(ssource);
 		}
 	}
 }
