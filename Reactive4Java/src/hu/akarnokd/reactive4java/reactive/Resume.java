@@ -18,6 +18,7 @@ package hu.akarnokd.reactive4java.reactive;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
+import hu.akarnokd.reactive4java.scheduler.CurrentThreadScheduler;
 import hu.akarnokd.reactive4java.util.Closeables;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
 import hu.akarnokd.reactive4java.util.SequentialCloseable;
@@ -223,13 +224,14 @@ public final class Resume {
 		@Override
 		@Nonnull 
 		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			final Observable<T> ssource = Reactive.registerOn(source, new CurrentThreadScheduler());
 			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 				/** The remaining retry count. */
 				int remainingCount = count;
 				@Override
 				public void onError(@Nonnull Throwable ex) {
 					if (remainingCount-- > 0) {
-						registerWith(source);
+						registerWith(ssource);
 					} else {
 						observer.error(ex);
 						close();
@@ -248,7 +250,7 @@ public final class Resume {
 				}
 
 			};
-			return obs.registerWith(source);
+			return obs.registerWith(ssource);
 		}
 	}
 	/**
@@ -271,10 +273,11 @@ public final class Resume {
 		@Override
 		@Nonnull 
 		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			final Observable<T> ssource = Reactive.registerOn(source, new CurrentThreadScheduler());
 			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 				@Override
 				public void onError(@Nonnull Throwable ex) {
-					registerWith(source);
+					registerWith(ssource);
 				}
 
 				@Override
@@ -287,7 +290,7 @@ public final class Resume {
 					observer.next(value);
 				}
 			};
-			return obs.registerWith(source);
+			return obs.registerWith(ssource);
 		}
 	}
 }
