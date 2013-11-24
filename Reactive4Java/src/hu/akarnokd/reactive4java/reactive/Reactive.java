@@ -8931,6 +8931,22 @@ public final class Reactive {
 			}
 		});
 	}
+	/**
+	 * Returns the value immediately to the registering observer.
+	 * @param <T> the value type
+	 * @param value the value to return
+	 * @return the new observable
+	 */
+	public static <T> Observable<T> just(final T value) {
+		return new Observable<T>() {
+			@Override
+			public Closeable register(Observer<? super T> observer) {
+				observer.next(value);
+				observer.finish();
+				return Closeables.emptyCloseable();
+			}
+		};
+	}
 	/*
 	 * TODO merge() with concurrency limit.
 	 */

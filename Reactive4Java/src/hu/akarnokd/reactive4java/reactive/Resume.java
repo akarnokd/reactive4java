@@ -18,7 +18,7 @@ package hu.akarnokd.reactive4java.reactive;
 import hu.akarnokd.reactive4java.base.Func1;
 import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
-import hu.akarnokd.reactive4java.scheduler.CurrentThreadScheduler;
+import hu.akarnokd.reactive4java.scheduler.NewThreadScheduler;
 import hu.akarnokd.reactive4java.util.Closeables;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
 import hu.akarnokd.reactive4java.util.SequentialCloseable;
@@ -175,6 +175,9 @@ public final class Resume {
 		@Override
 		@Nonnull
 		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			final NewThreadScheduler pool = new NewThreadScheduler();
+			final Observable<T> ssource = Reactive.registerOn(source, 
+					pool);
 			final SequentialCloseable close = new SequentialCloseable();
 			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(true) {
 				@Override
@@ -185,7 +188,8 @@ public final class Resume {
 				@Override
 				protected void onError(Throwable ex) {
 					remove(this);
-					Observable<? extends T> alter = handler.invoke(ex);
+					Observable<? extends T> alter = 
+							Reactive.registerOn(handler.invoke(ex), pool);
 					close.set(alter.register(observer));
 				}
 
@@ -195,7 +199,7 @@ public final class Resume {
 				}
 				
 			};
-			close.set(obs.registerWith(source));
+			close.set(obs.registerWith(ssource));
 			return close;
 		}
 	}
@@ -224,7 +228,8 @@ public final class Resume {
 		@Override
 		@Nonnull 
 		public Closeable register(@Nonnull final Observer<? super T> observer) {
-			final Observable<T> ssource = Reactive.registerOn(source, new CurrentThreadScheduler());
+			final Observable<T> ssource = Reactive.registerOn(source, 
+					new NewThreadScheduler());
 			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 				/** The remaining retry count. */
 				int remainingCount = count;
@@ -273,7 +278,8 @@ public final class Resume {
 		@Override
 		@Nonnull 
 		public Closeable register(@Nonnull final Observer<? super T> observer) {
-			final Observable<T> ssource = Reactive.registerOn(source, new CurrentThreadScheduler());
+			final Observable<T> ssource = Reactive.registerOn(source, 
+					new NewThreadScheduler());
 			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 				@Override
 				public void onError(@Nonnull Throwable ex) {
