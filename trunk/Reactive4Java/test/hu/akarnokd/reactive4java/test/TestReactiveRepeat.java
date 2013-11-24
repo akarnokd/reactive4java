@@ -27,10 +27,10 @@ import org.junit.Test;
  */
 public class TestReactiveRepeat {
 	/** Test the early termination of repeat through take. */
-	@Test(timeout = 1000)
+	@Test/*(timeout = 1000)*/
 	public void testTakeSome() {
 		Observable<Integer> source = Reactive.take(Reactive.repeat(
-				Reactive.singleton(1), Integer.MAX_VALUE), 100);
+				Reactive.just(1), Integer.MAX_VALUE), 100);
 		
 		Iterable<Integer> expected = Interactive.repeat(1, 100);
 		TestUtil.assertEqual(expected, source);

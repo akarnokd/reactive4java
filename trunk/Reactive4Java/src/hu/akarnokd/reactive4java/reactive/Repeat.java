@@ -20,6 +20,7 @@ import hu.akarnokd.reactive4java.base.Observable;
 import hu.akarnokd.reactive4java.base.Observer;
 import hu.akarnokd.reactive4java.base.Scheduler;
 import hu.akarnokd.reactive4java.scheduler.CurrentThreadScheduler;
+import hu.akarnokd.reactive4java.scheduler.NewThreadScheduler;
 import hu.akarnokd.reactive4java.util.Closeables;
 import hu.akarnokd.reactive4java.util.DefaultObserverEx;
 import hu.akarnokd.reactive4java.util.DefaultRunnable;
@@ -155,8 +156,10 @@ public final class Repeat {
 		@Override
 		@Nonnull
 		public Closeable register(@Nonnull final Observer<? super T> observer) {
+			Scheduler pool = new NewThreadScheduler();
 			// avoid recursive registration on the finish method
-			final Observable<T> ssource = Reactive.registerOn(source, new CurrentThreadScheduler());
+			final Observable<T> ssource = Reactive
+					.registerOn(source, pool);
 			
 			DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
 				@Override
