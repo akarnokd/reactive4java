@@ -1,0 +1,36 @@
+# Introduction #
+
+This page lists all helper methods that lets you connect the default types and operators of the Java world and the Reactive4Java library.
+
+# Actions #
+
+The [hu.akarnokd.reactive4java.base.Actions](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Action0.html) utility class lists static helper methods that can be used to work with the `Action0` and `Action1` classes, which involves typical transformations from and to `Runnable`s.
+
+| **Method** | **Description** | **Javadoc** |
+|:-----------|:----------------|:------------|
+| `noAction0()` | Returns an `Action0` instance which does nothing. |             |
+| `noAction1()` | Returns an `Action1` instance which does nothing. |
+| `asRunnable(Action0)` | Wraps the `Action0` instance into a `Runnable`. |
+| `asAction0(Runnable)` | Wraps the `Runnable` instance into an `Action0`. |
+| `asAction1(Runnable)` | Wraps the `Runnable` instance into an `Action1` |
+
+# Functions #
+
+The `hu.akarnokd.reactive4java.base.Functions` utility class lists static helper methods that can be used to work with the `Func0`,`Func1` and `Func2` classes.
+
+| **Method** | **Description** |
+|:-----------|:----------------|
+
+# Lambdas #
+
+The `hu.akarnokd.reactive4java.base.Lambdas` utility class lists static helper methods that can be used to work with the `Func0`,`Func1` and `Func2` classes by providing the function body implementation as script (e.g., JavaScript).
+
+| **Method** | **Description** |
+|:-----------|:----------------|
+
+# Classes #
+
+The role of the following classes is to support the library's various operations (mostly) internally.
+
+| **Class** | **Description** |
+|:----------|:----------------|

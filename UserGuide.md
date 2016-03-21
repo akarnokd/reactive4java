@@ -1,0 +1,238 @@
+
+
+# Introduction #
+
+Without extension methods, function types and yield return, its going to be ugly and cumbersome. But it is worth the effort.
+
+
+# Fundamentals #
+
+Interactive programming is basically a deferred or lazy computation over `Iterable<T>` classes. In Java, by using a for-each loop, you may simply iterate over the collections which implement the `Iterable<T>` interface: `List`s, `Set`s, etc.
+
+Frameworks, such as Google Guava, offer some utility method which lets you do some direct or lazy computation, however, their design was not intended for composability. Reactive4Java offers composable operators for such kind of lazy computation.
+
+Reactive programming, in turn is an inherently asynchronous, and computes only when a message arrives at an observer. Java offers some classes based on the Observer-pattern, but those classes are not uniform and do not compose well. Therefore, a new base interface pair called `Observable<T>` and `Observer<T>` has been defined by Reactive4Java.
+
+They are the [dual](http://en.wikipedia.org/wiki/Dual_(category_theory)) of the `Iterable<T>` and `Iterator<T>` interface pairs.
+
+An `Iterable` has an `iterator()` method which returns an `Iterator` instance.
+
+In opposition, the `Observable` has a `register()` method which takes an `Observer` for registration and returns a `Closeable` to terminate the registration. This approach is easier than a register/unregister method pair, because you don't need to remember the observer or the observable to unregister (e.g., for example in swing, you have to pass in the same ActionListener instance to both addActionListener and removeActionListener of a component: you have to keep references to both around).
+
+The `Iterator` and `Observer` are the fundamental working horses of the interactive/reactive programming paradigm. The following table links the well known iterator methods with its equivalents in the observer interface:
+
+| **Iterator** | **Observer** | **Meaning** |
+|:-------------|:-------------|:------------|
+| `boolean hasNext()` | `void finish()` | the case when hasNext would return false, indicating there are no more elements |
+| `T next()`   | `void next(T value)` | when an element is available; e.g., when hasNext() returns true and you may call next() |
+| `void remove()` | -            | not applicable |
+| `hasNext()` and `T next()` throws | `error(Throwable ex)` | indicates an error condition within the stream. Iterator throws only unchecked exceptions. |
+
+## Lambda expressions, the Java way ##
+
+Unfortunately, Java will not support the lambda expressions probably until version 8. Until then, we are stuck with anonymous inner classes which require you to write a lot of type parameters.
+
+Most Reactive4Java operators can be customized by such 'lambda' function.
+
+You need to derive your own implementation from `Func0<R>`, `Func1<T, R>` and `Func2<T, U, R>` respectively. They are single method interfaces which have an `invoke()` method:
+
+```
+Func1<Integer, Integer> incrementer = new Func1<Integer, Integer>() {
+    public Integer invoke(Integer param) {
+        return param + 1;
+    }
+}
+```
+
+In their definition, the return type parameter is the last listed, conforming to C# and other Java library styles.
+
+You might find yourself needing the same functions over and over again, therefore, the [Functions](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Functions.html) utility class contains many helper methods to construct or convert some typical Java functions.
+
+  * `identity()` which returns its argument
+  * `lessThan()`, `greaterOrEqual()`, etc. to do simple comparisons (e.g., in a for-each like construct)
+  * `incrementInt()` for `i++` like operations
+  * etc.
+
+The second class of helper interfaces are the `Action0` and `Action1<T>` respectively. The [Actions](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Actions.html) utility class offers some helper methods to create them or convert typical Action-like Java classes.
+
+### Since 0.85 ###
+Since 0.85, a new utility class was added to the library: the [Lambdas](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Lambdas.html) class.
+
+It is, basically, a nice wrapper and converter for the Java script support library. By default Java offers a JavaScript engine (codename Rhino) that you can pass in a script as string and it can evaluate it, although slower than a regular Java expression. See [this article](http://java.sun.com/developer/technicalArticles/J2SE/Desktop/scripting/) and [javadoc](http://download.oracle.com/javase/6/docs/api/javax/script/ScriptEngineFactory.html) for further reading on the subject.
+
+The `Lambdas` utility class offers many overloaded versions to allow nice customizations of your script. You may specify any engine or you might specify additional external resources for your script (e.g., capture other constants or things).
+
+To specify a parameterless function:
+```
+Lambdas.js0("=> print('hello world'); return "";)
+```
+
+To specify a single parameter function with external bindings:
+```
+Lambdas.js1("o => o + c", "c", 10)
+```
+
+**Note** that due the nature of Java's type inference, you might be forced to specify the type parameters manually for the `js` methods:
+
+```
+Reactive.where(
+    Reactive.range(0, 10), 
+    Lambdas.<Integer, Boolean>js1("o => o % 2 == 0")
+)
+```
+
+**Note** also that scripting is not type checked and syntax errors come out only when the code is executed. Type errors from wrong result type might surface late too.
+
+## Without extension methods ##
+
+Unfortunately, Java does not support extension methods (method definition, which act if they were part of the target class/interface all the times).
+
+The closest feature is the `import static Interactive.max` way to import static methods of the utility classes.
+
+## Without yield return and async return ##
+
+The compiler of C# 3.5 and 4.0 supports a construct when you can write a simple method with `yield return` and `yield break` and the compiler turns them into a proper state-machine of an IEnumerable. Java's compiler does not support this kind of automatism, therefore, the programmer/library developer needs to manually construct `Iterable`s and track the state between calls. The same is true for asynchronous continuations.
+
+## Without LINQ ##
+
+One feature of C# LINQ is, in concert with the compiler again, to create an expression tree of the lambda expressions used around and submit them along with the evaluation: the 'driver' turns them into proper and possibly optimized SQL statements. Java has no such support and is not known whether one will be created in the future. The Reactive4Java therefore has no support for the `IQueryable` and `IQbservable` like constructs.
+
+# Interactive programming #
+
+The interactive programming is supported through the utility class methods of [Interactive](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/interactive/Interactive.html). Programming in this mentality is close to most Java programmers.
+
+Composing operators means passing around references of `Iterable<T>`s and the most outer Iterable can be traversed by using the for-each construct:
+
+```
+for (int i : Interactive.distinctSet(Interactive.concat(Interactive.range(0, 10), Interactive.range(5, 10)))) {
+    System.out.println(i);
+}
+```
+
+The interactive framework is mostly a lazy computation. No elements are created or evaluated until the distinctSet object's iterator() is called by the for-each.
+
+Compare this with the classical method of having multiple for-each loops and temporary buffers for the intermediate results.
+
+## The remove() method ##
+
+Most `Iterable`s returned from the operators do not support the removal operation: they will throw the unchecked `UnsupportedOperationException` as per the contract of `Iterable` requires.
+
+Other operators may simply relay the `remove()` call to its source: for example, using a `where()` operator will let you filter and remove the elements returned.
+
+# Reactive programming #
+
+In contrast to interactive programming, the reactive way, supported by the [Reactive](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html) utility class, is to 'listen' to events coming from outside and do some computation based on them. Depending on the function, this may result in new messages.
+
+The closest equivalent is a blocking `take()` call on a `Queue` object. However, this concept holds threading resources until some message comes in.
+
+Reactive programming, in turn, tries to avoid holding resources when no action is required: consider it as a thread pool when new `Runnable`s are created once a message needs to be processed.
+
+Reactive programming has several concepts associated:
+
+  * the original source of messages,
+  * the composition of the operators,
+  * the registration,
+  * the deregistration and/or cancellation,
+  * the error and finish message propagation.
+
+## Hot and cold observables ##
+
+One of the hardest things to comprehend about reactive programming at first is the source of messages or values that fly around.
+
+We distinguish two base kind of observable sequences:
+
+  * **cold observables**: compute only when someone is registered
+    * example: a for-each loop generating values once someone registers, everyone will get the same sequence of values
+  * **hot observables**: events fly around no matter if there is someone listening
+    * example: mouse movement events
+
+Cold observables usually maintain an implicit registration with their clients whereas hot observables have some list-of-observers.
+
+## Composition ##
+
+That's simple: same type to the same type, i.e., the output of an operator may be used as an input for the next operator.
+
+## Registration ##
+
+The `Observable` interface defines the single `register()` method which takes an `Observer`. Due the contravariance nature of observers, you might listen to a source of `String`s as source of `Object`s.
+
+Some special cases might apply when you register to an observable:
+
+  * as soon as the registration is done somewhere along the operator-chain, the observer might receive most or all messages before even the original `register()` method completes.
+  * the registration itself might have some threading constraints, e.g., when you need to register a listener on the Event Dispatch Thread (EDT). You may use the `subscribeOn()` operator for these cases. (The deregisration is routed to the same thread too.)
+
+## Deregistration/Cancellation ##
+
+The registration returns a `Closeable` instance, which interface is the de-facto standard resource cleanup interface for Java I/O and will be nicely usable by the new try-with-resources operator of Java 7.
+
+This handler's `close()` method can be called to cancel a registration and/or stop the flood of messages. Unfortunately, the `Closeable.close()` defines a checked `IOException` which you will surely need to suppress.
+
+In theory, the `close()` method will never throw any exception and can be considered idempotent, e.g., calling it multiple times will not result in multiple deregistration or cancellation as the second and subsequent calls are ensured by the framework to be no-ops.
+
+The framework also ensures that the call to the close method is thread safe and it makes 'best effort' to stop the stream of data along the chain. This means that after the close() invocation, some messages might still slip through.
+
+## The error and finish messages ##
+
+The Reactive4Java framework has constraints over how the messages are propagated.
+
+  * zero or more `next()` messages,
+  * followed by either a `finish()`, an `error()` message or nothing at all
+
+In addition, the framework serializes each message to the observer and ensures the sequence above is not violated (by suppressing late messages).
+
+# Connecting iterables with observables #
+
+The reactive and interactive wolds can be bridged by using the following utility methods of the `Reactive` class:
+
+  * `asIterable`: convert the asynchronous listening to blocking iterable access: you may simply for-each over it.
+  * `asObservable`: convert a classical list or set into an observable sequence: multiple threads and computation may work asynchronously over it.
+
+(Remark: these methods are placed in Reactive to avoid package cycles with the Interactive package.)
+
+## Scheduling ##
+
+Many operators (such as the asIterable, asObservable and timers) introduce the need for concurrency: the events should originate from another thread.
+
+The Reactive4Java gives a notion of a `Scheduler` interface: do work asynchronously and have the option to wait for its completion or cancel it.
+
+Many operators feature overloaded versions which take a `Scheduler` as their last argument.
+
+Basically, a simplification of the `ExecutorService` and `ScheduledExecutorService` thread pool implementations of Java 5+, but flexible enough to have a definition to run tasks on the EDT as well.
+
+  * The `DefaultScheduler` uses a `ScheduledThreadPoolExecutor` as basis.
+  * The `DefaltEdtScheduler` uses the `SwingUtilities.invokeLater()` and Swing `Timer` support.
+
+By default, the framework is initialized with a thread pool sized as the available number of CPUs, an unlimited work queue and a 1 second timeout for core threads to let your application quit.
+
+The `Scheduler` interface defines three methods:
+
+| **Method** | **Description** |
+|:-----------|:----------------|
+| `schedule(Runnable)` | Submit the task and execute it as soon as possible. E.g., `ExecutorService.submit()`. |
+| `schedule(Runnable, long)` | Schedule the given task to run after the given delay of nanoseconds. E.g., `ScheduledExecutorService.schedule()`|
+| `schedule(Runnable, long, long` | Schedule the given task to run after an initial delay and have fixed delay between invocation (both nanoseconds). E.g.,`ScheduledExecutorService.scheduleAtFixedRate()` |
+
+Note that the `scheduleWithFixedDelay` may be simply emulated by using the `schedule(Runnable, long)` from within the runnable action itself (for now at least).
+
+Remark: to cancel a repeated task execution from within the Runnable, you should throw any unchecked exception: the machinery in the thread pool will stop the execution for you. This is the only safe way, although not so elegant.
+
+# Code equals Data #
+
+Both reactive and interactive side support the operators to convert code to data, so to speak.
+
+Basically, what they do is that they convert the `next`, `error` and `finish` messages into a wrapper type of `Option<T>`:
+
+  * `Option.some(T)` denoting an element
+  * `Option.<T>none()` denoting the end of messages
+  * `Option.<T>error(Throwable)` denoting an error condition.
+
+You may use the `Option.isSome()`, `Option.isNone()` and `Option.isError()` methods to determine the concrete type of an arbitrary `Option` instance. You might want to extract the error information by using the `Option.getError()` method.
+
+Invoking the `value()` on an `Error` instance will throw the contained exception:
+
+  * as a wrapped `RuntimeException` if the exception is checked, or
+  * as the exception itself if the exception is unchecked.
+
+By using the `materialize` and `dematerialize` operators, you may convert to and from regular method invocations and wrapped data types.
+
+They might come in handy when implementing new operators or transitions between the two worlds.

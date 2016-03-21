@@ -1,0 +1,206 @@
+
+
+# 0.97 #
+  * Released: **2013-01-18 10:30 CET**
+  * Fixed Interactive's concat, resumeAlways, resumeOnError not properly forwarning their remove() methods.
+  * Added `IterableBuilder.into()` to consume the stream and store it in the given collection. Added `ObservableBuilder.into()` with the same purpose.
+  * Added `IterableBuilder.removeAll()` to consume the stream and remove all of its elements.
+  * Added `Interactive.newIterable` and `Interactive.newIterator` methods to let the programmer create iterables and iterators by specifying their methods as functions (lambdas).
+  * Added `Interactive.newCloseableIterable` and `Interactive.newCloseableIterator` that wraps an iterable and lets the user specify a close action.
+  * Modified all `Interactive` operators that consume their stream to consider if that stream's Iterator implements Closeable and calls its close() method.
+  * Modified a few `while (true)` loops to check for the interrupt flag.
+  * Many refactorings:
+    * Moved TestXXX classes into the separate test directory.
+    * Moved SingleContainer, Enumeration, Enumerator into base package.
+    * Moved ActionObservable and FunctionIterable to test package.
+  * Added CompositeDisposable for better registration-lifecycle management.
+  * Renamed methods in `Closeables`
+    * close0 to closeSilently
+    * close to newCloseable
+  * Created base.MultiIOException to collect any exception from closing Closeables
+  * Added close methods that collect the exceptions and throw a MultiIOException for multiple simultaneously closed Closeables.
+  * Fixed `concat(Observable<Observable<T>>)` signature with `? extends T`
+  * Added Reactive.generateTimedWithUnit that accepts a delay function which returns a time value and its unit.
+  * Resolved many cases where the registration and deregistration were wrong and prone to race or premature completion.
+  * Rewised Reactive.sequenceEqual to traverse the source sequences only once.
+    * Added overload to work with an Iterable pair.
+  * Added exception supplier based overload to Reactive.throwException.
+  * Modified the `Reactive.materialize` to terminate after a finish or error call. The original, infinite stream version is renamed to materializeForever.
+  * Moved the example Action-observable methods from Reactive to ActionObservable class (asAction, asFObservable, asObservable, asObserver).
+  * Renamed Reactive.combineLatest to Reactive.combineLatest0 and Reactive.combineLatestSent to the former.
+  * Created `CloseableObserver`, `LockedObserver` and `SynchronizedObserver` which can wrap an observer instance and provide certain guarantees.
+  * Moved RunOnce to base package.
+  * Renamed `Actions.close0` to `Actions.closeSilently`.
+  * Added `Reactive.singleton` overload which takes a `Func0` to produce the value.
+  * Added `Reactive.combine` with a function to supply the pair's first value.
+  * Added two new `Reactive.aggregate` overload and their ObservableBuilder counterparts.
+    * supports a seed value with the divider version
+    * supports a result selector
+  * Added new overloads to `Reactive.contains`, `Reactive.count`, `Reactive.countLong`.
+  * Added new `Reactive.elementAt` operator + 2 overloads.
+  * Added new `Reactive.firstAsync` operator + 2 overloads.
+  * Added new `Reactive.lastAsync` operator + 2 overloads.
+  * Added 2 overloads to the `Reactive.first` and `Reactive.last` operators: one with default value, the other with a supplier function.
+  * Added 2 overloads to the `Reactive.single` operator.
+  * Added new `Reactive.singleAsync` operator + 2 overloads.
+  * Reworked the `DefaultConnectableObservable` behavior.
+  * Reworked `Reactive.multicast` behavior + 1 overloads added.
+  * Added `Reactive.invokeAll` to synchronously wait for multiple streams to finish and return a list of list of their values.
+  * Added DefaultScheduler.toCloseable that can be overridden to change how Closeable.close() calls Future.cancel(boolean) for example.
+  * Added constructor DefaultScheduler(int) to let the user specify the pool size.
+  * Moved convenience factory methods to create observers from `Reactive` into the new `Observers` class.
+  * Moved convenience factory methods to create observables from `Reactive` to the new `Observables` class.
+  * Reworked the `Reactive.publish` methods.
+  * Added `Reactive.publishLast` methods.
+  * Added `AsyncSubject` which works similarly to Future, but aimed at registering with an observable and getting its final result.
+  * Added `Reactive.refCount` and its helper class, `RefCount`.
+  * Added operators `Reactive.chunkify`, `Reactive.collect` + 1 overload.
+  * Moved general Scheduler implementations from util to scheduler packages.
+  * Moved all interfaces into the base package.
+  * Moved utility classes related to interfaces into the util package.
+  * Moved other basic helper classes into the util package (e.g., CircularBuffer).
+  * Added utility methods to convert to and from Java's own Observable and Observer objects.
+  * Added overloads to `Reactive.forEach` to invoke an action on the received events and wait for the completion of the sequence.
+  * Added `ObservationKind` enum.
+  * Added `ObservableToIterableAdapter` and `ObserverToIteratorSink` base classes to help implement interaction between the two worlds.
+  * Reworked `Reactive.latest` behavior.
+  * Reworked `Reactive.mostRecent` behavior.
+  * Reworked `Reactive.next` behavior.
+  * Added `Reactive.await` operator +1 overload
+  * Added special closeable containers: `SingleCloseable`, `SequentialCloseable` and `ScheduledCloseable`
+  * Created `Schedulers` and moved the global default scheduler from Reactive and Interactive into it. Related methods removed from them.
+  * Enhanced `Option` with instance methods to test for value, error or empty cases.
+  * Renamed `Reactive.create` to `Observables.createWithAction`.
+  * Renamed `Reactive.create` to `Observables.createWithAction`.
+  * Added `Observables.createWithActionE`.
+  * Added `Reactive.switchCase` operator +1 overload.
+  * Added `Reactive.doWhile` operator.
+  * Changed `ObservableBuilder.repeat` to be static, as they should be.
+  * Added `Reactive.repeat` overload for repeating an observable sequence indefinitely.
+  * Removed `Reactive.forEach(Iterable,Func1)` overload and replaced with `Reactive.concat(Iterable,Func1)` + 1 overload.
+  * Added `Reactive.concat` overloads for observable sequences with result selector.
+  * Changed `Reactive.ifThen` to have an empty sequence returned for the default case. Added +1 overload.
+  * Added `Reactive.whileDo` operator.
+  * Renamed `Reactive.combine` and its overloads to `Reactive.zip`
+  * Added +4 overloads to `Reactive.buffer`.
+  * Added `Reactie.resumeConditionally`.
+  * Reworked the `Reactive.window` operators.
+  * Reworked the `Reactive.zip` operators and added +1 overload.
+  * Added +3 overloads to `Reactive.invoke`.
+  * Reworked the `Reactive.scan` and removed `Reactive.scan0`.
+  * Reworked the `Reactive.skipLast`.
+  * Added varargs overload to many operators.
+    * `Reactive.startWith`
+    * Reactive.amb
+    * Reactive.concat
+    * Reactive.merge
+    * Reactive.join
+  * Added overload to `Reactive.takeLast`.
+  * Reworked `Reactive.take` to handle zero count.
+  * Added `Reactive.takeLastBuffer`.
+  * Added `Reactive.window` overload with size and skip.
+  * Removed `Reactive.typeAs` operator.
+  * Added `Reactive.cast` operator +1 overload to dynamically cast values.
+  * Renamed `Interactive.distinctSet` to `Interactive.distinct` and the original `Interactive.distinct` to `Interactive.distinctNext`.
+  * Added +2 overload to `Reactive.groupBy` of allowing a key equality comparator to be specified.
+  * Reworked `Reactive.groupJoin` behavior.
+  * Reworked `Reactive.join` behavior.
+  * Added primitive versions `int`, `long` and `double` observable and observer interfaces.
+  * Added Long-indexed overloads to `Reactive.select` and `Reactive.where`.
+  * Added `Producer` and `Sink` base classes which might help implementing observable operators.
+  * Added `RefCountCloseable`.
+  * Added `R4JConfig` and `R4JConfigManager` for global or thread-local defaults for fair locks and silent exception handling.
+  * Reworked all indexed function calls (e.g., indexed selector, indexed predicate, etc.) to have the index as the second parameter to be consistent across all operators. This affects mainly select and where.
+  * Reworked `Reactive.delay` to send out the error immediately to observers.
+  * Added operators:
+    * `Reactive.delay` with observables
+    * `Reactive.delayRegister`
+    * `Reactive.skip` with time
+    * `Reactive.sample` with another observable
+    * `Reactive.skipLast` with time
+    * `Reactive.take` with time
+    * `Reactive.takeLast` with time
+    * `Reactive.takeLastBuffer` with time
+    * `Reactive.throttle` with observable window per item
+  * Minor fixes to the Interactive operators.
+
+# 0.96 #
+  * Released: 2012-01-26 10:30 CET
+  * Fixed maxBy and minBy operators
+  * Added a few mission operators
+  * Added more helper and conversion functions and actions
+  * Added IterableBuilder and ObservableBuilder classes which let you chain operations.
+
+# 0.95.1 #
+  * Released: 2011-11-08 09:00 CET
+  * Fixed a bug in the merge operator
+
+# 0.95 #
+  * Released: 2011-10-26 16:30 CET
+  * Refactored SwingObservables inner classes into top level classes
+  * Added CachedThreadPoolScheduler
+  * Added Closeables utility class
+  * removed toIterable(Observable, Scheduler) method
+  * Added CloseableIterable and CloseableIterator to allow closing the iterable returned by the toIterable()
+
+# 0.94 #
+  * Released: 2011-10-05 8:30 CET
+  * Renamed **subscribeOn** to **registerOn** to keep a consistent terminology
+  * Added <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#combine(java.util.List)'>combine()</a> methods
+  * Fixed covariance issues with a few methods
+  * Bugfix: `CurrentThreadScheduler` still worked incorrectly
+
+# 0.93 #
+
+  * Released: 2011-06-30 15:30
+  * Bugfix: `CurrentThreadScheduler` did not work properly (incorrect peek/poll usage)
+  * Bugfix: the `merge(O<O<T>>)` did not work properly (bad finish() behavior)
+  * Change: `manySelect` should work as originally intended by the Rx team (see [this](http://social.msdn.microsoft.com/Forums/en-US/rx/thread/e70fe8b6-6d9d-486a-a8d0-c1bc66551ded/) forum question).
+
+# 0.92 #
+
+  * Released: 2011-03-21 14:50
+  * Added more reactive operators:
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#prune(hu.akarnokd.reactive4java.reactive.Observable)'>prune</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#publish(hu.akarnokd.reactive4java.reactive.Observable)'>publish</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#replay(hu.akarnokd.reactive4java.reactive.Observable)'>replay</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#groupByUntil(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func1)'>groupByUntil</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#manySelect(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1)'>manySelect</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#mostRecent(hu.akarnokd.reactive4java.reactive.Observable, T)'>mostRecent</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#sequenceEqual(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.reactive.Observable)'>sequenceEqual</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#toArray(hu.akarnokd.reactive4java.reactive.Observable)'>toArray</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#toList(hu.akarnokd.reactive4java.reactive.Observable)'>toList</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#toMap(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func1)'>toMap</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#toMultiMap(hu.akarnokd.reactive4java.reactive.Observable, hu.akarnokd.reactive4java.base.Func1, hu.akarnokd.reactive4java.base.Func0)'>toMultiMap</a>
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#ignoreValues(hu.akarnokd.reactive4java.reactive.Observable)'>ignoreValues</a>
+  * added overloads for reactive
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#window(hu.akarnokd.reactive4java.reactive.Observable, int, int, hu.akarnokd.reactive4java.base.Scheduler)'>window</a> (with time and/or buffer size)
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#concat(hu.akarnokd.reactive4java.reactive.Observable)'>concat</a> (observable sequence of observables)
+    * <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#merge(hu.akarnokd.reactive4java.reactive.Observable)'>merge</a> (observable sequence of observables)
+  * changed the <a href=''>Scheduler</a> interface API to include the TimeUnit
+  * added more convenience functions to <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Scheduler.html'>Functions</a>
+  * renamed asIterable and asObservable conversion methods to <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Scheduler.html'>toIterable</a> and <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/reactive/Reactive.html#toObservable(java.lang.Iterable)'>toObservable</a>
+
+# 0.91 #
+
+  * Released: 2011-03-15 0:50
+  * Changed the GWT library to conform the expected override semantics. Now you should import both JAR files for a GWT project.
+
+# 0.90 (GWT version) #
+
+  * Released: 2011-02-20 12:00
+  * First release (From this point, both versions will be released simultaneously and get a single entry in this release notes.)
+
+# 0.90 #
+
+  * Released: 2011-02-19 17:00
+  * Changed the type parameter order of the [Func1](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Func1.html) and [Func2](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Func2.html) types. Now they have the return type as the last parameter. This conforms to many other Java and non-Java library standards.
+  * Added convenience methods to [Functions](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Functions.html) and [Actions](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Actions.html) classes
+  * Renamed some methods in [Lambdas](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Lambdas.html) to script0, script1 and script2 which take an arbitrary script engines. Methods without the ScriptEngine parameters remained as js0, js1 and js2 indicating the JavaScript engine.
+  * Added <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Lambdas.html#action0(java.lang.String, javax.script.ScriptEngine, java.util.Map)'> action0</a> and <a href='http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Lambdas.html#action1(java.lang.String, javax.script.ScriptEngine, java.util.Map)'>action1</a> methods to Lambdas which let you have a script as action and use it wherever an Action0 or Action1 is required.
+  * Added the convenience interfaces [Predicate0](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Predicate0.html), [Predicate1](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Predicate1.html) and [Predicate2](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Predicate2.html) which return a boolean.
+
+# 0.85 #
+
+  * Released: 2011-02-19 14:10
+  * Added support for script-to-function like constructs via the [Lambdas](http://reactive4java.googlecode.com/svn/trunk/Reactive4Java/docs/javadoc/hu/akarnokd/reactive4java/base/Lambdas.html) utility class. See the [new entry](http://code.google.com/p/reactive4java/wiki/UserGuide#Since_0.85) in the user guide.

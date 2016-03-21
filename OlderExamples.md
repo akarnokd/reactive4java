@@ -1,0 +1,45 @@
+
+```
+// return a single element
+Interactive.run(Interactive.singleton(1), Interactive.print());
+// return a range
+Interactive.run(Interactive.range(0, 10), Interactive.print());
+// combine two iterables
+Interactive.run(Interactive.concat(Interactive.singleton(0), 
+    Interactives.range(1, 9), Interactive.print());
+// return multiple things for a single thing
+Interactive.run(Interactive.selectMany(Interactive.range(0, 10), 
+    new Func1<Integer, Iterable<Integer>>() { 
+        public Iterable<Integer> invoke(Integer param) {
+            return Interactive.range(0, param + 1);
+        }
+    }), Interactive.print());
+// lambda functions via scripting
+Interactive.run(Interactive.where(Interactive.range(0, 10), 
+    Lambdas.<Integer, Boolean>js1("o => o % 2 == 0")), 
+    Interactive.print());
+
+```
+
+```
+// return a single element
+Reactive.run(Reactive.singleton(1), Reactive.print());
+// return a range
+Reactive.run(Reactive.range(0, 10), Reactive.print());
+// combine two iterables
+Reactive.run(Reactive.concat(Reactive.singleton(0), 
+    Reactive.range(1, 9), Reactive.print());
+// return multiple things for a single thing
+Reactive.run(Reactive.selectMany(Reactive.range(0, 10), 
+    new Func1<Integer, Observable<Integer>>() { 
+        public Observable<Integer> invoke(Integer param) {
+            return Reactive.range(0, param + 1);
+        }
+    }), Reactive.print());
+
+// lambda functions via scripting
+Reactive.run(Reactive.where(Reactive.range(0, 10), 
+    Lambdas.<Integer, Boolean>js1("o => o % 2 == 0")), 
+    Reactive.print());
+
+```

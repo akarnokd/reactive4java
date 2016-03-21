@@ -1,0 +1,38 @@
+
+
+# Java #
+
+Add the `reactive4java-NNN.jar` to your build path. You may set the library source path to this same library in your IDE.
+
+# GWT #
+
+Add the `reactive4java-NNN.jar` and `reactive4java-gwt-NNN.jar` to your build path. You may set the library source path to the first library in your IDE.
+
+You need to add `inherits` tags to your main `gwt.xml`:
+
+## Import function and action types ##
+```
+  <inherits name='hu.akarnokd.reactive4java.base.Base'/>
+  <inherits name='hu.akarnokd.reactive4java.util.Util'/>
+```
+
+## Import operators ##
+```
+  <inherits name='hu.akarnokd.reactive4java.scheduler.Scheduler'/>
+  <inherits name='hu.akarnokd.reactive4java.reactive.Reactive'/>
+  <inherits name='hu.akarnokd.reactive4java.interactive.Interactive'/>
+  <inherits name='hu.akarnokd.reactive4java.query.Query'/>
+```
+
+## Import missing Java base classes and interfaces ##
+
+```
+  <inherits name='java.io.IO'/>
+```
+
+In case some other things are needed, try adding:
+
+```
+  <inherits name='java.lang.Lang'/>     
+  <inherits name="java.util.Util"/>
+```

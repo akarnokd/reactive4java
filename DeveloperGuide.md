@@ -1,0 +1,180 @@
+
+
+# Introduction #
+
+This page gives a guide/tutorial about how to write your an interactive and/or reactive operator, which cannot be expressed by using the Reactive4Java library's operators via composition.
+
+As a general rule for implementing an operator:
+
+  * follow the types,
+  * know what the operator should do: create a marble diagram first,
+  * think about exception cases carefully,
+  * think about concurrency carefully,
+  * think about cancellation carefully.
+
+You should read the [user guide](UserGuide.md) first to understand the library's fundamentals.
+
+# Reactive #
+
+The set of operators can be grouped into the following categories:
+
+  * filter-like operators,
+  * concurrency-introducing operators.
+
+Filter-like operators are easy to develop, such operators can be `select` and `where`.
+
+Concurrency-introducing operators are bit trickier to implement. Either you have a schedule-dependend co-routine (e.g., a timer) or you have to work with multiple streams. Such operators are `selectMany`, `concat`, or `tick`.
+
+Implementing an operator at first might feel a bit counter-intuitive. You might expect something like an registration collection which tracks who registered with whom, but it turns out, this information might be implicitely captured by the inner classes and references between them.
+
+## Filter-like operators ##
+
+Their main property is that they are placed between the source and the destination, and may or may not let messages through. Some might change the returned value type based on a function of some sort.
+
+To understand how they can be built, let's develop the `where` operator step by step.
+
+**1.) Method parameter syntax**
+
+We will define the `where` as an operator, which takes a source Observable, a function and returns a new Observable.
+
+```
+public static <T> Observable<T> where(
+    final Observable<? extends T> source, 
+    final Func1<? super T, Boolean> predicate
+)
+```
+
+We take any observable, which may contain `T`s or its subclasses (covariance), we take a function which returns true or false for each of these T elements and we return a new observable, which will contain only the Ts let through by the predicate. (The `? super T` notion is for contravariance, you can pass in a function of Object=>Boolean which doesn't really care about the concrete parameter value.) We declare the parameters final because we will need them from the inner classes later on.
+
+**2.) Create the result observable**
+
+The method should return an Observable of T, therefore, let's create one:
+
+```
+
+    return new Observable<T>() {};
+```
+
+The `Observable` interface has one `register` method which we need to specify here:
+
+```
+    return new Observable<T>() {
+        public Closeable register(final Observer<? super T> observer) {}
+    };
+```
+
+The register method takes an `Observer` instance which can take a T or its superclasses (you may observe a stream of `String`s as stream of `Object`s: contravariance).
+
+**3.) Register with the source**
+
+The register method should return a `Closeable` instance. For the kind of operator we implement, this is a simple scenario: remember we have a `source` observable, which also has a register method which returns a Closeable. Let's use it:
+
+```
+        public Closeable register(final Observer<? super T> observer) {
+            return source.register();
+        }
+```
+
+Now we need an Observer of T for this register method. We might give the `observer` to it, but then, nothing gets filtered.
+
+**4.) Create the observer to manipulate the messages**
+
+Let's create an observer instance:
+
+```
+            return source.register(new Observer<T>() {
+            });
+```
+
+The `Observer` class has three methods which need to be implemented: `next`, `error` and `finish`.
+
+In our operator, we will simply **forward** the error and finish messages to the supplied `observer` instance, but some operators might require you to suppress, delay or do work only when they arrive.
+
+The interesting method is the next here:
+
+```
+            return source.register(new Observer<T>() {
+                public void finish() {
+                    observer.finish();
+                }
+                public void error(Throwable t) {
+                    observer.error(t);
+                }
+                public void next(T value) {
+                }
+            });
+```
+
+**5.) Manipulate the messages**
+
+We want to forward `value`s only when they match our predicate:
+
+```
+                    if (predicate.invoke(value)) {
+                        observer.next(value); 
+                    }
+```
+
+And we are finished. Since our `where` operator does not use its own resources (e.g., companion threads, other observable sources). Using the Closeable returned by `source.register` directly is conformant with the lifecycle expectation of the library.
+
+In one piece:
+
+```
+public static <T> Observable<T> where(
+    final Observable<? extends T> source, 
+    final Func1<? super T, Boolean> predicate
+) {
+    return new Observable<T>() {
+        public Closeable register(final Observer<? super T> observer) {
+            return source.register(new Observer<T>() {
+                public void finish() {
+                    observer.finish();
+                }
+                public void error(Throwable t) {
+                    observer.error(t);
+                }
+                public void next(T value) {
+                    if (predicate.invoke(value)) {
+                        observer.next(value); 
+                    }
+                }
+            });
+        }
+    };
+}
+```
+
+Projections like `select` will use the function parameter to turn one type into another, for example, the select operator would be implemented like this:
+
+```
+public static <T, U> Observable<U> where(
+    final Observable<? extends T> source, 
+    final Func1<? super T, ? extends U> func
+) {
+    return new Observable<U>() {
+        public Closeable register(final Observer<? super U> observer) {
+            return source.register(new Observer<T>() {
+                public void finish() {
+                    observer.finish();
+                }
+                public void error(Throwable t) {
+                    observer.error(t);
+                }
+                public void next(T value) {
+                    observer.next(func.invoke(value)); 
+                }
+            });
+        }
+    };
+}
+```
+
+For each message `value` we call the function which returns something of type `U` and we forward it to the given `observer`.
+
+## Concurrency-introducing operators ##
+
+TODO
+
+# Interactive #
+
+TODO
