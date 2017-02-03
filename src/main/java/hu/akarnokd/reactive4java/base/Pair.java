@@ -22,46 +22,46 @@ package hu.akarnokd.reactive4java.base;
  * @param <U> the second type
  */
 public final class Pair<T, U> {
-	/** The first object. */
-	public final T first;
-	/** The second object. */
-	public final U second;
-	/**
-	 * Construct a pair.
-	 * @param first the first object
-	 * @param second the second object
-	 */
-	public Pair(T first, U second) {
-		this.first = first;
-		this.second = second;
-	}
-	/**
-	 * Construct a pair.
-	 * @param <T> the first type
-	 * @param <U> the second type
-	 * @param first the first object
-	 * @param second the second object
-	 * @return the pair
-	 */
-	public static <T, U> Pair<T, U> of(T first, U second) {
-		return new Pair<T, U>(first, second);
-	}
-	@Override
-	public boolean equals(Object obj) {
-		if (obj instanceof Pair<?, ?>) {
-			Pair<?, ?> that = (Pair<?, ?>)obj;
-			return 
-			(this.first == that.first || (this.first != null && this.first.equals(that.first)))
-			&& (this.second == that.second || (this.second != null && this.second.equals(that.second)));
-		}
-		return false;
-	}
-	@Override
-	public int hashCode() {
-		return (17 + (first != null ? first.hashCode() : 0)) * 31 + (second != null ? second.hashCode() : 0);
-	}
-	@Override
-	public String toString() {
-		return "(" + first + ", " + second + ")";
-	}
+    /** The first object. */
+    public final T first;
+    /** The second object. */
+    public final U second;
+    /**
+     * Construct a pair.
+     * @param first the first object
+     * @param second the second object
+     */
+    public Pair(T first, U second) {
+        this.first = first;
+        this.second = second;
+    }
+    /**
+     * Construct a pair.
+     * @param <T> the first type
+     * @param <U> the second type
+     * @param first the first object
+     * @param second the second object
+     * @return the pair
+     */
+    public static <T, U> Pair<T, U> of(T first, U second) {
+        return new Pair<T, U>(first, second);
+    }
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Pair<?, ?>) {
+            Pair<?, ?> that = (Pair<?, ?>)obj;
+            return 
+            (this.first == that.first || (this.first != null && this.first.equals(that.first)))
+            && (this.second == that.second || (this.second != null && this.second.equals(that.second)));
+        }
+        return false;
+    }
+    @Override
+    public int hashCode() {
+        return (17 + (first != null ? first.hashCode() : 0)) * 31 + (second != null ? second.hashCode() : 0);
+    }
+    @Override
+    public String toString() {
+        return "(" + first + ", " + second + ")";
+    }
 }

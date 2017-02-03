@@ -27,35 +27,35 @@ import javax.swing.event.ChangeListener;
  * @author akarnokd, 2011.02.01.
  */
 public class ObservableChangeListener extends DefaultObservable<ChangeEvent> implements ChangeListener {
-	@Override
-	public void stateChanged(ChangeEvent e) {
-		next(e);
-	}
-	/**
-	 * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addActionListener(ActionListener)</code> method.
-	 * @param component the target component
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public static ObservableChangeListener register(@Nonnull Object component) {
-		return new ObservableChangeListener().registerWith(component);
-	}
-	/**
-	 * Convenience method to register this observable with the target component which must have a public <code>addChangeListener(ChangeListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableChangeListener registerWith(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "add", ChangeListener.class, this);
-	}
-	/**
-	 * Convenience method to unregister this observable from the target component which must have a public <code>removeChangeListener(ChangeListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableChangeListener unregisterFrom(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "remove", ChangeListener.class, this);
-	}
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        next(e);
+    }
+    /**
+     * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addActionListener(ActionListener)</code> method.
+     * @param component the target component
+     * @return the new observable
+     */
+    @Nonnull 
+    public static ObservableChangeListener register(@Nonnull Object component) {
+        return new ObservableChangeListener().registerWith(component);
+    }
+    /**
+     * Convenience method to register this observable with the target component which must have a public <code>addChangeListener(ChangeListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableChangeListener registerWith(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "add", ChangeListener.class, this);
+    }
+    /**
+     * Convenience method to unregister this observable from the target component which must have a public <code>removeChangeListener(ChangeListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableChangeListener unregisterFrom(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "remove", ChangeListener.class, this);
+    }
 }

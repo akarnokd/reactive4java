@@ -24,13 +24,13 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public interface BaseObserver {
-	/** 
-	 * An exception is received.
-	 * @param ex the exception 
-	 */
-	void error(@Nonnull Throwable ex);
-	/** 
-	 * No more values to expect. 
-	 */
-	void finish();
+    /** 
+     * An exception is received.
+     * @param ex the exception 
+     */
+    void error(@Nonnull Throwable ex);
+    /** 
+     * No more values to expect. 
+     */
+    void finish();
 }

@@ -32,47 +32,47 @@ import org.junit.Test;
  * @author akarnokd, 2013.01.12.
  */
 public class TestReactiveAwait {
-	/** Test a value. */
-	@Test(timeout = 2500)
-	public void simpleHasValue() {
-		Observable<Long> source = Reactive.tick(0, 2, 1, TimeUnit.SECONDS);
-		
-		Long result = Reactive.await(source);
-		
-		Assert.assertEquals((Long)1L, result);
-	}
-	/** Test an empty sequence. */
-	@Test(timeout = 1500, expected = NoSuchElementException.class)
-	public void simpleEmpty() {
-		Observable<Long> source = Reactive.<Long>empty();
-		Observable<Long> delayed = Reactive.delay(source, 1, TimeUnit.SECONDS);
-		
-		Reactive.await(delayed);
-	}
-	/**
-	 * Test for an error in the sequence.
-	 */
-	@Test(timeout = 1500)
-	public void simpleException() {
-		IOException ex = new IOException();
-		Observable<Long> source = Reactive.<Long>throwException(ex);
-		Observable<Long> delayed = Reactive.delay(source, 1, TimeUnit.SECONDS);
-		
-		try {
-			Reactive.await(delayed);
-		} catch (RuntimeException exc) {
-			Assert.assertEquals(ex, exc.getCause());
-		}
-	}
-	/** Test for a timeout case. */
-	@Test/* (timeout = 1500)*/
-	public void simpleTimeout() {
-		Observable<Long> source = Reactive.tick(0, 300, 1, TimeUnit.SECONDS);
-		
-		try {
-			Reactive.await(source, 500, TimeUnit.MILLISECONDS);
-		} catch (RuntimeException exc) {
-			TestUtil.assertInstanceof(TimeoutException.class, exc.getCause());
-		}
-	}
+    /** Test a value. */
+    @Test(timeout = 2500)
+    public void simpleHasValue() {
+        Observable<Long> source = Reactive.tick(0, 2, 1, TimeUnit.SECONDS);
+        
+        Long result = Reactive.await(source);
+        
+        Assert.assertEquals((Long)1L, result);
+    }
+    /** Test an empty sequence. */
+    @Test(timeout = 1500, expected = NoSuchElementException.class)
+    public void simpleEmpty() {
+        Observable<Long> source = Reactive.<Long>empty();
+        Observable<Long> delayed = Reactive.delay(source, 1, TimeUnit.SECONDS);
+        
+        Reactive.await(delayed);
+    }
+    /**
+     * Test for an error in the sequence.
+     */
+    @Test(timeout = 1500)
+    public void simpleException() {
+        IOException ex = new IOException();
+        Observable<Long> source = Reactive.<Long>throwException(ex);
+        Observable<Long> delayed = Reactive.delay(source, 1, TimeUnit.SECONDS);
+        
+        try {
+            Reactive.await(delayed);
+        } catch (RuntimeException exc) {
+            Assert.assertEquals(ex, exc.getCause());
+        }
+    }
+    /** Test for a timeout case. */
+    @Test/* (timeout = 1500)*/
+    public void simpleTimeout() {
+        Observable<Long> source = Reactive.tick(0, 300, 1, TimeUnit.SECONDS);
+        
+        try {
+            Reactive.await(source, 500, TimeUnit.MILLISECONDS);
+        } catch (RuntimeException exc) {
+            TestUtil.assertInstanceof(TimeoutException.class, exc.getCause());
+        }
+    }
 }

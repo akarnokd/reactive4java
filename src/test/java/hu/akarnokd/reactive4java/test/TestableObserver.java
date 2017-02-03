@@ -28,9 +28,9 @@ import java.util.List;
  */
 public interface TestableObserver<T> extends Observer<T> {
 
-	/**
-	 * @return the recorded timestamped events
-	 */
-	List<Timestamped<? extends Option<T>>> getEvents();
+    /**
+     * @return the recorded timestamped events
+     */
+    List<Timestamped<? extends Option<T>>> getEvents();
 
 }

@@ -36,59 +36,59 @@ import org.junit.Test;
  */
 public class TestReactiveSkip {
 
-	/**
-	 * Tests skipLast().
-	 */
-	@Test
-	public void skipLastOk() {
-		Observable<Integer> prefix = from(1, 2);
-		Observable<Integer> postfix = from(3, 4);
-		Observable<Integer> o = concat(prefix, postfix);
-		Integer count = single(count(postfix));
-		TestUtil.assertEqual(prefix, skipLast(o, count));
-	}
+    /**
+     * Tests skipLast().
+     */
+    @Test
+    public void skipLastOk() {
+        Observable<Integer> prefix = from(1, 2);
+        Observable<Integer> postfix = from(3, 4);
+        Observable<Integer> o = concat(prefix, postfix);
+        Integer count = single(count(postfix));
+        TestUtil.assertEqual(prefix, skipLast(o, count));
+    }
 
-	/**
-	 * Tests skip().
-	 */
-	@Test
-	public void skipOk() {
-		Observable<Integer> prefix = from(1, 2);
-		Observable<Integer> postfix = from(3, 4);
-		Observable<Integer> o = concat(prefix, postfix);
-		Integer count = single(count(prefix));
-		TestUtil.assertEqual(postfix, skip(o, count));
-	}
+    /**
+     * Tests skip().
+     */
+    @Test
+    public void skipOk() {
+        Observable<Integer> prefix = from(1, 2);
+        Observable<Integer> postfix = from(3, 4);
+        Observable<Integer> o = concat(prefix, postfix);
+        Integer count = single(count(prefix));
+        TestUtil.assertEqual(postfix, skip(o, count));
+    }
 
-	/**
-	 * Tests skipWhile() with all elements skipped.
-	 */
-	@Test
-	public void skipWhileAll() {
-		Integer value = 42;
-		TestUtil.assertEqual(empty(), skipWhile(from(value, value), equal(value)));
-	}
+    /**
+     * Tests skipWhile() with all elements skipped.
+     */
+    @Test
+    public void skipWhileAll() {
+        Integer value = 42;
+        TestUtil.assertEqual(empty(), skipWhile(from(value, value), equal(value)));
+    }
 
-	/**
-	 * Tests skipWhile() with no elements skipped.
-	 */
-	@Test
-	public void skipWhileNone() {
-		Integer value = 42;
-		ObservableBuilder<Integer> o = from(0, value);
-		TestUtil.assertEqual(o, skipWhile(o, equal(value)));
-	}
+    /**
+     * Tests skipWhile() with no elements skipped.
+     */
+    @Test
+    public void skipWhileNone() {
+        Integer value = 42;
+        ObservableBuilder<Integer> o = from(0, value);
+        TestUtil.assertEqual(o, skipWhile(o, equal(value)));
+    }
 
-	/**
-	 * Tests skipWhile() with some elements skipped.
-	 */
-	@Test
-	public void skipWhileSome() {
-		Integer value = 42;
-		Observable<Integer> prefix = from(value, value);
-		Observable<Integer> postfix = from(0, value);
-		Observable<Integer> o = concat(prefix, postfix);
-		TestUtil.assertEqual(postfix, skipWhile(o, equal(value)));
-	}
+    /**
+     * Tests skipWhile() with some elements skipped.
+     */
+    @Test
+    public void skipWhileSome() {
+        Integer value = 42;
+        Observable<Integer> prefix = from(value, value);
+        Observable<Integer> postfix = from(0, value);
+        Observable<Integer> o = concat(prefix, postfix);
+        TestUtil.assertEqual(postfix, skipWhile(o, equal(value)));
+    }
 
 }

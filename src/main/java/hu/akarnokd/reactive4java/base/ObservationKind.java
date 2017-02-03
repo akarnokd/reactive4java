@@ -22,10 +22,10 @@ package hu.akarnokd.reactive4java.base;
  * @since 0.97
  */
 public enum ObservationKind {
-	/** A value was received. */
-	NEXT,
-	/** An exception was received. */
-	ERROR,
-	/** A completion was received. */
-	FINISH
+    /** A value was received. */
+    NEXT,
+    /** An exception was received. */
+    ERROR,
+    /** A completion was received. */
+    FINISH
 }

@@ -42,139 +42,139 @@ import javax.annotation.concurrent.GuardedBy;
  * @since 0.97
  */
 public final class Latest<T> extends
-		ObservableToIterableAdapter<T, T> {
-	/**
-	 * Constructor.
-	 * @param observable the source sequence
-	 */
-	public Latest(@Nonnull Observable<? extends T> observable) {
-		super(observable);
-	}
+        ObservableToIterableAdapter<T, T> {
+    /**
+     * Constructor.
+     * @param observable the source sequence
+     */
+    public Latest(@Nonnull Observable<? extends T> observable) {
+        super(observable);
+    }
 
-	@Override
-	@Nonnull 
-	protected ObserverToIteratorSink<T, T> run(@Nonnull Closeable handle) {
-		return new ObserverToIteratorSink<T, T>(handle) {
-			/** The signal that value is available. */
-			protected final Semaphore semaphore = new Semaphore(0, true);
-			/** The lock protecting the fields. */
-			protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
-			@GuardedBy("lock")
-			/** There is an event already received but not processed? */
-			protected boolean eventAvailable;
-			@GuardedBy("lock")
-			/** The received value. */
-			protected T value;
-			@GuardedBy("lock")
-			/** The received error. */
-			protected Throwable error;
-			/** The last observation kind. */
-			@GuardedBy("lock")
-			@Nonnull 
-			protected ObservationKind kind;
-			@Override
-			public void next(T value) {
-				boolean hadNoValue = false;
-				lock.lock();
-				try {
-					hadNoValue = !eventAvailable;
-					
-					eventAvailable = true;
-					
-					kind = ObservationKind.NEXT;
-					this.value = value;
-					
-				} finally {
-					lock.unlock();
-				}
-				if (hadNoValue) {
-					semaphore.release();
-				}
-			}
-			@Override
-			public void error(@Nonnull Throwable ex) {
-				done();
-				boolean hadNoValue = false;
-				lock.lock();
-				try {
-					hadNoValue = !eventAvailable;
-					
-					eventAvailable = true;
-					
-					kind = ObservationKind.ERROR;
-					this.error = ex;
-					
-				} finally {
-					lock.unlock();
-				}
-				if (hadNoValue) {
-					semaphore.release();
-				}
-			}
-			@Override
-			public void finish() {
-				done();
-				boolean hadNoValue = false;
-				lock.lock();
-				try {
-					hadNoValue = !eventAvailable;
-					eventAvailable = true;
-					
-					kind = ObservationKind.FINISH;
-					
-				} finally {
-					lock.unlock();
-				}
-				if (hadNoValue) {
-					semaphore.release();
-				}
-			}
-			@Override
-			public boolean tryNext(@Nonnull SingleOption<? super T> out) {
-				
-				T v = null;
-				Throwable e = null; 
-				ObservationKind k = null;
-				
-				try {
-					semaphore.acquire();
-				} catch (InterruptedException ex) {
-					out.addError(ex);
-					return true;
-				}
-					
-				lock.lock();
-				try {
-					k = kind;
-					
-					switch (k) {
-					case NEXT:
-						v = value;
-						break;
-					case ERROR:
-						e = error;
-						break;
-					default:
-					}
-					
-					eventAvailable = false;
-				} finally {
-					lock.unlock();
-				}
-				
-				switch (k) {
-				case NEXT:
-					out.add(v);
-					return true;
-				case ERROR:
-					out.addError(e);
-					return true;
-				default:
-				}
-				
-				return false;
-			}
-			
-		};
-	}
+    @Override
+    @Nonnull 
+    protected ObserverToIteratorSink<T, T> run(@Nonnull Closeable handle) {
+        return new ObserverToIteratorSink<T, T>(handle) {
+            /** The signal that value is available. */
+            protected final Semaphore semaphore = new Semaphore(0, true);
+            /** The lock protecting the fields. */
+            protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
+            @GuardedBy("lock")
+            /** There is an event already received but not processed? */
+            protected boolean eventAvailable;
+            @GuardedBy("lock")
+            /** The received value. */
+            protected T value;
+            @GuardedBy("lock")
+            /** The received error. */
+            protected Throwable error;
+            /** The last observation kind. */
+            @GuardedBy("lock")
+            @Nonnull 
+            protected ObservationKind kind;
+            @Override
+            public void next(T value) {
+                boolean hadNoValue = false;
+                lock.lock();
+                try {
+                    hadNoValue = !eventAvailable;
+                    
+                    eventAvailable = true;
+                    
+                    kind = ObservationKind.NEXT;
+                    this.value = value;
+                    
+                } finally {
+                    lock.unlock();
+                }
+                if (hadNoValue) {
+                    semaphore.release();
+                }
+            }
+            @Override
+            public void error(@Nonnull Throwable ex) {
+                done();
+                boolean hadNoValue = false;
+                lock.lock();
+                try {
+                    hadNoValue = !eventAvailable;
+                    
+                    eventAvailable = true;
+                    
+                    kind = ObservationKind.ERROR;
+                    this.error = ex;
+                    
+                } finally {
+                    lock.unlock();
+                }
+                if (hadNoValue) {
+                    semaphore.release();
+                }
+            }
+            @Override
+            public void finish() {
+                done();
+                boolean hadNoValue = false;
+                lock.lock();
+                try {
+                    hadNoValue = !eventAvailable;
+                    eventAvailable = true;
+                    
+                    kind = ObservationKind.FINISH;
+                    
+                } finally {
+                    lock.unlock();
+                }
+                if (hadNoValue) {
+                    semaphore.release();
+                }
+            }
+            @Override
+            public boolean tryNext(@Nonnull SingleOption<? super T> out) {
+                
+                T v = null;
+                Throwable e = null; 
+                ObservationKind k = null;
+                
+                try {
+                    semaphore.acquire();
+                } catch (InterruptedException ex) {
+                    out.addError(ex);
+                    return true;
+                }
+                    
+                lock.lock();
+                try {
+                    k = kind;
+                    
+                    switch (k) {
+                    case NEXT:
+                        v = value;
+                        break;
+                    case ERROR:
+                        e = error;
+                        break;
+                    default:
+                    }
+                    
+                    eventAvailable = false;
+                } finally {
+                    lock.unlock();
+                }
+                
+                switch (k) {
+                case NEXT:
+                    out.add(v);
+                    return true;
+                case ERROR:
+                    out.addError(e);
+                    return true;
+                default:
+                }
+                
+                return false;
+            }
+            
+        };
+    }
 }

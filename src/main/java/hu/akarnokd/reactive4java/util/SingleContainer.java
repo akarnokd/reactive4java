@@ -31,38 +31,38 @@ package hu.akarnokd.reactive4java.util;
  * @param <T> the contained element type
  */
 public class SingleContainer<T> {
-	/** The currently stored value. */
-	T value;
-	/** The state. */
-	boolean empty = true;
-	/**
-	 * Add a new value. Might throw an <code>IllegalStateException</code> when the container already has a value.
-	 * @param value the new value
-	 */
-	public void add(T value) {
-		if (empty) {
-			this.value = value;
-			empty = false;
-		} else {
-			throw new IllegalStateException("occupied");
-		}
-	}
-	/**
-	 * @return the content or throws an <code>IllegalStateException</code> when the container is empty.
-	 */
-	public T take() {
-		if (!empty) {
-			T v = value;
-			value = null;
-			empty = true;
-			return v;
-		}
-		throw new IllegalStateException("empty");
-	}
-	/**
-	 * @return true if there is nothing contained
-	 */
-	public boolean isEmpty() {
-		return empty;
-	}
+    /** The currently stored value. */
+    T value;
+    /** The state. */
+    boolean empty = true;
+    /**
+     * Add a new value. Might throw an <code>IllegalStateException</code> when the container already has a value.
+     * @param value the new value
+     */
+    public void add(T value) {
+        if (empty) {
+            this.value = value;
+            empty = false;
+        } else {
+            throw new IllegalStateException("occupied");
+        }
+    }
+    /**
+     * @return the content or throws an <code>IllegalStateException</code> when the container is empty.
+     */
+    public T take() {
+        if (!empty) {
+            T v = value;
+            value = null;
+            empty = true;
+            return v;
+        }
+        throw new IllegalStateException("empty");
+    }
+    /**
+     * @return true if there is nothing contained
+     */
+    public boolean isEmpty() {
+        return empty;
+    }
 }

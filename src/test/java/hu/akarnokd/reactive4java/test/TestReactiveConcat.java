@@ -31,35 +31,35 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestReactiveConcat {
-	/**
-	 * Tests a simple concatenation with two static singleton values.
-	 * @throws Exception on error
-	 */
-	@Test
-	public void testSimple() throws Exception {
-		Observable<Integer> value = Reactive.singleton(1);
-		Observable<Integer> cat = Reactive.concat(value, value);
-		
-		final List<Integer> result = TestUtil.waitForAll(cat);
+    /**
+     * Tests a simple concatenation with two static singleton values.
+     * @throws Exception on error
+     */
+    @Test
+    public void testSimple() throws Exception {
+        Observable<Integer> value = Reactive.singleton(1);
+        Observable<Integer> cat = Reactive.concat(value, value);
+        
+        final List<Integer> result = TestUtil.waitForAll(cat);
 
-		TestUtil.assertEqual(Arrays.asList(1, 1), result);
-	}
-	/**
-	 * Test the iterable sorce + observable selector.
-	 */
-	@Test
-	public void concatFunction() {
-		Iterable<Integer> source = Interactive.range(0, 5);
-		
-		Func1<Integer, Observable<Integer>> f = new Func1<Integer, Observable<Integer>>() {
-			@Override
-			public Observable<Integer> invoke(Integer param1) {
-				return Reactive.singleton(param1 * param1);
-			}
-		};
-		
-		Observable<Integer> result = Reactive.concat(source, f);
-		
-		TestUtil.assertEqual(Arrays.asList(0, 1, 2 * 2, 3 * 3, 4 * 4), result);
-	}
+        TestUtil.assertEqual(Arrays.asList(1, 1), result);
+    }
+    /**
+     * Test the iterable sorce + observable selector.
+     */
+    @Test
+    public void concatFunction() {
+        Iterable<Integer> source = Interactive.range(0, 5);
+        
+        Func1<Integer, Observable<Integer>> f = new Func1<Integer, Observable<Integer>>() {
+            @Override
+            public Observable<Integer> invoke(Integer param1) {
+                return Reactive.singleton(param1 * param1);
+            }
+        };
+        
+        Observable<Integer> result = Reactive.concat(source, f);
+        
+        TestUtil.assertEqual(Arrays.asList(0, 1, 2 * 2, 3 * 3, 4 * 4), result);
+    }
 }

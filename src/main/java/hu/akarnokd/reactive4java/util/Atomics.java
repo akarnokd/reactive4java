@@ -29,100 +29,100 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public final class Atomics {
-	/** Utility class. */
-	private Atomics() { }
-	/**
-	 * Atomically compares the content of <code>ref</code> with the <code>compareWith</code>
-	 * value by using nullsafe object equality and 
-	 * replaces it with the newValue if they equal. The method
-	 * returns the old value of ref regardless of whether the exchange actually happened.
-	 * @param ref the target of the exchange
-	 * @param compareWith the value to compare against
-	 * @param newValue the the new value to replace with
-	 * @return the old value of the ref
-	 * @param <T> the element type
-	 */
-	public static <T> T compareExchange(
-			@Nonnull AtomicReference<T> ref, T compareWith, T newValue) {
-		T old = null;
-		
-		do {
-			old = ref.get();
-			if (old != compareWith && (old == null || !old.equals(compareWith))) {
-				break;
-			}
-		} while (!ref.compareAndSet(old, newValue));
-		
-		return old;
-			
-	}
-	/**
-	 * Atomically compares the content of <code>ref</code> with the <code>compareWith</code>
-	 * value and 
-	 * replaces it with the newValue if they equal. The method
-	 * returns the old value of ref regardless of whether the exchange actually happened.
-	 * @param ref the target of the exchange
-	 * @param compareWith the value to compare against
-	 * @param newValue the the new value to replace with
-	 * @return the old value of the ref
-	 */
-	public static boolean compareExchange(
-			@Nonnull AtomicBoolean ref, boolean compareWith, boolean newValue) {
-		boolean old = false;
-		
-		do {
-			old = ref.get();
-			if (old != compareWith) {
-				break;
-			}
-		} while (!ref.compareAndSet(old, newValue));
-		
-		return old;
-	}
-	/**
-	 * Atomically compares the content of <code>ref</code> with the <code>compareWith</code>
-	 * value and 
-	 * replaces it with the newValue if they equal. The method
-	 * returns the old value of ref regardless of whether the exchange actually happened.
-	 * @param ref the target of the exchange
-	 * @param compareWith the value to compare against
-	 * @param newValue the the new value to replace with
-	 * @return the old value of the ref
-	 */
-	public static int compareExchange(
-			@Nonnull AtomicInteger ref, int compareWith, int newValue) {
-		int old = 0;
-		
-		do {
-			old = ref.get();
-			if (old != compareWith) {
-				break;
-			}
-		} while (!ref.compareAndSet(old, newValue));
-		
-		return old;
-	}
-	/**
-	 * Atomically compares the content of <code>ref</code> with the <code>compareWith</code>
-	 * value and 
-	 * replaces it with the newValue if they equal. The method
-	 * returns the old value of ref regardless of whether the exchange actually happened.
-	 * @param ref the target of the exchange
-	 * @param compareWith the value to compare against
-	 * @param newValue the the new value to replace with
-	 * @return the old value of the ref
-	 */
-	public static long compareExchange(
-			@Nonnull AtomicLong ref, long compareWith, long newValue) {
-		long old = 0;
-		
-		do {
-			old = ref.get();
-			if (old != compareWith) {
-				break;
-			}
-		} while (!ref.compareAndSet(old, newValue));
-		
-		return old;
-	}
+    /** Utility class. */
+    private Atomics() { }
+    /**
+     * Atomically compares the content of <code>ref</code> with the <code>compareWith</code>
+     * value by using nullsafe object equality and 
+     * replaces it with the newValue if they equal. The method
+     * returns the old value of ref regardless of whether the exchange actually happened.
+     * @param ref the target of the exchange
+     * @param compareWith the value to compare against
+     * @param newValue the the new value to replace with
+     * @return the old value of the ref
+     * @param <T> the element type
+     */
+    public static <T> T compareExchange(
+            @Nonnull AtomicReference<T> ref, T compareWith, T newValue) {
+        T old = null;
+        
+        do {
+            old = ref.get();
+            if (old != compareWith && (old == null || !old.equals(compareWith))) {
+                break;
+            }
+        } while (!ref.compareAndSet(old, newValue));
+        
+        return old;
+            
+    }
+    /**
+     * Atomically compares the content of <code>ref</code> with the <code>compareWith</code>
+     * value and 
+     * replaces it with the newValue if they equal. The method
+     * returns the old value of ref regardless of whether the exchange actually happened.
+     * @param ref the target of the exchange
+     * @param compareWith the value to compare against
+     * @param newValue the the new value to replace with
+     * @return the old value of the ref
+     */
+    public static boolean compareExchange(
+            @Nonnull AtomicBoolean ref, boolean compareWith, boolean newValue) {
+        boolean old = false;
+        
+        do {
+            old = ref.get();
+            if (old != compareWith) {
+                break;
+            }
+        } while (!ref.compareAndSet(old, newValue));
+        
+        return old;
+    }
+    /**
+     * Atomically compares the content of <code>ref</code> with the <code>compareWith</code>
+     * value and 
+     * replaces it with the newValue if they equal. The method
+     * returns the old value of ref regardless of whether the exchange actually happened.
+     * @param ref the target of the exchange
+     * @param compareWith the value to compare against
+     * @param newValue the the new value to replace with
+     * @return the old value of the ref
+     */
+    public static int compareExchange(
+            @Nonnull AtomicInteger ref, int compareWith, int newValue) {
+        int old = 0;
+        
+        do {
+            old = ref.get();
+            if (old != compareWith) {
+                break;
+            }
+        } while (!ref.compareAndSet(old, newValue));
+        
+        return old;
+    }
+    /**
+     * Atomically compares the content of <code>ref</code> with the <code>compareWith</code>
+     * value and 
+     * replaces it with the newValue if they equal. The method
+     * returns the old value of ref regardless of whether the exchange actually happened.
+     * @param ref the target of the exchange
+     * @param compareWith the value to compare against
+     * @param newValue the the new value to replace with
+     * @return the old value of the ref
+     */
+    public static long compareExchange(
+            @Nonnull AtomicLong ref, long compareWith, long newValue) {
+        long old = 0;
+        
+        do {
+            old = ref.get();
+            if (old != compareWith) {
+                break;
+            }
+        } while (!ref.compareAndSet(old, newValue));
+        
+        return old;
+    }
 }

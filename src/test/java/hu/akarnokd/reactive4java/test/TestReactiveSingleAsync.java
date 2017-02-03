@@ -31,62 +31,62 @@ import org.junit.Test;
  */
 public class TestReactiveSingleAsync {
 
-	/**
-	 * Tests singleAsync() in case of 0 element.
-	 * @throws Exception on error
-	 */
-	@Test(expected = NoSuchElementException.class)
-	public void singleNoSuchElement() throws Exception {
-		Observable<Integer> source = Reactive.empty();
-		
-		Observable<Integer> result = Reactive.singleAsync(source);
-		
-		TestUtil.waitForAll(result);
-	}
+    /**
+     * Tests singleAsync() in case of 0 element.
+     * @throws Exception on error
+     */
+    @Test(expected = NoSuchElementException.class)
+    public void singleNoSuchElement() throws Exception {
+        Observable<Integer> source = Reactive.empty();
+        
+        Observable<Integer> result = Reactive.singleAsync(source);
+        
+        TestUtil.waitForAll(result);
+    }
 
-	/**
-	 * Tests singleAsync() in case of 1 element.
-	 */
-	@Test
-	public void singleOk() {
-		Observable<Integer> source = Reactive.singleton(42);
-		
-		Observable<Integer> result = Reactive.singleAsync(source);
-		
-		TestUtil.assertSingle(42, result);
-	}
-	/**
-	 * Tests singleAsync() in case of more than 1 elements.
-	 * @throws Exception on error
-	 */
-	@Test(expected = TooManyElementsException.class)
-	public void singleTooManyElements() throws Exception {
-		Observable<Integer> source = Reactive.range(0, 10);
-		
-		Observable<Integer> result = Reactive.singleAsync(source);
-		
-		TestUtil.waitForAll(result);
-	}
-	/**
-	 * Test for empty source with constant.
-	 */
-	@Test
-	public void singleDefault() {
-		Observable<Integer> source = Reactive.empty();
-		
-		Observable<Integer> result = Reactive.singleAsync(source, 1);
-		
-		TestUtil.assertSingle(1, result);
-	}
-	/**
-	 * Test for empty source with default supplier.
-	 */
-	@Test
-	public void singleDefaultFunction() {
-		Observable<Integer> source = Reactive.empty();
-		
-		Observable<Integer> result = Reactive.singleAsync(source, Functions.constant0(1));
-		
-		TestUtil.assertSingle(1, result);
-	}
+    /**
+     * Tests singleAsync() in case of 1 element.
+     */
+    @Test
+    public void singleOk() {
+        Observable<Integer> source = Reactive.singleton(42);
+        
+        Observable<Integer> result = Reactive.singleAsync(source);
+        
+        TestUtil.assertSingle(42, result);
+    }
+    /**
+     * Tests singleAsync() in case of more than 1 elements.
+     * @throws Exception on error
+     */
+    @Test(expected = TooManyElementsException.class)
+    public void singleTooManyElements() throws Exception {
+        Observable<Integer> source = Reactive.range(0, 10);
+        
+        Observable<Integer> result = Reactive.singleAsync(source);
+        
+        TestUtil.waitForAll(result);
+    }
+    /**
+     * Test for empty source with constant.
+     */
+    @Test
+    public void singleDefault() {
+        Observable<Integer> source = Reactive.empty();
+        
+        Observable<Integer> result = Reactive.singleAsync(source, 1);
+        
+        TestUtil.assertSingle(1, result);
+    }
+    /**
+     * Test for empty source with default supplier.
+     */
+    @Test
+    public void singleDefaultFunction() {
+        Observable<Integer> source = Reactive.empty();
+        
+        Observable<Integer> result = Reactive.singleAsync(source, Functions.constant0(1));
+        
+        TestUtil.assertSingle(1, result);
+    }
 }

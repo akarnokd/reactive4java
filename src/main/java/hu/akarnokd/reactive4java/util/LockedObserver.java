@@ -36,64 +36,64 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public class LockedObserver<T> implements Observer<T>, Closeable {
-	/** The wrapped observer. */
-	protected final Observer<? super T> observer;
-	/** The lock object. */
-	protected final Lock lock;
-	/**
-	 * Constructor, sets the wrapped observer and uses a fair ReentrantLock.
-	 * @param o the observer
-	 */
-	public LockedObserver(@Nonnull Observer<? super T> o) {
-		this(o, new ReentrantLock(R4JConfigManager.get().useFairLocks()));
-	}
-	/**
-	 * Constructor, sets the wrapped observer and uses the provided lock.
-	 * @param o the observer
-	 * @param l the lock
-	 */
-	public LockedObserver(@Nonnull Observer<? super T> o, @Nonnull Lock l) {
-		this.observer = o;
-		this.lock = l;
-	}
-	/** @return the lock object */
-	public Lock getLock() {
-		return lock;
-	}
-	@Override
-	public void close() throws IOException {
-		lock.lock();
-		try {
-			Closeables.close(observer);
-		} finally {
-			lock.unlock();
-		}
-	}
-	@Override
-	public void next(T value) {
-		lock.lock();
-		try {
-			observer.next(value);
-		} finally {
-			lock.unlock();
-		}
-	}
-	@Override
-	public void error(@Nonnull Throwable ex) {
-		lock.lock();
-		try {
-			observer.error(ex);
-		} finally {
-			lock.unlock();
-		}
-	}
-	@Override
-	public void finish() {
-		lock.lock();
-		try {
-			observer.finish();
-		} finally {
-			lock.unlock();
-		}
-	}
+    /** The wrapped observer. */
+    protected final Observer<? super T> observer;
+    /** The lock object. */
+    protected final Lock lock;
+    /**
+     * Constructor, sets the wrapped observer and uses a fair ReentrantLock.
+     * @param o the observer
+     */
+    public LockedObserver(@Nonnull Observer<? super T> o) {
+        this(o, new ReentrantLock(R4JConfigManager.get().useFairLocks()));
+    }
+    /**
+     * Constructor, sets the wrapped observer and uses the provided lock.
+     * @param o the observer
+     * @param l the lock
+     */
+    public LockedObserver(@Nonnull Observer<? super T> o, @Nonnull Lock l) {
+        this.observer = o;
+        this.lock = l;
+    }
+    /** @return the lock object */
+    public Lock getLock() {
+        return lock;
+    }
+    @Override
+    public void close() throws IOException {
+        lock.lock();
+        try {
+            Closeables.close(observer);
+        } finally {
+            lock.unlock();
+        }
+    }
+    @Override
+    public void next(T value) {
+        lock.lock();
+        try {
+            observer.next(value);
+        } finally {
+            lock.unlock();
+        }
+    }
+    @Override
+    public void error(@Nonnull Throwable ex) {
+        lock.lock();
+        try {
+            observer.error(ex);
+        } finally {
+            lock.unlock();
+        }
+    }
+    @Override
+    public void finish() {
+        lock.lock();
+        try {
+            observer.finish();
+        } finally {
+            lock.unlock();
+        }
+    }
 }

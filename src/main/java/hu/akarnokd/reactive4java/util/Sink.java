@@ -31,55 +31,55 @@ import javax.annotation.Nonnull;
  * @param <T> the element type
  */
 public class Sink<T> implements Closeable {
-	/** The reference to the observer. */
-	protected final AtomicReference<Observer<? super T>> observer;
-	/** The reference to the cancel handler. */
-	protected final AtomicReference<Closeable> cancel;
-	/**
-	 * Constructor.
-	 * @param observer the observer to wrap
-	 * @param cancel the cancel handler to wrap
-	 */
-	public Sink(@Nonnull Observer<? super T> observer, @Nonnull Closeable cancel) {
-		this.observer = new AtomicReference<Observer<? super T>>(observer);
-		this.cancel = new AtomicReference<Closeable>(cancel);
-	}
+    /** The reference to the observer. */
+    protected final AtomicReference<Observer<? super T>> observer;
+    /** The reference to the cancel handler. */
+    protected final AtomicReference<Closeable> cancel;
+    /**
+     * Constructor.
+     * @param observer the observer to wrap
+     * @param cancel the cancel handler to wrap
+     */
+    public Sink(@Nonnull Observer<? super T> observer, @Nonnull Closeable cancel) {
+        this.observer = new AtomicReference<Observer<? super T>>(observer);
+        this.cancel = new AtomicReference<Closeable>(cancel);
+    }
 
-	@Override
-	public void close() throws IOException {
-		observer.set(ObserverAdapter.INSTANCE);
-		Closeable c = cancel.getAndSet(null);
-		if (c != null) {
-			c.close();
-		}
-	}
-	/** Convenience method to close this sink and suppress its exceptions. */
-	protected void closeSilently() {
-		Closeables.closeSilently(this);
-	}
-	/**
-	 * @return creates a new event forwarder for this sink.
-	 */
-	public Observer<T> getForwarder() {
-		return new Observer<T>() {
+    @Override
+    public void close() throws IOException {
+        observer.set(ObserverAdapter.INSTANCE);
+        Closeable c = cancel.getAndSet(null);
+        if (c != null) {
+            c.close();
+        }
+    }
+    /** Convenience method to close this sink and suppress its exceptions. */
+    protected void closeSilently() {
+        Closeables.closeSilently(this);
+    }
+    /**
+     * @return creates a new event forwarder for this sink.
+     */
+    public Observer<T> getForwarder() {
+        return new Observer<T>() {
 
-			@Override
-			public void error(@Nonnull Throwable ex) {
-				observer.get().error(ex);
-				Closeables.closeSilently(Sink.this);
-			}
+            @Override
+            public void error(@Nonnull Throwable ex) {
+                observer.get().error(ex);
+                Closeables.closeSilently(Sink.this);
+            }
 
-			@Override
-			public void finish() {
-				observer.get().finish();
-				Closeables.closeSilently(Sink.this);
-			}
+            @Override
+            public void finish() {
+                observer.get().finish();
+                Closeables.closeSilently(Sink.this);
+            }
 
-			@Override
-			public void next(T value) {
-				observer.get().next(value);
-			}
-			
-		};
-	}
+            @Override
+            public void next(T value) {
+                observer.get().next(value);
+            }
+            
+        };
+    }
 }

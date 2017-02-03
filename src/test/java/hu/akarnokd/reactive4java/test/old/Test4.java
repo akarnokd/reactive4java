@@ -29,42 +29,42 @@ import java.util.concurrent.TimeUnit;
  */
 public final class Test4 {
 
-	/**
-	 * Utility class.
-	 */
-	private Test4() {
-		// utility class
-	}
+    /**
+     * Utility class.
+     */
+    private Test4() {
+        // utility class
+    }
 
-	/**
-	 * @param args no arguments
-	 * @throws Exception on error
-	 */
-	public static void main(String[] args) throws Exception {
+    /**
+     * @param args no arguments
+     * @throws Exception on error
+     */
+    public static void main(String[] args) throws Exception {
 
-		Observable<Long> tick = Reactive.tick(1, TimeUnit.SECONDS);
-		
-		Closeable c = tick.register(Observers.println());
-		
-		Thread.sleep(5500);
-		
-		c.close();
-		
-		System.out.println(Reactive.last(Reactive.range(0, 10)));
-		
-		System.out.println(Reactive.latest(Reactive.range(0, 10)).iterator().next());
-		
-		for (Long t : Reactive.latest(Reactive.tick(0, 20, 1, TimeUnit.SECONDS))) {
-			System.out.println(t);
-			Thread.sleep(3000);
-		}
-		
-		c = Reactive.sample(Reactive.tick(1L, TimeUnit.SECONDS), 3L, TimeUnit.SECONDS)
-				.register(Observers.println());
-		
-		Thread.sleep(10000);
-		
-		c.close();
-	}
+        Observable<Long> tick = Reactive.tick(1, TimeUnit.SECONDS);
+        
+        Closeable c = tick.register(Observers.println());
+        
+        Thread.sleep(5500);
+        
+        c.close();
+        
+        System.out.println(Reactive.last(Reactive.range(0, 10)));
+        
+        System.out.println(Reactive.latest(Reactive.range(0, 10)).iterator().next());
+        
+        for (Long t : Reactive.latest(Reactive.tick(0, 20, 1, TimeUnit.SECONDS))) {
+            System.out.println(t);
+            Thread.sleep(3000);
+        }
+        
+        c = Reactive.sample(Reactive.tick(1L, TimeUnit.SECONDS), 3L, TimeUnit.SECONDS)
+                .register(Observers.println());
+        
+        Thread.sleep(10000);
+        
+        c.close();
+    }
 
 }

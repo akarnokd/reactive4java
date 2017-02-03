@@ -36,122 +36,122 @@ import org.junit.Test;
  * @author akarnokd, 2013.01.13.
  */
 public class TestReactiveDoWhile {
-	/** Simple test. */
-	@Test
-	public void testSimple() {
-		Observable<Integer> source = Reactive.range(0, 5);
-		
-		Pred0 twice = new Pred0() {
-			/** Count backwards. */
-			int count = 1;
-			@Override
-			public Boolean invoke() {
-				return count-- > 0;
-			}
-		};
-		
-		Observable<Integer> result = Reactive.doWhile(source, twice);
-		
-		List<Integer> expected = Arrays.asList(0, 1, 2, 3, 4, 0, 1, 2, 3, 4);
-		
-		TestUtil.assertEqual(expected, result);
-	}
-	/** Simple test. */
-	@Test(expected = RuntimeException.class)
-	public void testException() {
-		Observable<Integer> ex = Reactive.throwException(new RuntimeException());
-		Observable<Integer> source = Reactive.concat(Reactive.range(0, 5), ex);
-		
-		Pred0 twice = new Pred0() {
-			/** Count backwards. */
-			int count = 1;
-			@Override
-			public Boolean invoke() {
-				return count-- > 0;
-			}
-		};
-		
-		Observable<Integer> result = Reactive.doWhile(source, twice);
-		
-		List<Integer> expected = Arrays.asList(0, 1, 2, 3, 4, 0, 1, 2, 3, 4);
-		
-		TestUtil.assertEqual(expected, result);
-	}
-	/**
-	 * Test if prolonged repeat causes any issues.
-	 * @throws InterruptedException if interrupted
-	 * @throws IOException on close?
-	 */
-	@Test
-	public void testLongRepeat() throws InterruptedException, IOException {
-		int n = 10000;
-		Observable<Integer> source = Reactive.singleton(1);
-		
-		final AtomicInteger cnt = new AtomicInteger();
-		final CountDownLatch compl = new CountDownLatch(1);
-		Reactive.repeat(source, n)
-				.register(new Observer<Integer>() {
-					@Override
-					public void error(Throwable ex) {
-						ex.printStackTrace();
-						compl.countDown();
-					}
-					@Override
-					public void finish() {
-						compl.countDown();
-					}
-					@Override
-					public void next(Integer value) {
-						cnt.incrementAndGet();
-					}
-					
-				});
-		
-		compl.await();
-		
-		Assert.assertEquals(n, cnt.get());
-	}
-	/**
-	 * Test if prolonged repeat causes any issues.
-	 * @throws InterruptedException if interrupted
-	 * @throws IOException on close?
-	 */
-	@Test
-	public void testLongRepeat2() throws InterruptedException, IOException {
-		int n = 10000;
-		
-		Observable<Integer> source = new Observable<Integer>() {
-			@Override
-			public Closeable register(Observer<? super Integer> observer) {
-				observer.next(1);
-				observer.finish();
-				return Closeables.emptyCloseable();
-			}
-		};
+    /** Simple test. */
+    @Test
+    public void testSimple() {
+        Observable<Integer> source = Reactive.range(0, 5);
+        
+        Pred0 twice = new Pred0() {
+            /** Count backwards. */
+            int count = 1;
+            @Override
+            public Boolean invoke() {
+                return count-- > 0;
+            }
+        };
+        
+        Observable<Integer> result = Reactive.doWhile(source, twice);
+        
+        List<Integer> expected = Arrays.asList(0, 1, 2, 3, 4, 0, 1, 2, 3, 4);
+        
+        TestUtil.assertEqual(expected, result);
+    }
+    /** Simple test. */
+    @Test(expected = RuntimeException.class)
+    public void testException() {
+        Observable<Integer> ex = Reactive.throwException(new RuntimeException());
+        Observable<Integer> source = Reactive.concat(Reactive.range(0, 5), ex);
+        
+        Pred0 twice = new Pred0() {
+            /** Count backwards. */
+            int count = 1;
+            @Override
+            public Boolean invoke() {
+                return count-- > 0;
+            }
+        };
+        
+        Observable<Integer> result = Reactive.doWhile(source, twice);
+        
+        List<Integer> expected = Arrays.asList(0, 1, 2, 3, 4, 0, 1, 2, 3, 4);
+        
+        TestUtil.assertEqual(expected, result);
+    }
+    /**
+     * Test if prolonged repeat causes any issues.
+     * @throws InterruptedException if interrupted
+     * @throws IOException on close?
+     */
+    @Test
+    public void testLongRepeat() throws InterruptedException, IOException {
+        int n = 10000;
+        Observable<Integer> source = Reactive.singleton(1);
+        
+        final AtomicInteger cnt = new AtomicInteger();
+        final CountDownLatch compl = new CountDownLatch(1);
+        Reactive.repeat(source, n)
+                .register(new Observer<Integer>() {
+                    @Override
+                    public void error(Throwable ex) {
+                        ex.printStackTrace();
+                        compl.countDown();
+                    }
+                    @Override
+                    public void finish() {
+                        compl.countDown();
+                    }
+                    @Override
+                    public void next(Integer value) {
+                        cnt.incrementAndGet();
+                    }
+                    
+                });
+        
+        compl.await();
+        
+        Assert.assertEquals(n, cnt.get());
+    }
+    /**
+     * Test if prolonged repeat causes any issues.
+     * @throws InterruptedException if interrupted
+     * @throws IOException on close?
+     */
+    @Test
+    public void testLongRepeat2() throws InterruptedException, IOException {
+        int n = 10000;
+        
+        Observable<Integer> source = new Observable<Integer>() {
+            @Override
+            public Closeable register(Observer<? super Integer> observer) {
+                observer.next(1);
+                observer.finish();
+                return Closeables.emptyCloseable();
+            }
+        };
 
-		final CountDownLatch compl = new CountDownLatch(1);
-		
-		final AtomicInteger cnt = new AtomicInteger();
-		Reactive.repeat(source, n)
-				.register(new Observer<Integer>() {
-					@Override
-					public void error(Throwable ex) {
-						ex.printStackTrace();
-						compl.countDown();
-					}
-					@Override
-					public void finish() {
-						compl.countDown();
-					}
-					@Override
-					public void next(Integer value) {
-						cnt.incrementAndGet();
-					}
-					
-				});
-		
-		compl.await();
-		
-		Assert.assertEquals(n, cnt.get());
-	}
+        final CountDownLatch compl = new CountDownLatch(1);
+        
+        final AtomicInteger cnt = new AtomicInteger();
+        Reactive.repeat(source, n)
+                .register(new Observer<Integer>() {
+                    @Override
+                    public void error(Throwable ex) {
+                        ex.printStackTrace();
+                        compl.countDown();
+                    }
+                    @Override
+                    public void finish() {
+                        compl.countDown();
+                    }
+                    @Override
+                    public void next(Integer value) {
+                        cnt.incrementAndGet();
+                    }
+                    
+                });
+        
+        compl.await();
+        
+        Assert.assertEquals(n, cnt.get());
+    }
 }

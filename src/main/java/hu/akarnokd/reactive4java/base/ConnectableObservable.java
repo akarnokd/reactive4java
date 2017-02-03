@@ -23,13 +23,13 @@ import java.io.Closeable;
  * @param <T> the element type
  */
 public interface ConnectableObservable<T> extends Observable<T> {
-	/**
-	 * Connects the wrapper to its source. All registered observers
-	 * will receive values while this connection is active. Closing
-	 * the connection will stop the observers from receiving events,
-	 * but they won't be deregistered.
-	 * Connecting to an already connected source is a no-op.
-	 * @return the handler to close the connection
-	 */
-	Closeable connect();
+    /**
+     * Connects the wrapper to its source. All registered observers
+     * will receive values while this connection is active. Closing
+     * the connection will stop the observers from receiving events,
+     * but they won't be deregistered.
+     * Connecting to an already connected source is a no-op.
+     * @return the handler to close the connection
+     */
+    Closeable connect();
 }

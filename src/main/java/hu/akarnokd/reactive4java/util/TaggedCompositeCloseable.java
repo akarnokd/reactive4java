@@ -37,111 +37,111 @@ import javax.annotation.concurrent.GuardedBy;
  * @since 0.97
  */
 public class TaggedCompositeCloseable implements Closeable, Cancelable {
-	/** The lock protecting the inner structures. */
-	protected final Lock lock;
-	/** The sub-observer registration holder. The key is a use-site created object. */
-	@GuardedBy("lock")
-	@Nonnull 
-	protected Map<Object, Closeable> items;
-	/** Flag to indicate this item container is closed. */
-	@GuardedBy("lock")
-	protected boolean done;
-	/**
-	 * Construct a new instance with a fair reentrant lock.
-	 */
-	public TaggedCompositeCloseable() {
-		this(new ReentrantLock());
-	}
-	/**
-	 * Constructs an instance with the given shared lock.
-	 * @param lock the lock to use
-	 */
-	public TaggedCompositeCloseable(Lock lock) {
-		this.lock = lock;
-		init();
-	}
-	/** Initializes the items map. */
-	protected void init() {
-		items = new HashMap<Object, Closeable>();
-	}
-	@Override
-	public void close() throws IOException {
-		List<Closeable> os = null;
-		lock.lock();
-		try {
-			if (!done) {
-				done = true;
-				os = new ArrayList<Closeable>(items.values());
-				// free the items
-				init();
-			}
-		} finally {
-			lock.unlock();
-		}
-		if (os != null) {
-			Closeables.close(os);
-		}
-	}
-	/**
-	 * Adds or replaces a new closeable by the given token.
-	 * If the container is already closed, the supplied
-	 * closeable is closed silently immediately.
-	 * @param token the token identifying the closeable
-	 * @param c the closeable instance
-	 */
-	public void add(@Nonnull Object token, @Nonnull Closeable c) {
-		Closeable old = null;
-		boolean shouldClose = false;
-		lock.lock();
-		try {
-			shouldClose = done;
-			if (!shouldClose) {
-				old = items.put(token, c);
-			}
-		} finally {
-			lock.unlock();
-		}
-		Closeables.closeSilently(old);
-		if (shouldClose) {
-			Closeables.closeSilently(c);
-		}
-	}
-	/**
-	 * Remove and close the closeable identified by the token.
-	 * If the token is not among the items, this method
-	 * does nothing.
-	 * @param token the token to remove
-	 */
-	public void remove(@Nonnull Object token) {
-		Closeable old = null;
-		lock.lock();
-		try {
-			old = items.remove(token);
-		} finally {
-			lock.unlock();
-		}
-		Closeables.closeSilently(old);
-	}
-	/**
-	 * Removes but does not close the given token
-	 * from this composite.
-	 * @param token the token identifying the closeable
-	 */
-	public void delete(@Nonnull Object token) {
-		lock.lock();
-		try {
-			items.remove(token);
-		} finally {
-			lock.unlock();
-		}
-	}
-	@Override
-	public boolean isClosed() {
-		lock.lock();
-		try {
-			return done;
-		} finally {
-			lock.unlock();
-		}
-	}
+    /** The lock protecting the inner structures. */
+    protected final Lock lock;
+    /** The sub-observer registration holder. The key is a use-site created object. */
+    @GuardedBy("lock")
+    @Nonnull 
+    protected Map<Object, Closeable> items;
+    /** Flag to indicate this item container is closed. */
+    @GuardedBy("lock")
+    protected boolean done;
+    /**
+     * Construct a new instance with a fair reentrant lock.
+     */
+    public TaggedCompositeCloseable() {
+        this(new ReentrantLock());
+    }
+    /**
+     * Constructs an instance with the given shared lock.
+     * @param lock the lock to use
+     */
+    public TaggedCompositeCloseable(Lock lock) {
+        this.lock = lock;
+        init();
+    }
+    /** Initializes the items map. */
+    protected void init() {
+        items = new HashMap<Object, Closeable>();
+    }
+    @Override
+    public void close() throws IOException {
+        List<Closeable> os = null;
+        lock.lock();
+        try {
+            if (!done) {
+                done = true;
+                os = new ArrayList<Closeable>(items.values());
+                // free the items
+                init();
+            }
+        } finally {
+            lock.unlock();
+        }
+        if (os != null) {
+            Closeables.close(os);
+        }
+    }
+    /**
+     * Adds or replaces a new closeable by the given token.
+     * If the container is already closed, the supplied
+     * closeable is closed silently immediately.
+     * @param token the token identifying the closeable
+     * @param c the closeable instance
+     */
+    public void add(@Nonnull Object token, @Nonnull Closeable c) {
+        Closeable old = null;
+        boolean shouldClose = false;
+        lock.lock();
+        try {
+            shouldClose = done;
+            if (!shouldClose) {
+                old = items.put(token, c);
+            }
+        } finally {
+            lock.unlock();
+        }
+        Closeables.closeSilently(old);
+        if (shouldClose) {
+            Closeables.closeSilently(c);
+        }
+    }
+    /**
+     * Remove and close the closeable identified by the token.
+     * If the token is not among the items, this method
+     * does nothing.
+     * @param token the token to remove
+     */
+    public void remove(@Nonnull Object token) {
+        Closeable old = null;
+        lock.lock();
+        try {
+            old = items.remove(token);
+        } finally {
+            lock.unlock();
+        }
+        Closeables.closeSilently(old);
+    }
+    /**
+     * Removes but does not close the given token
+     * from this composite.
+     * @param token the token identifying the closeable
+     */
+    public void delete(@Nonnull Object token) {
+        lock.lock();
+        try {
+            items.remove(token);
+        } finally {
+            lock.unlock();
+        }
+    }
+    @Override
+    public boolean isClosed() {
+        lock.lock();
+        try {
+            return done;
+        } finally {
+            lock.unlock();
+        }
+    }
 }

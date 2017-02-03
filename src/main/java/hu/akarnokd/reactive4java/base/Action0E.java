@@ -23,9 +23,9 @@ package hu.akarnokd.reactive4java.base;
  * @since 0.96
  */
 public interface Action0E<E extends Exception> {
-	/**
-	 * Invoke the action.
-	 * @throws E the exception
-	 */
-	void invoke() throws E;
+    /**
+     * Invoke the action.
+     * @throws E the exception
+     */
+    void invoke() throws E;
 }

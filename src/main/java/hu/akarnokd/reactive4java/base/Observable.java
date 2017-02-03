@@ -27,11 +27,11 @@ import javax.annotation.Nonnull;
  * @param <T> the type of the values to send
  */
 public interface Observable<T> {
-	/**
-	 * Registers an observer for the notification of Ts.
-	 * @param observer the observer of Ts or any supertype of it
-	 * @return the way of deregister the observer from this provider
-	 */
-	@Nonnull 
-	Closeable register(@Nonnull Observer<? super T> observer);
+    /**
+     * Registers an observer for the notification of Ts.
+     * @param observer the observer of Ts or any supertype of it
+     * @return the way of deregister the observer from this provider
+     */
+    @Nonnull 
+    Closeable register(@Nonnull Observer<? super T> observer);
 }

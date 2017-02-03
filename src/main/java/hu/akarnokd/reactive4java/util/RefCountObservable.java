@@ -28,30 +28,30 @@ import java.io.Closeable;
  * @param <T> the element type
  */
 public class RefCountObservable<T> extends Producer<T> {
-	/** The wrapped observable. */
-	protected final Observable<? extends T> source;
-	/** The reference counter. */
-	protected final RefCountCloseable refCount;
-	/**
-	 * Constructor.
-	 * @param source the source observable
-	 * @param refCount the reference counting closeable
-	 */
-	public RefCountObservable(Observable<? extends T> source, RefCountCloseable refCount) {
-		this.source = source;
-		this.refCount = refCount;
-	}
+    /** The wrapped observable. */
+    protected final Observable<? extends T> source;
+    /** The reference counter. */
+    protected final RefCountCloseable refCount;
+    /**
+     * Constructor.
+     * @param source the source observable
+     * @param refCount the reference counting closeable
+     */
+    public RefCountObservable(Observable<? extends T> source, RefCountCloseable refCount) {
+        this.source = source;
+        this.refCount = refCount;
+    }
 
-	@Override
-	protected Closeable run(Observer<? super T> observer, Closeable cancel,
-			Action1<Closeable> setSink) {
-		
-		CompositeCloseable c = new CompositeCloseable(refCount.getCloseable(), cancel);
-		
-		DefaultSink<T> s = new DefaultSink<T>(observer, c);
-		setSink.invoke(s);
-		
-		return Observers.registerSafe(source, s);
-	}
+    @Override
+    protected Closeable run(Observer<? super T> observer, Closeable cancel,
+            Action1<Closeable> setSink) {
+        
+        CompositeCloseable c = new CompositeCloseable(refCount.getCloseable(), cancel);
+        
+        DefaultSink<T> s = new DefaultSink<T>(observer, c);
+        setSink.invoke(s);
+        
+        return Observers.registerSafe(source, s);
+    }
 
 }

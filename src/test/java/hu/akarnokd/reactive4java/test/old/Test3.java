@@ -34,71 +34,71 @@ import javax.annotation.Nonnull;
  */
 public final class Test3 {
 
-	/**
-	 * Utility class.
-	 */
-	private Test3() {
-		// utility class
-	}
+    /**
+     * Utility class.
+     */
+    private Test3() {
+        // utility class
+    }
 
-	/**
-	 * @param args no arguments
-	 * @throws Exception on error
-	 */
-	public static void main(String[] args) throws Exception {
+    /**
+     * @param args no arguments
+     * @throws Exception on error
+     */
+    public static void main(String[] args) throws Exception {
 
-		Observable<Timestamped<Integer>> tss = Reactive.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
-				Functions.<Integer>identity(), Functions.<Integer, Long>constant(1000L));
-		
-		Observable<Timestamped<Integer>> tss2 = Reactive.generateTimed(10, Functions.lessThan(20), Functions.incrementInt(), 
-				Functions.<Integer>identity(), Functions.<Integer, Long>constant(1000L));
-		
-		Observable<GroupedObservable<Integer, Integer>> groups = Reactive.groupBy(
-				
-				Reactive.select(Reactive.concat(tss, tss), Reactive.<Integer>unwrapTimestamped())
-				, Functions.<Integer>identity())
-				;
-		
-		groups.register(new Observer<GroupedObservable<Integer, Integer>>() {
-			@Override
-			public void next(
-					final GroupedObservable<Integer, Integer> value) {
-				//System.out.println("New group: " + value.key());
-				value.register(new Observer<Integer>() {
-					int count = 0;
-					@Override
-					public void next(Integer x) {
-						System.out.println("Group " + value.key() + ", Size " + (++count));
-					}
+        Observable<Timestamped<Integer>> tss = Reactive.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
+                Functions.<Integer>identity(), Functions.<Integer, Long>constant(1000L));
+        
+        Observable<Timestamped<Integer>> tss2 = Reactive.generateTimed(10, Functions.lessThan(20), Functions.incrementInt(), 
+                Functions.<Integer>identity(), Functions.<Integer, Long>constant(1000L));
+        
+        Observable<GroupedObservable<Integer, Integer>> groups = Reactive.groupBy(
+                
+                Reactive.select(Reactive.concat(tss, tss), Reactive.<Integer>unwrapTimestamped())
+                , Functions.<Integer>identity())
+                ;
+        
+        groups.register(new Observer<GroupedObservable<Integer, Integer>>() {
+            @Override
+            public void next(
+                    final GroupedObservable<Integer, Integer> value) {
+                //System.out.println("New group: " + value.key());
+                value.register(new Observer<Integer>() {
+                    int count = 0;
+                    @Override
+                    public void next(Integer x) {
+                        System.out.println("Group " + value.key() + ", Size " + (++count));
+                    }
 
-					@Override
-					public void error(@Nonnull Throwable ex) {
-						
-					}
+                    @Override
+                    public void error(@Nonnull Throwable ex) {
+                        
+                    }
 
-					@Override
-					public void finish() {
-						
-					}
-					
-				});
-			}
-			@Override
-			public void error(@Nonnull Throwable ex) {
-				
-			}
-			@Override
-			public void finish() {
-				
-			}
-		});
-		
-		AtomicBoolean sw = new AtomicBoolean(true);
-		Reactive.ifThen(Functions.asFunc0(sw), tss, tss2).register(Observers.println());
-		Thread.sleep(3000);
-		sw.set(false);
-		
-		
-	}
+                    @Override
+                    public void finish() {
+                        
+                    }
+                    
+                });
+            }
+            @Override
+            public void error(@Nonnull Throwable ex) {
+                
+            }
+            @Override
+            public void finish() {
+                
+            }
+        });
+        
+        AtomicBoolean sw = new AtomicBoolean(true);
+        Reactive.ifThen(Functions.asFunc0(sw), tss, tss2).register(Observers.println());
+        Thread.sleep(3000);
+        sw.set(false);
+        
+        
+    }
 
 }

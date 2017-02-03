@@ -28,45 +28,45 @@ import javax.swing.event.ListDataListener;
  * @author akarnokd, 2011.02.01.
  */
 public class ObservableListDataListener extends DefaultObservable<ListDataEvent> implements ListDataListener {
-	@Override
-	public void intervalAdded(ListDataEvent e) {
-		next(e);
-	}
+    @Override
+    public void intervalAdded(ListDataEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void intervalRemoved(ListDataEvent e) {
-		next(e);
-	}
+    @Override
+    public void intervalRemoved(ListDataEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void contentsChanged(ListDataEvent e) {
-		next(e);
-	}
-	/**
-	 * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addListDataListener(ListDataListener)</code> method.
-	 * @param component the target component
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public static ObservableListDataListener register(@Nonnull Object component) {
-		return new ObservableListDataListener().registerWith(component);
-	}
-	/**
-	 * Convenience method to register this observable with the target component which must have a public <code>addListDataListener(ListDataListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableListDataListener registerWith(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "add", ListDataListener.class, this);
-	}
-	/**
-	 * Convenience method to unregister this observable from the target component which must have a public <code>removeListDataListener(ListDataListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableListDataListener unregisterFrom(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "remove", ListDataListener.class, this);
-	}
+    @Override
+    public void contentsChanged(ListDataEvent e) {
+        next(e);
+    }
+    /**
+     * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addListDataListener(ListDataListener)</code> method.
+     * @param component the target component
+     * @return the new observable
+     */
+    @Nonnull 
+    public static ObservableListDataListener register(@Nonnull Object component) {
+        return new ObservableListDataListener().registerWith(component);
+    }
+    /**
+     * Convenience method to register this observable with the target component which must have a public <code>addListDataListener(ListDataListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableListDataListener registerWith(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "add", ListDataListener.class, this);
+    }
+    /**
+     * Convenience method to unregister this observable from the target component which must have a public <code>removeListDataListener(ListDataListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableListDataListener unregisterFrom(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "remove", ListDataListener.class, this);
+    }
 }

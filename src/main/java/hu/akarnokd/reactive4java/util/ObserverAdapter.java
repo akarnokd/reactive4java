@@ -28,20 +28,20 @@ import hu.akarnokd.reactive4java.base.Observer;
  */
 public class ObserverAdapter<T> implements Observer<T> {
 
-	@Override
-	public void next(T value) {
+    @Override
+    public void next(T value) {
 
-	}
+    }
 
-	@Override
-	public void error(@Nonnull Throwable ex) {
+    @Override
+    public void error(@Nonnull Throwable ex) {
 
-	}
+    }
 
-	@Override
-	public void finish() {
+    @Override
+    public void finish() {
 
-	}
-	/** The no-operation instance. */
-	public static final ObserverAdapter<Object> INSTANCE = new ObserverAdapter<Object>();
+    }
+    /** The no-operation instance. */
+    public static final ObserverAdapter<Object> INSTANCE = new ObserverAdapter<Object>();
 }

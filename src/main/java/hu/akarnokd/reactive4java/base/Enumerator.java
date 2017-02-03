@@ -27,19 +27,19 @@ package hu.akarnokd.reactive4java.base;
  * @author akarnokd, 2011.02.04.
  */
 public interface Enumerator<T> {
-	/**
-	 * Tries to move to the next element.
-	 * Only this method may throw an exception.
-	 * @return false if there are no more elements
-	 */
-	boolean next();
-	/**
-	 * Returns the current element. If the
-	 * enumeration was not started via the <code>next()</code>
-	 * method, or the enumeration has already finished and <code>next()</code>
-	 * returned false, a <code>NoSuchElementException</code> is thrown.
-	 * Other than these, this method should not throw any exception.
-	 * @return the current element.
-	 */
-	T current();
+    /**
+     * Tries to move to the next element.
+     * Only this method may throw an exception.
+     * @return false if there are no more elements
+     */
+    boolean next();
+    /**
+     * Returns the current element. If the
+     * enumeration was not started via the <code>next()</code>
+     * method, or the enumeration has already finished and <code>next()</code>
+     * returned false, a <code>NoSuchElementException</code> is thrown.
+     * Other than these, this method should not throw any exception.
+     * @return the current element.
+     */
+    T current();
 }

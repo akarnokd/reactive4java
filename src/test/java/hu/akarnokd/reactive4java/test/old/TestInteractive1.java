@@ -28,63 +28,63 @@ import hu.akarnokd.reactive4java.util.Functions;
  */
 public final class TestInteractive1 {
 
-	/**
-	 * Utility class.
-	 */
-	private TestInteractive1() {
-		// utility class
-	}
-	/** 
-	 * Run the Iterable with a print attached. 
-	 * @param source the iterable source
-	 * waiting on the observable completion
-	 */
-	static void run(Iterable<?> source) {
-		try {
-			Interactive.run(source, Interactive.print());
-			System.out.println();
-		} catch (Throwable t) {
-			System.err.print(", ");
-			t.printStackTrace();
-		}
-	}
-	
-	/**
-	 * @param args no arguments
-	 * @throws Exception on error
-	 */
-	public static void main(String[] args) throws Exception {
-		
-		run(Interactive.skipLast(Interactive.range(0, 10), 3));
-		
-		run(Interactive.takeLast(Interactive.range(0, 10), 3));
-		
-		run(Interactive.zip(Interactive.range(0, 10), 
-				Interactive.range(0, 5), 
-				new Func2<Integer, Integer, String>() {
-			@Override
-			public String invoke(Integer param1, Integer param2) {
-				return param1 + ":" + param2;
-			}
-		}));
-		
-		run(Interactive.max(Interactive.range(0, 10)));
-		
-	    Interactive.run(
-	    		Interactive.orderBy(
-		            Interactive.selectMany(
-		                Interactive.range(0, 10), 
-		                new Func1<Integer, Iterable<Integer>>() {
-		                	@Override
-		                    public Iterable<Integer> invoke(Integer param1) {
-		                       return Interactive.range(0, param1);
-		                }
-		            }
-		        ),
-	            Functions.<Integer>comparatorReverse()
-	        ), Interactive.println());
-		
-		System.out.printf("%nMain finished%n");
-	}
+    /**
+     * Utility class.
+     */
+    private TestInteractive1() {
+        // utility class
+    }
+    /** 
+     * Run the Iterable with a print attached. 
+     * @param source the iterable source
+     * waiting on the observable completion
+     */
+    static void run(Iterable<?> source) {
+        try {
+            Interactive.run(source, Interactive.print());
+            System.out.println();
+        } catch (Throwable t) {
+            System.err.print(", ");
+            t.printStackTrace();
+        }
+    }
+    
+    /**
+     * @param args no arguments
+     * @throws Exception on error
+     */
+    public static void main(String[] args) throws Exception {
+        
+        run(Interactive.skipLast(Interactive.range(0, 10), 3));
+        
+        run(Interactive.takeLast(Interactive.range(0, 10), 3));
+        
+        run(Interactive.zip(Interactive.range(0, 10), 
+                Interactive.range(0, 5), 
+                new Func2<Integer, Integer, String>() {
+            @Override
+            public String invoke(Integer param1, Integer param2) {
+                return param1 + ":" + param2;
+            }
+        }));
+        
+        run(Interactive.max(Interactive.range(0, 10)));
+        
+        Interactive.run(
+                Interactive.orderBy(
+                    Interactive.selectMany(
+                        Interactive.range(0, 10), 
+                        new Func1<Integer, Iterable<Integer>>() {
+                            @Override
+                            public Iterable<Integer> invoke(Integer param1) {
+                               return Interactive.range(0, param1);
+                        }
+                    }
+                ),
+                Functions.<Integer>comparatorReverse()
+            ), Interactive.println());
+        
+        System.out.printf("%nMain finished%n");
+    }
 
 }

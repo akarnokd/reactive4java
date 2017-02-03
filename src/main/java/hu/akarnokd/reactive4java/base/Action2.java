@@ -23,10 +23,10 @@ package hu.akarnokd.reactive4java.base;
  * @param <V> the second parameter type
  */
 public interface Action2<T, V> {
-	/**
-	 * Invoke the action.
-	 * @param t the first parameter
-	 * @param u the second parameter
-	 */
-	void invoke(T t, V u);
+    /**
+     * Invoke the action.
+     * @param t the first parameter
+     * @param u the second parameter
+     */
+    void invoke(T t, V u);
 }

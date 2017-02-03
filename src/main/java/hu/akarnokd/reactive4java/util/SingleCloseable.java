@@ -36,64 +36,64 @@ import javax.annotation.Nullable;
  * @since 0.97
  */
 public class SingleCloseable implements Closeable, Cancelable {
-	/** The reference holder. */
-	@Nonnull 
-	protected final AtomicReference<Closeable> current = new AtomicReference<Closeable>();
-	@Override
-	public void close() throws IOException {
-		Closeable old = current.getAndSet(SENTINEL);
-		if (old != null) {
-			old.close();
-		}
-	}
-	/**
-	 * Sets the managed closeable if not already set.
-	 * Throws an IllegalStateException if this instance
-	 * already manages a closeable.
-	 * If this instance is already closed, setting
-	 * a new closeable will immediately close it
-	 * @param c the closeable to handle
-	 */
-	public void set(@Nonnull Closeable c) {
-		Closeable old = Atomics.compareExchange(current, null, c);
-		if (old == null) {
-			return;
-		}
-		if (old != SENTINEL) {
-			throw new IllegalStateException("SingleCloseable already assigned");
-		}
-		if (c != null) {
-			Closeables.closeSilently(c);
-		}
-	}
-	/**
-	 * @return returns the managed closeable
-	 */
-	@Nullable
-	public Closeable get() {
-		Closeable c = current.get();
-		// don't leak the sentinel
-		if (c == SENTINEL) {
-			return Closeables.emptyCloseable();
-		}
-		return c;
-	}
-	@Override
-	public boolean isClosed() {
-		return current.get() == SENTINEL;
-	}
-	/** Closes this container silently. */
-	public void closeSilently() {
-		Closeables.closeSilently(this);
-	}
-	/** 
-	 * The empty sentinel to know when we have
-	 * closed the previous instance and keep the 
-	 * invariants of this SingleCloseable.
-	 */
-	@Nonnull 
-	protected static final Closeable SENTINEL = new Closeable() {
-		@Override
-		public void close() throws IOException { }
-	};
+    /** The reference holder. */
+    @Nonnull 
+    protected final AtomicReference<Closeable> current = new AtomicReference<Closeable>();
+    @Override
+    public void close() throws IOException {
+        Closeable old = current.getAndSet(SENTINEL);
+        if (old != null) {
+            old.close();
+        }
+    }
+    /**
+     * Sets the managed closeable if not already set.
+     * Throws an IllegalStateException if this instance
+     * already manages a closeable.
+     * If this instance is already closed, setting
+     * a new closeable will immediately close it
+     * @param c the closeable to handle
+     */
+    public void set(@Nonnull Closeable c) {
+        Closeable old = Atomics.compareExchange(current, null, c);
+        if (old == null) {
+            return;
+        }
+        if (old != SENTINEL) {
+            throw new IllegalStateException("SingleCloseable already assigned");
+        }
+        if (c != null) {
+            Closeables.closeSilently(c);
+        }
+    }
+    /**
+     * @return returns the managed closeable
+     */
+    @Nullable
+    public Closeable get() {
+        Closeable c = current.get();
+        // don't leak the sentinel
+        if (c == SENTINEL) {
+            return Closeables.emptyCloseable();
+        }
+        return c;
+    }
+    @Override
+    public boolean isClosed() {
+        return current.get() == SENTINEL;
+    }
+    /** Closes this container silently. */
+    public void closeSilently() {
+        Closeables.closeSilently(this);
+    }
+    /** 
+     * The empty sentinel to know when we have
+     * closed the previous instance and keep the 
+     * invariants of this SingleCloseable.
+     */
+    @Nonnull 
+    protected static final Closeable SENTINEL = new Closeable() {
+        @Override
+        public void close() throws IOException { }
+    };
 }

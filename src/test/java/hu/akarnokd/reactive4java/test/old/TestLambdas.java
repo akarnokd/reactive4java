@@ -30,63 +30,63 @@ import hu.akarnokd.reactive4java.util.Observers;
  */
 public final class TestLambdas {
 
-	/**
-	 * Utility class.
-	 */
-	private TestLambdas() {
-		// utility class
-	}
-	/** 
-	 * Run the Iterable with a print attached. 
-	 * @param source the iterable source
-	 * waiting on the observable completion
-	 */
-	static void run(Iterable<?> source) {
-		try {
-			Interactive.run(source, Interactive.print());
-			System.out.println();
-		} catch (Throwable t) {
-			System.err.print(", ");
-			t.printStackTrace();
-		}
-	}
-	/** 
-	 * Run the observable with a print attached. 
-	 * @param observable the source observable
-	 * @throws InterruptedException when the current thread is interrupted while
-	 * waiting on the observable completion
-	 */
-	static void run(Observable<?> observable) throws InterruptedException {
-		Reactive.run(observable, Observers.print());
-	}
-	
-	/**
-	 * @param args no arguments
-	 * @throws Exception on error
-	 */
-	public static void main(String[] args) throws Exception {
-		
-		run(Reactive.where(
-				Reactive.range(0, 10), 
-				Lambdas.<Integer, Boolean>js1("o => o % 2 == 0")));
-		
-		long t = 0;
-		
-		t = System.nanoTime();
-		Action0 a = Lambdas.as0("=> var sum = 0; for (var i = 0; i < 10000000; i++) { sum += i; }");
-		a.invoke();
-		System.out.printf("Script: %d ns%n", (System.nanoTime() - t));
-	
-		t = System.nanoTime();
-		long sum = 0;
-		for (long i = 0; i < 10000000L; i++) {
-			sum += i;
-		}
-		System.out.printf("Direct: %d ns with sum of %d%n", (System.nanoTime() - t), sum);
-		
-		
-		
-		System.out.printf("%nMain finished%n");
-	}
+    /**
+     * Utility class.
+     */
+    private TestLambdas() {
+        // utility class
+    }
+    /** 
+     * Run the Iterable with a print attached. 
+     * @param source the iterable source
+     * waiting on the observable completion
+     */
+    static void run(Iterable<?> source) {
+        try {
+            Interactive.run(source, Interactive.print());
+            System.out.println();
+        } catch (Throwable t) {
+            System.err.print(", ");
+            t.printStackTrace();
+        }
+    }
+    /** 
+     * Run the observable with a print attached. 
+     * @param observable the source observable
+     * @throws InterruptedException when the current thread is interrupted while
+     * waiting on the observable completion
+     */
+    static void run(Observable<?> observable) throws InterruptedException {
+        Reactive.run(observable, Observers.print());
+    }
+    
+    /**
+     * @param args no arguments
+     * @throws Exception on error
+     */
+    public static void main(String[] args) throws Exception {
+        
+        run(Reactive.where(
+                Reactive.range(0, 10), 
+                Lambdas.<Integer, Boolean>js1("o => o % 2 == 0")));
+        
+        long t = 0;
+        
+        t = System.nanoTime();
+        Action0 a = Lambdas.as0("=> var sum = 0; for (var i = 0; i < 10000000; i++) { sum += i; }");
+        a.invoke();
+        System.out.printf("Script: %d ns%n", (System.nanoTime() - t));
+    
+        t = System.nanoTime();
+        long sum = 0;
+        for (long i = 0; i < 10000000L; i++) {
+            sum += i;
+        }
+        System.out.printf("Direct: %d ns with sum of %d%n", (System.nanoTime() - t), sum);
+        
+        
+        
+        System.out.printf("%nMain finished%n");
+    }
 
 }

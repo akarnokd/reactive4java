@@ -27,21 +27,21 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestReactiveAny {
-	/**
-	 * Tests any() properly returning <code>false</code>.
-	 */
-	@Test
-	public void anyFalse() {
-		TestUtil.assertSingle(false, any(from(0, 0, 0), equal(1)));
-	}
+    /**
+     * Tests any() properly returning <code>false</code>.
+     */
+    @Test
+    public void anyFalse() {
+        TestUtil.assertSingle(false, any(from(0, 0, 0), equal(1)));
+    }
 
-	/**
-	 * Tests any() properly returning <code>true</code>.
-	 */
-	@Test
-	public void anyTrue() {
-		int value = 42;
-		TestUtil.assertSingle(true, any(from(0, value, 0), equal(value)));
-	}
+    /**
+     * Tests any() properly returning <code>true</code>.
+     */
+    @Test
+    public void anyTrue() {
+        int value = 42;
+        TestUtil.assertSingle(true, any(from(0, value, 0), equal(value)));
+    }
 
 }

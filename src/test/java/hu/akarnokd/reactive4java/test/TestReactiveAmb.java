@@ -30,46 +30,46 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestReactiveAmb {
-	/** The left observable will fire first. */
-	@Test
-	public void ambLeftFirst() {
-		Observable<Long> left = Reactive.tick(1, 2, 1, TimeUnit.SECONDS);
-		Observable<Long> right = Reactive.tick(2, 3, 2, TimeUnit.SECONDS);
-		
-		Observable<Long> result = Reactive.amb(left, right);
-		
-		Long value = Reactive.first(result);
-		if (value.longValue() != 1L) {
-			Assert.fail("Left did not fire first?!");
-		}
-	}
-	/** The right observable will fire first. */
-	@Test
-	public void ambRightFirst() {
-		Observable<Long> left = Reactive.tick(1, 2, 2, TimeUnit.SECONDS);
-		Observable<Long> right = Reactive.tick(2, 3, 1, TimeUnit.SECONDS);
-		
-		Observable<Long> result = Reactive.amb(left, right);
-		
-		Long value = Reactive.first(result);
-		if (value.longValue() != 2L) {
-			Assert.fail("Right did not fire first?!");
-		}
-	}
-	/** 
-	 * The left observable should bring the register to completion before
-	 * the right is even registered.
-	 */
-	@Test(timeout = 2000)
-	public void ambPremature() {
-		Observable<Long> left = Reactive.singleton(1L);
-		Observable<Long> right = Reactive.tick(2, 100, 1, TimeUnit.SECONDS);
-		
-		Observable<Long> result = Reactive.amb(left, right);
-		
-		Long value = Reactive.first(result);
-		if (value.longValue() != 1L) {
-			Assert.fail("Right did not fire first?!");
-		}
-	}
+    /** The left observable will fire first. */
+    @Test
+    public void ambLeftFirst() {
+        Observable<Long> left = Reactive.tick(1, 2, 1, TimeUnit.SECONDS);
+        Observable<Long> right = Reactive.tick(2, 3, 2, TimeUnit.SECONDS);
+        
+        Observable<Long> result = Reactive.amb(left, right);
+        
+        Long value = Reactive.first(result);
+        if (value.longValue() != 1L) {
+            Assert.fail("Left did not fire first?!");
+        }
+    }
+    /** The right observable will fire first. */
+    @Test
+    public void ambRightFirst() {
+        Observable<Long> left = Reactive.tick(1, 2, 2, TimeUnit.SECONDS);
+        Observable<Long> right = Reactive.tick(2, 3, 1, TimeUnit.SECONDS);
+        
+        Observable<Long> result = Reactive.amb(left, right);
+        
+        Long value = Reactive.first(result);
+        if (value.longValue() != 2L) {
+            Assert.fail("Right did not fire first?!");
+        }
+    }
+    /** 
+     * The left observable should bring the register to completion before
+     * the right is even registered.
+     */
+    @Test(timeout = 2000)
+    public void ambPremature() {
+        Observable<Long> left = Reactive.singleton(1L);
+        Observable<Long> right = Reactive.tick(2, 100, 1, TimeUnit.SECONDS);
+        
+        Observable<Long> result = Reactive.amb(left, right);
+        
+        Long value = Reactive.first(result);
+        if (value.longValue() != 1L) {
+            Assert.fail("Right did not fire first?!");
+        }
+    }
 }

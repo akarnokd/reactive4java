@@ -22,6 +22,6 @@ package hu.akarnokd.reactive4java.base;
  * @since 0.97
  */
 public interface Cancelable {
-	/** @return true if the object has been closed. */
-	boolean isClosed();
+    /** @return true if the object has been closed. */
+    boolean isClosed();
 }

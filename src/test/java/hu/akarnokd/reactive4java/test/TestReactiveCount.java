@@ -29,12 +29,12 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestReactiveCount {
-	/**
-	 * Tests count().
-	 */
-	@Test
-	public void countOk() {
-		Collection<Integer> i = nCopies(3, 0);
-		TestUtil.assertSingle(i.size(), count(from(i)));
-	}
+    /**
+     * Tests count().
+     */
+    @Test
+    public void countOk() {
+        Collection<Integer> i = nCopies(3, 0);
+        TestUtil.assertSingle(i.size(), count(from(i)));
+    }
 }

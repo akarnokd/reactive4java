@@ -25,70 +25,70 @@ import javax.annotation.Nonnull;
  * @param <T> the contained type
  */
 public final class TimeInterval<T> {
-	/** The value. */
-	private final T value;
-	/** The timestamp. */
-	private final long interval;
-	/**
-	 * Construct a value with a time inverval.
-	 * @param value the value
-	 * @param interval the time interval
-	 */
-	public TimeInterval(T value, long interval) {
-		this.value = value;
-		this.interval = interval;
-	}
-	/** @return the contained value */
-	public T value() {
-		return value;
-	}
-	/** @return the associated timestamp. */
-	public long interval() {
-		return interval;
-	}
-	/**
-	 * A type inference helper to construct a new TimeInterval value.
-	 * @param <T> the type of the value
-	 * @param value the value
-	 * @param interval the time interval
-	 * @return the timestamped object
-	 */
-	@Nonnull 
-	public static <T> TimeInterval<T> of(T value, long interval) {
-		return new TimeInterval<T>(value, interval);
-	}
-	/**
-	 * A type inference helper to construct a new TimeInterval value from another
-	 * timestamped value by keeping the value and assigning a new value.
-	 * @param <T> the type of the value
-	 * @param value the value
-	 * @param interval the time interval
-	 * @return the timestamped object
-	 */
-	@Nonnull 
-	public static <T> TimeInterval<T> of(TimeInterval<T> value, long interval) {
-		return new TimeInterval<T>(value.value(), interval);
-	}
-	@Override
-	public String toString() {
-		// #GWT-IGNORE-START
-		return String.format("%s delta %,d", value, interval);
-		// #GWT-IGNORE-END
-		// #GWT-ACCEPT-START
-		//return value + " delta " + interval;
-		// #GWT-ACCEPT-END
-	}
-	@Override
-	public boolean equals(Object obj) {
-		if (obj instanceof TimeInterval) {
-			TimeInterval<?> that = (TimeInterval<?>)obj;
-			return (this.value == that.value || (this.value != null && this.value.equals(that.value)))
-			&& this.interval == that.interval;
-		}
-		return false;
-	}
-	@Override
-	public int hashCode() {
-		return (17 + (value != null ? value.hashCode() : 0)) * 31 + (int)((interval >> 32) ^ (interval & 0xFFFFFFFFL));
-	}
+    /** The value. */
+    private final T value;
+    /** The timestamp. */
+    private final long interval;
+    /**
+     * Construct a value with a time inverval.
+     * @param value the value
+     * @param interval the time interval
+     */
+    public TimeInterval(T value, long interval) {
+        this.value = value;
+        this.interval = interval;
+    }
+    /** @return the contained value */
+    public T value() {
+        return value;
+    }
+    /** @return the associated timestamp. */
+    public long interval() {
+        return interval;
+    }
+    /**
+     * A type inference helper to construct a new TimeInterval value.
+     * @param <T> the type of the value
+     * @param value the value
+     * @param interval the time interval
+     * @return the timestamped object
+     */
+    @Nonnull 
+    public static <T> TimeInterval<T> of(T value, long interval) {
+        return new TimeInterval<T>(value, interval);
+    }
+    /**
+     * A type inference helper to construct a new TimeInterval value from another
+     * timestamped value by keeping the value and assigning a new value.
+     * @param <T> the type of the value
+     * @param value the value
+     * @param interval the time interval
+     * @return the timestamped object
+     */
+    @Nonnull 
+    public static <T> TimeInterval<T> of(TimeInterval<T> value, long interval) {
+        return new TimeInterval<T>(value.value(), interval);
+    }
+    @Override
+    public String toString() {
+        // #GWT-IGNORE-START
+        return String.format("%s delta %,d", value, interval);
+        // #GWT-IGNORE-END
+        // #GWT-ACCEPT-START
+        //return value + " delta " + interval;
+        // #GWT-ACCEPT-END
+    }
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof TimeInterval) {
+            TimeInterval<?> that = (TimeInterval<?>)obj;
+            return (this.value == that.value || (this.value != null && this.value.equals(that.value)))
+            && this.interval == that.interval;
+        }
+        return false;
+    }
+    @Override
+    public int hashCode() {
+        return (17 + (value != null ? value.hashCode() : 0)) * 31 + (int)((interval >> 32) ^ (interval & 0xFFFFFFFFL));
+    }
 }

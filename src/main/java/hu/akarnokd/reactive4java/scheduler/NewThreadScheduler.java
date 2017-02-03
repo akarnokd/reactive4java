@@ -38,82 +38,82 @@ public class NewThreadScheduler
 // #GWT-IGNORE-START
 implements Scheduler {
 // #GWT-IGNORE-END
-	// #GWT-IGNORE-START
-	/** The tread names. */
-	@Nonnull
-	private String name = "NewThreadScheduler";
-	/** Counts the new threads started. */
-	@Nonnull 
-	private final AtomicInteger counter = new AtomicInteger();
-	/**
-	 * Constructor. The threads are named as {@code NewThreadScheduler-#}
-	 */
-	public NewThreadScheduler() {
-	}
-	/**
-	 * Constructor.
-	 * @param name the name prefix used when creating new threads.
-	 */
-	public NewThreadScheduler(@Nonnull String name) {
-		this.name = name;
-	}
-	@Override
-	@Nonnull 
-	public Closeable schedule(@Nonnull Runnable run) {
-		final Thread t = new Thread(run, name + "-" + counter.incrementAndGet());
-		t.start();
-		return new Closeable() {
-			@Override
-			public void close() throws IOException {
-				t.interrupt();
-			}
-		};
-	}
+    // #GWT-IGNORE-START
+    /** The tread names. */
+    @Nonnull
+    private String name = "NewThreadScheduler";
+    /** Counts the new threads started. */
+    @Nonnull 
+    private final AtomicInteger counter = new AtomicInteger();
+    /**
+     * Constructor. The threads are named as {@code NewThreadScheduler-#}
+     */
+    public NewThreadScheduler() {
+    }
+    /**
+     * Constructor.
+     * @param name the name prefix used when creating new threads.
+     */
+    public NewThreadScheduler(@Nonnull String name) {
+        this.name = name;
+    }
+    @Override
+    @Nonnull 
+    public Closeable schedule(@Nonnull Runnable run) {
+        final Thread t = new Thread(run, name + "-" + counter.incrementAndGet());
+        t.start();
+        return new Closeable() {
+            @Override
+            public void close() throws IOException {
+                t.interrupt();
+            }
+        };
+    }
 
-	@Override
-	@Nonnull 
-	public Closeable schedule(
-			@Nonnull final Runnable run, 
-			final long delay, 
-			@Nonnull final TimeUnit unit) {
-		Runnable task = new Runnable() {
-			@Override
-			public void run() {
-				try {
-					unit.sleep(delay);
-					run.run();
-				} catch (InterruptedException ex) {
-					// ignore and quit
-				} catch (CancellationException ex) {
-					// ignored
-				}
-			}
-		};
-		return schedule(task);
-	}
+    @Override
+    @Nonnull 
+    public Closeable schedule(
+            @Nonnull final Runnable run, 
+            final long delay, 
+            @Nonnull final TimeUnit unit) {
+        Runnable task = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    unit.sleep(delay);
+                    run.run();
+                } catch (InterruptedException ex) {
+                    // ignore and quit
+                } catch (CancellationException ex) {
+                    // ignored
+                }
+            }
+        };
+        return schedule(task);
+    }
 
-	@Override
-	@Nonnull 
-	public Closeable schedule(
-			@Nonnull final Runnable run, 
-			final long initialDelay,
-			final long betweenDelay, 
-			@Nonnull final TimeUnit unit) {
-		Runnable task = new Runnable() {
-			@Override
-			public void run() {
-				try {
-					unit.sleep(initialDelay);
-					while (!Thread.currentThread().isInterrupted()) {
-						run.run();
-						unit.sleep(betweenDelay);
-					}
-				} catch (InterruptedException ex) {
-					// ignore and quit
-				}
-			}
-		};
-		return schedule(task);
-	}
-	// #GWT-IGNORE-END
+    @Override
+    @Nonnull 
+    public Closeable schedule(
+            @Nonnull final Runnable run, 
+            final long initialDelay,
+            final long betweenDelay, 
+            @Nonnull final TimeUnit unit) {
+        Runnable task = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    unit.sleep(initialDelay);
+                    while (!Thread.currentThread().isInterrupted()) {
+                        run.run();
+                        unit.sleep(betweenDelay);
+                    }
+                } catch (InterruptedException ex) {
+                    // ignore and quit
+                }
+            }
+        };
+        return schedule(task);
+    }
+    // #GWT-IGNORE-END
 }

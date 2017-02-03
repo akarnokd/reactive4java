@@ -28,36 +28,36 @@ import javax.annotation.Nonnull;
  * @author akarnokd, 2011.02.01.
  */
 public class ObservableItemListener extends DefaultObservable<ItemEvent> implements ItemListener {
-	@Override
-	public void itemStateChanged(ItemEvent e) {
-		next(e);
-	}
+    @Override
+    public void itemStateChanged(ItemEvent e) {
+        next(e);
+    }
 
-	/**
-	 * Convenience method to register an observer on the component for <code>itemStateChanged(ItemEvent)</code> events.
-	 * @param component the target component.
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public static ObservableItemListener register(@Nonnull Object component) {
-		return new ObservableItemListener().registerWith(component);
-	}
-	/**
-	 * Convenience method to register an observer on the component for <code>itemStateChanged(ItemEvent)</code> events.
-	 * @param component the target component.
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public ObservableItemListener registerWith(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "add", ItemListener.class, this);
-	}
-	/**
-	 * Unregister this observer of list events from the given component.
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableItemListener unregisterFrom(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "remove", ItemListener.class, this);
-	}
+    /**
+     * Convenience method to register an observer on the component for <code>itemStateChanged(ItemEvent)</code> events.
+     * @param component the target component.
+     * @return the new observable
+     */
+    @Nonnull 
+    public static ObservableItemListener register(@Nonnull Object component) {
+        return new ObservableItemListener().registerWith(component);
+    }
+    /**
+     * Convenience method to register an observer on the component for <code>itemStateChanged(ItemEvent)</code> events.
+     * @param component the target component.
+     * @return the new observable
+     */
+    @Nonnull 
+    public ObservableItemListener registerWith(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "add", ItemListener.class, this);
+    }
+    /**
+     * Unregister this observer of list events from the given component.
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableItemListener unregisterFrom(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "remove", ItemListener.class, this);
+    }
 }

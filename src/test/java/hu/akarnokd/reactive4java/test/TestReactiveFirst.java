@@ -31,59 +31,59 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestReactiveFirst {
-	/** Test a surely existing value. */
-	@Test
-	public void existing() {
-		Observable<Integer> source = Reactive.range(0, 10);
-		
-		Integer result = Reactive.first(source);
-		
-		Assert.assertEquals((Integer)0, result);
-	}
-	/** Test a surely existing value with default. */
-	@Test
-	public void existingDefault() {
-		Observable<Integer> source = Reactive.singleton(0);
-		
-		Integer result = Reactive.first(source, 10);
-		
-		Assert.assertEquals((Integer)0, result);
-	}
-	/** Test a surely existing value with default. */
-	@Test
-	public void existingDefaultFunction() {
-		Observable<Integer> source = Reactive.singleton(0);
-		
-		Integer result = Reactive.first(source, Functions.constant0(10));
-		
-		Assert.assertEquals((Integer)0, result);
-	}
-	/** Test a surely existing value. */
-	@Test(expected = NoSuchElementException.class)
-	public void nonexisting() {
-		Observable<Integer> source = Reactive.empty();
-		
-		Integer result = Reactive.first(source);
-		
-		Assert.assertEquals((Integer)0, result);
-	}
-	/** Test a surely existing value with default. */
-	@Test
-	public void nonexistingDefault() {
-		Observable<Integer> source = Reactive.empty();
-		
-		Integer result = Reactive.first(source, 10);
-		
-		Assert.assertEquals((Integer)10, result);
-	}
-	/** Test a surely existing value with default. */
-	@Test
-	public void nonexistingDefaultFunction() {
-		Observable<Integer> source = Reactive.empty();
-		
-		Integer result = Reactive.first(source, Functions.constant0(10));
-		
-		Assert.assertEquals((Integer)10, result);
-	}
+    /** Test a surely existing value. */
+    @Test
+    public void existing() {
+        Observable<Integer> source = Reactive.range(0, 10);
+        
+        Integer result = Reactive.first(source);
+        
+        Assert.assertEquals((Integer)0, result);
+    }
+    /** Test a surely existing value with default. */
+    @Test
+    public void existingDefault() {
+        Observable<Integer> source = Reactive.singleton(0);
+        
+        Integer result = Reactive.first(source, 10);
+        
+        Assert.assertEquals((Integer)0, result);
+    }
+    /** Test a surely existing value with default. */
+    @Test
+    public void existingDefaultFunction() {
+        Observable<Integer> source = Reactive.singleton(0);
+        
+        Integer result = Reactive.first(source, Functions.constant0(10));
+        
+        Assert.assertEquals((Integer)0, result);
+    }
+    /** Test a surely existing value. */
+    @Test(expected = NoSuchElementException.class)
+    public void nonexisting() {
+        Observable<Integer> source = Reactive.empty();
+        
+        Integer result = Reactive.first(source);
+        
+        Assert.assertEquals((Integer)0, result);
+    }
+    /** Test a surely existing value with default. */
+    @Test
+    public void nonexistingDefault() {
+        Observable<Integer> source = Reactive.empty();
+        
+        Integer result = Reactive.first(source, 10);
+        
+        Assert.assertEquals((Integer)10, result);
+    }
+    /** Test a surely existing value with default. */
+    @Test
+    public void nonexistingDefaultFunction() {
+        Observable<Integer> source = Reactive.empty();
+        
+        Integer result = Reactive.first(source, Functions.constant0(10));
+        
+        Assert.assertEquals((Integer)10, result);
+    }
 
 }

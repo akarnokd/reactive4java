@@ -31,36 +31,36 @@ import org.junit.Test;
  */
 public class TestReactiveCombine {
 
-	/**
-	 * Tests combine() with observables.
-	 */
-	@Test
-	public void combineObservables() {
-		final int a0 = 0;
-		final int b0 = 1;
-		final int a1 = 2;
-		final int b1 = 3;
-		ObservableBuilder<Integer> a = from(a0, a1, 0);
-		ObservableBuilder<Integer> b = from(b0, b1);
-		@SuppressWarnings("unchecked")
-		ObservableBuilder<List<Integer>> expected = from(asList(a0, b0), asList(a1, b1));
-		@SuppressWarnings("unchecked")
-		List<ObservableBuilder<Integer>> asList = asList(a, b);
-		TestUtil.assertEqual(expected, Reactive.zip(asList));
-	}
+    /**
+     * Tests combine() with observables.
+     */
+    @Test
+    public void combineObservables() {
+        final int a0 = 0;
+        final int b0 = 1;
+        final int a1 = 2;
+        final int b1 = 3;
+        ObservableBuilder<Integer> a = from(a0, a1, 0);
+        ObservableBuilder<Integer> b = from(b0, b1);
+        @SuppressWarnings("unchecked")
+        ObservableBuilder<List<Integer>> expected = from(asList(a0, b0), asList(a1, b1));
+        @SuppressWarnings("unchecked")
+        List<ObservableBuilder<Integer>> asList = asList(a, b);
+        TestUtil.assertEqual(expected, Reactive.zip(asList));
+    }
 
-	/**
-	 * Tests combine() with value.
-	 */
-	@Test
-	public void combineValue() {
-		final int a0 = 0;
-		final int a1 = 1;
-		final int value = 3;
-		ObservableBuilder<Integer> a = from(a0, a1);
-		@SuppressWarnings("unchecked")
-		ObservableBuilder<List<Integer>> expected = from(asList(a0, value), asList(a1, value));
-		TestUtil.assertEqual(expected, Reactive.zip(a, value));
-	}
+    /**
+     * Tests combine() with value.
+     */
+    @Test
+    public void combineValue() {
+        final int a0 = 0;
+        final int a1 = 1;
+        final int value = 3;
+        ObservableBuilder<Integer> a = from(a0, a1);
+        @SuppressWarnings("unchecked")
+        ObservableBuilder<List<Integer>> expected = from(asList(a0, value), asList(a1, value));
+        TestUtil.assertEqual(expected, Reactive.zip(a, value));
+    }
 
 }

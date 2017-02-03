@@ -39,89 +39,89 @@ import javax.swing.Timer;
  * @see hu.akarnokd.reactive4java.reactive.Reactive#registerOn(hu.akarnokd.reactive4java.base.Observable, Scheduler)
  */
 public class DefaultEdtScheduler implements Scheduler {
-	/**
-	 * Helper class that has semantics for cancellation.
-	 * @author akarnokd, 2011.02.02.
-	 */
-	static class EdtRunnable implements Runnable, Closeable {
-		/** The wrapped runnable. */
-		final Runnable run;
-		/** Should the run() method still execute its body? */
-		final AtomicBoolean alive = new AtomicBoolean(true);
-		/**
-		 * Constructor.
-		 * @param run the runnable
-		 */
-		public EdtRunnable(Runnable run) {
-			if (run == null) {
-				throw new IllegalArgumentException("run is null");
-			}
-			this.run = run;
-		}
-		@Override
-		public void run() {
-			if (alive.compareAndSet(true, false)) {
-				run.run();
-			}
-		}
-		@Override
-		public void close() throws IOException {
-			alive.set(false);
-		}
-	}
-	@Override
-	@Nonnull 
-	public Closeable schedule(@Nonnull Runnable run) {
-		EdtRunnable t = new EdtRunnable(run);
-		SwingUtilities.invokeLater(t);
-		return t;
-	}
+    /**
+     * Helper class that has semantics for cancellation.
+     * @author akarnokd, 2011.02.02.
+     */
+    static class EdtRunnable implements Runnable, Closeable {
+        /** The wrapped runnable. */
+        final Runnable run;
+        /** Should the run() method still execute its body? */
+        final AtomicBoolean alive = new AtomicBoolean(true);
+        /**
+         * Constructor.
+         * @param run the runnable
+         */
+        public EdtRunnable(Runnable run) {
+            if (run == null) {
+                throw new IllegalArgumentException("run is null");
+            }
+            this.run = run;
+        }
+        @Override
+        public void run() {
+            if (alive.compareAndSet(true, false)) {
+                run.run();
+            }
+        }
+        @Override
+        public void close() throws IOException {
+            alive.set(false);
+        }
+    }
+    @Override
+    @Nonnull 
+    public Closeable schedule(@Nonnull Runnable run) {
+        EdtRunnable t = new EdtRunnable(run);
+        SwingUtilities.invokeLater(t);
+        return t;
+    }
 
-	@Override
-	@Nonnull 
-	public Closeable schedule(
-			@Nonnull final Runnable run, 
-			long delay, 
-			@Nonnull final TimeUnit unit) {
-		final Timer t = new Timer((int)unit.convert(delay, TimeUnit.MILLISECONDS), null);
-		t.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				run.run();
-				t.stop();
-			}
-		});
-		t.start();
-		return new Closeable() {
-			@Override
-			public void close() throws IOException {
-				t.stop();
-			}
-		};
-	}
+    @Override
+    @Nonnull 
+    public Closeable schedule(
+            @Nonnull final Runnable run, 
+            long delay, 
+            @Nonnull final TimeUnit unit) {
+        final Timer t = new Timer((int)unit.convert(delay, TimeUnit.MILLISECONDS), null);
+        t.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                run.run();
+                t.stop();
+            }
+        });
+        t.start();
+        return new Closeable() {
+            @Override
+            public void close() throws IOException {
+                t.stop();
+            }
+        };
+    }
 
-	@Override
-	@Nonnull 
-	public Closeable schedule(
-			@Nonnull final Runnable run, 
-			long initialDelay, 
-			long betweenDelay, 
-			@Nonnull TimeUnit unit) {
-		final Timer t = new Timer((int)unit.convert(initialDelay, TimeUnit.MILLISECONDS), null);
-		t.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				run.run();
-			}
-		});
-		t.setDelay((int)unit.convert(betweenDelay, TimeUnit.MILLISECONDS));
-		t.start();
-		return new Closeable() {
-			@Override
-			public void close() throws IOException {
-				t.stop();
-			}
-		};
-	}
+    @Override
+    @Nonnull 
+    public Closeable schedule(
+            @Nonnull final Runnable run, 
+            long initialDelay, 
+            long betweenDelay, 
+            @Nonnull TimeUnit unit) {
+        final Timer t = new Timer((int)unit.convert(initialDelay, TimeUnit.MILLISECONDS), null);
+        t.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                run.run();
+            }
+        });
+        t.setDelay((int)unit.convert(betweenDelay, TimeUnit.MILLISECONDS));
+        t.start();
+        return new Closeable() {
+            @Override
+            public void close() throws IOException {
+                t.stop();
+            }
+        };
+    }
 
 }

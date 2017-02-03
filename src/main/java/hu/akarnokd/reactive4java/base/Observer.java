@@ -22,9 +22,9 @@ package hu.akarnokd.reactive4java.base;
  * @param <T> the type of the notification values.
  */
 public interface Observer<T> extends BaseObserver {
-	/** 
-	 * The next value is received. 
-	 * @param value the next value 
-	 */
-	void next(T value);
+    /** 
+     * The next value is received. 
+     * @param value the next value 
+     */
+    void next(T value);
 }

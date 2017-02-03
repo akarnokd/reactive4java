@@ -28,11 +28,11 @@ package hu.akarnokd.reactive4java.base;
  * @param <E> the exception
  */
 public interface Func1E<Param1, Return, E extends Exception> {
-	/**
-	 * The method that gets invoked with a parameter.
-	 * @param param1 the parameter value
-	 * @return the return object
-	 * @throws E on error
-	 */
-	Return invoke(Param1 param1) throws E;
+    /**
+     * The method that gets invoked with a parameter.
+     * @param param1 the parameter value
+     * @return the return object
+     * @throws E on error
+     */
+    Return invoke(Param1 param1) throws E;
 }

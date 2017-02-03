@@ -30,49 +30,49 @@ import javax.annotation.Nonnull;
  * @param <T> the element type
  */
 public class SafeObserver<T> implements Observer<T> {
-	/** The observer. */
-	protected final Observer<? super T> o;
-	/** The close handle. */
-	protected final Closeable handle;
-	/**
-	 * Constructor.
-	 * @param o the observer to wrap
-	 * @param handle the close handle
-	 */
-	public SafeObserver(@Nonnull Observer<? super T> o, @Nonnull Closeable handle) {
-		this.o = o;
-		this.handle = handle;
-	}
+    /** The observer. */
+    protected final Observer<? super T> o;
+    /** The close handle. */
+    protected final Closeable handle;
+    /**
+     * Constructor.
+     * @param o the observer to wrap
+     * @param handle the close handle
+     */
+    public SafeObserver(@Nonnull Observer<? super T> o, @Nonnull Closeable handle) {
+        this.o = o;
+        this.handle = handle;
+    }
 
-	@Override
-	public void error(@Nonnull Throwable ex) {
-		try {
-			o.error(ex);
-		} finally {
-			Closeables.closeSilently(handle);
-		}
-	}
+    @Override
+    public void error(@Nonnull Throwable ex) {
+        try {
+            o.error(ex);
+        } finally {
+            Closeables.closeSilently(handle);
+        }
+    }
 
-	@Override
-	public void finish() {
-		try {
-			o.finish();
-		} finally {
-			Closeables.closeSilently(handle);
-		}
-	}
+    @Override
+    public void finish() {
+        try {
+            o.finish();
+        } finally {
+            Closeables.closeSilently(handle);
+        }
+    }
 
-	@Override
-	public void next(T value) {
-		boolean success = false;
-		try {
-			o.next(value);
-			success = true;
-		} finally {
-			if (!success) {
-				Closeables.closeSilently(handle);
-			}
-		}
-	}
+    @Override
+    public void next(T value) {
+        boolean success = false;
+        try {
+            o.next(value);
+            success = true;
+        } finally {
+            if (!success) {
+                Closeables.closeSilently(handle);
+            }
+        }
+    }
 
 }

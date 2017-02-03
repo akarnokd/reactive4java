@@ -23,6 +23,6 @@ package hu.akarnokd.reactive4java.base;
  * @author akarnokd, 2011.02.03.
  */
 public interface GroupedIterable<K, V> extends Iterable<V> {
-	/** @return the key of this iterable. */
-	K key();
+    /** @return the key of this iterable. */
+    K key();
 }

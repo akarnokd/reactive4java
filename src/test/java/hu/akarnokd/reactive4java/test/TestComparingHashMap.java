@@ -26,15 +26,15 @@ import org.junit.Test;
  * @author akarnokd, 2013.01.15.
  */
 public class TestComparingHashMap {
-	/** Simple test. */
-	@Test
-	public void test() {
-		ComparingHashMap<Integer, Integer> map = new ComparingHashMap<Integer, Integer>();
-		map.put(0, 0);
-		map.put(1, 1);
-		map.put(2, 2);
-		
-		TestUtil.assertEqual(Arrays.asList(0, 1, 2), map.values());
-	}
+    /** Simple test. */
+    @Test
+    public void test() {
+        ComparingHashMap<Integer, Integer> map = new ComparingHashMap<Integer, Integer>();
+        map.put(0, 0);
+        map.put(1, 1);
+        map.put(2, 2);
+        
+        TestUtil.assertEqual(Arrays.asList(0, 1, 2), map.values());
+    }
 
 }

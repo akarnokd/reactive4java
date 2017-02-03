@@ -27,41 +27,41 @@ import javax.annotation.Nonnull;
  * @author akarnokd, 2011.02.01.
  */
 public final class Dynamic {
-	/** The original method name. */
-	@Nonnull 
-	public final String method;
-	/** The original method arguments. */
-	@Nonnull 
-	public final List<Object> arguments;
-	/**
-	 * Construct a new dynamic object with the given parameters.
-	 * @param method the method name
-	 * @param arguments the argument list
-	 */
-	public Dynamic(@Nonnull String method, @Nonnull Object... arguments) {
-		if (method == null) {
-			throw new IllegalArgumentException("method is null");
-		}
-		if (arguments == null) {
-			throw new IllegalArgumentException("arguments is null");
-		}
-		this.method = method;
-		this.arguments = Collections.unmodifiableList(Arrays.asList(arguments));
-	}
-	@Override
-	public boolean equals(Object obj) {
-		if (obj instanceof Dynamic) {
-			Dynamic d = (Dynamic)obj;
-			return method.equals(d.method) && arguments.equals(d.arguments);
-		}
-		return false;
-	}
-	@Override
-	public int hashCode() {
-		return (17 + method.hashCode()) * 31 + arguments.hashCode();
-	}
-	@Override
-	public String toString() {
-		return method + " " + arguments;
-	}
+    /** The original method name. */
+    @Nonnull 
+    public final String method;
+    /** The original method arguments. */
+    @Nonnull 
+    public final List<Object> arguments;
+    /**
+     * Construct a new dynamic object with the given parameters.
+     * @param method the method name
+     * @param arguments the argument list
+     */
+    public Dynamic(@Nonnull String method, @Nonnull Object... arguments) {
+        if (method == null) {
+            throw new IllegalArgumentException("method is null");
+        }
+        if (arguments == null) {
+            throw new IllegalArgumentException("arguments is null");
+        }
+        this.method = method;
+        this.arguments = Collections.unmodifiableList(Arrays.asList(arguments));
+    }
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Dynamic) {
+            Dynamic d = (Dynamic)obj;
+            return method.equals(d.method) && arguments.equals(d.arguments);
+        }
+        return false;
+    }
+    @Override
+    public int hashCode() {
+        return (17 + method.hashCode()) * 31 + arguments.hashCode();
+    }
+    @Override
+    public String toString() {
+        return method + " " + arguments;
+    }
 }

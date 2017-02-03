@@ -35,63 +35,63 @@ import org.junit.Test;
  * @author akarnokd, 2013.01.10.
  */
 public class TestReactiveMulticast {
-	/** Test for the simple, always connected case. */
-	@Test(timeout = 10000)
-	public void testContinuous() {
-		Observable<Long> source = Reactive.tick(0, 5, 1, TimeUnit.SECONDS);
-		
-		final ConnectableObservable<Long> conn = Reactive.multicast(source, Subjects.<Long>newSubject());
+    /** Test for the simple, always connected case. */
+    @Test(timeout = 10000)
+    public void testContinuous() {
+        Observable<Long> source = Reactive.tick(0, 5, 1, TimeUnit.SECONDS);
+        
+        final ConnectableObservable<Long> conn = Reactive.multicast(source, Subjects.<Long>newSubject());
 
-		conn.connect();
-		
-		Observable<Long> result = Reactive.timeoutFinish(conn, 2, TimeUnit.SECONDS);
-		
-		TestUtil.assertEqual(Arrays.asList(0L, 1L, 2L, 3L, 4L), result);
-	}
-	/** Test for the simple, always connected case. */
-	@Test(timeout = 10000)
-	public void testEarlyDisconnect() {
-		Observable<Long> source = Reactive.tick(0, 5, 1, TimeUnit.SECONDS);
-		
-		final ConnectableObservable<Long> conn = Reactive.multicast(source, Subjects.<Long>newSubject());
+        conn.connect();
+        
+        Observable<Long> result = Reactive.timeoutFinish(conn, 2, TimeUnit.SECONDS);
+        
+        TestUtil.assertEqual(Arrays.asList(0L, 1L, 2L, 3L, 4L), result);
+    }
+    /** Test for the simple, always connected case. */
+    @Test(timeout = 10000)
+    public void testEarlyDisconnect() {
+        Observable<Long> source = Reactive.tick(0, 5, 1, TimeUnit.SECONDS);
+        
+        final ConnectableObservable<Long> conn = Reactive.multicast(source, Subjects.<Long>newSubject());
 
-		final Closeable c = conn.connect();
-		
-		Schedulers.getDefault().schedule(new Runnable() {
-			@Override
-			public void run() {
-				Closeables.closeSilently(c);
-			}
-		}, 3500, TimeUnit.MILLISECONDS);
+        final Closeable c = conn.connect();
+        
+        Schedulers.getDefault().schedule(new Runnable() {
+            @Override
+            public void run() {
+                Closeables.closeSilently(c);
+            }
+        }, 3500, TimeUnit.MILLISECONDS);
 
-		Observable<Long> result = Reactive.timeoutFinish(conn, 2, TimeUnit.SECONDS);
+        Observable<Long> result = Reactive.timeoutFinish(conn, 2, TimeUnit.SECONDS);
 
-		TestUtil.assertEqual(Arrays.asList(0L, 1L, 2L), result);
-	}
-	/** 
-	 * Test for the simple, always connected case.
-	 * @throws IOException on error 
-	 */
-	@Test(timeout = 10000)
-	public void testLateConnect() throws IOException {
-		CloseableObservable<Long> source = Reactive.activeTick(0, 5, 1, TimeUnit.SECONDS);
-		
-		final ConnectableObservable<Long> conn = Reactive.multicast(source, 
-				Subjects.<Long>newSubject());
+        TestUtil.assertEqual(Arrays.asList(0L, 1L, 2L), result);
+    }
+    /** 
+     * Test for the simple, always connected case.
+     * @throws IOException on error 
+     */
+    @Test(timeout = 10000)
+    public void testLateConnect() throws IOException {
+        CloseableObservable<Long> source = Reactive.activeTick(0, 5, 1, TimeUnit.SECONDS);
+        
+        final ConnectableObservable<Long> conn = Reactive.multicast(source, 
+                Subjects.<Long>newSubject());
 
-		
-		Schedulers.getDefault().schedule(new Runnable() {
-			@Override
-			public void run() {
-				conn.connect();
-			}
-		}, 3500, TimeUnit.MILLISECONDS);
+        
+        Schedulers.getDefault().schedule(new Runnable() {
+            @Override
+            public void run() {
+                conn.connect();
+            }
+        }, 3500, TimeUnit.MILLISECONDS);
 
-		Observable<Long> result = Reactive.timeoutFinish(conn, 200, TimeUnit.SECONDS);
+        Observable<Long> result = Reactive.timeoutFinish(conn, 200, TimeUnit.SECONDS);
 
-		TestUtil.assertEqual(Arrays.asList(3L, 4L), result);
-		
-		source.close();
-	}
+        TestUtil.assertEqual(Arrays.asList(3L, 4L), result);
+        
+        source.close();
+    }
 
 }

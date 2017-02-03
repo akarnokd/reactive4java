@@ -34,52 +34,52 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public class SynchronizedObserver<T> implements Observer<T>, Closeable {
-	/** The wrapped observer. */
-	protected final Observer<T> observer;
-	/** The lock object. */
-	protected final Object gate;
-	/**
-	 * Constructor, sets the wrapped observer and uses an internal object as gate.
-	 * @param o the observer
-	 */
-	public SynchronizedObserver(@Nonnull Observer<T> o) {
-		this(o, new Object());
-	}
-	/**
-	 * Constructor, sets the wrapped observer and uses the provided lock.
-	 * @param o the observer
-	 * @param gate the gate object where the synchronized() will be called upon
-	 */
-	public SynchronizedObserver(@Nonnull Observer<T> o, @Nonnull Object gate) {
-		this.observer = o;
-		this.gate = gate;
-	}
-	/** @return the gate object */
-	public Object getGate() {
-		return gate;
-	}
-	@Override
-	public void close() throws IOException {
-		synchronized (gate) {
-			Closeables.close(observer);
-		}
-	}
-	@Override
-	public void next(T value) {
-		synchronized (gate) {
-			observer.next(value);
-		}
-	}
-	@Override
-	public void error(@Nonnull Throwable ex) {
-		synchronized (gate) {
-			observer.error(ex);
-		}
-	}
-	@Override
-	public void finish() {
-		synchronized (gate) {
-			observer.finish();
-		}
-	}
+    /** The wrapped observer. */
+    protected final Observer<T> observer;
+    /** The lock object. */
+    protected final Object gate;
+    /**
+     * Constructor, sets the wrapped observer and uses an internal object as gate.
+     * @param o the observer
+     */
+    public SynchronizedObserver(@Nonnull Observer<T> o) {
+        this(o, new Object());
+    }
+    /**
+     * Constructor, sets the wrapped observer and uses the provided lock.
+     * @param o the observer
+     * @param gate the gate object where the synchronized() will be called upon
+     */
+    public SynchronizedObserver(@Nonnull Observer<T> o, @Nonnull Object gate) {
+        this.observer = o;
+        this.gate = gate;
+    }
+    /** @return the gate object */
+    public Object getGate() {
+        return gate;
+    }
+    @Override
+    public void close() throws IOException {
+        synchronized (gate) {
+            Closeables.close(observer);
+        }
+    }
+    @Override
+    public void next(T value) {
+        synchronized (gate) {
+            observer.next(value);
+        }
+    }
+    @Override
+    public void error(@Nonnull Throwable ex) {
+        synchronized (gate) {
+            observer.error(ex);
+        }
+    }
+    @Override
+    public void finish() {
+        synchronized (gate) {
+            observer.finish();
+        }
+    }
 }

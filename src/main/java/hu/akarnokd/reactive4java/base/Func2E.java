@@ -28,12 +28,12 @@ package hu.akarnokd.reactive4java.base;
  * @param <E> the exception
  */
 public interface Func2E<Param1, Param2, Return, E extends Exception> {
-	/**
-	 * The method that gets invoked with two parameters.
-	 * @param param1 the first parameter value
-	 * @param param2 the second parameter value
-	 * @return the return object
-	 * @throws E on error
-	 */
-	Return invoke(Param1 param1, Param2 param2) throws E;
+    /**
+     * The method that gets invoked with two parameters.
+     * @param param1 the first parameter value
+     * @param param2 the second parameter value
+     * @return the return object
+     * @throws E on error
+     */
+    Return invoke(Param1 param1, Param2 param2) throws E;
 }

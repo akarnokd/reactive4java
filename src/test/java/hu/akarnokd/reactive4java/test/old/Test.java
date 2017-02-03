@@ -38,86 +38,86 @@ import javax.annotation.Nonnull;
  */
 public final class Test {
 
-	/**
-	 * Utility class.
-	 */
-	private Test() {
-		// utility class
-	}
+    /**
+     * Utility class.
+     */
+    private Test() {
+        // utility class
+    }
 
-	/**
-	 * @param args no arguments
-	 * @throws Exception on error
-	 */
-	public static void main(String[] args) throws Exception {
-		for (int i : FunctionIterable.asIterable(FunctionIterable.single(42))) {
-			System.out.println(i);
-		}
-		Iterator<Integer> it = FunctionIterable.asIterable(FunctionIterable.single(42)).iterator();
-		try {
-			System.out.println(it.next());
-			System.out.println(it.next());
-		} catch (NoSuchElementException ex) {
-			ex.printStackTrace();
-		}
-		Func0<Func0<Option<Integer>>> xs = FunctionIterable.asFIterable(Interactive.range(0, 10));
-		Func0<Option<Integer>> xse = xs.invoke();
-		Option<Integer> x = null;
-		while ((x = xse.invoke()) != Option.<Integer>none()) {
-			System.out.println(x.value());
-		}
-		
-		Iterable<Integer> ys = FunctionIterable.asIterable(xs);
-		for (Integer y : ys) {
-			System.out.println(y);
-		}
-		
-		final CountDownLatch latch = new CountDownLatch(1); 
-		Action1<Action1<Option<Integer>>> oxs = ActionObservable.asFObservable(Reactive.range(20, 10));
-		
-		oxs.invoke(new Action1<Option<Integer>>() {
-			@Override
-			public void invoke(Option<Integer> value) {
-				if (value != Option.<Integer>none()) {
-					System.out.println(value.value());
-				} else {
-					latch.countDown();
-				}
-			}
-		});
-		
-		latch.await();
-		
-		Observable<Integer> oys = ActionObservable.asObservable(oxs);
-		oys.register(new Observer<Integer>() {
-			@Override
-			public void finish() {
-				// TODO Auto-generated method stub
-				
-			}
-			@Override
-			public void error(@Nonnull Throwable ex) {
-				// TODO Auto-generated method stub
-				
-			}
-			@Override
-			public void next(Integer value) {
-				System.out.println(value * 10);
-			}
-		});
-		
-		Reactive.toObservable(ys).register(Observers.toObserver(new Action1<Integer>() {
-			@Override
-			public void invoke(Integer value) {
-				System.out.printf("%s %d%n", Thread.currentThread(), value);
-			}
-		}));
-		
-		Reactive.delay(Reactive.range(100, 10), 5, TimeUnit.SECONDS).register(Observers.println());
+    /**
+     * @param args no arguments
+     * @throws Exception on error
+     */
+    public static void main(String[] args) throws Exception {
+        for (int i : FunctionIterable.asIterable(FunctionIterable.single(42))) {
+            System.out.println(i);
+        }
+        Iterator<Integer> it = FunctionIterable.asIterable(FunctionIterable.single(42)).iterator();
+        try {
+            System.out.println(it.next());
+            System.out.println(it.next());
+        } catch (NoSuchElementException ex) {
+            ex.printStackTrace();
+        }
+        Func0<Func0<Option<Integer>>> xs = FunctionIterable.asFIterable(Interactive.range(0, 10));
+        Func0<Option<Integer>> xse = xs.invoke();
+        Option<Integer> x = null;
+        while ((x = xse.invoke()) != Option.<Integer>none()) {
+            System.out.println(x.value());
+        }
+        
+        Iterable<Integer> ys = FunctionIterable.asIterable(xs);
+        for (Integer y : ys) {
+            System.out.println(y);
+        }
+        
+        final CountDownLatch latch = new CountDownLatch(1); 
+        Action1<Action1<Option<Integer>>> oxs = ActionObservable.asFObservable(Reactive.range(20, 10));
+        
+        oxs.invoke(new Action1<Option<Integer>>() {
+            @Override
+            public void invoke(Option<Integer> value) {
+                if (value != Option.<Integer>none()) {
+                    System.out.println(value.value());
+                } else {
+                    latch.countDown();
+                }
+            }
+        });
+        
+        latch.await();
+        
+        Observable<Integer> oys = ActionObservable.asObservable(oxs);
+        oys.register(new Observer<Integer>() {
+            @Override
+            public void finish() {
+                // TODO Auto-generated method stub
+                
+            }
+            @Override
+            public void error(@Nonnull Throwable ex) {
+                // TODO Auto-generated method stub
+                
+            }
+            @Override
+            public void next(Integer value) {
+                System.out.println(value * 10);
+            }
+        });
+        
+        Reactive.toObservable(ys).register(Observers.toObserver(new Action1<Integer>() {
+            @Override
+            public void invoke(Integer value) {
+                System.out.printf("%s %d%n", Thread.currentThread(), value);
+            }
+        }));
+        
+        Reactive.delay(Reactive.range(100, 10), 5, TimeUnit.SECONDS).register(Observers.println());
 
-		System.out.println(Reactive.first(Reactive.range(1, 1)));
-		
-		System.out.println(Reactive.first(Reactive.range(2, 0)));
-	}
+        System.out.println(Reactive.first(Reactive.range(1, 1)));
+        
+        System.out.println(Reactive.first(Reactive.range(2, 0)));
+    }
 
 }

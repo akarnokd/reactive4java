@@ -31,68 +31,68 @@ import java.util.concurrent.TimeUnit;
  */
 public final class TestA {
 
-	/**
-	 * Utility class.
-	 */
-	private TestA() {
-		// utility class
-	}
-	/** 
-	 * Run the observable with a print attached. 
-	 * @param observable the source observable
-	 * @throws InterruptedException when the current thread is interrupted while
-	 * waiting on the observable completion
-	 */
-	static void run(Observable<?> observable) throws InterruptedException {
-		Reactive.run(observable, Observers.print());
-	}
-	
-	/**
-	 * @param args no arguments
-	 * @throws Exception on error
-	 */
-	public static void main(String[] args) throws Exception {
-		run(
-			Reactive.timeout(
-				Reactive.tick(200, TimeUnit.SECONDS), 5, TimeUnit.SECONDS)
-		);
-		
-		run(
-				Reactive.timeout(
-					Reactive.tick(200, TimeUnit.SECONDS), 
-					2, 
-					TimeUnit.SECONDS,
-					Reactive.tick(0, 5, 1, TimeUnit.SECONDS)
-				)
-			);
-		
-		run(
-			Reactive.zip(
-				Reactive.tick(0, 5, 1, TimeUnit.SECONDS), 
-				Interactive.range(0, 3),
-				new Func2<Long, Integer, Long>() {
-					@Override
-					public Long invoke(Long param1, Integer param2) {
-						return param1 * 10 + param2;
-					}
-				}
-			)
-		);
+    /**
+     * Utility class.
+     */
+    private TestA() {
+        // utility class
+    }
+    /** 
+     * Run the observable with a print attached. 
+     * @param observable the source observable
+     * @throws InterruptedException when the current thread is interrupted while
+     * waiting on the observable completion
+     */
+    static void run(Observable<?> observable) throws InterruptedException {
+        Reactive.run(observable, Observers.print());
+    }
+    
+    /**
+     * @param args no arguments
+     * @throws Exception on error
+     */
+    public static void main(String[] args) throws Exception {
+        run(
+            Reactive.timeout(
+                Reactive.tick(200, TimeUnit.SECONDS), 5, TimeUnit.SECONDS)
+        );
+        
+        run(
+                Reactive.timeout(
+                    Reactive.tick(200, TimeUnit.SECONDS), 
+                    2, 
+                    TimeUnit.SECONDS,
+                    Reactive.tick(0, 5, 1, TimeUnit.SECONDS)
+                )
+            );
+        
+        run(
+            Reactive.zip(
+                Reactive.tick(0, 5, 1, TimeUnit.SECONDS), 
+                Interactive.range(0, 3),
+                new Func2<Long, Integer, Long>() {
+                    @Override
+                    public Long invoke(Long param1, Integer param2) {
+                        return param1 * 10 + param2;
+                    }
+                }
+            )
+        );
 
-		run(
-			Reactive.zip(
-				Reactive.tick(0, 5, 1, TimeUnit.SECONDS), 
-				Reactive.tick(0, 3, 100, TimeUnit.MILLISECONDS), 
-				new Func2<Long, Long, Long>() {
-					@Override
-					public Long invoke(Long param1, Long param2) {
-						return param1 * 10 + param2;
-					}
-				}
-			)
-		);
+        run(
+            Reactive.zip(
+                Reactive.tick(0, 5, 1, TimeUnit.SECONDS), 
+                Reactive.tick(0, 3, 100, TimeUnit.MILLISECONDS), 
+                new Func2<Long, Long, Long>() {
+                    @Override
+                    public Long invoke(Long param1, Long param2) {
+                        return param1 * 10 + param2;
+                    }
+                }
+            )
+        );
 
-		System.out.printf("%nMain finished%n");
-	}
+        System.out.printf("%nMain finished%n");
+    }
 
 }

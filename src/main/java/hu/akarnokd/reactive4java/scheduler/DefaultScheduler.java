@@ -37,236 +37,236 @@ import javax.annotation.Nonnull;
  * @author akarnokd, 2011.02.02.
  */
 public class DefaultScheduler implements Scheduler {
-	// #GWT-IGNORE-START
-	/** The default scheduler pool for delayed observable actions. */
-	final ScheduledExecutorService pool;
-	/**
-	 * Creates a scheduler with a ScheduledThreadPoolExecutor. The
-	 * pool will have the following attributes:
-	 * <ul>
-	 * <li><code>Runtime.getRuntime().availableProcessors()</code> core thread</li>
-	 * <li>1 second idle timeout</li>
-	 * <li>core threads may timeout</li>
-	 * <li>unbounded worker queue</li>
-	 * <li>no rejection handler</li>
-	 * <li>if running on Java 7 or above: remove on cancel policy set to true</li>
-	 * </ul>
-	 */
-	public DefaultScheduler() {
-		this(Runtime.getRuntime().availableProcessors());
-	}
-	/**
-	 * Creates a scheduler with a ScheduledThreadPoolExecutor. The
-	 * pool will have the following attributes:
-	 * <ul>
-	 * <li><code>parallellism</code> core thread</li>
-	 * <li>1 second idle timeout</li>
-	 * <li>core threads may timeout</li>
-	 * <li>unbounded worker queue</li>
-	 * <li>no rejection handler</li>
-	 * <li>if running on Java 7 or above: remove on cancel policy set to true</li>
-	 * </ul>
-	 * @param poolSize the number of core threads
-	 * @since 0.97
-	 */
-	public DefaultScheduler(int poolSize) {
-		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(poolSize);
-		scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
-		scheduler.allowCoreThreadTimeOut(true);
+    // #GWT-IGNORE-START
+    /** The default scheduler pool for delayed observable actions. */
+    final ScheduledExecutorService pool;
+    /**
+     * Creates a scheduler with a ScheduledThreadPoolExecutor. The
+     * pool will have the following attributes:
+     * <ul>
+     * <li><code>Runtime.getRuntime().availableProcessors()</code> core thread</li>
+     * <li>1 second idle timeout</li>
+     * <li>core threads may timeout</li>
+     * <li>unbounded worker queue</li>
+     * <li>no rejection handler</li>
+     * <li>if running on Java 7 or above: remove on cancel policy set to true</li>
+     * </ul>
+     */
+    public DefaultScheduler() {
+        this(Runtime.getRuntime().availableProcessors());
+    }
+    /**
+     * Creates a scheduler with a ScheduledThreadPoolExecutor. The
+     * pool will have the following attributes:
+     * <ul>
+     * <li><code>parallellism</code> core thread</li>
+     * <li>1 second idle timeout</li>
+     * <li>core threads may timeout</li>
+     * <li>unbounded worker queue</li>
+     * <li>no rejection handler</li>
+     * <li>if running on Java 7 or above: remove on cancel policy set to true</li>
+     * </ul>
+     * @param poolSize the number of core threads
+     * @since 0.97
+     */
+    public DefaultScheduler(int poolSize) {
+        ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(poolSize);
+        scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
+        scheduler.allowCoreThreadTimeOut(true);
 
-		/*
-		 * the setRemoveOnCancelPolicy() was introduced in Java 7 to
-		 * allow the option to remove tasks from work queue if its initial delay hasn't
-		 * elapsed -> therefore, if no other tasks are present, the scheduler might go idle earlier
-		 * instead of waiting for the initial delay to pass to discover there is nothing to do.
-		 * Because the library is currently aimed at Java 6, we use a reflection to set this policy
-		 * on a Java 7+ runtime.
-		 */
-		try {
-			java.lang.reflect.Method m = scheduler.getClass().getMethod("setRemoveOnCancelPolicy", Boolean.TYPE);
-			m.invoke(scheduler, true);
-		} catch (java.lang.reflect.InvocationTargetException ex) {
-		} catch (NoSuchMethodException e) {
-		} catch (SecurityException e) {
-		} catch (IllegalAccessException e) {
-		} catch (IllegalArgumentException e) {
-		}
-		pool = scheduler;
-	}
-	/**
+        /*
+         * the setRemoveOnCancelPolicy() was introduced in Java 7 to
+         * allow the option to remove tasks from work queue if its initial delay hasn't
+         * elapsed -> therefore, if no other tasks are present, the scheduler might go idle earlier
+         * instead of waiting for the initial delay to pass to discover there is nothing to do.
+         * Because the library is currently aimed at Java 6, we use a reflection to set this policy
+         * on a Java 7+ runtime.
+         */
+        try {
+            java.lang.reflect.Method m = scheduler.getClass().getMethod("setRemoveOnCancelPolicy", Boolean.TYPE);
+            m.invoke(scheduler, true);
+        } catch (java.lang.reflect.InvocationTargetException ex) {
+        } catch (NoSuchMethodException e) {
+        } catch (SecurityException e) {
+        } catch (IllegalAccessException e) {
+        } catch (IllegalArgumentException e) {
+        }
+        pool = scheduler;
+    }
+    /**
      * Creates a scheduler instance with the given backing pool.
      * @param scheduled the backing scheduled executor service
-	 */
-	public DefaultScheduler(@Nonnull ScheduledExecutorService scheduled) {
-//		if (scheduled == null) {
-//			throw new IllegalArgumentException("scheduled is null");
-//		}
-		this.pool = scheduled;
-	}
-	/**
-	 * Helper class which invokes <code>Future.cancel(true)</code> on
-	 * the wrapped future.
-	 * @author akarnokd, 2011.02.02.
-	 */
-	static class FutureCloser implements Closeable {
-		/** The wrapped future. */
-		@Nonnull 
-		final Future<?> future;
-		/**
-		 * Constructor.
-		 * @param future the future to close
-		 */
-		FutureCloser(@Nonnull Future<?> future) {
-//			if (future == null) {
-//				throw new IllegalArgumentException("future is null");
-//			}
-			this.future = future;
-		}
-		@Override
-		public void close() throws IOException {
-			future.cancel(true);
-		}
-	}
-	@Override
-	@Nonnull 
-	public Closeable schedule(@Nonnull Runnable run) {
-		return toCloseable(pool.submit(run));
-	}
+     */
+    public DefaultScheduler(@Nonnull ScheduledExecutorService scheduled) {
+//        if (scheduled == null) {
+//            throw new IllegalArgumentException("scheduled is null");
+//        }
+        this.pool = scheduled;
+    }
+    /**
+     * Helper class which invokes <code>Future.cancel(true)</code> on
+     * the wrapped future.
+     * @author akarnokd, 2011.02.02.
+     */
+    static class FutureCloser implements Closeable {
+        /** The wrapped future. */
+        @Nonnull 
+        final Future<?> future;
+        /**
+         * Constructor.
+         * @param future the future to close
+         */
+        FutureCloser(@Nonnull Future<?> future) {
+//            if (future == null) {
+//                throw new IllegalArgumentException("future is null");
+//            }
+            this.future = future;
+        }
+        @Override
+        public void close() throws IOException {
+            future.cancel(true);
+        }
+    }
+    @Override
+    @Nonnull 
+    public Closeable schedule(@Nonnull Runnable run) {
+        return toCloseable(pool.submit(run));
+    }
 
-	@Override
-	@Nonnull 
-	public Closeable schedule(
-			@Nonnull Runnable run, 
-			long delay, 
-			@Nonnull TimeUnit unit) {
-		return toCloseable(pool.schedule(run, delay, unit));
-	}
+    @Override
+    @Nonnull 
+    public Closeable schedule(
+            @Nonnull Runnable run, 
+            long delay, 
+            @Nonnull TimeUnit unit) {
+        return toCloseable(pool.schedule(run, delay, unit));
+    }
 
-	@Override
-	@Nonnull 
-	public Closeable schedule(
-			@Nonnull Runnable run, 
-			long initialDelay, 
-			long betweenDelay, 
-			@Nonnull TimeUnit unit) {
-		return toCloseable(
-				pool.scheduleAtFixedRate(run, initialDelay, betweenDelay, unit));
-	}
-	/**
-	 * Factory function to turn the future into a closeable instance.
-	 * @param future the future to work with
-	 * @return the closeable instance
-	 * @since 0.97
-	 */
-	@Nonnull 
-	protected Closeable toCloseable(@Nonnull Future<?> future) {
-		return new FutureCloser(future);
-	}
-	/**
-	 * Shutdown both pools.
-	 */
-	public void shutdown() {
-		pool.shutdown();
-	}
-	/**
-	 * Shutdown both pools now.
-	 * @return the list of runnable tasks awaiting executions in both pools
-	 */
-	public List<Runnable> shutdownNow() {
-		List<Runnable> result = new ArrayList<Runnable>();
-		result.addAll(pool.shutdownNow());
-		return result;
-	}
-	// #GWT-IGNORE-END
-	// #GWT-ACCEPT-START
-//	@Override
-//	public Closeable schedule(final Runnable run) {
-//		final Timer timer = new Timer() {
-//			@Override
-//			public void run() {
-//				try {
-//					run.run();
-//				} finally {
-//					Thread.interrupted(); // clear interrupt flag
-//				}
-//			}
-//		};
-//		timer.schedule(1);
-//		return new Closeable() {
-//			@Override
-//			public void close() throws IOException {
-//				Thread.currentThread().interrupt();
-//				timer.cancel();
-//			}
-//		};
-//	}
+    @Override
+    @Nonnull 
+    public Closeable schedule(
+            @Nonnull Runnable run, 
+            long initialDelay, 
+            long betweenDelay, 
+            @Nonnull TimeUnit unit) {
+        return toCloseable(
+                pool.scheduleAtFixedRate(run, initialDelay, betweenDelay, unit));
+    }
+    /**
+     * Factory function to turn the future into a closeable instance.
+     * @param future the future to work with
+     * @return the closeable instance
+     * @since 0.97
+     */
+    @Nonnull 
+    protected Closeable toCloseable(@Nonnull Future<?> future) {
+        return new FutureCloser(future);
+    }
+    /**
+     * Shutdown both pools.
+     */
+    public void shutdown() {
+        pool.shutdown();
+    }
+    /**
+     * Shutdown both pools now.
+     * @return the list of runnable tasks awaiting executions in both pools
+     */
+    public List<Runnable> shutdownNow() {
+        List<Runnable> result = new ArrayList<Runnable>();
+        result.addAll(pool.shutdownNow());
+        return result;
+    }
+    // #GWT-IGNORE-END
+    // #GWT-ACCEPT-START
+//    @Override
+//    public Closeable schedule(final Runnable run) {
+//        final Timer timer = new Timer() {
+//            @Override
+//            public void run() {
+//                try {
+//                    run.run();
+//                } finally {
+//                    Thread.interrupted(); // clear interrupt flag
+//                }
+//            }
+//        };
+//        timer.schedule(1);
+//        return new Closeable() {
+//            @Override
+//            public void close() throws IOException {
+//                Thread.currentThread().interrupt();
+//                timer.cancel();
+//            }
+//        };
+//    }
 //
-//	@Override
-//	public Closeable schedule(final Runnable run, long delay, TimeUnit unit) {
-//		final Timer timer = new Timer() {
-//			@Override
-//			public void run() {
-//				try {
-//					run.run();
-//				} finally {
-//					Thread.interrupted(); // clear interrupt flag
-//				}
-//			}
-//		};
-//		timer.schedule((int)unit.convert(delay, TimeUnit.MILLISECONDS));
-//		return new Closeable() {
-//			@Override
-//			public void close() throws IOException {
-//				Thread.currentThread().interrupt();
-//				timer.cancel();
-//			}
-//		};
-//	}
+//    @Override
+//    public Closeable schedule(final Runnable run, long delay, TimeUnit unit) {
+//        final Timer timer = new Timer() {
+//            @Override
+//            public void run() {
+//                try {
+//                    run.run();
+//                } finally {
+//                    Thread.interrupted(); // clear interrupt flag
+//                }
+//            }
+//        };
+//        timer.schedule((int)unit.convert(delay, TimeUnit.MILLISECONDS));
+//        return new Closeable() {
+//            @Override
+//            public void close() throws IOException {
+//                Thread.currentThread().interrupt();
+//                timer.cancel();
+//            }
+//        };
+//    }
 //
-//	@Override
-//	public Closeable schedule(final Runnable run, 
-//			long initialDelay, final long betweenDelay, final TimeUnit unit) {
-//		final Timer outerTimer = new Timer() {
-//			/** The inner timer. */
-//			final Timer timer = new Timer() {
-//				@Override
-//				public void run() {
-//					try {
-//						run.run();
-//					} catch (Throwable ex) {
-//						Thread.currentThread().interrupt();
-//					}
-//					if (Thread.interrupted()) {
-//						timer.cancel();
-//					}
-//				}
-//			};
-//			@Override
-//			public void run() {
-//				try {
-//					run.run();
-//					if (!Thread.interrupted()) {
-//						timer.scheduleRepeating((int)unit.convert(betweenDelay, TimeUnit.MILLISECONDS));
-//					}
-//				} catch (Throwable ex) {
-//					
-//				}
-//			}
-//			@Override
-//			public void cancel() {
-//				Thread.currentThread().interrupt();
-//				timer.cancel();
-//				super.cancel();
-//			}
-//		};
-//		outerTimer.schedule((int)unit.convert(initialDelay, TimeUnit.MILLISECONDS));
-//		return new Closeable() {
-//			@Override
-//			public void close() throws IOException {
-//				outerTimer.cancel();
-//			}
-//		};
-//	}
-	
-	// #GWT-ACCEPT-END
+//    @Override
+//    public Closeable schedule(final Runnable run, 
+//            long initialDelay, final long betweenDelay, final TimeUnit unit) {
+//        final Timer outerTimer = new Timer() {
+//            /** The inner timer. */
+//            final Timer timer = new Timer() {
+//                @Override
+//                public void run() {
+//                    try {
+//                        run.run();
+//                    } catch (Throwable ex) {
+//                        Thread.currentThread().interrupt();
+//                    }
+//                    if (Thread.interrupted()) {
+//                        timer.cancel();
+//                    }
+//                }
+//            };
+//            @Override
+//            public void run() {
+//                try {
+//                    run.run();
+//                    if (!Thread.interrupted()) {
+//                        timer.scheduleRepeating((int)unit.convert(betweenDelay, TimeUnit.MILLISECONDS));
+//                    }
+//                } catch (Throwable ex) {
+//                    
+//                }
+//            }
+//            @Override
+//            public void cancel() {
+//                Thread.currentThread().interrupt();
+//                timer.cancel();
+//                super.cancel();
+//            }
+//        };
+//        outerTimer.schedule((int)unit.convert(initialDelay, TimeUnit.MILLISECONDS));
+//        return new Closeable() {
+//            @Override
+//            public void close() throws IOException {
+//                outerTimer.cancel();
+//            }
+//        };
+//    }
+    
+    // #GWT-ACCEPT-END
 }

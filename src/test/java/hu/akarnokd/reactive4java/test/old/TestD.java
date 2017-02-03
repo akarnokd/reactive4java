@@ -29,73 +29,73 @@ import hu.akarnokd.reactive4java.util.Observers;
  */
 public final class TestD {
 
-	/**
-	 * Utility class.
-	 */
-	private TestD() {
-		// utility class
-	}
-	/** 
-	 * Run the observable with a print attached. 
-	 * @param observable the source observable
-	 * @throws InterruptedException when the current thread is interrupted while
-	 * waiting on the observable completion
-	 */
-	static void run(Observable<?> observable) throws InterruptedException {
-		Reactive.run(observable, Observers.print());
-	}
-	
-	/**
-	 * @param args no arguments
-	 * @throws Exception on error
-	 */
-	public static void main(String[] args)
-	throws Exception {
+    /**
+     * Utility class.
+     */
+    private TestD() {
+        // utility class
+    }
+    /** 
+     * Run the observable with a print attached. 
+     * @param observable the source observable
+     * @throws InterruptedException when the current thread is interrupted while
+     * waiting on the observable completion
+     */
+    static void run(Observable<?> observable) throws InterruptedException {
+        Reactive.run(observable, Observers.print());
+    }
+    
+    /**
+     * @param args no arguments
+     * @throws Exception on error
+     */
+    public static void main(String[] args)
+    throws Exception {
 
-		run(
-				Reactive.manySelect(
-					Reactive.range(1, 3, new CurrentThreadScheduler()),
-				new Func1<Observable<Integer>, Observable<String>>() {
-					int counter;
-					@Override
-					public Observable<String> invoke(Observable<Integer> param1) {
-						final int i = ++counter;
-//						System.out.println("F: " + i);
-						return Reactive.select(param1, new Func1<Integer, String>() {
-							@Override
-							public String invoke(Integer param1) {
-//								System.out.println("G: " + i + " - " + param1);
-								return i + " : " + param1;
-							}
-						});
-					}	
-				})
-		);
+        run(
+                Reactive.manySelect(
+                    Reactive.range(1, 3, new CurrentThreadScheduler()),
+                new Func1<Observable<Integer>, Observable<String>>() {
+                    int counter;
+                    @Override
+                    public Observable<String> invoke(Observable<Integer> param1) {
+                        final int i = ++counter;
+//                        System.out.println("F: " + i);
+                        return Reactive.select(param1, new Func1<Integer, String>() {
+                            @Override
+                            public String invoke(Integer param1) {
+//                                System.out.println("G: " + i + " - " + param1);
+                                return i + " : " + param1;
+                            }
+                        });
+                    }    
+                })
+        );
 
-		run(Reactive.sequenceEqual(Reactive.range(0, 5), Reactive.range(0, 10)));
-		run(Reactive.sequenceEqual(Reactive.range(0, 5), Reactive.range(1, 5)));
-		run(Reactive.sequenceEqual(Reactive.range(0, 5), Reactive.range(0, 5)));
+        run(Reactive.sequenceEqual(Reactive.range(0, 5), Reactive.range(0, 10)));
+        run(Reactive.sequenceEqual(Reactive.range(0, 5), Reactive.range(1, 5)));
+        run(Reactive.sequenceEqual(Reactive.range(0, 5), Reactive.range(0, 5)));
 
-		Func1<Observable<Integer>, String> f = new Func1<Observable<Integer>, String>() {
-			@Override
-			public String invoke(Observable<Integer> param1) {
-				return "" + Reactive.first(param1);
-			}
-		};
-		run(
-				Reactive.manySelect(
-					Reactive.range(1, 3),
-					f,
-					new CurrentThreadScheduler())
-			);
-		run(
-				Reactive.manySelect(
-					Reactive.range(1, 3),
-					f,
-					new CurrentThreadScheduler())
-			);
+        Func1<Observable<Integer>, String> f = new Func1<Observable<Integer>, String>() {
+            @Override
+            public String invoke(Observable<Integer> param1) {
+                return "" + Reactive.first(param1);
+            }
+        };
+        run(
+                Reactive.manySelect(
+                    Reactive.range(1, 3),
+                    f,
+                    new CurrentThreadScheduler())
+            );
+        run(
+                Reactive.manySelect(
+                    Reactive.range(1, 3),
+                    f,
+                    new CurrentThreadScheduler())
+            );
 
-		System.out.printf("%nMain finished%n");
-	}
+        System.out.printf("%nMain finished%n");
+    }
 
 }

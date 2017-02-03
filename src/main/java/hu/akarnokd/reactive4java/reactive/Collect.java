@@ -43,102 +43,102 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public final class Collect<U, T> implements CloseableIterable<U> {
-	/** The source sequence. */
-	protected final Observable<? extends T> source;
-	/** The new collector function based on the current collector. */
-	protected final Func1<? super U, ? extends U> newCollector;
-	/** The initial collector function. */
-	protected final Func0<? extends U> initialCollector;
-	/** The merger function. */
-	protected final Func2<? super U, ? super T, ? extends U> merge;
+    /** The source sequence. */
+    protected final Observable<? extends T> source;
+    /** The new collector function based on the current collector. */
+    protected final Func1<? super U, ? extends U> newCollector;
+    /** The initial collector function. */
+    protected final Func0<? extends U> initialCollector;
+    /** The merger function. */
+    protected final Func2<? super U, ? super T, ? extends U> merge;
 
-	/**
-	 * Constructor.
-	 * @param source the source sequence
-	 * @param initialCollector the initial collector factory
-	 * @param merge the merger operator
-	 * @param newCollector the factory to replace the current collector
-	 */
-	public Collect(
-			Observable<? extends T> source,
-			Func0<? extends U> initialCollector,
-			Func2<? super U, ? super T, ? extends U> merge,
-			Func1<? super U, ? extends U> newCollector
-			) {
-		this.source = source;
-		this.newCollector = newCollector;
-		this.initialCollector = initialCollector;
-		this.merge = merge;
-	}
+    /**
+     * Constructor.
+     * @param source the source sequence
+     * @param initialCollector the initial collector factory
+     * @param merge the merger operator
+     * @param newCollector the factory to replace the current collector
+     */
+    public Collect(
+            Observable<? extends T> source,
+            Func0<? extends U> initialCollector,
+            Func2<? super U, ? super T, ? extends U> merge,
+            Func1<? super U, ? extends U> newCollector
+            ) {
+        this.source = source;
+        this.newCollector = newCollector;
+        this.initialCollector = initialCollector;
+        this.merge = merge;
+    }
 
-	@Override
-	public CloseableIterator<U> iterator() {
-		final AtomicReference<U> collector = new AtomicReference<U>(initialCollector.invoke());
-		final AtomicBoolean done = new AtomicBoolean();
-		final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-		
-		final DefaultObserverEx<T> obs = new DefaultObserverEx<T>() {
-			@Override
-			protected void onError(@Nonnull Throwable ex) {
-				error.set(ex);
-				done.set(true);
-			}
+    @Override
+    public CloseableIterator<U> iterator() {
+        final AtomicReference<U> collector = new AtomicReference<U>(initialCollector.invoke());
+        final AtomicBoolean done = new AtomicBoolean();
+        final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
+        
+        final DefaultObserverEx<T> obs = new DefaultObserverEx<T>() {
+            @Override
+            protected void onError(@Nonnull Throwable ex) {
+                error.set(ex);
+                done.set(true);
+            }
 
-			@Override
-			protected void onFinish() {
-				done.set(true);
-			}
+            @Override
+            protected void onFinish() {
+                done.set(true);
+            }
 
-			@Override
-			protected void onNext(T value) {
-				U current = collector.get();
-				current = merge.invoke(current, value);
-				collector.set(current);
-			}
-			
-		};
-		obs.registerWith(source);
-		
-		return new CloseableIterator<U>() {
-			/** The current value received by hasNext(). */
-			U currentValue;
-			/** Have we completed as well? */
-			boolean completed;
-			@Override
-			public void close() throws IOException {
-				obs.close();
-			}
+            @Override
+            protected void onNext(T value) {
+                U current = collector.get();
+                current = merge.invoke(current, value);
+                collector.set(current);
+            }
+            
+        };
+        obs.registerWith(source);
+        
+        return new CloseableIterator<U>() {
+            /** The current value received by hasNext(). */
+            U currentValue;
+            /** Have we completed as well? */
+            boolean completed;
+            @Override
+            public void close() throws IOException {
+                obs.close();
+            }
 
-			@Override
-			protected void finalize() throws Throwable {
-				close();
-			}
+            @Override
+            protected void finalize() throws Throwable {
+                close();
+            }
 
-			@Override
-			public boolean hasNext() {
-				if (!completed) {
-					currentValue = collector.get();
-				}
-				return completed;
-			}
+            @Override
+            public boolean hasNext() {
+                if (!completed) {
+                    currentValue = collector.get();
+                }
+                return completed;
+            }
 
-			@Override
-			public U next() {
-				if (hasNext()) {
-					if (done.get()) {
-						completed = true;
-						Throwables.throwAsUnchecked(error.get());
-					} else {
-						collector.set(newCollector.invoke(currentValue));
-					}
-					return currentValue;
-				}
-				throw new NoSuchElementException();
-			}
-			@Override
-			public void remove() {
-				throw new UnsupportedOperationException();
-			}
-		};
-	}
+            @Override
+            public U next() {
+                if (hasNext()) {
+                    if (done.get()) {
+                        completed = true;
+                        Throwables.throwAsUnchecked(error.get());
+                    } else {
+                        collector.set(newCollector.invoke(currentValue));
+                    }
+                    return currentValue;
+                }
+                throw new NoSuchElementException();
+            }
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
 }

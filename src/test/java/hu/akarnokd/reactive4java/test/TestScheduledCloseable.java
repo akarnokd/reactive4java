@@ -32,26 +32,26 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestScheduledCloseable {
-	/** 
-	 * Test simple closing. 
-	 * @throws IOException due to Closeable.close();
-	 * @throws InterruptedException due wait
-	 */
-	@Test(timeout = 2000)
-	public void simpleTest() throws IOException, InterruptedException {
-		Scheduler scheduler = new DefaultScheduler(1);
-		
-		DebugCloseable mc = new DebugCloseable();
-		
-		ScheduledCloseable c = new ScheduledCloseable(scheduler, mc);
-		
-		Closeables.closeSilently(c);
-		
-		while (!mc.isClosed()) {
-			Thread.sleep(100);
-		}
-		
-		Assert.assertNotSame(mc, c.get());
-	}
+    /** 
+     * Test simple closing. 
+     * @throws IOException due to Closeable.close();
+     * @throws InterruptedException due wait
+     */
+    @Test(timeout = 2000)
+    public void simpleTest() throws IOException, InterruptedException {
+        Scheduler scheduler = new DefaultScheduler(1);
+        
+        DebugCloseable mc = new DebugCloseable();
+        
+        ScheduledCloseable c = new ScheduledCloseable(scheduler, mc);
+        
+        Closeables.closeSilently(c);
+        
+        while (!mc.isClosed()) {
+            Thread.sleep(100);
+        }
+        
+        Assert.assertNotSame(mc, c.get());
+    }
 
 }

@@ -25,28 +25,28 @@ package hu.akarnokd.reactive4java.util;
  * @param <T> the contained item type
  */
 public final class Unique<T> {
-	/** The value. */
-	protected final T value;
-	/**
-	 * Constructor.
-	 * @param value the contained value
-	 */
-	public Unique(T value) {
-		this.value = value;
-	}
-	/**
-	 * Factory method to construct a new unique instance.
-	 * @param <U> the contained item type
-	 * @param value the value to contain
-	 * @return the unique instance
-	 */
-	public static <U> Unique<U> of(U value) {
-		return new Unique<U>(value);
-	}
-	/**
-	 * @return the contained value
-	 */
-	public T get() {
-		return value;
-	}
+    /** The value. */
+    protected final T value;
+    /**
+     * Constructor.
+     * @param value the contained value
+     */
+    public Unique(T value) {
+        this.value = value;
+    }
+    /**
+     * Factory method to construct a new unique instance.
+     * @param <U> the contained item type
+     * @param value the value to contain
+     * @return the unique instance
+     */
+    public static <U> Unique<U> of(U value) {
+        return new Unique<U>(value);
+    }
+    /**
+     * @return the contained value
+     */
+    public T get() {
+        return value;
+    }
 }

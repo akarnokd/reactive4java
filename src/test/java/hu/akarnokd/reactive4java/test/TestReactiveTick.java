@@ -29,32 +29,32 @@ import org.junit.Test;
  * @author akarnokd, 2013.01.10.
  */
 public class TestReactiveTick {
-	/** Test if the tick produces the required amount of values. */
-	@Test
-	public void tickValues() {
-		Observable<Long> source = Reactive.tick(0, 10, 100, TimeUnit.MILLISECONDS);
-		
-		TestUtil.assertEqual(Interactive.range(0L, 10L), source);
-	}
-	/** 
-	 * Test if the tick produces the required amount of values near the specified time.
-	 * @throws Exception on error 
-	 */
-	@Test(timeout = 6500)
-	public void tickValuesInTime() throws Exception {
-		Observable<Long> source = Reactive.tick(0, 5, 1, TimeUnit.SECONDS);
-		
-		TestUtil.assertEqual(Interactive.range(0L, 5L), source);
-	}
-	/** 
-	 * Test if the tick produces the required amount of values near the specified time.
-	 * @throws Exception on error 
-	 */
-	@Test(timeout = 6500)
-	public void tickValuesInTimePrint() throws Exception {
-		Observable<Long> source = Reactive.tick(0, 5, 1, TimeUnit.SECONDS);
-		
-		Reactive.run(Reactive.addTimestamped(source), Observers.println());
-	}
+    /** Test if the tick produces the required amount of values. */
+    @Test
+    public void tickValues() {
+        Observable<Long> source = Reactive.tick(0, 10, 100, TimeUnit.MILLISECONDS);
+        
+        TestUtil.assertEqual(Interactive.range(0L, 10L), source);
+    }
+    /** 
+     * Test if the tick produces the required amount of values near the specified time.
+     * @throws Exception on error 
+     */
+    @Test(timeout = 6500)
+    public void tickValuesInTime() throws Exception {
+        Observable<Long> source = Reactive.tick(0, 5, 1, TimeUnit.SECONDS);
+        
+        TestUtil.assertEqual(Interactive.range(0L, 5L), source);
+    }
+    /** 
+     * Test if the tick produces the required amount of values near the specified time.
+     * @throws Exception on error 
+     */
+    @Test(timeout = 6500)
+    public void tickValuesInTimePrint() throws Exception {
+        Observable<Long> source = Reactive.tick(0, 5, 1, TimeUnit.SECONDS);
+        
+        Reactive.run(Reactive.addTimestamped(source), Observers.println());
+    }
 
 }

@@ -37,50 +37,50 @@ import org.junit.Test;
  */
 public class TestReactiveSingle {
 
-	/**
-	 * Tests single() in case of 0 element.
-	 */
-	@Test(expected = NoSuchElementException.class)
-	public void singleNoSuchElement() {
-		single(empty());
-	}
+    /**
+     * Tests single() in case of 0 element.
+     */
+    @Test(expected = NoSuchElementException.class)
+    public void singleNoSuchElement() {
+        single(empty());
+    }
 
-	/**
-	 * Tests single() in case of 1 element.
-	 */
-	@Test
-	public void singleOk() {
-		Integer expected = 42;
-		Observable<Integer> o = from(expected);
-		assertEquals(expected, single(o));
-	}
-	/**
-	 * Tests single() in case of more than 1 elements.
-	 */
-	@Test(expected = TooManyElementsException.class)
-	public void singleTooManyElements() {
-		single(from(1, 2));
-	}
-	/**
-	 * Test for empty source with constant.
-	 */
-	@Test
-	public void singleDefault() {
-		Observable<Integer> source = Reactive.empty();
-		
-		Integer result = Reactive.single(source, 1);
-		
-		Assert.assertEquals((Integer)1, result);
-	}
-	/**
-	 * Test for empty source with default supplier.
-	 */
-	@Test
-	public void singleDefaultFunction() {
-		Observable<Integer> source = Reactive.empty();
-		
-		Integer result = Reactive.single(source, Functions.constant0(1));
-		
-		Assert.assertEquals((Integer)1, result);
-	}
+    /**
+     * Tests single() in case of 1 element.
+     */
+    @Test
+    public void singleOk() {
+        Integer expected = 42;
+        Observable<Integer> o = from(expected);
+        assertEquals(expected, single(o));
+    }
+    /**
+     * Tests single() in case of more than 1 elements.
+     */
+    @Test(expected = TooManyElementsException.class)
+    public void singleTooManyElements() {
+        single(from(1, 2));
+    }
+    /**
+     * Test for empty source with constant.
+     */
+    @Test
+    public void singleDefault() {
+        Observable<Integer> source = Reactive.empty();
+        
+        Integer result = Reactive.single(source, 1);
+        
+        Assert.assertEquals((Integer)1, result);
+    }
+    /**
+     * Test for empty source with default supplier.
+     */
+    @Test
+    public void singleDefaultFunction() {
+        Observable<Integer> source = Reactive.empty();
+        
+        Integer result = Reactive.single(source, Functions.constant0(1));
+        
+        Assert.assertEquals((Integer)1, result);
+    }
 }

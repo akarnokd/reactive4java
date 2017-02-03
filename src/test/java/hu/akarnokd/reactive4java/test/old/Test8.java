@@ -29,46 +29,46 @@ import java.util.concurrent.TimeUnit;
  */
 public final class Test8 {
 
-	/**
-	 * Utility class.
-	 */
-	private Test8() {
-		// utility class
-	}
-	/** 
-	 * Run the observable with a print attached. 
-	 * @param observable the source observable
-	 * @throws InterruptedException when the current thread is interrupted while
-	 * waiting on the observable completion
-	 */
-	static void run(Observable<?> observable) throws InterruptedException {
-		Reactive.run(observable, Observers.print());
-	}
-	
-	/**
-	 * @param args no arguments
-	 * @throws Exception on error
-	 */
-	public static void main(String[] args) throws Exception {
-		Observable<Long> cc = Reactive.concat(
-				Reactive.tick(0, 10, 200, TimeUnit.MILLISECONDS),
-				Reactive.tick(10, 15, 1, TimeUnit.SECONDS)
-			);
-		
-		run(cc);
-		run(cc);
-		
-		run(
-			Reactive.addTimestamped(
-				Reactive.throttle(
-					cc,
-				500, TimeUnit.MILLISECONDS)
-			)
-		);
-		
-		run(Reactive.addTimeInterval(cc));
-		
-		System.out.printf("%nMain finished%n");
-	}
+    /**
+     * Utility class.
+     */
+    private Test8() {
+        // utility class
+    }
+    /** 
+     * Run the observable with a print attached. 
+     * @param observable the source observable
+     * @throws InterruptedException when the current thread is interrupted while
+     * waiting on the observable completion
+     */
+    static void run(Observable<?> observable) throws InterruptedException {
+        Reactive.run(observable, Observers.print());
+    }
+    
+    /**
+     * @param args no arguments
+     * @throws Exception on error
+     */
+    public static void main(String[] args) throws Exception {
+        Observable<Long> cc = Reactive.concat(
+                Reactive.tick(0, 10, 200, TimeUnit.MILLISECONDS),
+                Reactive.tick(10, 15, 1, TimeUnit.SECONDS)
+            );
+        
+        run(cc);
+        run(cc);
+        
+        run(
+            Reactive.addTimestamped(
+                Reactive.throttle(
+                    cc,
+                500, TimeUnit.MILLISECONDS)
+            )
+        );
+        
+        run(Reactive.addTimeInterval(cc));
+        
+        System.out.printf("%nMain finished%n");
+    }
 
 }

@@ -33,119 +33,119 @@ import org.junit.Assert;
  * @since 0.97
  */
 public final class TestHybridHelper {
-	/** Helper class. */
-	private TestHybridHelper() { }
-	/**
-	 * Test the java to java communication through an java-observer interface.
-	 * @param observer the java-observer
-	 * @param observableImpl the implementation as java-observable
-	 * @throws InterruptedException if the wait is interrupted
-	 */
-	public static void testJavaToJava(
-			java.util.Observer observer, 
-			java.util.Observable observableImpl) 
-	throws InterruptedException {
-		final AsyncSubject<Integer> waiter = new AsyncSubject<Integer>();
-		
-		java.util.Observer o = new java.util.Observer() {
-			@Override
-			public void update(java.util.Observable o, Object arg) {
-				waiter.next((Integer)arg);
-				waiter.finish();
-			}
-		};
-		
-		observableImpl.addObserver(o);
-		try {
-			observableImpl.notifyObservers(1);
-			
-			Assert.assertEquals((Integer)1, waiter.get());
-		} finally {
-			observableImpl.deleteObserver(o);
-		}
+    /** Helper class. */
+    private TestHybridHelper() { }
+    /**
+     * Test the java to java communication through an java-observer interface.
+     * @param observer the java-observer
+     * @param observableImpl the implementation as java-observable
+     * @throws InterruptedException if the wait is interrupted
+     */
+    public static void testJavaToJava(
+            java.util.Observer observer, 
+            java.util.Observable observableImpl) 
+    throws InterruptedException {
+        final AsyncSubject<Integer> waiter = new AsyncSubject<Integer>();
+        
+        java.util.Observer o = new java.util.Observer() {
+            @Override
+            public void update(java.util.Observable o, Object arg) {
+                waiter.next((Integer)arg);
+                waiter.finish();
+            }
+        };
+        
+        observableImpl.addObserver(o);
+        try {
+            observableImpl.notifyObservers(1);
+            
+            Assert.assertEquals((Integer)1, waiter.get());
+        } finally {
+            observableImpl.deleteObserver(o);
+        }
 
-	}
-	/**
-	 * Test a stream from java to reactive.
-	 * @param observableImpl the java-observable
-	 * @param observable the reactive-observable
-	 * @throws InterruptedException if interrupted
-	 */
-	public static void testJavaToReactive(
-			java.util.Observable observableImpl, 
-			Observable<Integer> observable) throws InterruptedException {
-		
-		final AsyncSubject<Integer> waiter = new AsyncSubject<Integer>();
+    }
+    /**
+     * Test a stream from java to reactive.
+     * @param observableImpl the java-observable
+     * @param observable the reactive-observable
+     * @throws InterruptedException if interrupted
+     */
+    public static void testJavaToReactive(
+            java.util.Observable observableImpl, 
+            Observable<Integer> observable) throws InterruptedException {
+        
+        final AsyncSubject<Integer> waiter = new AsyncSubject<Integer>();
 
-		Closeable c = observable.register(new ObserverAdapter<Integer>() {
-			@Override
-			public void next(Integer value) {
-				waiter.next(value);
-				waiter.finish();
-			}
-		});
-		try {
-			observableImpl.notifyObservers(1);
-			
-			Assert.assertEquals((Integer)1, waiter.get());
-		} finally {
-			Closeables.closeSilently(c);
-		}
-	}
-	/**
-	 * Test a stream from reactive to java.
-	 * @param observer the reactive-observer
-	 * @param observableImpl the java-observable
-	 * @throws InterruptedException if interrupted
-	 */
-	public static void testReactiveToJava(
-			Observer<Integer> observer,
-			java.util.Observable observableImpl) throws InterruptedException {
-		
-		final AsyncSubject<Integer> waiter = new AsyncSubject<Integer>();
+        Closeable c = observable.register(new ObserverAdapter<Integer>() {
+            @Override
+            public void next(Integer value) {
+                waiter.next(value);
+                waiter.finish();
+            }
+        });
+        try {
+            observableImpl.notifyObservers(1);
+            
+            Assert.assertEquals((Integer)1, waiter.get());
+        } finally {
+            Closeables.closeSilently(c);
+        }
+    }
+    /**
+     * Test a stream from reactive to java.
+     * @param observer the reactive-observer
+     * @param observableImpl the java-observable
+     * @throws InterruptedException if interrupted
+     */
+    public static void testReactiveToJava(
+            Observer<Integer> observer,
+            java.util.Observable observableImpl) throws InterruptedException {
+        
+        final AsyncSubject<Integer> waiter = new AsyncSubject<Integer>();
 
-		java.util.Observer o = new java.util.Observer() {
-			@Override
-			public void update(java.util.Observable o, Object arg) {
-				waiter.next((Integer)arg);
-				waiter.finish();
-			}
-		};
-		
-		observableImpl.addObserver(o);
-		try {
-			observer.next(1);
-			
-			Assert.assertEquals((Integer)1, waiter.get());
-		} finally {
-			observableImpl.deleteObserver(o);
-		}
-	}
-	/**
-	 * Test a stream from reactive to java.
-	 * @param observer the reactive-observer
-	 * @param observable the reactive-observable
-	 * @throws InterruptedException if interrupted
-	 */
-	public static void testReactiveToReactive(
-			Observer<Integer> observer,
-			Observable<Integer> observable) throws InterruptedException {
-		
-		final AsyncSubject<Integer> waiter = new AsyncSubject<Integer>();
+        java.util.Observer o = new java.util.Observer() {
+            @Override
+            public void update(java.util.Observable o, Object arg) {
+                waiter.next((Integer)arg);
+                waiter.finish();
+            }
+        };
+        
+        observableImpl.addObserver(o);
+        try {
+            observer.next(1);
+            
+            Assert.assertEquals((Integer)1, waiter.get());
+        } finally {
+            observableImpl.deleteObserver(o);
+        }
+    }
+    /**
+     * Test a stream from reactive to java.
+     * @param observer the reactive-observer
+     * @param observable the reactive-observable
+     * @throws InterruptedException if interrupted
+     */
+    public static void testReactiveToReactive(
+            Observer<Integer> observer,
+            Observable<Integer> observable) throws InterruptedException {
+        
+        final AsyncSubject<Integer> waiter = new AsyncSubject<Integer>();
 
-		Closeable c = observable.register(new ObserverAdapter<Integer>() {
-			@Override
-			public void next(Integer value) {
-				waiter.next(value);
-				waiter.finish();
-			}
-		});
-		try {
-			observer.next(1);
-			
-			Assert.assertEquals((Integer)1, waiter.get());
-		} finally {
-			Closeables.closeSilently(c);
-		}
-	}
+        Closeable c = observable.register(new ObserverAdapter<Integer>() {
+            @Override
+            public void next(Integer value) {
+                waiter.next(value);
+                waiter.finish();
+            }
+        });
+        try {
+            observer.next(1);
+            
+            Assert.assertEquals((Integer)1, waiter.get());
+        } finally {
+            Closeables.closeSilently(c);
+        }
+    }
 }

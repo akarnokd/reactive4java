@@ -27,14 +27,14 @@ import org.junit.Test;
  * @author Denes Harmath, 2012.07.13.
  */
 public class TestInteractiveTake {
-	/**
-	 * Test take().
-	 */
-	@Test
-	public void takeOk() {
-		Iterable<Integer> prefix = toIterable(1, 2);
-		Iterable<Integer> i = concat(prefix, toIterable(3, 4));
-		TestUtil.assertEqual(take(i, size(prefix)), prefix);
-	}
+    /**
+     * Test take().
+     */
+    @Test
+    public void takeOk() {
+        Iterable<Integer> prefix = toIterable(1, 2);
+        Iterable<Integer> i = concat(prefix, toIterable(3, 4));
+        TestUtil.assertEqual(take(i, size(prefix)), prefix);
+    }
 
 }

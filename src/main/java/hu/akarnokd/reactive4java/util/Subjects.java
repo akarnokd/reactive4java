@@ -31,88 +31,88 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public final class Subjects {
-	/** Utility class. */
-	private Subjects() { }
-	/**
-	 * Wraps the observer and observable instances into a Subject.
-	 * @param <T> the type the observer uses
-	 * @param <U> the type the observable uses
-	 * @param observer the observer object
-	 * @param observable the observable object
-	 * @return the subject relaying to both
-	 */
-	@Nonnull 
-	public static <T, U> Subject<T, U> newSubject(
-			@Nonnull final Observer<? super T> observer, 
-			@Nonnull final Observable<? extends U> observable) {
-		return new Subject<T, U>() {
+    /** Utility class. */
+    private Subjects() { }
+    /**
+     * Wraps the observer and observable instances into a Subject.
+     * @param <T> the type the observer uses
+     * @param <U> the type the observable uses
+     * @param observer the observer object
+     * @param observable the observable object
+     * @return the subject relaying to both
+     */
+    @Nonnull 
+    public static <T, U> Subject<T, U> newSubject(
+            @Nonnull final Observer<? super T> observer, 
+            @Nonnull final Observable<? extends U> observable) {
+        return new Subject<T, U>() {
 
-			@Override
-			public void next(T value) {
-				observer.next(value);
-			}
+            @Override
+            public void next(T value) {
+                observer.next(value);
+            }
 
-			@Override
-			public void error(@Nonnull Throwable ex) {
-				observer.error(ex);
-			}
+            @Override
+            public void error(@Nonnull Throwable ex) {
+                observer.error(ex);
+            }
 
-			@Override
-			public void finish() {
-				observer.finish();
-			}
+            @Override
+            public void finish() {
+                observer.finish();
+            }
 
-			@Override
-			@Nonnull
-			public Closeable register(@Nonnull Observer<? super U> observer) {
-				return observable.register(observer);
-			}
-		};
-	}
-	/**
-	 * Creates a new subject which simply forwards its observed values
-	 * to the registered observers.
-	 * @param <T> the element type
-	 * @return the new subject
-	 */
-	@Nonnull 
-	public static <T> Subject<T, T> newSubject() {
-		return new DefaultObservable<T>();
-	}
-	/**
-	 * Creates a new subject which forwards its observed values after
-	 * applying the selector function.
-	 * @param <T> the observed element type
-	 * @param <U> the forwarded element type
-	 * @param selector the selector to use
-	 * @return the new subject
-	 */
-	@Nonnull 
-	public static <T, U> Subject<T, U> newSubject(
-			@Nonnull final Func1<? super T, ? extends U> selector) {
-		return new Subject<T, U>() {
-			final DefaultObservable<U> observable = new DefaultObservable<U>();
+            @Override
+            @Nonnull
+            public Closeable register(@Nonnull Observer<? super U> observer) {
+                return observable.register(observer);
+            }
+        };
+    }
+    /**
+     * Creates a new subject which simply forwards its observed values
+     * to the registered observers.
+     * @param <T> the element type
+     * @return the new subject
+     */
+    @Nonnull 
+    public static <T> Subject<T, T> newSubject() {
+        return new DefaultObservable<T>();
+    }
+    /**
+     * Creates a new subject which forwards its observed values after
+     * applying the selector function.
+     * @param <T> the observed element type
+     * @param <U> the forwarded element type
+     * @param selector the selector to use
+     * @return the new subject
+     */
+    @Nonnull 
+    public static <T, U> Subject<T, U> newSubject(
+            @Nonnull final Func1<? super T, ? extends U> selector) {
+        return new Subject<T, U>() {
+            final DefaultObservable<U> observable = new DefaultObservable<U>();
 
-			@Override
-			public void next(T value) {
-				observable.next(selector.invoke(value));
-			}
+            @Override
+            public void next(T value) {
+                observable.next(selector.invoke(value));
+            }
 
-			@Override
-			public void error(@Nonnull Throwable ex) {
-				observable.error(ex);
-			}
+            @Override
+            public void error(@Nonnull Throwable ex) {
+                observable.error(ex);
+            }
 
-			@Override
-			public void finish() {
-				observable.finish();
-			}
-			@Override
-			@Nonnull
-			public Closeable register(@Nonnull Observer<? super U> observer) {
-				return observable.register(observer);
-			}
-			
-		};
-	}
+            @Override
+            public void finish() {
+                observable.finish();
+            }
+            @Override
+            @Nonnull
+            public Closeable register(@Nonnull Observer<? super U> observer) {
+                return observable.register(observer);
+            }
+            
+        };
+    }
 }

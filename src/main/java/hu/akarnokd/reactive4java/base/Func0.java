@@ -25,9 +25,9 @@ package hu.akarnokd.reactive4java.base;
  * @param <Return> the return type
  */
 public interface Func0<Return> {
-	/**
-	 * The function body to invoke.
-	 * @return the return type
-	 */
-	Return invoke();
+    /**
+     * The function body to invoke.
+     * @return the return type
+     */
+    Return invoke();
 }

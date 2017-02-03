@@ -30,27 +30,27 @@ import org.junit.Test;
  * @author akarnokd, 2013.01.10.
  */
 public class TestObservableBuilderComposition {
-	/** Test a chain of where and select. */
-	@Test
-	public void test() {
-		Observable<Integer> source = Reactive.range(0, 10);
-		
-		Observable<Integer> result = ObservableBuilder
-				.from(source)
-				.where(new Pred1<Integer>() { 
-					@Override
-					public Boolean invoke(Integer param1) {
-						return param1 % 2 == 0;
-					}
-				})
-				.select(new Func1<Integer, Integer>() { 
-					@Override
-					public Integer invoke(Integer param1) {
-						return param1 * param1;
-					}
-				});
-		
-		TestUtil.assertEqual(Arrays.asList(0, 4, 16, 36, 64), result);
-	}
+    /** Test a chain of where and select. */
+    @Test
+    public void test() {
+        Observable<Integer> source = Reactive.range(0, 10);
+        
+        Observable<Integer> result = ObservableBuilder
+                .from(source)
+                .where(new Pred1<Integer>() { 
+                    @Override
+                    public Boolean invoke(Integer param1) {
+                        return param1 % 2 == 0;
+                    }
+                })
+                .select(new Func1<Integer, Integer>() { 
+                    @Override
+                    public Integer invoke(Integer param1) {
+                        return param1 * param1;
+                    }
+                });
+        
+        TestUtil.assertEqual(Arrays.asList(0, 4, 16, 36, 64), result);
+    }
 
 }

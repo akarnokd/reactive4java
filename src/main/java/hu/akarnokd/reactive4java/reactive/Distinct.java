@@ -34,52 +34,52 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public final class Distinct<T, U> implements Observable<T> {
-	/** */
-	protected Observable<? extends T> source;
-	/** */
-	protected Func1<? super T, ? extends U> keySelector;
-	/** */
-	protected Func2<? super U, ? super U, Boolean> keyComparer;
-	/**
-	 * Constructor.
-	 * @param source the source sequence
-	 * @param keySelector the key selector function
-	 * @param keyComparer the key comparer function
-	 */
-	public Distinct(
-			Observable<? extends T> source, 
-			Func1<? super T, ? extends U> keySelector, 
-			Func2<? super U, ? super U, Boolean> keyComparer) {
-		this.source = source;
-		this.keySelector = keySelector;
-		this.keyComparer = keyComparer;
-	}
-	@Override
-	@Nonnull
-	public Closeable register(@Nonnull final Observer<? super T> observer) {
-		return source.register(new Observer<T>() {
-			/** The set remembering entries. */
-			ComparingHashSet<U> set = new ComparingHashSet<U>(keyComparer);
-			@Override
-			public void next(T value) {
-				U key = keySelector.invoke(value);
-				if (set.add(key)) {
-					observer.next(value);
-				}
-			}
+    /** */
+    protected Observable<? extends T> source;
+    /** */
+    protected Func1<? super T, ? extends U> keySelector;
+    /** */
+    protected Func2<? super U, ? super U, Boolean> keyComparer;
+    /**
+     * Constructor.
+     * @param source the source sequence
+     * @param keySelector the key selector function
+     * @param keyComparer the key comparer function
+     */
+    public Distinct(
+            Observable<? extends T> source, 
+            Func1<? super T, ? extends U> keySelector, 
+            Func2<? super U, ? super U, Boolean> keyComparer) {
+        this.source = source;
+        this.keySelector = keySelector;
+        this.keyComparer = keyComparer;
+    }
+    @Override
+    @Nonnull
+    public Closeable register(@Nonnull final Observer<? super T> observer) {
+        return source.register(new Observer<T>() {
+            /** The set remembering entries. */
+            ComparingHashSet<U> set = new ComparingHashSet<U>(keyComparer);
+            @Override
+            public void next(T value) {
+                U key = keySelector.invoke(value);
+                if (set.add(key)) {
+                    observer.next(value);
+                }
+            }
 
-			@Override
-			public void error(Throwable ex) {
-				set = null;
-				observer.error(ex);
-			}
+            @Override
+            public void error(Throwable ex) {
+                set = null;
+                observer.error(ex);
+            }
 
-			@Override
-			public void finish() {
-				set = null;
-				observer.finish();
-			}
-			
-		});
-	}
+            @Override
+            public void finish() {
+                set = null;
+                observer.finish();
+            }
+            
+        });
+    }
 }

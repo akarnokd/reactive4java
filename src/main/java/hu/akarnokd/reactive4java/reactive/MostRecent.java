@@ -39,65 +39,65 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public class MostRecent<T> extends ObservableToIterableAdapter<T, T> {
-	/** The initial value to have. */
-	protected final T initialValue;
-	/**
-	 * Constructor.
-	 * @param observable the source observable
-	 * @param initialValue the initial value
-	 */
-	public MostRecent(@Nonnull Observable<? extends T> observable, T initialValue) {
-		super(observable);
-		this.initialValue = initialValue;
-	}
+    /** The initial value to have. */
+    protected final T initialValue;
+    /**
+     * Constructor.
+     * @param observable the source observable
+     * @param initialValue the initial value
+     */
+    public MostRecent(@Nonnull Observable<? extends T> observable, T initialValue) {
+        super(observable);
+        this.initialValue = initialValue;
+    }
 
-	@Override
-	@Nonnull 
-	protected ObserverToIteratorSink<T, T> run(@Nonnull Closeable handle) {
-		return new ObserverToIteratorSink<T, T>(handle) {
-			/** The observation kind. */
-			@Nonnull 
-			protected volatile ObservationKind kind = ObservationKind.NEXT;
-			/** The current value. */
-			protected volatile T curr = initialValue;
-			/** The current error. */
-			protected volatile Throwable error;
-			@Override
-			public void next(T value) {
-				this.curr = value;
-				kind = ObservationKind.NEXT;
-			}
+    @Override
+    @Nonnull 
+    protected ObserverToIteratorSink<T, T> run(@Nonnull Closeable handle) {
+        return new ObserverToIteratorSink<T, T>(handle) {
+            /** The observation kind. */
+            @Nonnull 
+            protected volatile ObservationKind kind = ObservationKind.NEXT;
+            /** The current value. */
+            protected volatile T curr = initialValue;
+            /** The current error. */
+            protected volatile Throwable error;
+            @Override
+            public void next(T value) {
+                this.curr = value;
+                kind = ObservationKind.NEXT;
+            }
 
-			@Override
-			public void error(@Nonnull Throwable ex) {
-				done();
+            @Override
+            public void error(@Nonnull Throwable ex) {
+                done();
 
-				this.error = ex;
-				kind = ObservationKind.ERROR;
-			}
+                this.error = ex;
+                kind = ObservationKind.ERROR;
+            }
 
-			@Override
-			public void finish() {
-				done();
+            @Override
+            public void finish() {
+                done();
 
-				kind = ObservationKind.FINISH;
-			}
+                kind = ObservationKind.FINISH;
+            }
 
-			@Override
-			public boolean tryNext(@Nonnull SingleOption<? super T> out) {
-				switch (kind) {
-				case NEXT:
-					out.add(curr);
-					return true;
-				case ERROR:
-					out.addError(error);
-					return true;
-				default:
-				}
-				return false;
-			}
-			
-		};
-	}
-	
+            @Override
+            public boolean tryNext(@Nonnull SingleOption<? super T> out) {
+                switch (kind) {
+                case NEXT:
+                    out.add(curr);
+                    return true;
+                case ERROR:
+                    out.addError(error);
+                    return true;
+                default:
+                }
+                return false;
+            }
+            
+        };
+    }
+    
 }

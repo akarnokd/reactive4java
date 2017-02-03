@@ -25,14 +25,14 @@ import java.io.IOException;
  * @since 0.97
  */
 public class DebugCloseable implements Closeable {
-	/** The state. */
-	protected volatile boolean done;
-	@Override
-	public void close() throws IOException {
-		done = true;
-	}
-	/** @return true if the close() method was already called. */
-	public boolean isClosed() {
-		return done;
-	}
+    /** The state. */
+    protected volatile boolean done;
+    @Override
+    public void close() throws IOException {
+        done = true;
+    }
+    /** @return true if the close() method was already called. */
+    public boolean isClosed() {
+        return done;
+    }
 }

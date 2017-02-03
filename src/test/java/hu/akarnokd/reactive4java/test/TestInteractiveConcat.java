@@ -32,50 +32,50 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestInteractiveConcat {
-	/**
-	 * Test if concat works correctly when one of the input sequences is empty. 
-	 */
-	@Test
-	public void testConcat() {
-		Iterable<Integer> one = Collections.singleton(1);
-		Iterable<Integer> empty = Collections.emptySet();
-		
-		List<Iterable<Integer>> iterables = new ArrayList<Iterable<Integer>>();
-		iterables.add(one);
-		iterables.add(empty);
-		iterables.add(one);
-		
-		Iterable<Integer> concat = Interactive.concat(iterables);
+    /**
+     * Test if concat works correctly when one of the input sequences is empty. 
+     */
+    @Test
+    public void testConcat() {
+        Iterable<Integer> one = Collections.singleton(1);
+        Iterable<Integer> empty = Collections.emptySet();
+        
+        List<Iterable<Integer>> iterables = new ArrayList<Iterable<Integer>>();
+        iterables.add(one);
+        iterables.add(empty);
+        iterables.add(one);
+        
+        Iterable<Integer> concat = Interactive.concat(iterables);
 
-		List<Integer> result = new ArrayList<Integer>();
-		for (Integer i : concat) {
-			result.add(i);
-		}
-		TestUtil.assertEqual(Arrays.asList(1, 1), result);
-	}
-	/**
-	 * Test if concat item removal works when one of the input sequences is empty.
-	 */
-	@Test
-	public void testConcatRemove() {
-		List<List<Integer>> iterables = new ArrayList<List<Integer>>();
-		
-		List<Integer> list1 = TestUtil.newList(1);
-		List<Integer> list2 = TestUtil.newList(1);
-		iterables.add(list1);
-		iterables.add(Collections.<Integer>emptyList());
-		iterables.add(list2);
-		
-		Iterable<Integer> concat = Interactive.concat(iterables);
-		
-		Iterator<Integer> it = concat.iterator();
-		while (it.hasNext()) {
-			it.next();
-			it.remove();
-		}
-		
-		Assert.assertEquals(0, list1.size());
-		Assert.assertEquals(0, list2.size());
-	}
+        List<Integer> result = new ArrayList<Integer>();
+        for (Integer i : concat) {
+            result.add(i);
+        }
+        TestUtil.assertEqual(Arrays.asList(1, 1), result);
+    }
+    /**
+     * Test if concat item removal works when one of the input sequences is empty.
+     */
+    @Test
+    public void testConcatRemove() {
+        List<List<Integer>> iterables = new ArrayList<List<Integer>>();
+        
+        List<Integer> list1 = TestUtil.newList(1);
+        List<Integer> list2 = TestUtil.newList(1);
+        iterables.add(list1);
+        iterables.add(Collections.<Integer>emptyList());
+        iterables.add(list2);
+        
+        Iterable<Integer> concat = Interactive.concat(iterables);
+        
+        Iterator<Integer> it = concat.iterator();
+        while (it.hasNext()) {
+            it.next();
+            it.remove();
+        }
+        
+        Assert.assertEquals(0, list1.size());
+        Assert.assertEquals(0, list2.size());
+    }
 
 }

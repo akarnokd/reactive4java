@@ -27,10 +27,10 @@ package hu.akarnokd.reactive4java.base;
  * @param <Return> the return type
  */
 public interface Func1<Param1, Return> {
-	/**
-	 * The method that gets invoked with a parameter.
-	 * @param param1 the parameter value
-	 * @return the return object
-	 */
-	Return invoke(Param1 param1);
+    /**
+     * The method that gets invoked with a parameter.
+     * @param param1 the parameter value
+     * @return the return object
+     */
+    Return invoke(Param1 param1);
 }

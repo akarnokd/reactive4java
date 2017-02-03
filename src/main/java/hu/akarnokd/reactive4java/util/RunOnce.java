@@ -30,37 +30,37 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author akarnokd, 2011.01.31.
  */
 public final class RunOnce {
-	/** Marker that this instance is allowed to execute only one Action. */
-	final AtomicBoolean once = new AtomicBoolean();
-	/**
-	 * Invoke the given action only if this RunOnce has not invoked
-	 * anything before. The method ensures that if this RunOnce
-	 * is invoked from multiple threads or multiple cases, only the
-	 * very first one executes its submitted action.
-	 * @param action the action to invoke
-	 * @return returns true if the action was invoked
-	 */
-	public boolean invoke(final Action0 action) {
-		if (once.compareAndSet(false, true)) {
-			action.invoke();
-			return true;
-		}
-		return false;
-	}
-	/**
-	 * Invoke the given action only if this RunOnce has not invoked
-	 * anything before. The method ensures that if this RunOnce
-	 * is invoked from multiple threads or multiple cases, only the
-	 * very first one executes its submitted action.
-	 * @param <T> the parameter type
-	 * @param action the action to invoke
-	 * @param parameter the parameter to use when invoking the action.
-	 * @return true if the action was invoked
-	 */
-	public <T> boolean invoke(final Action1<? super T> action, final T parameter) {
-		if (once.compareAndSet(false, true)) {
-			action.invoke(parameter);
-		}
-		return false;
-	}
+    /** Marker that this instance is allowed to execute only one Action. */
+    final AtomicBoolean once = new AtomicBoolean();
+    /**
+     * Invoke the given action only if this RunOnce has not invoked
+     * anything before. The method ensures that if this RunOnce
+     * is invoked from multiple threads or multiple cases, only the
+     * very first one executes its submitted action.
+     * @param action the action to invoke
+     * @return returns true if the action was invoked
+     */
+    public boolean invoke(final Action0 action) {
+        if (once.compareAndSet(false, true)) {
+            action.invoke();
+            return true;
+        }
+        return false;
+    }
+    /**
+     * Invoke the given action only if this RunOnce has not invoked
+     * anything before. The method ensures that if this RunOnce
+     * is invoked from multiple threads or multiple cases, only the
+     * very first one executes its submitted action.
+     * @param <T> the parameter type
+     * @param action the action to invoke
+     * @param parameter the parameter to use when invoking the action.
+     * @return true if the action was invoked
+     */
+    public <T> boolean invoke(final Action1<? super T> action, final T parameter) {
+        if (once.compareAndSet(false, true)) {
+            action.invoke(parameter);
+        }
+        return false;
+    }
 }

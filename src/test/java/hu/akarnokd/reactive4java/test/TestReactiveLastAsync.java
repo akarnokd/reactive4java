@@ -29,49 +29,49 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestReactiveLastAsync {
-	/** Test an surely existing value. */
-	@Test
-	public void existing() {
-		Observable<Integer> source = Reactive.range(0, 10);
-		
-		Observable<Integer> result = Reactive.lastAsync(source);
-		
-		TestUtil.assertSingle(9, result);
-	}
-	/** 
-	 * Test an nonexistent value. 
-	 * @throws Exception on error. 
-	 */
-	@Test(expected = NoSuchElementException.class)
-	public void nonexistent() throws Exception {
-		Observable<Integer> source = Reactive.empty();
-		
-		Observable<Integer> result = Reactive.lastAsync(source);
-		
-		TestUtil.waitForAll(result);
-	}
-	/** 
-	 * Test an default value in case of empty source. 
-	 * @throws Exception on error. 
-	 */
-	@Test
-	public void nonexistentDefault() throws Exception {
-		Observable<Integer> source = Reactive.empty();
-		
-		Observable<Integer> result = Reactive.lastAsync(source, 1);
-		
-		TestUtil.assertSingle(1, result);
-	}
-	/** 
-	 * Test an default supplied value in case of empty source. 
-	 * @throws Exception on error. 
-	 */
-	@Test
-	public void nonexistentDefaultFunction() throws Exception {
-		Observable<Integer> source = Reactive.empty();
-		
-		Observable<Integer> result = Reactive.lastAsync(source, Functions.constant0(1));
-		
-		TestUtil.assertSingle(1, result);
-	}
+    /** Test an surely existing value. */
+    @Test
+    public void existing() {
+        Observable<Integer> source = Reactive.range(0, 10);
+        
+        Observable<Integer> result = Reactive.lastAsync(source);
+        
+        TestUtil.assertSingle(9, result);
+    }
+    /** 
+     * Test an nonexistent value. 
+     * @throws Exception on error. 
+     */
+    @Test(expected = NoSuchElementException.class)
+    public void nonexistent() throws Exception {
+        Observable<Integer> source = Reactive.empty();
+        
+        Observable<Integer> result = Reactive.lastAsync(source);
+        
+        TestUtil.waitForAll(result);
+    }
+    /** 
+     * Test an default value in case of empty source. 
+     * @throws Exception on error. 
+     */
+    @Test
+    public void nonexistentDefault() throws Exception {
+        Observable<Integer> source = Reactive.empty();
+        
+        Observable<Integer> result = Reactive.lastAsync(source, 1);
+        
+        TestUtil.assertSingle(1, result);
+    }
+    /** 
+     * Test an default supplied value in case of empty source. 
+     * @throws Exception on error. 
+     */
+    @Test
+    public void nonexistentDefaultFunction() throws Exception {
+        Observable<Integer> source = Reactive.empty();
+        
+        Observable<Integer> result = Reactive.lastAsync(source, Functions.constant0(1));
+        
+        TestUtil.assertSingle(1, result);
+    }
 }

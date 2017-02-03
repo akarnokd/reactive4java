@@ -29,45 +29,45 @@ import javax.swing.event.DocumentListener;
  */
 public class ObservableDocumentListener extends DefaultObservable<DocumentEvent> implements DocumentListener {
 
-	@Override
-	public void insertUpdate(DocumentEvent e) {
-		next(e);
-	}
+    @Override
+    public void insertUpdate(DocumentEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void removeUpdate(DocumentEvent e) {
-		next(e);
-	}
+    @Override
+    public void removeUpdate(DocumentEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void changedUpdate(DocumentEvent e) {
-		next(e);
-	}
-	/**
-	 * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addDocumentListener(DocumentListener)</code> method.
-	 * @param component the target component
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public static ObservableDocumentListener register(@Nonnull Object component) {
-		return new ObservableDocumentListener().registerWith(component);
-	}
-	/**
-	 * Convenience method to register this observable with the target component which must have a public <code>addDocumentListener(DocumentListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableDocumentListener registerWith(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "add", DocumentListener.class, this);
-	}
-	/**
-	 * Convenience method to unregister this observable from the target component which must have a public <code>removeDocumentListener(DocumentListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableDocumentListener unregisterFrom(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "remove", DocumentListener.class, this);
-	}
+    @Override
+    public void changedUpdate(DocumentEvent e) {
+        next(e);
+    }
+    /**
+     * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addDocumentListener(DocumentListener)</code> method.
+     * @param component the target component
+     * @return the new observable
+     */
+    @Nonnull 
+    public static ObservableDocumentListener register(@Nonnull Object component) {
+        return new ObservableDocumentListener().registerWith(component);
+    }
+    /**
+     * Convenience method to register this observable with the target component which must have a public <code>addDocumentListener(DocumentListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableDocumentListener registerWith(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "add", DocumentListener.class, this);
+    }
+    /**
+     * Convenience method to unregister this observable from the target component which must have a public <code>removeDocumentListener(DocumentListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableDocumentListener unregisterFrom(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "remove", DocumentListener.class, this);
+    }
 }

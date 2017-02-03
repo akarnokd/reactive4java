@@ -25,42 +25,42 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestHybridSubject {
-	/** 
-	 * Test an event stream from java to java on the HybridSubject.
-	 * @throws InterruptedException on interruption 
-	 */
-	@Test(timeout = 1000)
-	public void testHybridJavaToJavaIndirect() throws InterruptedException {
-		HybridSubject<Integer> subject = new HybridSubject<Integer>();
+    /** 
+     * Test an event stream from java to java on the HybridSubject.
+     * @throws InterruptedException on interruption 
+     */
+    @Test(timeout = 1000)
+    public void testHybridJavaToJavaIndirect() throws InterruptedException {
+        HybridSubject<Integer> subject = new HybridSubject<Integer>();
 
-		TestHybridHelper.testJavaToJava(subject, subject);
-	}
-	/**
-	 * Test the java to reactive streaming.
-	 * @throws InterruptedException on interruption 
-	 */
-	@Test(timeout = 1000)
-	public void testHybridJavaToReactive() throws InterruptedException {
-		HybridSubject<Integer> subject = new HybridSubject<Integer>();
-		TestHybridHelper.testJavaToReactive(subject, subject);
-	}
-	/**
-	 * Test the reactive to java streaming.
-	 * @throws InterruptedException on interruption 
-	 */
-	@Test/* (timeout = 1000) */
-	public void testHybridReactiveToJava() throws InterruptedException {
-		HybridSubject<Integer> subject = new HybridSubject<Integer>();
-		TestHybridHelper.testReactiveToJava(subject, subject);
-	}
-	/**
-	 * Test the reactive to reactive streaming.
-	 * @throws InterruptedException on interruption 
-	 */
-	@Test(timeout = 1000)
-	public void testHybridReactiveToReactive() throws InterruptedException {
-		HybridSubject<Integer> subject = new HybridSubject<Integer>();
+        TestHybridHelper.testJavaToJava(subject, subject);
+    }
+    /**
+     * Test the java to reactive streaming.
+     * @throws InterruptedException on interruption 
+     */
+    @Test(timeout = 1000)
+    public void testHybridJavaToReactive() throws InterruptedException {
+        HybridSubject<Integer> subject = new HybridSubject<Integer>();
+        TestHybridHelper.testJavaToReactive(subject, subject);
+    }
+    /**
+     * Test the reactive to java streaming.
+     * @throws InterruptedException on interruption 
+     */
+    @Test/* (timeout = 1000) */
+    public void testHybridReactiveToJava() throws InterruptedException {
+        HybridSubject<Integer> subject = new HybridSubject<Integer>();
+        TestHybridHelper.testReactiveToJava(subject, subject);
+    }
+    /**
+     * Test the reactive to reactive streaming.
+     * @throws InterruptedException on interruption 
+     */
+    @Test(timeout = 1000)
+    public void testHybridReactiveToReactive() throws InterruptedException {
+        HybridSubject<Integer> subject = new HybridSubject<Integer>();
 
-		TestHybridHelper.testReactiveToReactive(subject, subject);
-	}
+        TestHybridHelper.testReactiveToReactive(subject, subject);
+    }
 }

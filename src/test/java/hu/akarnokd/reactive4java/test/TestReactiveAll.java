@@ -28,22 +28,22 @@ import org.junit.Test;
  */
 public class TestReactiveAll {
 
-	/**
-	 * Tests all() properly returning <code>false</code>.
-	 */
-	@Test
-	public void allFalse() {
-		int value = 42;
-		TestUtil.assertSingle(false, all(from(value, 0, value), equal(value)));
-	}
+    /**
+     * Tests all() properly returning <code>false</code>.
+     */
+    @Test
+    public void allFalse() {
+        int value = 42;
+        TestUtil.assertSingle(false, all(from(value, 0, value), equal(value)));
+    }
 
-	/**
-	 * Tests all() properly returning <code>true</code>.
-	 */
-	@Test
-	public void allTrue() {
-		int value = 42;
-		TestUtil.assertSingle(true, all(from(value, value, value), equal(value)));
-	}
+    /**
+     * Tests all() properly returning <code>true</code>.
+     */
+    @Test
+    public void allTrue() {
+        int value = 42;
+        TestUtil.assertSingle(true, all(from(value, value, value), equal(value)));
+    }
 
 }

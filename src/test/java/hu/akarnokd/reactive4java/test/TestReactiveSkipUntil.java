@@ -30,17 +30,17 @@ import org.junit.Test;
  */
 public class TestReactiveSkipUntil {
 
-	/**
-	 * Simple test to skip anything for a second.
-	 */
-	@Test
-	public void skipUntilSimple() {
-		Observable<Long> sequence = Reactive.tick(1, 6, 400, TimeUnit.MILLISECONDS);
-		Observable<Long> timer = Reactive.delay(Reactive.singleton(1L), 1, TimeUnit.SECONDS);
-		
-		Observable<Long> result = Reactive.skipUntil(sequence, timer);
-		
-		TestUtil.assertEqual(Arrays.asList(3L, 4L, 5L), result);
-	}
+    /**
+     * Simple test to skip anything for a second.
+     */
+    @Test
+    public void skipUntilSimple() {
+        Observable<Long> sequence = Reactive.tick(1, 6, 400, TimeUnit.MILLISECONDS);
+        Observable<Long> timer = Reactive.delay(Reactive.singleton(1L), 1, TimeUnit.SECONDS);
+        
+        Observable<Long> result = Reactive.skipUntil(sequence, timer);
+        
+        TestUtil.assertEqual(Arrays.asList(3L, 4L, 5L), result);
+    }
 
 }

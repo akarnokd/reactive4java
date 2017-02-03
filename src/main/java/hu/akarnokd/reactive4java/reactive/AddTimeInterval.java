@@ -35,40 +35,40 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public final class AddTimeInterval<T> implements
-		Observable<TimeInterval<T>> {
-	/** The source sequence. */
-	private final Observable<? extends T> source;
+        Observable<TimeInterval<T>> {
+    /** The source sequence. */
+    private final Observable<? extends T> source;
 
-	/**
-	 * Constructor.
-	 * @param source the source sequence
-	 */
-	public AddTimeInterval(@Nonnull Observable<? extends T> source) {
-		this.source = source;
-	}
+    /**
+     * Constructor.
+     * @param source the source sequence
+     */
+    public AddTimeInterval(@Nonnull Observable<? extends T> source) {
+        this.source = source;
+    }
 
-	@Override
-	@Nonnull 
-	public Closeable register(@Nonnull final Observer<? super TimeInterval<T>> observer) {
-		return source.register(new Observer<T>() {
-			long lastTime = Schedulers.now();
-			@Override
-			public void error(@Nonnull Throwable ex) {
-				observer.error(ex);
-			}
+    @Override
+    @Nonnull 
+    public Closeable register(@Nonnull final Observer<? super TimeInterval<T>> observer) {
+        return source.register(new Observer<T>() {
+            long lastTime = Schedulers.now();
+            @Override
+            public void error(@Nonnull Throwable ex) {
+                observer.error(ex);
+            }
 
-			@Override
-			public void finish() {
-				observer.finish();
-			}
+            @Override
+            public void finish() {
+                observer.finish();
+            }
 
-			@Override
-			public void next(T value) {
-				long t2 = Schedulers.now();
-				observer.next(TimeInterval.of(value, t2 - lastTime));
-				lastTime = t2;
-			}
+            @Override
+            public void next(T value) {
+                long t2 = Schedulers.now();
+                observer.next(TimeInterval.of(value, t2 - lastTime));
+                lastTime = t2;
+            }
 
-		});
-	}
+        });
+    }
 }

@@ -44,70 +44,70 @@ public class CachedThreadPoolScheduler
 // #GWT-IGNORE-START
 implements Scheduler {
 // #GWT-IGNORE-END
-	// #GWT-IGNORE-START
-	/** The thread pool. */
-	protected final ExecutorService pool;
-	/**
-	 * Constructor. Initializes the backing thread pool
-	 */
-	public CachedThreadPoolScheduler() {
-		pool = Executors.newCachedThreadPool();
-	}
-	@Override
-	@Nonnull 
-	public Closeable schedule(@Nonnull Runnable run) {
-		final Future<?> f = pool.submit(run);
-		return new Closeable() {
-			@Override
-			public void close() throws IOException {
-				f.cancel(true);
-			}
-		};
-	}
+    // #GWT-IGNORE-START
+    /** The thread pool. */
+    protected final ExecutorService pool;
+    /**
+     * Constructor. Initializes the backing thread pool
+     */
+    public CachedThreadPoolScheduler() {
+        pool = Executors.newCachedThreadPool();
+    }
+    @Override
+    @Nonnull 
+    public Closeable schedule(@Nonnull Runnable run) {
+        final Future<?> f = pool.submit(run);
+        return new Closeable() {
+            @Override
+            public void close() throws IOException {
+                f.cancel(true);
+            }
+        };
+    }
 
-	@Override
-	@Nonnull 
-	public Closeable schedule(@Nonnull final Runnable run, 
-			final long delay, 
-			@Nonnull final TimeUnit unit) {
-		Runnable task = new Runnable() {
-			@Override
-			public void run() {
-				try {
-					unit.sleep(delay);
-					run.run();
-				} catch (InterruptedException ex) {
-					// ignore and quit
-				} catch (CancellationException ex) {
-					// ignored
-				}
-			}
-		};
-		return schedule(task);
-	}
+    @Override
+    @Nonnull 
+    public Closeable schedule(@Nonnull final Runnable run, 
+            final long delay, 
+            @Nonnull final TimeUnit unit) {
+        Runnable task = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    unit.sleep(delay);
+                    run.run();
+                } catch (InterruptedException ex) {
+                    // ignore and quit
+                } catch (CancellationException ex) {
+                    // ignored
+                }
+            }
+        };
+        return schedule(task);
+    }
 
-	@Override
-	@Nonnull 
-	public Closeable schedule(
-			@Nonnull final Runnable run, 
-			final long initialDelay,
-			final long betweenDelay, 
-			@Nonnull final TimeUnit unit) {
-		Runnable task = new Runnable() {
-			@Override
-			public void run() {
-				try {
-					unit.sleep(initialDelay);
-					while (!Thread.currentThread().isInterrupted()) {
-						run.run();
-						unit.sleep(betweenDelay);
-					}
-				} catch (InterruptedException ex) {
-					// ignore and quit
-				}
-			}
-		};
-		return schedule(task);
-	}
-	// #GWT-IGNORE-END
+    @Override
+    @Nonnull 
+    public Closeable schedule(
+            @Nonnull final Runnable run, 
+            final long initialDelay,
+            final long betweenDelay, 
+            @Nonnull final TimeUnit unit) {
+        Runnable task = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    unit.sleep(initialDelay);
+                    while (!Thread.currentThread().isInterrupted()) {
+                        run.run();
+                        unit.sleep(betweenDelay);
+                    }
+                } catch (InterruptedException ex) {
+                    // ignore and quit
+                }
+            }
+        };
+        return schedule(task);
+    }
+    // #GWT-IGNORE-END
 }

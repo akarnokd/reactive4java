@@ -29,43 +29,43 @@ import javax.annotation.Nonnull;
  * @author akarnokd, 2011.02.01.
  */
 public class ObservableAdjustmentListener extends DefaultObservable<AdjustmentEvent> implements AdjustmentListener {
-	@Override
-	public void adjustmentValueChanged(AdjustmentEvent e) {
-		next(e);
-	}
-	/**
-	 * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addAdjustmentListener(AdjustmentListener)</code> method.
-	 * @param component the target component
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public static ObservableAdjustmentListener register(@Nonnull Object component) {
-		return new ObservableAdjustmentListener().registerWith(component);
-	}
-	/**
-	 * Convenience method to register this observable with the target component which must have a public <code>addAdjustmentListener(AdjustmentListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableAdjustmentListener registerWith(@Nonnull Object component) {
-		if (component instanceof Adjustable) {
-			((Adjustable)component).addAdjustmentListener(this);
-			return this;
-		}
-		return SwingObservables.invoke(component, "add", AdjustmentListener.class, this);
-	}
-	/**
-	 * Convenience method to unregister this observable from the target component which must have a public <code>removeAdjustmentListener(AdjustmentListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableAdjustmentListener unregisterFrom(@Nonnull Object component) {
-		if (component instanceof Adjustable) {
-			((Adjustable)component).removeAdjustmentListener(this);
-			return this;
-		}
-		return SwingObservables.invoke(component, "remove", AdjustmentListener.class, this);
-	}
+    @Override
+    public void adjustmentValueChanged(AdjustmentEvent e) {
+        next(e);
+    }
+    /**
+     * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addAdjustmentListener(AdjustmentListener)</code> method.
+     * @param component the target component
+     * @return the new observable
+     */
+    @Nonnull 
+    public static ObservableAdjustmentListener register(@Nonnull Object component) {
+        return new ObservableAdjustmentListener().registerWith(component);
+    }
+    /**
+     * Convenience method to register this observable with the target component which must have a public <code>addAdjustmentListener(AdjustmentListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableAdjustmentListener registerWith(@Nonnull Object component) {
+        if (component instanceof Adjustable) {
+            ((Adjustable)component).addAdjustmentListener(this);
+            return this;
+        }
+        return SwingObservables.invoke(component, "add", AdjustmentListener.class, this);
+    }
+    /**
+     * Convenience method to unregister this observable from the target component which must have a public <code>removeAdjustmentListener(AdjustmentListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableAdjustmentListener unregisterFrom(@Nonnull Object component) {
+        if (component instanceof Adjustable) {
+            ((Adjustable)component).removeAdjustmentListener(this);
+            return this;
+        }
+        return SwingObservables.invoke(component, "remove", AdjustmentListener.class, this);
+    }
 }

@@ -24,17 +24,17 @@ import hu.akarnokd.reactive4java.base.GroupedObservable;
  * @param <Value> the value type
  */
 public class DefaultGroupedObservable<Key, Value> extends DefaultObservable<Value> implements GroupedObservable<Key, Value> {
-	/** The group key. */
-	private final Key key;
-	/**
-	 * Constructor.
-	 * @param key the group key
-	 */
-	public DefaultGroupedObservable(Key key) {
-		this.key = key;
-	}
-	@Override
-	public Key key() {
-		return key;
-	}
+    /** The group key. */
+    private final Key key;
+    /**
+     * Constructor.
+     * @param key the group key
+     */
+    public DefaultGroupedObservable(Key key) {
+        this.key = key;
+    }
+    @Override
+    public Key key() {
+        return key;
+    }
 }

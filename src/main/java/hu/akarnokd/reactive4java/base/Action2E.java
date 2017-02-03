@@ -25,11 +25,11 @@ package hu.akarnokd.reactive4java.base;
  * @since 0.96
  */
 public interface Action2E<T, V, E extends Exception> {
-	/**
-	 * Invoke the action.
-	 * @param t the first parameter
-	 * @param u the second parameter
-	 * @throws E the exception
-	 */
-	void invoke(T t, V u) throws E;
+    /**
+     * Invoke the action.
+     * @param t the first parameter
+     * @param u the second parameter
+     * @throws E the exception
+     */
+    void invoke(T t, V u) throws E;
 }

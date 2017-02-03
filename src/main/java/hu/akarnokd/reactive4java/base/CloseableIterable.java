@@ -22,6 +22,6 @@ package hu.akarnokd.reactive4java.base;
  * @param <T> the iterator element type
  */
 public interface CloseableIterable<T> extends Iterable<T> {
-	@Override
-	CloseableIterator<T> iterator();
+    @Override
+    CloseableIterator<T> iterator();
 }

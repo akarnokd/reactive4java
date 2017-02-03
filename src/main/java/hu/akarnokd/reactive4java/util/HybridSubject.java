@@ -47,124 +47,124 @@ import javax.annotation.Nonnull;
  */
 public class HybridSubject<T> 
 extends
-	java.util.Observable 
+    java.util.Observable 
 implements 
-	java.util.Observer,
-	Subject<T, T>, CloseableObservable<T> {
-	/** The registration holder for the reactive-observers. */
-	@Nonnull 
-	protected ConcurrentMap<Closeable, Observer<? super T>> registry = new ConcurrentHashMap<Closeable, Observer<? super T>>();
-	@Override
-	public void next(T value) {
-		for (Observer<? super T> o : observers()) {
-			o.next(value);
-		}
-		setChanged();
-		super.notifyObservers(value);
-	}
-	@Override
-	@SuppressWarnings("unchecked")
-	public void notifyObservers(Object arg) {
-		next((T)arg);
-	}
-	@Override
-	public void error(@Nonnull Throwable ex) {
-		for (Observer<? super T> o : observers()) {
-			o.error(ex);
-		}
-		close();
-	}
+    java.util.Observer,
+    Subject<T, T>, CloseableObservable<T> {
+    /** The registration holder for the reactive-observers. */
+    @Nonnull 
+    protected ConcurrentMap<Closeable, Observer<? super T>> registry = new ConcurrentHashMap<Closeable, Observer<? super T>>();
+    @Override
+    public void next(T value) {
+        for (Observer<? super T> o : observers()) {
+            o.next(value);
+        }
+        setChanged();
+        super.notifyObservers(value);
+    }
+    @Override
+    @SuppressWarnings("unchecked")
+    public void notifyObservers(Object arg) {
+        next((T)arg);
+    }
+    @Override
+    public void error(@Nonnull Throwable ex) {
+        for (Observer<? super T> o : observers()) {
+            o.error(ex);
+        }
+        close();
+    }
 
-	@Override
-	public void finish() {
-		for (Observer<? super T> o : observers()) {
-			o.finish();
-		}
-		close();
-	}
-	/**
-	 * @return a snapshot of the registered observers.
-	 */
-	@Nonnull 
-	protected List<Observer<? super T>> observers() {
-		return new ArrayList<Observer<? super T>>(registry.values());
-	}
-	@Override
-	@Nonnull
-	public Closeable register(
-			@Nonnull Observer<? super T> observer) {
-		Closeable handle = new Closeable() {
-			@Override
-			public void close() throws IOException {
-				unregister(this);
-			}
-		};
-		registry.put(handle, observer);
-		return handle;
-	}
-	/**
-	 * Registers a java-observer and returns a handle to it.
-	 * The observer can be unregistered via this handle or the regular deleteObserver().
-	 * <p>The convenience method is to have symmetric means
-	 * for both observer kinds to interact with this observable.<p>
-	 * @param observer the observer to register
-	 * @return the unregistration handle
-	 */
-	public Closeable register(@Nonnull final java.util.Observer observer) {
-		Closeable handle = new Closeable() {
-			@Override
-			public void close() throws IOException {
-				deleteObserver(observer);
-			}
-		};
-		addObserver(observer);
-		return handle;
-	}
-	/**
-	 * Unregister the given observer by its handle.
-	 * @param handle the handle identifying the observer
-	 */
-	protected void unregister(@Nonnull Closeable handle) {
-		registry.remove(handle);
-	}
+    @Override
+    public void finish() {
+        for (Observer<? super T> o : observers()) {
+            o.finish();
+        }
+        close();
+    }
+    /**
+     * @return a snapshot of the registered observers.
+     */
+    @Nonnull 
+    protected List<Observer<? super T>> observers() {
+        return new ArrayList<Observer<? super T>>(registry.values());
+    }
+    @Override
+    @Nonnull
+    public Closeable register(
+            @Nonnull Observer<? super T> observer) {
+        Closeable handle = new Closeable() {
+            @Override
+            public void close() throws IOException {
+                unregister(this);
+            }
+        };
+        registry.put(handle, observer);
+        return handle;
+    }
+    /**
+     * Registers a java-observer and returns a handle to it.
+     * The observer can be unregistered via this handle or the regular deleteObserver().
+     * <p>The convenience method is to have symmetric means
+     * for both observer kinds to interact with this observable.<p>
+     * @param observer the observer to register
+     * @return the unregistration handle
+     */
+    public Closeable register(@Nonnull final java.util.Observer observer) {
+        Closeable handle = new Closeable() {
+            @Override
+            public void close() throws IOException {
+                deleteObserver(observer);
+            }
+        };
+        addObserver(observer);
+        return handle;
+    }
+    /**
+     * Unregister the given observer by its handle.
+     * @param handle the handle identifying the observer
+     */
+    protected void unregister(@Nonnull Closeable handle) {
+        registry.remove(handle);
+    }
 
-	@Override
-	public void update(java.util.Observable o, Object arg) {
-		@SuppressWarnings("unchecked") T t = (T)arg;
-		next(t);
-	}
-	@Override
-	public void deleteObservers() {
-		close();
-	}
-	@Override
-	public void close() {
-		registry.clear();
-		super.deleteObservers();
-	}
-	@Override
-	public synchronized int countObservers() {
-		return super.countObservers() + registry.size();
-	}
-	/**
-	 * Registers the reactive-observer with this observable.
-	 * <p>The convenience method is to have symmetric means
-	 * for both observer kinds to interact with this observable.<p>
-	 * @param observer the reactive-observer to register
-	 */
-	public void addObserver(@Nonnull Observer<? super T> observer) {
-		register(observer);
-	}
-	/**
-	 * Deregisters all instances of the supplied observer.
-	 * <p>Note that reactive-registration allows multiple
-	 * registration and deregistration for the same observer instance,
-	 * which are treated independently whereas java-observable does not.</p>
-	 * <p>The convenience method is to have symmetric means
-	 * for both observer kinds to interact with this observable.<p>
-	 * @param observer the reactive-observer to unregister
-	 */
-	public void deleteObserver(@Nonnull Observer<? super T> observer) {
-		registry.values().removeAll(Collections.singleton(observer));
-	}
+    @Override
+    public void update(java.util.Observable o, Object arg) {
+        @SuppressWarnings("unchecked") T t = (T)arg;
+        next(t);
+    }
+    @Override
+    public void deleteObservers() {
+        close();
+    }
+    @Override
+    public void close() {
+        registry.clear();
+        super.deleteObservers();
+    }
+    @Override
+    public synchronized int countObservers() {
+        return super.countObservers() + registry.size();
+    }
+    /**
+     * Registers the reactive-observer with this observable.
+     * <p>The convenience method is to have symmetric means
+     * for both observer kinds to interact with this observable.<p>
+     * @param observer the reactive-observer to register
+     */
+    public void addObserver(@Nonnull Observer<? super T> observer) {
+        register(observer);
+    }
+    /**
+     * Deregisters all instances of the supplied observer.
+     * <p>Note that reactive-registration allows multiple
+     * registration and deregistration for the same observer instance,
+     * which are treated independently whereas java-observable does not.</p>
+     * <p>The convenience method is to have symmetric means
+     * for both observer kinds to interact with this observable.<p>
+     * @param observer the reactive-observer to unregister
+     */
+    public void deleteObserver(@Nonnull Observer<? super T> observer) {
+        registry.values().removeAll(Collections.singleton(observer));
+    }
 }

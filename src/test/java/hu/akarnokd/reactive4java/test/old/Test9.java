@@ -27,36 +27,36 @@ import java.util.concurrent.TimeUnit;
  */
 public final class Test9 {
 
-	/**
-	 * Utility class.
-	 */
-	private Test9() {
-		// utility class
-	}
-	/**
-	 * @param args no arguments
-	 * @throws Exception on error
-	 */
-	public static void main(String[] args) throws Exception {
-		ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
-		scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
-		scheduler.allowCoreThreadTimeOut(true);
-		scheduler.setRemoveOnCancelPolicy(true);
-		
-		Future<?> future = scheduler.scheduleAtFixedRate(new Runnable() {
-			@Override
-			public void run() {
-				System.out.println("This should not be visible");
-			}
-		}, 10, 10, TimeUnit.SECONDS);
-		
-		Thread.sleep(1500);
-		
-		if (future.cancel(true)) {
-			System.out.println("Future cancelled");
-		}
+    /**
+     * Utility class.
+     */
+    private Test9() {
+        // utility class
+    }
+    /**
+     * @param args no arguments
+     * @throws Exception on error
+     */
+    public static void main(String[] args) throws Exception {
+        ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
+        scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
+        scheduler.allowCoreThreadTimeOut(true);
+        scheduler.setRemoveOnCancelPolicy(true);
+        
+        Future<?> future = scheduler.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("This should not be visible");
+            }
+        }, 10, 10, TimeUnit.SECONDS);
+        
+        Thread.sleep(1500);
+        
+        if (future.cancel(true)) {
+            System.out.println("Future cancelled");
+        }
 
-		System.out.printf("%nMain finished%n");
-	}
+        System.out.printf("%nMain finished%n");
+    }
 
 }

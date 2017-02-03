@@ -39,77 +39,77 @@ import javax.annotation.concurrent.GuardedBy;
 public class ReactiveObservableWrapper<T>
 extends java.util.Observable 
 implements Observable<T> {
-	/** The wrapped reactive-observable. */
-	protected final Observable<T> observable;
-	/** The registry for observer-closeable pairs. */
-	@GuardedBy("this")
-	protected final Map<java.util.Observer, Closeable> registry = new LinkedHashMap<java.util.Observer, Closeable>();
-	/**
-	 * Constructor.
-	 * @param observable the reactive-observable to wrap
-	 */
-	public ReactiveObservableWrapper(@Nonnull Observable<T> observable) {
-		this.observable = observable;
-	}
-	@Override
-	public synchronized void addObserver(java.util.Observer o) {
-		if (o == null) {
-			throw new IllegalArgumentException("o is null");
-		}
-		OriginalObserverWrapper observer = Observers.toObserver(o, this);
-		Closeable c = observable.register(observer);
-		if (!observer.isDone() && !registry.containsKey(o)) {
-			registry.put(o, c);
-		}
-	}
-	@Override
-	public synchronized void deleteObserver(java.util.Observer o) {
-		Closeable c = registry.remove(o);
-		Closeables.closeSilently(c);
-	}
-	@Override
-	public synchronized void deleteObservers() {
-		for (Closeable c : registry.values()) {
-			Closeables.closeSilently(c);
-		}
-		registry.clear();
-	}
-	@Override
-	public synchronized int countObservers() {
-		return registry.size();
-	}
-	@Override
-	public void notifyObservers(Object arg) {
-		List<java.util.Observer> os = null;
-		synchronized (this) {
-			os = new ArrayList<java.util.Observer>(registry.keySet());
-		}
-		for (java.util.Observer o : os) {
-			o.update(this, o);
-		}
-	}
-	@Override
-	@Nonnull
-	public Closeable register(@Nonnull Observer<? super T> observer) {
-		return observable.register(observer);
-	}
-	/**
-	 * Registers a java-observer and returns a handle to it.
-	 * The observer can be unregistered via this handle or the regular deleteObserver().
-	 * <p>The convenience method is to have symmetric means
-	 * for both observer kinds to interact with this observable.<p>
-	 * @param observer the observer to register
-	 * @return the unregistration handle
-	 */
-	@Nonnull 
-	public Closeable register(@Nonnull final java.util.Observer observer) {
-		Closeable handle = new Closeable() {
-			@Override
-			public void close() throws IOException {
-				deleteObserver(observer);
-			}
-		};
-		addObserver(observer);
-		return handle;
-	}
+    /** The wrapped reactive-observable. */
+    protected final Observable<T> observable;
+    /** The registry for observer-closeable pairs. */
+    @GuardedBy("this")
+    protected final Map<java.util.Observer, Closeable> registry = new LinkedHashMap<java.util.Observer, Closeable>();
+    /**
+     * Constructor.
+     * @param observable the reactive-observable to wrap
+     */
+    public ReactiveObservableWrapper(@Nonnull Observable<T> observable) {
+        this.observable = observable;
+    }
+    @Override
+    public synchronized void addObserver(java.util.Observer o) {
+        if (o == null) {
+            throw new IllegalArgumentException("o is null");
+        }
+        OriginalObserverWrapper observer = Observers.toObserver(o, this);
+        Closeable c = observable.register(observer);
+        if (!observer.isDone() && !registry.containsKey(o)) {
+            registry.put(o, c);
+        }
+    }
+    @Override
+    public synchronized void deleteObserver(java.util.Observer o) {
+        Closeable c = registry.remove(o);
+        Closeables.closeSilently(c);
+    }
+    @Override
+    public synchronized void deleteObservers() {
+        for (Closeable c : registry.values()) {
+            Closeables.closeSilently(c);
+        }
+        registry.clear();
+    }
+    @Override
+    public synchronized int countObservers() {
+        return registry.size();
+    }
+    @Override
+    public void notifyObservers(Object arg) {
+        List<java.util.Observer> os = null;
+        synchronized (this) {
+            os = new ArrayList<java.util.Observer>(registry.keySet());
+        }
+        for (java.util.Observer o : os) {
+            o.update(this, o);
+        }
+    }
+    @Override
+    @Nonnull
+    public Closeable register(@Nonnull Observer<? super T> observer) {
+        return observable.register(observer);
+    }
+    /**
+     * Registers a java-observer and returns a handle to it.
+     * The observer can be unregistered via this handle or the regular deleteObserver().
+     * <p>The convenience method is to have symmetric means
+     * for both observer kinds to interact with this observable.<p>
+     * @param observer the observer to register
+     * @return the unregistration handle
+     */
+    @Nonnull 
+    public Closeable register(@Nonnull final java.util.Observer observer) {
+        Closeable handle = new Closeable() {
+            @Override
+            public void close() throws IOException {
+                deleteObserver(observer);
+            }
+        };
+        addObserver(observer);
+        return handle;
+    }
 }

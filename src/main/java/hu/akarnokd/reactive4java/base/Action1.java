@@ -22,9 +22,9 @@ package hu.akarnokd.reactive4java.base;
  * @param <T> the action parameter
  */
 public interface Action1<T> {
-	/**
-	 * The action body.
-	 * @param value the value
-	 */
-	void invoke(T value);
+    /**
+     * The action body.
+     * @param value the value
+     */
+    void invoke(T value);
 }

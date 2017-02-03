@@ -25,41 +25,41 @@ import org.junit.Test;
  * @author akarnokd, 2013.01.12.
  */
 public class TestOption {
-	/** Test some. */
-	@Test
-	public void testSome() {
-		Option<Integer> o = Option.some(1);
-		
-		Assert.assertTrue(o.hasValue());
-		Assert.assertFalse(o.hasError());
-		Assert.assertFalse(o.isNone());
-		
-		Assert.assertSame(1, o.value());
-	}
-	/** Thest error. */
-	@Test(expected = RuntimeException.class)
-	public void testError() {
-		RuntimeException ex = new RuntimeException();
-		
-		Option<Integer> o = Option.error(ex);
-		
-		Assert.assertFalse(o.hasValue());
-		Assert.assertTrue(o.hasError());
-		Assert.assertFalse(o.isNone());
+    /** Test some. */
+    @Test
+    public void testSome() {
+        Option<Integer> o = Option.some(1);
+        
+        Assert.assertTrue(o.hasValue());
+        Assert.assertFalse(o.hasError());
+        Assert.assertFalse(o.isNone());
+        
+        Assert.assertSame(1, o.value());
+    }
+    /** Thest error. */
+    @Test(expected = RuntimeException.class)
+    public void testError() {
+        RuntimeException ex = new RuntimeException();
+        
+        Option<Integer> o = Option.error(ex);
+        
+        Assert.assertFalse(o.hasValue());
+        Assert.assertTrue(o.hasError());
+        Assert.assertFalse(o.isNone());
 
-		Assert.assertSame(ex, Option.getError(o));
-		
-		o.value();
-	}
-	/** Thest error. */
-	@Test(expected = UnsupportedOperationException.class)
-	public void testNone() {
-		Option<Integer> o = Option.none();
-		
-		Assert.assertFalse(o.hasValue());
-		Assert.assertFalse(o.hasError());
-		Assert.assertTrue(o.isNone());
+        Assert.assertSame(ex, Option.getError(o));
+        
+        o.value();
+    }
+    /** Thest error. */
+    @Test(expected = UnsupportedOperationException.class)
+    public void testNone() {
+        Option<Integer> o = Option.none();
+        
+        Assert.assertFalse(o.hasValue());
+        Assert.assertFalse(o.hasError());
+        Assert.assertTrue(o.isNone());
 
-		o.value();
-	}
+        o.value();
+    }
 }

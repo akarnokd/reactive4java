@@ -30,65 +30,65 @@ import hu.akarnokd.reactive4java.util.Observers;
  */
 public final class TestE {
 
-	/**
-	 * Utility class.
-	 */
-	private TestE() {
-		// utility class
-	}
-	/** 
-	 * Run the observable with a print attached. 
-	 * @param observable the source observable
-	 * @throws InterruptedException when the current thread is interrupted while
-	 * waiting on the observable completion
-	 */
-	static void run(Observable<?> observable) throws InterruptedException {
-		Reactive.run(observable, Observers.print());
-	}
-	
-	/**
-	 * @param args no arguments
-	 * @throws Exception on error
-	 */
-	public static void main(String[] args)
-	throws Exception {
-		
-		// Issue #1
-		
-		Iterable<Integer> i1 = Interactive.toIterable(1, 3, 5);
-		Interactive.run(i1, Interactive.print());
-		System.out.println();
-		
-		Iterable<Integer> i2 = Interactive.generate(1, new Pred1<Integer>() {
-			@Override
-			public Boolean invoke(Integer param1) {
-				return param1 < 1 + 3 * 2;
-			}
-		}, new Func1<Integer, Integer>() {
-			@Override
-			public Integer invoke(Integer param1) {
-				return param1 + 2;
-			}
-		});
-		Interactive.run(i2, Interactive.print());
-		System.out.println();
-		
-		// Issue #2
-		System.out.println();
-		
-		Iterable<Integer> i3 = Interactive.toIterable(1, 2);
-		Interactive.run(i3, Interactive.print());
-		System.out.println();
-		Iterable<Integer> i4 = Interactive.concat(i3, Interactive.toIterable(3, 4));
-		Interactive.run(i4, Interactive.print());
-		System.out.println();
-		
-		Iterable<Integer> i5 = Interactive.take(i4, 2);
-		Interactive.run(i5, Interactive.print());
-		System.out.println();
-		
-		
-		System.out.printf("%nMain finished%n");
-	}
+    /**
+     * Utility class.
+     */
+    private TestE() {
+        // utility class
+    }
+    /** 
+     * Run the observable with a print attached. 
+     * @param observable the source observable
+     * @throws InterruptedException when the current thread is interrupted while
+     * waiting on the observable completion
+     */
+    static void run(Observable<?> observable) throws InterruptedException {
+        Reactive.run(observable, Observers.print());
+    }
+    
+    /**
+     * @param args no arguments
+     * @throws Exception on error
+     */
+    public static void main(String[] args)
+    throws Exception {
+        
+        // Issue #1
+        
+        Iterable<Integer> i1 = Interactive.toIterable(1, 3, 5);
+        Interactive.run(i1, Interactive.print());
+        System.out.println();
+        
+        Iterable<Integer> i2 = Interactive.generate(1, new Pred1<Integer>() {
+            @Override
+            public Boolean invoke(Integer param1) {
+                return param1 < 1 + 3 * 2;
+            }
+        }, new Func1<Integer, Integer>() {
+            @Override
+            public Integer invoke(Integer param1) {
+                return param1 + 2;
+            }
+        });
+        Interactive.run(i2, Interactive.print());
+        System.out.println();
+        
+        // Issue #2
+        System.out.println();
+        
+        Iterable<Integer> i3 = Interactive.toIterable(1, 2);
+        Interactive.run(i3, Interactive.print());
+        System.out.println();
+        Iterable<Integer> i4 = Interactive.concat(i3, Interactive.toIterable(3, 4));
+        Interactive.run(i4, Interactive.print());
+        System.out.println();
+        
+        Iterable<Integer> i5 = Interactive.take(i4, 2);
+        Interactive.run(i5, Interactive.print());
+        System.out.println();
+        
+        
+        System.out.printf("%nMain finished%n");
+    }
 
 }

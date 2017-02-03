@@ -35,116 +35,116 @@ import javax.annotation.concurrent.GuardedBy;
  * @since 0.97
  */
 public class RefCountCloseable implements Closeable, Cancelable {
-	/** The lock guarding the internal variables. */
-	protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
-	/** The closeable to close when all dependent closeables are closed. */
-	@GuardedBy("lock")
-	protected Closeable closeable;
-	/** Indicate that the primary handle is closed already. */
-	@GuardedBy("lock")
-	protected boolean primaryClosed;
-	/** The number of open dependent closeables. */
-	@GuardedBy("lock")
-	protected int count;
-	/**
-	 * Constructor.
-	 * @param closeable the closeable to manage
-	 */
-	public RefCountCloseable(@Nonnull Closeable closeable) {
-		this.closeable = closeable;
-	}
-	@Override
-	public boolean isClosed() {
-		lock.lock();
-		try {
-			return closeable == null;
-		} finally {
-			lock.unlock();
-		}
-	}
-	/**
-	 * Returns a new dependent closeable instance.
-	 * If all of these dependent closeables have been closed,
-	 * the underlying closeable will be closed once.
-	 * @return the closeable
-	 */
-	public Closeable getCloseable() {
-		lock.lock();
-		try {
-			if (closeable == null) {
-				return Closeables.emptyCloseable();
-			}
-			count++;
-			return new InnerCloseable(this);
-		} finally {
-			lock.unlock();
-		}
-	}
-	@Override
-	public void close() throws IOException {
-		Closeable c = null;
-		lock.lock();
-		try {
-			if (closeable != null) {
-				if (primaryClosed) {
-					primaryClosed = true;
-					if (count == 0) {
-						c = closeable;
-						closeable = null;
-					}
-				}
-			}
-		} finally {
-			lock.unlock();
-		}
-		if (c != null) {
-			c.close();
-		}
-	}
-	/** 
-	 * Releases an dependent closeable.
-	 * @throws IOException the propagated close exception 
-	 */
-	protected void release() throws IOException {
-		Closeable c = null;
-		lock.lock();
-		try {
-			if (closeable != null) {
-				count--;
-				if (primaryClosed) {
-					if (count == 0) {
-						c = closeable;
-						closeable = null;
-					}
-				}
-			}
-		} finally {
-			lock.unlock();
-		}
-		if (c != null) {
-			c.close();
-		}
-	}
-	/**
-	 * The dependent closeable implementation.
-	 * @author akarnokd, 2013.01.16.
-	 */
-	protected static class InnerCloseable implements Closeable {
-		/** The parent instance. */
-		protected AtomicReference<RefCountCloseable> parent;
-		/**
-		 * Constructor.
-		 * @param parent the parent instance.
-		 */
-		public InnerCloseable(RefCountCloseable parent) {
-			this.parent = new AtomicReference<RefCountCloseable>(parent);
-		}
-		@Override
-		public void close() throws IOException {
-			RefCountCloseable p = parent.getAndSet(null);
-			if (p != null) {
-				p.release();
-			}
-		}
-	}
+    /** The lock guarding the internal variables. */
+    protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
+    /** The closeable to close when all dependent closeables are closed. */
+    @GuardedBy("lock")
+    protected Closeable closeable;
+    /** Indicate that the primary handle is closed already. */
+    @GuardedBy("lock")
+    protected boolean primaryClosed;
+    /** The number of open dependent closeables. */
+    @GuardedBy("lock")
+    protected int count;
+    /**
+     * Constructor.
+     * @param closeable the closeable to manage
+     */
+    public RefCountCloseable(@Nonnull Closeable closeable) {
+        this.closeable = closeable;
+    }
+    @Override
+    public boolean isClosed() {
+        lock.lock();
+        try {
+            return closeable == null;
+        } finally {
+            lock.unlock();
+        }
+    }
+    /**
+     * Returns a new dependent closeable instance.
+     * If all of these dependent closeables have been closed,
+     * the underlying closeable will be closed once.
+     * @return the closeable
+     */
+    public Closeable getCloseable() {
+        lock.lock();
+        try {
+            if (closeable == null) {
+                return Closeables.emptyCloseable();
+            }
+            count++;
+            return new InnerCloseable(this);
+        } finally {
+            lock.unlock();
+        }
+    }
+    @Override
+    public void close() throws IOException {
+        Closeable c = null;
+        lock.lock();
+        try {
+            if (closeable != null) {
+                if (primaryClosed) {
+                    primaryClosed = true;
+                    if (count == 0) {
+                        c = closeable;
+                        closeable = null;
+                    }
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
+        if (c != null) {
+            c.close();
+        }
+    }
+    /** 
+     * Releases an dependent closeable.
+     * @throws IOException the propagated close exception 
+     */
+    protected void release() throws IOException {
+        Closeable c = null;
+        lock.lock();
+        try {
+            if (closeable != null) {
+                count--;
+                if (primaryClosed) {
+                    if (count == 0) {
+                        c = closeable;
+                        closeable = null;
+                    }
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
+        if (c != null) {
+            c.close();
+        }
+    }
+    /**
+     * The dependent closeable implementation.
+     * @author akarnokd, 2013.01.16.
+     */
+    protected static class InnerCloseable implements Closeable {
+        /** The parent instance. */
+        protected AtomicReference<RefCountCloseable> parent;
+        /**
+         * Constructor.
+         * @param parent the parent instance.
+         */
+        public InnerCloseable(RefCountCloseable parent) {
+            this.parent = new AtomicReference<RefCountCloseable>(parent);
+        }
+        @Override
+        public void close() throws IOException {
+            RefCountCloseable p = parent.getAndSet(null);
+            if (p != null) {
+                p.release();
+            }
+        }
+    }
 }

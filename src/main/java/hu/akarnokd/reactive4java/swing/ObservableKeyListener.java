@@ -30,47 +30,47 @@ import javax.annotation.Nonnull;
  */
 public class ObservableKeyListener extends DefaultObservable<KeyEvent> implements KeyListener {
 
-	@Override
-	public void keyTyped(KeyEvent e) {
-		next(e);
-	}
+    @Override
+    public void keyTyped(KeyEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void keyPressed(KeyEvent e) {
-		next(e);
-	}
+    @Override
+    public void keyPressed(KeyEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void keyReleased(KeyEvent e) {
-		next(e);
-	}
-	/**
-	 * Convenience method to register an action listener on an object which should have an <code>addKeyListener()</code>
-	 * public method. It uses reflection to detemine the method's existence. Throws IllegalArgumentException if the
-	 * component is null or does not have the required method.
-	 * @param component the target component.
-	 * @return the observable action listener
-	 */
-	@Nonnull 
-	public static ObservableKeyListener register(@Nonnull Object component) {
-		return new ObservableKeyListener().registerWith(component);
-	}
-	/**
-	 * Convenience method to register this observable with the target component which must have a public <code>addKeyListener(KeyListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableKeyListener registerWith(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "add", KeyListener.class, this);
-	}
-	/**
-	 * Convenience method to unregister this observable from the target component which must have a public <code>removeKeyListener(KeyListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableKeyListener unregisterFrom(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "remove", KeyListener.class, this);
-	}
+    @Override
+    public void keyReleased(KeyEvent e) {
+        next(e);
+    }
+    /**
+     * Convenience method to register an action listener on an object which should have an <code>addKeyListener()</code>
+     * public method. It uses reflection to detemine the method's existence. Throws IllegalArgumentException if the
+     * component is null or does not have the required method.
+     * @param component the target component.
+     * @return the observable action listener
+     */
+    @Nonnull 
+    public static ObservableKeyListener register(@Nonnull Object component) {
+        return new ObservableKeyListener().registerWith(component);
+    }
+    /**
+     * Convenience method to register this observable with the target component which must have a public <code>addKeyListener(KeyListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableKeyListener registerWith(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "add", KeyListener.class, this);
+    }
+    /**
+     * Convenience method to unregister this observable from the target component which must have a public <code>removeKeyListener(KeyListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableKeyListener unregisterFrom(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "remove", KeyListener.class, this);
+    }
 }

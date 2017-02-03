@@ -33,56 +33,56 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public class DefaultCloseableObserver<T> implements CloseableObserver<T>, Cancelable {
-	/** The completion indicator. */
-	protected boolean completed;
-	/** The wrapped observer. */
-	protected final Observer<T> observer;
-	/**
-	 * Constructor. Initializes the observer field.
-	 * @param o the observer to wrap
-	 */
-	public DefaultCloseableObserver(@Nonnull Observer<T> o) {
-		this.observer = o;
-	}
-	@Override
-	public void close() {
-		completed = true;
-	}
+    /** The completion indicator. */
+    protected boolean completed;
+    /** The wrapped observer. */
+    protected final Observer<T> observer;
+    /**
+     * Constructor. Initializes the observer field.
+     * @param o the observer to wrap
+     */
+    public DefaultCloseableObserver(@Nonnull Observer<T> o) {
+        this.observer = o;
+    }
+    @Override
+    public void close() {
+        completed = true;
+    }
 
-	@Override
-	public void next(T value) {
-		if (!completed) {
-			try {
-				observer.next(value);
-			} catch (Throwable t) {
-				error(t);
-			}
-		}
-	}
+    @Override
+    public void next(T value) {
+        if (!completed) {
+            try {
+                observer.next(value);
+            } catch (Throwable t) {
+                error(t);
+            }
+        }
+    }
 
-	@Override
-	public void error(@Nonnull Throwable ex) {
-		if (!completed) {
-			try {
-				observer.error(ex);
-			} finally {
-				close();
-			}
-		}
-	}
+    @Override
+    public void error(@Nonnull Throwable ex) {
+        if (!completed) {
+            try {
+                observer.error(ex);
+            } finally {
+                close();
+            }
+        }
+    }
 
-	@Override
-	public void finish() {
-		if (!completed) {
-			try {
-				observer.finish();
-			} finally {
-				close();
-			}
-		}
-	}
-	@Override
-	public boolean isClosed() {
-		return completed;
-	}
+    @Override
+    public void finish() {
+        if (!completed) {
+            try {
+                observer.finish();
+            } finally {
+                close();
+            }
+        }
+    }
+    @Override
+    public boolean isClosed() {
+        return completed;
+    }
 }

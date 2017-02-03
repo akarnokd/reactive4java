@@ -26,39 +26,39 @@ import javax.annotation.Nonnull;
  * @author akarnokd, 2011.02.02.
  */
 public interface Scheduler {
-	/**
-	 * Schedule for ASAP execution.
-	 * @param run the runnable task
-	 * @return the cancel handler
-	 */
-	@Nonnull
-	Closeable schedule(@Nonnull Runnable run);
-	/**
-	 * Schedule a single execution of the runnable task
-	 * with the given delay of nanoseconds.
-	 * @param run the task to run
-	 * @param delay the initial delay,
-	 * @param unit the delay time unit
-	 * implementations might not have the capability to
-	 * schedule in this resolution
-	 * @return the cancel handler
-	 */
-	@Nonnull
-	Closeable schedule(@Nonnull Runnable run, long delay, @Nonnull TimeUnit unit);
-	/**
-	 * Schedule a repeated execution of the given task with
-	 * the given initialDelay (in nanoseconds) and betweenDelay
-	 * (in nanoseconds). The expected semantics from the scheduler
-	 * is to run the task at a fixed rate
-	 * (i.e., <code>ExecutorService.scheduleAtFixedRate()</code>).
-	 * Note: Implementations might not have the capability to
-	 * schedule nanosecond resolution.
-	 * @param run the task to run
-	 * @param initialDelay the initial delay before the first run
-	 * @param betweenDelay the delay between task runs after the
-	 * @param unit the delay time unit
-	 * @return the cancel handler
-	 */
-	@Nonnull
-	Closeable schedule(@Nonnull Runnable run, long initialDelay, long betweenDelay, @Nonnull TimeUnit unit);
+    /**
+     * Schedule for ASAP execution.
+     * @param run the runnable task
+     * @return the cancel handler
+     */
+    @Nonnull
+    Closeable schedule(@Nonnull Runnable run);
+    /**
+     * Schedule a single execution of the runnable task
+     * with the given delay of nanoseconds.
+     * @param run the task to run
+     * @param delay the initial delay,
+     * @param unit the delay time unit
+     * implementations might not have the capability to
+     * schedule in this resolution
+     * @return the cancel handler
+     */
+    @Nonnull
+    Closeable schedule(@Nonnull Runnable run, long delay, @Nonnull TimeUnit unit);
+    /**
+     * Schedule a repeated execution of the given task with
+     * the given initialDelay (in nanoseconds) and betweenDelay
+     * (in nanoseconds). The expected semantics from the scheduler
+     * is to run the task at a fixed rate
+     * (i.e., <code>ExecutorService.scheduleAtFixedRate()</code>).
+     * Note: Implementations might not have the capability to
+     * schedule nanosecond resolution.
+     * @param run the task to run
+     * @param initialDelay the initial delay before the first run
+     * @param betweenDelay the delay between task runs after the
+     * @param unit the delay time unit
+     * @return the cancel handler
+     */
+    @Nonnull
+    Closeable schedule(@Nonnull Runnable run, long initialDelay, long betweenDelay, @Nonnull TimeUnit unit);
 }

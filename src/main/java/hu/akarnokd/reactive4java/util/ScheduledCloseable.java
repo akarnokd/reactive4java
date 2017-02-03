@@ -32,64 +32,64 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public class ScheduledCloseable implements Closeable, Cancelable {
-	/** The scheduler reference. */
-	@Nonnull
-	protected final Scheduler scheduler;
-	/** The handle reference. */
-	@Nonnull
-	protected final AtomicReference<Closeable> current = new AtomicReference<Closeable>();
-	/**
-	 * Constructor.
-	 * @param scheduler the scheduler to use
-	 * @param handle the handle to close
-	 */
-	public ScheduledCloseable(@Nonnull Scheduler scheduler, @Nonnull Closeable handle) {
-		this.scheduler = scheduler;
-		this.current.set(handle);
-	}
-	@Override
-	public void close() throws IOException {
-		scheduler.schedule(new Runnable() {
-			@Override
-			public void run() {
-				Closeable c = current.getAndSet(SENTINEL);
-				if (c != SENTINEL) {
-					Closeables.closeSilently(c);
-				}
-			}
-		});
-	}
-	/** @return the scheduler used. */
-	@Nonnull
-	public Scheduler scheduler() {
-		return scheduler;
-	}
-	/**
-	 * @return the managed closeable
-	 */
-	@Nonnull
-	public Closeable get() {
-		Closeable c = current.get();
-		
-		// don't leak the sentinel
-		if (c == SENTINEL) {
-			return Closeables.emptyCloseable();
-		}
-		
-		return c;
-	}
-	@Override
-	public boolean isClosed() {
-		return current.get() == SENTINEL;
-	}
-	/** 
-	 * The empty sentinel to know when we have
-	 * closed the previous instance and keep the 
-	 * invariants of this SingleCloseable.
-	 */
-	@Nonnull 
-	protected static final Closeable SENTINEL = new Closeable() {
-		@Override
-		public void close() throws IOException { }
-	};
+    /** The scheduler reference. */
+    @Nonnull
+    protected final Scheduler scheduler;
+    /** The handle reference. */
+    @Nonnull
+    protected final AtomicReference<Closeable> current = new AtomicReference<Closeable>();
+    /**
+     * Constructor.
+     * @param scheduler the scheduler to use
+     * @param handle the handle to close
+     */
+    public ScheduledCloseable(@Nonnull Scheduler scheduler, @Nonnull Closeable handle) {
+        this.scheduler = scheduler;
+        this.current.set(handle);
+    }
+    @Override
+    public void close() throws IOException {
+        scheduler.schedule(new Runnable() {
+            @Override
+            public void run() {
+                Closeable c = current.getAndSet(SENTINEL);
+                if (c != SENTINEL) {
+                    Closeables.closeSilently(c);
+                }
+            }
+        });
+    }
+    /** @return the scheduler used. */
+    @Nonnull
+    public Scheduler scheduler() {
+        return scheduler;
+    }
+    /**
+     * @return the managed closeable
+     */
+    @Nonnull
+    public Closeable get() {
+        Closeable c = current.get();
+        
+        // don't leak the sentinel
+        if (c == SENTINEL) {
+            return Closeables.emptyCloseable();
+        }
+        
+        return c;
+    }
+    @Override
+    public boolean isClosed() {
+        return current.get() == SENTINEL;
+    }
+    /** 
+     * The empty sentinel to know when we have
+     * closed the previous instance and keep the 
+     * invariants of this SingleCloseable.
+     */
+    @Nonnull 
+    protected static final Closeable SENTINEL = new Closeable() {
+        @Override
+        public void close() throws IOException { }
+    };
 }

@@ -24,12 +24,12 @@ import java.io.IOException;
  * @since 0.97
  */
 public interface R4JConfig {
-	/** @return true if locks used should be fair. */
-	boolean useFairLocks();
-	/** 
-	 * @return 
-	 * The action to invoke on silently closed Closeables' exceptions.
-	 * May return null indicating a no-op. 
-	 */
-	Action1<? super IOException> silentExceptionHandler();
+    /** @return true if locks used should be fair. */
+    boolean useFairLocks();
+    /** 
+     * @return 
+     * The action to invoke on silently closed Closeables' exceptions.
+     * May return null indicating a no-op. 
+     */
+    Action1<? super IOException> silentExceptionHandler();
 }

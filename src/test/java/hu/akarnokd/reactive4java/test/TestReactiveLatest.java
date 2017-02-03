@@ -32,26 +32,26 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestReactiveLatest {
-	/** 
-	 * Receive two values and wait for the finish event.
-	 * @throws Exception on error 
-	 */
-	@Test(timeout = 4000)
-	public void testSimpleReception() throws Exception {
-		Observable<Long> source = Reactive.tick(0, 3, 1, TimeUnit.SECONDS);
-		
-		CloseableIterable<Long> result = Reactive.latest(source);
-		
-		CloseableIterator<Long> it = result.iterator();
-		try {
-			Assert.assertEquals((Long)0L, it.next());
-			Assert.assertEquals((Long)1L, it.next());
-			Thread.sleep(1500);
-			Assert.assertFalse(it.hasNext());
-		} finally {
-			it.close();
-		}
-		
-	}
+    /** 
+     * Receive two values and wait for the finish event.
+     * @throws Exception on error 
+     */
+    @Test(timeout = 4000)
+    public void testSimpleReception() throws Exception {
+        Observable<Long> source = Reactive.tick(0, 3, 1, TimeUnit.SECONDS);
+        
+        CloseableIterable<Long> result = Reactive.latest(source);
+        
+        CloseableIterator<Long> it = result.iterator();
+        try {
+            Assert.assertEquals((Long)0L, it.next());
+            Assert.assertEquals((Long)1L, it.next());
+            Thread.sleep(1500);
+            Assert.assertFalse(it.hasNext());
+        } finally {
+            it.close();
+        }
+        
+    }
 
 }

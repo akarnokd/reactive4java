@@ -29,39 +29,39 @@ import java.util.LinkedList;
  * @author akarnokd, 2011.02.03.
  */
 public class DefaultGroupedIterable<K, V> implements GroupedIterable<K, V> {
-	/** The key. */
-	private final K key;
-	/** The group content. */
-	private final LinkedList<V> values = new LinkedList<V>();
-	/**
-	 * Constructor.
-	 * @param key the group key
-	 */
-	public DefaultGroupedIterable(K key) {
-		this.key = key;
-	}
-	@Override
-	public K key() {
-		return key;
-	}
-	@Override
-	public Iterator<V> iterator() {
-		return values.iterator();
-	}
-	/**
-	 * Adds one element to the values.
-	 * @param value the value
-	 */
-	public void add(V value) {
-		values.add(value);
-	}
-	/**
-	 * Add the values of the target iterable.
-	 * @param values the values to add
-	 */
-	public void add(Iterable<V> values) {
-		for (V v : values) {
-			this.values.add(v);
-		}
-	}
+    /** The key. */
+    private final K key;
+    /** The group content. */
+    private final LinkedList<V> values = new LinkedList<V>();
+    /**
+     * Constructor.
+     * @param key the group key
+     */
+    public DefaultGroupedIterable(K key) {
+        this.key = key;
+    }
+    @Override
+    public K key() {
+        return key;
+    }
+    @Override
+    public Iterator<V> iterator() {
+        return values.iterator();
+    }
+    /**
+     * Adds one element to the values.
+     * @param value the value
+     */
+    public void add(V value) {
+        values.add(value);
+    }
+    /**
+     * Add the values of the target iterable.
+     * @param values the values to add
+     */
+    public void add(Iterable<V> values) {
+        for (V v : values) {
+            this.values.add(v);
+        }
+    }
 }

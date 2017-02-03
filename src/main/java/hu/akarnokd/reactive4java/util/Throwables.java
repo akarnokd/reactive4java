@@ -24,31 +24,31 @@ import javax.annotation.Nullable;
  * @since 0.97
  */
 public final class Throwables {
-	/** Utility class. */
-	private Throwables() { }
-	/**
-	 * Throws the given exception as unchecked by either casting it
-	 * to RuntimeException or wrapping it into a RuntimeException, if not null.
-	 * @param t the exception to throw as unchecked if not null
-	 */
-	public static void throwAsUnchecked(@Nullable Throwable t) {
-		if (t != null) {
-			if (t instanceof RuntimeException) {
-				throw (RuntimeException)t;
-			}
-			throw new RuntimeException(t);
-		}
-	}
-	/**
-	 * Sets up the cause for the exception and throws it by either
-	 * casting it to RuntimeException or wrapping it into a RuntimeException.
-	 * @param t the exception to throw, null means no-op
-	 * @param cause the cause for the exception
-	 */
-	public static void throwAsUncheckedWithCause(@Nullable Throwable t, @Nonnull Throwable cause) {
-		if (t != null) {
-			t.initCause(cause);
-			throwAsUnchecked(t);
-		}
-	}
+    /** Utility class. */
+    private Throwables() { }
+    /**
+     * Throws the given exception as unchecked by either casting it
+     * to RuntimeException or wrapping it into a RuntimeException, if not null.
+     * @param t the exception to throw as unchecked if not null
+     */
+    public static void throwAsUnchecked(@Nullable Throwable t) {
+        if (t != null) {
+            if (t instanceof RuntimeException) {
+                throw (RuntimeException)t;
+            }
+            throw new RuntimeException(t);
+        }
+    }
+    /**
+     * Sets up the cause for the exception and throws it by either
+     * casting it to RuntimeException or wrapping it into a RuntimeException.
+     * @param t the exception to throw, null means no-op
+     * @param cause the cause for the exception
+     */
+    public static void throwAsUncheckedWithCause(@Nullable Throwable t, @Nonnull Throwable cause) {
+        if (t != null) {
+            t.initCause(cause);
+            throwAsUnchecked(t);
+        }
+    }
 }

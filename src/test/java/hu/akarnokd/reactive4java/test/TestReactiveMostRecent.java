@@ -32,28 +32,28 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestReactiveMostRecent {
-	/** 
-	 * Test the reception of simple values.
-	 * @throws Exception on error 
-	 */
-	@Test(timeout = 3000)
-	public void testSimple() throws Exception {
-		Observable<Long> source = Reactive.tick(1, 3, 1, TimeUnit.SECONDS);
-		
-		CloseableIterable<Long> result = Reactive.mostRecent(source, 0L);
-		
-		CloseableIterator<Long> it = result.iterator();
-		try {
-			Assert.assertEquals((Long)0L, it.next());
-			Thread.sleep(100);
-			Assert.assertEquals((Long)0L, it.next());
-			Thread.sleep(1000);
-			Assert.assertEquals((Long)1L, it.next());
-			Thread.sleep(1500);
-			Assert.assertFalse(it.hasNext());
-		} finally {
-			it.close();
-		}
-	}
+    /** 
+     * Test the reception of simple values.
+     * @throws Exception on error 
+     */
+    @Test(timeout = 3000)
+    public void testSimple() throws Exception {
+        Observable<Long> source = Reactive.tick(1, 3, 1, TimeUnit.SECONDS);
+        
+        CloseableIterable<Long> result = Reactive.mostRecent(source, 0L);
+        
+        CloseableIterator<Long> it = result.iterator();
+        try {
+            Assert.assertEquals((Long)0L, it.next());
+            Thread.sleep(100);
+            Assert.assertEquals((Long)0L, it.next());
+            Thread.sleep(1000);
+            Assert.assertEquals((Long)1L, it.next());
+            Thread.sleep(1500);
+            Assert.assertFalse(it.hasNext());
+        } finally {
+            it.close();
+        }
+    }
 
 }

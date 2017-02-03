@@ -35,55 +35,55 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public final class ToIterable<T> extends
-		ObservableToIterableAdapter<T, T> {
-	/**
-	 * Constructor.
-	 * @param observable the observable to convert
-	 */
-	public ToIterable(@Nonnull Observable<? extends T> observable) {
-		super(observable);
-	}
+        ObservableToIterableAdapter<T, T> {
+    /**
+     * Constructor.
+     * @param observable the observable to convert
+     */
+    public ToIterable(@Nonnull Observable<? extends T> observable) {
+        super(observable);
+    }
 
-	@Override
-	@Nonnull 
-	protected ObserverToIteratorSink<T, T> run(@Nonnull Closeable handle) {
-		return new ObserverToIteratorSink<T, T>(handle) {
-			/** The queue. */
-			final BlockingQueue<Option<T>> queue = new LinkedBlockingQueue<Option<T>>();
-			@Override
-			public void next(T value) {
-				queue.add(Option.some(value));
-			}
+    @Override
+    @Nonnull 
+    protected ObserverToIteratorSink<T, T> run(@Nonnull Closeable handle) {
+        return new ObserverToIteratorSink<T, T>(handle) {
+            /** The queue. */
+            final BlockingQueue<Option<T>> queue = new LinkedBlockingQueue<Option<T>>();
+            @Override
+            public void next(T value) {
+                queue.add(Option.some(value));
+            }
 
-			@Override
-			public void error(@Nonnull Throwable ex) {
-				done();
-				
-				queue.add(Option.<T>error(ex));
-			}
+            @Override
+            public void error(@Nonnull Throwable ex) {
+                done();
+                
+                queue.add(Option.<T>error(ex));
+            }
 
-			@Override
-			public void finish() {
-				done();
+            @Override
+            public void finish() {
+                done();
 
-				queue.add(Option.<T>none());
-			}
+                queue.add(Option.<T>none());
+            }
 
-			@Override
-			public boolean tryNext(@Nonnull SingleOption<? super T> out) {
-				try {
-					Option<T> o = queue.take();
-					
-					if (Option.isNone(o)) {
-						return false;
-					}
-					out.addOption(o);
-				} catch (InterruptedException ex) {
-					out.addError(ex);
-				}
-				return true;
-			}
-			
-		};
-	}
+            @Override
+            public boolean tryNext(@Nonnull SingleOption<? super T> out) {
+                try {
+                    Option<T> o = queue.take();
+                    
+                    if (Option.isNone(o)) {
+                        return false;
+                    }
+                    out.addOption(o);
+                } catch (InterruptedException ex) {
+                    out.addError(ex);
+                }
+                return true;
+            }
+            
+        };
+    }
 }

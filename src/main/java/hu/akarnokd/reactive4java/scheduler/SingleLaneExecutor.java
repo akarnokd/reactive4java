@@ -37,92 +37,92 @@ import java.util.concurrent.atomic.AtomicReference;
  * @param <T> the element type to process
  */
 public final class SingleLaneExecutor<T> implements Closeable {
-	/** The executor pool. */
-	final Scheduler pool;
-	/** Keeps track of the queue size. */
-	final AtomicInteger wip = new AtomicInteger();
-	/** The queue of items. */
-	final BlockingQueue<T> queue = new LinkedBlockingQueue<T>();
-	/** The action to invoke for each element. */
-	final Action1<? super T> action;
-	/** The queue processor. */
-	final Runnable processor = new Runnable() {
-		@Override
-		public synchronized void run() { // ensure that only one instance is running
-			int count = 0;
-			do {
-				List<T> list = new LinkedList<T>();
-				queue.drainTo(list);
-				count = list.size();
-				for (T t : list) {
-					if (Thread.currentThread().isInterrupted()) {
-						wip.addAndGet(-count);
-						return;
-					}
-					action.invoke(t);
-				}
-			} while (wip.addAndGet(-count) > 0);
-		}
-	};
-	/** The future of the currently running processor. */
-	final AtomicReference<Closeable> future = new AtomicReference<Closeable>();
-	/**
-	 * Constructor. 
-	 * @param pool the executor service to use as the pool.
-	 * @param action the action to invoke when processing a queue item
-	 */
-	public SingleLaneExecutor(Scheduler pool, Action1<? super T> action) {
-		if (pool == null) {
-			throw new IllegalArgumentException("pool is null");
-		}
-		if (action == null) {
-			throw new IllegalArgumentException("action is null");
-		}
-		this.action = action;
-		this.pool = pool;
-	}
-	/**
-	 * Add an item to the queue and start the processor if necessary.
-	 * @param item the item to add.
-	 */
-	public void add(T item) {
-		queue.add(item);
-		if (wip.incrementAndGet() == 1) {
-			future.set(pool.schedule(processor));
-		}
-	}
-	/**
-	 * Add the iterable series of items. The items are added via add() method,
-	 * and might start the processor if necessary.
-	 * @param items the iterable of items
-	 */
-	public void add(Iterable<? extends T> items) {
-		for (T item : items) {
-			add(item);
-		}
-	}
-	@Override
-	public void close() {
-		Closeable f = future.getAndSet(null);
-		if (f != null) {
-			try { f.close(); } catch (IOException ex) { }
-		}
-		// drain remaining elements as of now
-		List<T> left = new LinkedList<T>();
-		queue.drainTo(left);
-		wip.addAndGet(-left.size());
-	}
-	/**
-	 * Construct a single lane executor via the given parameters.
-	 * Convenience method for type inference.
-	 * @param <T> the value to submit
-	 * @param scheduler the scheduler
-	 * @param action the action to invoke with the given value
-	 * @return the instance
-	 */
-	public static <T> SingleLaneExecutor<T> create(
-			Scheduler scheduler, 
-			Action1<? super T> action) {
-		return new SingleLaneExecutor<T>(scheduler, action);
-	}
+    /** The executor pool. */
+    final Scheduler pool;
+    /** Keeps track of the queue size. */
+    final AtomicInteger wip = new AtomicInteger();
+    /** The queue of items. */
+    final BlockingQueue<T> queue = new LinkedBlockingQueue<T>();
+    /** The action to invoke for each element. */
+    final Action1<? super T> action;
+    /** The queue processor. */
+    final Runnable processor = new Runnable() {
+        @Override
+        public synchronized void run() { // ensure that only one instance is running
+            int count = 0;
+            do {
+                List<T> list = new LinkedList<T>();
+                queue.drainTo(list);
+                count = list.size();
+                for (T t : list) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        wip.addAndGet(-count);
+                        return;
+                    }
+                    action.invoke(t);
+                }
+            } while (wip.addAndGet(-count) > 0);
+        }
+    };
+    /** The future of the currently running processor. */
+    final AtomicReference<Closeable> future = new AtomicReference<Closeable>();
+    /**
+     * Constructor. 
+     * @param pool the executor service to use as the pool.
+     * @param action the action to invoke when processing a queue item
+     */
+    public SingleLaneExecutor(Scheduler pool, Action1<? super T> action) {
+        if (pool == null) {
+            throw new IllegalArgumentException("pool is null");
+        }
+        if (action == null) {
+            throw new IllegalArgumentException("action is null");
+        }
+        this.action = action;
+        this.pool = pool;
+    }
+    /**
+     * Add an item to the queue and start the processor if necessary.
+     * @param item the item to add.
+     */
+    public void add(T item) {
+        queue.add(item);
+        if (wip.incrementAndGet() == 1) {
+            future.set(pool.schedule(processor));
+        }
+    }
+    /**
+     * Add the iterable series of items. The items are added via add() method,
+     * and might start the processor if necessary.
+     * @param items the iterable of items
+     */
+    public void add(Iterable<? extends T> items) {
+        for (T item : items) {
+            add(item);
+        }
+    }
+    @Override
+    public void close() {
+        Closeable f = future.getAndSet(null);
+        if (f != null) {
+            try { f.close(); } catch (IOException ex) { }
+        }
+        // drain remaining elements as of now
+        List<T> left = new LinkedList<T>();
+        queue.drainTo(left);
+        wip.addAndGet(-left.size());
+    }
+    /**
+     * Construct a single lane executor via the given parameters.
+     * Convenience method for type inference.
+     * @param <T> the value to submit
+     * @param scheduler the scheduler
+     * @param action the action to invoke with the given value
+     * @return the instance
+     */
+    public static <T> SingleLaneExecutor<T> create(
+            Scheduler scheduler, 
+            Action1<? super T> action) {
+        return new SingleLaneExecutor<T>(scheduler, action);
+    }
 }

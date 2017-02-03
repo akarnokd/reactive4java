@@ -21,6 +21,6 @@ package hu.akarnokd.reactive4java.base;
  * @author akarnokd
  */
 public interface Action0 {
-	/** The action body. */
-	void invoke();
+    /** The action body. */
+    void invoke();
 }

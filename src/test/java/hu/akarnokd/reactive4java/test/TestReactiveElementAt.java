@@ -30,70 +30,70 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestReactiveElementAt {
-	/**
-	 * Test if the surely existing index returns the correct value.
-	 */
-	@Test
-	public void existing() {
-		Observable<Integer> values = Reactive.range(0, 10);
-		
-		Observable<Integer> result = Reactive.elementAt(values, 5);
-		
-		TestUtil.assertEqual(Arrays.asList(5), result);
-	}
-	/**
-	 * Test if the surely exising index is returned in case of a supplied default.
-	 */
-	@Test
-	public void existingWithDefault() {
-		Observable<Integer> values = Reactive.range(0, 10);
-		
-		Observable<Integer> result = Reactive.elementAt(values, 5, 10);
-		
-		TestUtil.assertEqual(Arrays.asList(5), result);
-	}
-	/**
-	 * Test if the surely exising index is returned in case of a supplied default supplier.
-	 */
-	@Test
-	public void existingWithDefaultFunction() {
-		Observable<Integer> values = Reactive.range(0, 10);
-		
-		Observable<Integer> result = Reactive.elementAt(values, 5, Functions.constant0(10));
-		
-		TestUtil.assertEqual(Arrays.asList(5), result);
-	}
-	/**
-	 * Test if the nonexistent index throws the exception.
-	 */
-	@Test(expected = NoSuchElementException.class)
-	public void nonexistent() {
-		Observable<Integer> values = Reactive.range(0, 10);
-		
-		Observable<Integer> result = Reactive.elementAt(values, 10);
-		
-		TestUtil.assertEqual(Arrays.asList(4), result);
-	}
-	/**
-	 * Test if the nonexistent index returns the default value.
-	 */
-	@Test
-	public void nonexistentDefault() {
-		Observable<Integer> values = Reactive.range(0, 10);
-		
-		Observable<Integer> result = Reactive.elementAt(values, 10, 10);
-		
-		TestUtil.assertEqual(Arrays.asList(10), result);
-	}
-	/**
-	 * Test if the nonexistent index returns the default value.
-	 */
-	@Test
-	public void nonexistentDefaultFunction() {
-		Observable<Integer> values = Reactive.range(0, 10);
-		
-		Observable<Integer> result = Reactive.elementAt(values, 10, Functions.constant0(10));
-		
-		TestUtil.assertEqual(Arrays.asList(10), result);
-	}
+    /**
+     * Test if the surely existing index returns the correct value.
+     */
+    @Test
+    public void existing() {
+        Observable<Integer> values = Reactive.range(0, 10);
+        
+        Observable<Integer> result = Reactive.elementAt(values, 5);
+        
+        TestUtil.assertEqual(Arrays.asList(5), result);
+    }
+    /**
+     * Test if the surely exising index is returned in case of a supplied default.
+     */
+    @Test
+    public void existingWithDefault() {
+        Observable<Integer> values = Reactive.range(0, 10);
+        
+        Observable<Integer> result = Reactive.elementAt(values, 5, 10);
+        
+        TestUtil.assertEqual(Arrays.asList(5), result);
+    }
+    /**
+     * Test if the surely exising index is returned in case of a supplied default supplier.
+     */
+    @Test
+    public void existingWithDefaultFunction() {
+        Observable<Integer> values = Reactive.range(0, 10);
+        
+        Observable<Integer> result = Reactive.elementAt(values, 5, Functions.constant0(10));
+        
+        TestUtil.assertEqual(Arrays.asList(5), result);
+    }
+    /**
+     * Test if the nonexistent index throws the exception.
+     */
+    @Test(expected = NoSuchElementException.class)
+    public void nonexistent() {
+        Observable<Integer> values = Reactive.range(0, 10);
+        
+        Observable<Integer> result = Reactive.elementAt(values, 10);
+        
+        TestUtil.assertEqual(Arrays.asList(4), result);
+    }
+    /**
+     * Test if the nonexistent index returns the default value.
+     */
+    @Test
+    public void nonexistentDefault() {
+        Observable<Integer> values = Reactive.range(0, 10);
+        
+        Observable<Integer> result = Reactive.elementAt(values, 10, 10);
+        
+        TestUtil.assertEqual(Arrays.asList(10), result);
+    }
+    /**
+     * Test if the nonexistent index returns the default value.
+     */
+    @Test
+    public void nonexistentDefaultFunction() {
+        Observable<Integer> values = Reactive.range(0, 10);
+        
+        Observable<Integer> result = Reactive.elementAt(values, 10, Functions.constant0(10));
+        
+        TestUtil.assertEqual(Arrays.asList(10), result);
+    }
 }

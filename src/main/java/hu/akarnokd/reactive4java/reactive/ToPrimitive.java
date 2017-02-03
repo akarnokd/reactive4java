@@ -34,123 +34,123 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public final class ToPrimitive {
-	/** Helper class. */
-	private ToPrimitive() {
-		// TODO Auto-generated constructor stub
-	}
-	/**
-	 * Converts an object-double to primitive-double observable sequence.
-	 * @author akarnokd, 2013.01.15.
-	 */
-	public static final class ToDouble implements DoubleObservable {
-		/** */
-		private final Observable<Double> source;
+    /** Helper class. */
+    private ToPrimitive() {
+        // TODO Auto-generated constructor stub
+    }
+    /**
+     * Converts an object-double to primitive-double observable sequence.
+     * @author akarnokd, 2013.01.15.
+     */
+    public static final class ToDouble implements DoubleObservable {
+        /** */
+        private final Observable<Double> source;
 
-		/**
-		 * Constructor.
-		 * @param source the object-double sequence
-		 */
-		public ToDouble(Observable<Double> source) {
-			this.source = source;
-		}
+        /**
+         * Constructor.
+         * @param source the object-double sequence
+         */
+        public ToDouble(Observable<Double> source) {
+            this.source = source;
+        }
 
-		@Override
-		@Nonnull
-		public Closeable register(@Nonnull final DoubleObserver observer) {
-			return source.register(new Observer<Double>() {
-				@Override
-				public void error(@Nonnull Throwable ex) {
-					observer.error(ex);
-				}
+        @Override
+        @Nonnull
+        public Closeable register(@Nonnull final DoubleObserver observer) {
+            return source.register(new Observer<Double>() {
+                @Override
+                public void error(@Nonnull Throwable ex) {
+                    observer.error(ex);
+                }
 
-				@Override
-				public void finish() {
-					observer.finish();
-				}
+                @Override
+                public void finish() {
+                    observer.finish();
+                }
 
-				@Override
-				public void next(Double value) {
-					observer.next(value);
-				}
-				
-			});
-		}
-	}
-	/**
-	 * Converts an object-long to primitive-long observable sequence.
-	 * @author akarnokd, 2013.01.15.
-	 */
-	public static final class ToLong implements LongObservable {
-		/** */
-		private final Observable<Long> source;
+                @Override
+                public void next(Double value) {
+                    observer.next(value);
+                }
+                
+            });
+        }
+    }
+    /**
+     * Converts an object-long to primitive-long observable sequence.
+     * @author akarnokd, 2013.01.15.
+     */
+    public static final class ToLong implements LongObservable {
+        /** */
+        private final Observable<Long> source;
 
-		/**
-		 * Constructor.
-		 * @param source the long-object sequence
-		 */
-		public ToLong(Observable<Long> source) {
-			this.source = source;
-		}
+        /**
+         * Constructor.
+         * @param source the long-object sequence
+         */
+        public ToLong(Observable<Long> source) {
+            this.source = source;
+        }
 
-		@Override
-		@Nonnull
-		public Closeable register(@Nonnull final LongObserver observer) {
-			return source.register(new Observer<Long>() {
-				@Override
-				public void error(@Nonnull Throwable ex) {
-					observer.error(ex);
-				}
+        @Override
+        @Nonnull
+        public Closeable register(@Nonnull final LongObserver observer) {
+            return source.register(new Observer<Long>() {
+                @Override
+                public void error(@Nonnull Throwable ex) {
+                    observer.error(ex);
+                }
 
-				@Override
-				public void finish() {
-					observer.finish();
-				}
+                @Override
+                public void finish() {
+                    observer.finish();
+                }
 
-				@Override
-				public void next(Long value) {
-					observer.next(value);
-				}
-				
-			});
-		}
-	}
-	/**
-	 * Converts an object-int to primitive-int observable sequence.
-	 * @author akarnokd, 2013.01.15.
-	 */
-	public static final class ToInt implements IntObservable {
-		/** */
-		private final Observable<Integer> source;
+                @Override
+                public void next(Long value) {
+                    observer.next(value);
+                }
+                
+            });
+        }
+    }
+    /**
+     * Converts an object-int to primitive-int observable sequence.
+     * @author akarnokd, 2013.01.15.
+     */
+    public static final class ToInt implements IntObservable {
+        /** */
+        private final Observable<Integer> source;
 
-		/**
-		 * Constructor.
-		 * @param source the object-int sequence
-		 */
-		public ToInt(Observable<Integer> source) {
-			this.source = source;
-		}
+        /**
+         * Constructor.
+         * @param source the object-int sequence
+         */
+        public ToInt(Observable<Integer> source) {
+            this.source = source;
+        }
 
-		@Override
-		@Nonnull
-		public Closeable register(@Nonnull final IntObserver observer) {
-			return source.register(new Observer<Integer>() {
-				@Override
-				public void error(@Nonnull Throwable ex) {
-					observer.error(ex);
-				}
+        @Override
+        @Nonnull
+        public Closeable register(@Nonnull final IntObserver observer) {
+            return source.register(new Observer<Integer>() {
+                @Override
+                public void error(@Nonnull Throwable ex) {
+                    observer.error(ex);
+                }
 
-				@Override
-				public void finish() {
-					observer.finish();
-				}
+                @Override
+                public void finish() {
+                    observer.finish();
+                }
 
-				@Override
-				public void next(Integer value) {
-					observer.next(value);
-				}
-				
-			});
-		}
-	}
+                @Override
+                public void next(Integer value) {
+                    observer.next(value);
+                }
+                
+            });
+        }
+    }
 
 }

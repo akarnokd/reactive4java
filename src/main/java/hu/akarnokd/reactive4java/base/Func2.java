@@ -27,11 +27,11 @@ package hu.akarnokd.reactive4java.base;
  * @param <Param2> the second parameter
  */
 public interface Func2<Param1, Param2, Return> {
-	/**
-	 * The method that gets invoked with two parameters.
-	 * @param param1 the first parameter value
-	 * @param param2 the second parameter value
-	 * @return the return object
-	 */
-	Return invoke(Param1 param1, Param2 param2);
+    /**
+     * The method that gets invoked with two parameters.
+     * @param param1 the first parameter value
+     * @param param2 the second parameter value
+     * @return the return object
+     */
+    Return invoke(Param1 param1, Param2 param2);
 }

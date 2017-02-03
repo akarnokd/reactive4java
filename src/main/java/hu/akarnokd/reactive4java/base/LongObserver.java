@@ -24,18 +24,18 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public interface LongObserver {
-	/** 
-	 * The next value is received. 
-	 * @param value the next value 
-	 */
-	void next(long value);
-	/** 
-	 * An exception is received.
-	 * @param ex the exception 
-	 */
-	void error(@Nonnull Throwable ex);
-	/** 
-	 * No more values to expect. 
-	 */
-	void finish();
+    /** 
+     * The next value is received. 
+     * @param value the next value 
+     */
+    void next(long value);
+    /** 
+     * An exception is received.
+     * @param ex the exception 
+     */
+    void error(@Nonnull Throwable ex);
+    /** 
+     * No more values to expect. 
+     */
+    void finish();
 }

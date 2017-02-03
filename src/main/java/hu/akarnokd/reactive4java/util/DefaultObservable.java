@@ -43,98 +43,98 @@ import javax.annotation.Nonnull;
  * @param <T> the element type of the observable.
  */
 public class DefaultObservable<T> implements Subject<T, T>, CloseableObservable<T> {
-	/** Atomically keeps track of the registered/deregistered observer count. */
-	private final AtomicInteger count = new AtomicInteger();
-	/** The map of the active observers. */
-	private final ConcurrentMap<Closeable, Observer<? super T>> observers = new ConcurrentHashMap<Closeable, Observer<? super T>>();
-	/** Unregister all on error? */
-	private final boolean unregisterOnError;
-	/** Unregister all on error? */
-	private final boolean unregisterOnFinish;
-	/**
-	 * Default constructor. All observers will be unregistered upon error() or finish().
-	 */
-	public DefaultObservable() {
-		this(true, true);
-	}
-	/**
-	 * Constructor with the option to set the unregistration policies.
-	 * @param unregisterOnFinish unregister all observers on a finish() call?
-	 * @param unregisterOnError unregister all observers on an error() call?
-	 */
-	public DefaultObservable(boolean unregisterOnFinish, boolean unregisterOnError) {
-		this.unregisterOnFinish = unregisterOnFinish;
-		this.unregisterOnError = unregisterOnError;
-	}
-	@Override
-	public void error(@Nonnull Throwable ex) {
-		if (unregisterOnError) {
-			for (Map.Entry<Closeable, Observer<? super T>> os : observers.entrySet()) {
-				os.getValue().error(ex);
-				unregister(os.getKey());
-			}
-		} else {
-			for (Observer<? super T> os : observers.values()) {
-				os.error(ex);
-			}
-		}
-	}
+    /** Atomically keeps track of the registered/deregistered observer count. */
+    private final AtomicInteger count = new AtomicInteger();
+    /** The map of the active observers. */
+    private final ConcurrentMap<Closeable, Observer<? super T>> observers = new ConcurrentHashMap<Closeable, Observer<? super T>>();
+    /** Unregister all on error? */
+    private final boolean unregisterOnError;
+    /** Unregister all on error? */
+    private final boolean unregisterOnFinish;
+    /**
+     * Default constructor. All observers will be unregistered upon error() or finish().
+     */
+    public DefaultObservable() {
+        this(true, true);
+    }
+    /**
+     * Constructor with the option to set the unregistration policies.
+     * @param unregisterOnFinish unregister all observers on a finish() call?
+     * @param unregisterOnError unregister all observers on an error() call?
+     */
+    public DefaultObservable(boolean unregisterOnFinish, boolean unregisterOnError) {
+        this.unregisterOnFinish = unregisterOnFinish;
+        this.unregisterOnError = unregisterOnError;
+    }
+    @Override
+    public void error(@Nonnull Throwable ex) {
+        if (unregisterOnError) {
+            for (Map.Entry<Closeable, Observer<? super T>> os : observers.entrySet()) {
+                os.getValue().error(ex);
+                unregister(os.getKey());
+            }
+        } else {
+            for (Observer<? super T> os : observers.values()) {
+                os.error(ex);
+            }
+        }
+    }
 
-	@Override
-	public void finish() {
-		if (unregisterOnFinish) {
-			for (Map.Entry<Closeable, Observer<? super T>> os : observers.entrySet()) {
-				os.getValue().finish();
-				unregister(os.getKey());
-			}
-		} else {
-			for (Observer<? super T> os : observers.values()) {
-				os.finish();
-			}
-		}
-	}
+    @Override
+    public void finish() {
+        if (unregisterOnFinish) {
+            for (Map.Entry<Closeable, Observer<? super T>> os : observers.entrySet()) {
+                os.getValue().finish();
+                unregister(os.getKey());
+            }
+        } else {
+            for (Observer<? super T> os : observers.values()) {
+                os.finish();
+            }
+        }
+    }
 
-	@Override
-	public void next(T value) {
-		for (Observer<? super T> os : observers.values()) {
-			os.next(value);
-		}
-	}
+    @Override
+    public void next(T value) {
+        for (Observer<? super T> os : observers.values()) {
+            os.next(value);
+        }
+    }
 
-	@Override
-	@Nonnull
-	public Closeable register(@Nonnull final Observer<? super T> observer) {
-		// FIXME allow multiple registrations for the same observer instance?!
-		final Closeable handler = new Closeable() {
-			@Override
-			public void close() throws IOException {
-				unregister(this);
-			}
-		};
-		count.incrementAndGet();
-		observers.put(handler,  observer);
-		return handler;
-	}
-	/**
-	 * Unregister the observer belonging to the given handler.
-	 * A handler can only be unregistered once
-	 * @param handler the observer's handler
-	 */
-	protected void unregister(final Closeable handler) {
-		if (observers.remove(handler) != null) {
-			if (count.decrementAndGet() == 0) {
-				close();
-			}
-		}
-	}
-	@Override
-	public void close() {
-		// no operation
-	}
-	/**
-	 * @return Returns the current observer count.
-	 */
-	public int getObserverCount() {
-		return count.get();
-	}
+    @Override
+    @Nonnull
+    public Closeable register(@Nonnull final Observer<? super T> observer) {
+        // FIXME allow multiple registrations for the same observer instance?!
+        final Closeable handler = new Closeable() {
+            @Override
+            public void close() throws IOException {
+                unregister(this);
+            }
+        };
+        count.incrementAndGet();
+        observers.put(handler,  observer);
+        return handler;
+    }
+    /**
+     * Unregister the observer belonging to the given handler.
+     * A handler can only be unregistered once
+     * @param handler the observer's handler
+     */
+    protected void unregister(final Closeable handler) {
+        if (observers.remove(handler) != null) {
+            if (count.decrementAndGet() == 0) {
+                close();
+            }
+        }
+    }
+    @Override
+    public void close() {
+        // no operation
+    }
+    /**
+     * @return Returns the current observer count.
+     */
+    public int getObserverCount() {
+        return count.get();
+    }
 }

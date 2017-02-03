@@ -27,25 +27,25 @@ import hu.akarnokd.reactive4java.util.Schedulers;
  */
 public final class TestObserveOn {
 
-	/**
-	 * Test class.
-	 */
-	private TestObserveOn() {
-	}
+    /**
+     * Test class.
+     */
+    private TestObserveOn() {
+    }
 
-	/**
-	 * @param args no arguments
-	 * @throws Exception ignored
-	 */
-	public static void main(String[] args) throws Exception {
-		Observable<Integer> xs = Reactive.range(0, 10);
-		Scheduler exec = Schedulers.getDefault();
-		Observable<Integer> ys = Reactive.observeOn(xs, exec);
-		
-		ys.register(Observers.println());
-		
-//		exec.shutdown();
-//		exec.awaitTermination(Long.MAX_VALUE, TimeUnit.MICROSECONDS);
-	}
+    /**
+     * @param args no arguments
+     * @throws Exception ignored
+     */
+    public static void main(String[] args) throws Exception {
+        Observable<Integer> xs = Reactive.range(0, 10);
+        Scheduler exec = Schedulers.getDefault();
+        Observable<Integer> ys = Reactive.observeOn(xs, exec);
+        
+        ys.register(Observers.println());
+        
+//        exec.shutdown();
+//        exec.awaitTermination(Long.MAX_VALUE, TimeUnit.MICROSECONDS);
+    }
 
 }

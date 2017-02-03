@@ -27,20 +27,20 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestComparingHashSet {
-	/** Test simple add. */
-	@Test
-	public void test() {
-		ComparingHashSet<Integer> set = new ComparingHashSet<Integer>(Functions.equals());
-		
-		Assert.assertTrue(set.add(0));
+    /** Test simple add. */
+    @Test
+    public void test() {
+        ComparingHashSet<Integer> set = new ComparingHashSet<Integer>(Functions.equals());
+        
+        Assert.assertTrue(set.add(0));
 
-		Assert.assertFalse(set.add(0));
+        Assert.assertFalse(set.add(0));
 
-		for (int i = 1; i < 17; i++) {
-			set.add(i);
-		}
+        for (int i = 1; i < 17; i++) {
+            set.add(i);
+        }
 
-		Assert.assertFalse(set.add(16));
-	}
+        Assert.assertFalse(set.add(16));
+    }
 
 }

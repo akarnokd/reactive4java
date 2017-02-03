@@ -32,38 +32,38 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestReactiveDelay {
-	
-	/**
-	 * Test delayed registration and value delivery through observable sequences.
-	 * @throws Exception ignored
-	 */
-	@Test
-	public void testObservableDelays() throws Exception {
-		Observable<Long> source = Reactive.tick(0, 5, 1000, TimeUnit.MILLISECONDS);
-//		Observable<Long> source = Reactive.range(0L, 5L, new NewThreadScheduler());
-		
-		Observable<Long> regDelay = Reactive.tick(0, 1, 500, TimeUnit.MILLISECONDS);
-		
-		Func1<Long, Observable<Long>> valueDelay = new Func1<Long, Observable<Long>>() {
-			@Override
-			public Observable<Long> invoke(Long param1) {
-//				return Reactive.tick(0, 1, (int)(param1 * 1000 + 500), TimeUnit.MILLISECONDS);
-				return Reactive.tick(0, 1, 1000, TimeUnit.MILLISECONDS);
-			}
-		};
-		
-		Observable<Long> result = Reactive.delay(source, regDelay, valueDelay);
-		
-		
-		Timestamped<Long> t = Timestamped.of(-1L);
-		System.out.println(t);
-		Reactive.run(Reactive.addTimestamped(result), Observers.println());
-		System.out.println();
-		
-		Reactive.run(Reactive.addTimeInterval(result), Observers.println());
+    
+    /**
+     * Test delayed registration and value delivery through observable sequences.
+     * @throws Exception ignored
+     */
+    @Test
+    public void testObservableDelays() throws Exception {
+        Observable<Long> source = Reactive.tick(0, 5, 1000, TimeUnit.MILLISECONDS);
+//        Observable<Long> source = Reactive.range(0L, 5L, new NewThreadScheduler());
+        
+        Observable<Long> regDelay = Reactive.tick(0, 1, 500, TimeUnit.MILLISECONDS);
+        
+        Func1<Long, Observable<Long>> valueDelay = new Func1<Long, Observable<Long>>() {
+            @Override
+            public Observable<Long> invoke(Long param1) {
+//                return Reactive.tick(0, 1, (int)(param1 * 1000 + 500), TimeUnit.MILLISECONDS);
+                return Reactive.tick(0, 1, 1000, TimeUnit.MILLISECONDS);
+            }
+        };
+        
+        Observable<Long> result = Reactive.delay(source, regDelay, valueDelay);
+        
+        
+        Timestamped<Long> t = Timestamped.of(-1L);
+        System.out.println(t);
+        Reactive.run(Reactive.addTimestamped(result), Observers.println());
+        System.out.println();
+        
+        Reactive.run(Reactive.addTimeInterval(result), Observers.println());
 
-		TestUtil.assertEqual(Arrays.asList(0L, 1L, 2L, 3L, 4L), result);
+        TestUtil.assertEqual(Arrays.asList(0L, 1L, 2L, 3L, 4L), result);
 
-	}
+    }
 
 }

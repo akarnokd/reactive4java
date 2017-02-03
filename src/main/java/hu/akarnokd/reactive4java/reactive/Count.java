@@ -28,91 +28,91 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public final class Count {
-	/** Helper class. */
-	private Count() { }
-	/**
-	 * Counts the number of elements in the observable source as long.
-	 * @param <T> the element type
-	 * @author akarnokd, 2013.01.15.
-	 */
-	public static final class AsLong<T> implements Observable<Long> {
-		/** */
-		private final Observable<T> source;
+    /** Helper class. */
+    private Count() { }
+    /**
+     * Counts the number of elements in the observable source as long.
+     * @param <T> the element type
+     * @author akarnokd, 2013.01.15.
+     */
+    public static final class AsLong<T> implements Observable<Long> {
+        /** */
+        private final Observable<T> source;
 
-		/**
-		 * Constructor.
-		 * @param source the source observable
-		 */
-		public AsLong(Observable<T> source) {
-			this.source = source;
-		}
+        /**
+         * Constructor.
+         * @param source the source observable
+         */
+        public AsLong(Observable<T> source) {
+            this.source = source;
+        }
 
-		@Override
-		@Nonnull 
-		public Closeable register(@Nonnull final Observer<? super Long> observer) {
-			return source.register(new Observer<T>() {
-				/** The counter. */
-				long count;
-				@Override
-				public void error(@Nonnull Throwable ex) {
-					observer.error(ex);
-				}
+        @Override
+        @Nonnull 
+        public Closeable register(@Nonnull final Observer<? super Long> observer) {
+            return source.register(new Observer<T>() {
+                /** The counter. */
+                long count;
+                @Override
+                public void error(@Nonnull Throwable ex) {
+                    observer.error(ex);
+                }
 
-				@Override
-				public void finish() {
-					observer.next(count);
-					observer.finish();
-				}
+                @Override
+                public void finish() {
+                    observer.next(count);
+                    observer.finish();
+                }
 
-				@Override
-				public void next(T value) {
-					count++;
-				}
+                @Override
+                public void next(T value) {
+                    count++;
+                }
 
-			});
-		}
-	}
-	/**
-	 * Counts the number of elements in the observable source as an int.
-	 * @param <T> the element type
-	 * @author akarnokd, 2013.01.15.
-	 */
-	public static final class AsInt<T> implements Observable<Integer> {
-		/** */
-		private final Observable<T> source;
+            });
+        }
+    }
+    /**
+     * Counts the number of elements in the observable source as an int.
+     * @param <T> the element type
+     * @author akarnokd, 2013.01.15.
+     */
+    public static final class AsInt<T> implements Observable<Integer> {
+        /** */
+        private final Observable<T> source;
 
-		/**
-		 * Constructor.
-		 * @param source the source observable
-		 */
-		public AsInt(Observable<T> source) {
-			this.source = source;
-		}
+        /**
+         * Constructor.
+         * @param source the source observable
+         */
+        public AsInt(Observable<T> source) {
+            this.source = source;
+        }
 
-		@Override
-		@Nonnull 
-		public Closeable register(@Nonnull final Observer<? super Integer> observer) {
-			return source.register(new Observer<T>() {
-				/** The counter. */
-				int count;
-				@Override
-				public void error(@Nonnull Throwable ex) {
-					observer.error(ex);
-				}
+        @Override
+        @Nonnull 
+        public Closeable register(@Nonnull final Observer<? super Integer> observer) {
+            return source.register(new Observer<T>() {
+                /** The counter. */
+                int count;
+                @Override
+                public void error(@Nonnull Throwable ex) {
+                    observer.error(ex);
+                }
 
-				@Override
-				public void finish() {
-					observer.next(count);
-					observer.finish();
-				}
+                @Override
+                public void finish() {
+                    observer.next(count);
+                    observer.finish();
+                }
 
-				@Override
-				public void next(T value) {
-					count++;
-				}
+                @Override
+                public void next(T value) {
+                    count++;
+                }
 
-			});
-		}
-	}
+            });
+        }
+    }
 
 }

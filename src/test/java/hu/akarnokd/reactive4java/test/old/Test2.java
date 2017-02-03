@@ -36,84 +36,84 @@ import javax.annotation.Nonnull;
  */
 public final class Test2 {
 
-	/**
-	 * Utility class.
-	 */
-	private Test2() {
-		// utility class
-	}
+    /**
+     * Utility class.
+     */
+    private Test2() {
+        // utility class
+    }
 
-	/**
-	 * @param args no arguments
-	 * @throws Exception on error
-	 */
-	public static void main(String[] args) throws Exception {
+    /**
+     * @param args no arguments
+     * @throws Exception on error
+     */
+    public static void main(String[] args) throws Exception {
 
-		System.out.println(Reactive.first(Reactive.range(1, 1)));
-//		System.out.println(Observables.first(Observables.range(2, 0)));
-		
-		List<Observable<Integer>> list = new ArrayList<Observable<Integer>>();
-		list.add(Reactive.range(0, 10));
-		list.add(Reactive.range(10, 10));
-		Reactive.concat(list).register(Observers.println());
-		
-		Reactive.forkJoin(list).register(Observers.println());
-		
-		Closeable c = Reactive.range(0, Integer.MAX_VALUE).register(Observers.println());
-		
-		Thread.sleep(1000);
-		
-		c.close();
-		
-		Reactive.generateTimed(0, 
-				Functions.lessThan(10), 
-				Functions.incrementInt(), 
-				Functions.<Integer>identity(), 
-				Functions.<Integer, Long>constant(1000L)
-		).register(Observers.println());
-		
-		Observable<Timestamped<Integer>> tss = Reactive.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
-				Functions.<Integer>identity(), Functions.<Integer, Long>constant(1000L));
-		
-		Observable<GroupedObservable<Timestamped<Integer>, Timestamped<Integer>>> groups = Reactive.groupBy(
-				
-				Reactive.concat(tss, tss)
-				, Functions.<Timestamped<Integer>>identity())
-				;
-		
-		groups.register(new Observer<GroupedObservable<Timestamped<Integer>, Timestamped<Integer>>>() {
-			@Override
-			public void next(
-					final GroupedObservable<Timestamped<Integer>, Timestamped<Integer>> value) {
-				//System.out.println("New group: " + value.key());
-				value.register(new Observer<Timestamped<Integer>>() {
-					int count = 0;
-					@Override
-					public void next(Timestamped<Integer> x) {
-						System.out.println("Group " + value.key() + ", Size " + (++count));
-					}
+        System.out.println(Reactive.first(Reactive.range(1, 1)));
+//        System.out.println(Observables.first(Observables.range(2, 0)));
+        
+        List<Observable<Integer>> list = new ArrayList<Observable<Integer>>();
+        list.add(Reactive.range(0, 10));
+        list.add(Reactive.range(10, 10));
+        Reactive.concat(list).register(Observers.println());
+        
+        Reactive.forkJoin(list).register(Observers.println());
+        
+        Closeable c = Reactive.range(0, Integer.MAX_VALUE).register(Observers.println());
+        
+        Thread.sleep(1000);
+        
+        c.close();
+        
+        Reactive.generateTimed(0, 
+                Functions.lessThan(10), 
+                Functions.incrementInt(), 
+                Functions.<Integer>identity(), 
+                Functions.<Integer, Long>constant(1000L)
+        ).register(Observers.println());
+        
+        Observable<Timestamped<Integer>> tss = Reactive.generateTimed(0, Functions.lessThan(10), Functions.incrementInt(), 
+                Functions.<Integer>identity(), Functions.<Integer, Long>constant(1000L));
+        
+        Observable<GroupedObservable<Timestamped<Integer>, Timestamped<Integer>>> groups = Reactive.groupBy(
+                
+                Reactive.concat(tss, tss)
+                , Functions.<Timestamped<Integer>>identity())
+                ;
+        
+        groups.register(new Observer<GroupedObservable<Timestamped<Integer>, Timestamped<Integer>>>() {
+            @Override
+            public void next(
+                    final GroupedObservable<Timestamped<Integer>, Timestamped<Integer>> value) {
+                //System.out.println("New group: " + value.key());
+                value.register(new Observer<Timestamped<Integer>>() {
+                    int count = 0;
+                    @Override
+                    public void next(Timestamped<Integer> x) {
+                        System.out.println("Group " + value.key() + ", Size " + (++count));
+                    }
 
-					@Override
-					public void error(@Nonnull Throwable ex) {
-						
-					}
+                    @Override
+                    public void error(@Nonnull Throwable ex) {
+                        
+                    }
 
-					@Override
-					public void finish() {
-						
-					}
-					
-				});
-			}
-			@Override
-			public void error(@Nonnull Throwable ex) {
-				
-			}
-			@Override
-			public void finish() {
-				
-			}
-		});
-	}
+                    @Override
+                    public void finish() {
+                        
+                    }
+                    
+                });
+            }
+            @Override
+            public void error(@Nonnull Throwable ex) {
+                
+            }
+            @Override
+            public void finish() {
+                
+            }
+        });
+    }
 
 }

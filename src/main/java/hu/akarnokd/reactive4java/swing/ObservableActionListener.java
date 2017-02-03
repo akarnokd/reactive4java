@@ -28,35 +28,35 @@ import javax.annotation.Nonnull;
  * @author akarnokd, 2011.02.01.
  */
 public class ObservableActionListener extends DefaultObservable<ActionEvent> implements ActionListener {
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		next(e);
-	}
-	/**
-	 * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addActionListener(ActionListener)</code> method.
-	 * @param component the target component
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public static ObservableActionListener register(@Nonnull Object component) {
-		return new ObservableActionListener().registerWith(component);
-	}
-	/**
-	 * Convenience method to register this observable with the target component which must have a public <code>addActionListener(ActionListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableActionListener registerWith(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "add", ActionListener.class, this);
-	}
-	/**
-	 * Convenience method to unregister this observable from the target component which must have a public <code>removeActionListener(ActionListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableActionListener unregisterFrom(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "remove", ActionListener.class, this);
-	}
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        next(e);
+    }
+    /**
+     * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addActionListener(ActionListener)</code> method.
+     * @param component the target component
+     * @return the new observable
+     */
+    @Nonnull 
+    public static ObservableActionListener register(@Nonnull Object component) {
+        return new ObservableActionListener().registerWith(component);
+    }
+    /**
+     * Convenience method to register this observable with the target component which must have a public <code>addActionListener(ActionListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableActionListener registerWith(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "add", ActionListener.class, this);
+    }
+    /**
+     * Convenience method to unregister this observable from the target component which must have a public <code>removeActionListener(ActionListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableActionListener unregisterFrom(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "remove", ActionListener.class, this);
+    }
 }

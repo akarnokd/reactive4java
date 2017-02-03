@@ -28,36 +28,36 @@ import javax.swing.event.ListSelectionListener;
  */
 public class ObservableListSelectionListener extends DefaultObservable<ListSelectionEvent> implements ListSelectionListener {
 
-	@Override
-	public void valueChanged(ListSelectionEvent e) {
-		next(e);
-	}
-	
-	/**
-	 * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addListSelectionListener(ListSelectionListener)</code> method.
-	 * @param component the target component
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public static ObservableListSelectionListener register(@Nonnull Object component) {
-		return new ObservableListSelectionListener().registerWith(component);
-	}
-	/**
-	 * Convenience method to register this observable with the target component which must have a public <code>addListSelectionListener(ListSelectionListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableListSelectionListener registerWith(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "add", ListSelectionListener.class, this);
-	}
-	/**
-	 * Convenience method to unregister this observable from the target component which must have a public <code>removeListSelectionListener(ListSelectionListener)</code> method. 
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableListSelectionListener unregisterFrom(@Nonnull Object component) {
-		return SwingObservables.invoke(component, "remove", ListSelectionListener.class, this);
-	}
+    @Override
+    public void valueChanged(ListSelectionEvent e) {
+        next(e);
+    }
+    
+    /**
+     * Convenience method to create a new observable action listener and register it with the target component must have a public <code>addListSelectionListener(ListSelectionListener)</code> method.
+     * @param component the target component
+     * @return the new observable
+     */
+    @Nonnull 
+    public static ObservableListSelectionListener register(@Nonnull Object component) {
+        return new ObservableListSelectionListener().registerWith(component);
+    }
+    /**
+     * Convenience method to register this observable with the target component which must have a public <code>addListSelectionListener(ListSelectionListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableListSelectionListener registerWith(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "add", ListSelectionListener.class, this);
+    }
+    /**
+     * Convenience method to unregister this observable from the target component which must have a public <code>removeListSelectionListener(ListSelectionListener)</code> method. 
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableListSelectionListener unregisterFrom(@Nonnull Object component) {
+        return SwingObservables.invoke(component, "remove", ListSelectionListener.class, this);
+    }
 }

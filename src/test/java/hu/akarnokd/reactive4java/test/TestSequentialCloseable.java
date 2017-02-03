@@ -29,88 +29,88 @@ import org.junit.Test;
  * @since 0.97
  */
 public class TestSequentialCloseable {
-	/** 
-	 * Simple close operation.
-	 * @throws IOException due to Closeable.close(). 
-	 */
-	@Test
-	public void simpleClosing() throws IOException {
-		SequentialCloseable sc = new SequentialCloseable();
-		
-		DebugCloseable mc = new DebugCloseable();
-		
-		sc.set(mc);
-		
-		Assert.assertFalse("Shouldn't be closed yet", mc.isClosed());
+    /** 
+     * Simple close operation.
+     * @throws IOException due to Closeable.close(). 
+     */
+    @Test
+    public void simpleClosing() throws IOException {
+        SequentialCloseable sc = new SequentialCloseable();
+        
+        DebugCloseable mc = new DebugCloseable();
+        
+        sc.set(mc);
+        
+        Assert.assertFalse("Shouldn't be closed yet", mc.isClosed());
 
-		sc.close();
-		
-		Assert.assertTrue("Should be closed now", mc.isClosed());
+        sc.close();
+        
+        Assert.assertTrue("Should be closed now", mc.isClosed());
 
-		Assert.assertTrue("Container should be closed now", sc.isClosed());
+        Assert.assertTrue("Container should be closed now", sc.isClosed());
 
-	}
-	/** 
-	 * Assignment to a closed container.
-	 * @throws IOException due to Closeable.close(). 
-	 */
-	@Test
-	public void alreadyClosed() throws IOException {
-		SequentialCloseable sc = new SequentialCloseable();
-		
-		DebugCloseable mc = new DebugCloseable();
+    }
+    /** 
+     * Assignment to a closed container.
+     * @throws IOException due to Closeable.close(). 
+     */
+    @Test
+    public void alreadyClosed() throws IOException {
+        SequentialCloseable sc = new SequentialCloseable();
+        
+        DebugCloseable mc = new DebugCloseable();
 
-		sc.close();
-		
-		sc.set(mc);
-		
-		Assert.assertTrue("Should be closed now", mc.isClosed());
+        sc.close();
+        
+        sc.set(mc);
+        
+        Assert.assertTrue("Should be closed now", mc.isClosed());
 
-		Assert.assertTrue("Container should be closed now", sc.isClosed());
+        Assert.assertTrue("Container should be closed now", sc.isClosed());
 
-	}
-	/**
-	 * Check if replacing closes the original.
-	 * @throws IOException due to Closeable.close(). 
-	 */
-	public void replaceContent() throws IOException {
-		SequentialCloseable sc = new SequentialCloseable();
-		
-		DebugCloseable mc = new DebugCloseable();
+    }
+    /**
+     * Check if replacing closes the original.
+     * @throws IOException due to Closeable.close(). 
+     */
+    public void replaceContent() throws IOException {
+        SequentialCloseable sc = new SequentialCloseable();
+        
+        DebugCloseable mc = new DebugCloseable();
 
-		sc.set(mc);
-		
-		DebugCloseable mc2 = new DebugCloseable();
+        sc.set(mc);
+        
+        DebugCloseable mc2 = new DebugCloseable();
 
-		sc.set(mc2);
+        sc.set(mc2);
 
-		Assert.assertTrue("Should be closed now", mc.isClosed());
+        Assert.assertTrue("Should be closed now", mc.isClosed());
 
-		Assert.assertFalse("Shouldn't be closed now", mc2.isClosed());
-		
-		sc.close();
+        Assert.assertFalse("Shouldn't be closed now", mc2.isClosed());
+        
+        sc.close();
 
-		Assert.assertTrue("Should be closed now", mc2.isClosed());
+        Assert.assertTrue("Should be closed now", mc2.isClosed());
 
-	}
-	/** 
-	 * Check if after closing the container, it should not reference the original closeable
-	 * anymore.
-	 * @throws IOException due to Closeable.close(). 
-	 */
-	@Test
-	public void notReferencing() throws IOException {
-		SequentialCloseable sc = new SequentialCloseable();
-		
-		DebugCloseable mc = new DebugCloseable();
-		
-		sc.set(mc);
-		
-		Assert.assertEquals(mc, sc.get());
-		
-		sc.close();
-		
-		Assert.assertNotSame(mc, sc.get());
+    }
+    /** 
+     * Check if after closing the container, it should not reference the original closeable
+     * anymore.
+     * @throws IOException due to Closeable.close(). 
+     */
+    @Test
+    public void notReferencing() throws IOException {
+        SequentialCloseable sc = new SequentialCloseable();
+        
+        DebugCloseable mc = new DebugCloseable();
+        
+        sc.set(mc);
+        
+        Assert.assertEquals(mc, sc.get());
+        
+        sc.close();
+        
+        Assert.assertNotSame(mc, sc.get());
 
-	}
+    }
 }

@@ -33,24 +33,24 @@ import org.junit.Test;
  * @author akarnokd, 2013.01.12.
  */
 public class TestReactiveToIterable {
-	/** Run a simple value stream test. */
-	@Test/*(timeout = 1000)*/
-	public void test() {
-		Observable<Integer> source = Reactive.range(0, 10);
-		
-		Iterable<Integer> iter = Reactive.toIterable(source);
-		
-		List<Integer> result = new ArrayList<Integer>();
-		Iterator<Integer> it = iter.iterator();
-		try {
-			while (it.hasNext()) {
-				result.add(it.next());
-			}
-		} finally {
-			Closeables.closeSilently(it);
-		}
-		
-		Assert.assertEquals(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), result);
-	}
+    /** Run a simple value stream test. */
+    @Test/*(timeout = 1000)*/
+    public void test() {
+        Observable<Integer> source = Reactive.range(0, 10);
+        
+        Iterable<Integer> iter = Reactive.toIterable(source);
+        
+        List<Integer> result = new ArrayList<Integer>();
+        Iterator<Integer> it = iter.iterator();
+        try {
+            while (it.hasNext()) {
+                result.add(it.next());
+            }
+        } finally {
+            Closeables.closeSilently(it);
+        }
+        
+        Assert.assertEquals(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), result);
+    }
 
 }

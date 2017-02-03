@@ -22,9 +22,9 @@ package hu.akarnokd.reactive4java.base;
  * @since 0.97
  */
 public interface IntObserver extends BaseObserver {
-	/** 
-	 * The next value is received. 
-	 * @param value the next value 
-	 */
-	void next(int value);
+    /** 
+     * The next value is received. 
+     * @param value the next value 
+     */
+    void next(int value);
 }

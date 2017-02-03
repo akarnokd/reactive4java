@@ -33,30 +33,30 @@ import javax.annotation.Nonnull;
  */
 public abstract class ObservableToIterableAdapter<T, U> 
 implements CloseableIterable<U> {
-	/** The observable instance. */
-	protected final Observable<? extends T> observable;
-	/**
-	 * Constructor, saves the source observable.
-	 * @param observable the source observable
-	 */
-	public ObservableToIterableAdapter(@Nonnull Observable<? extends T> observable) {
-		this.observable = observable;
-	}
-	@Override
-	public CloseableIterator<U> iterator() {
-		CompositeCloseable handle = new CompositeCloseable();
-		ObserverToIteratorSink<T, U> it = run(handle);
-		Closeable c = observable.register(it);
-		// this won't add C if the handle is already closed
-		handle.add(c);
-		return it;
-	}
-	/**
-	 * The factory method to return an iterator and hand over the close handle
-	 * to the original registration to the source.
-	 * @param handle the closea handle
-	 * @return the closeable iterator
-	 */
-	@Nonnull 
-	protected abstract ObserverToIteratorSink<T, U> run(@Nonnull Closeable handle); 
+    /** The observable instance. */
+    protected final Observable<? extends T> observable;
+    /**
+     * Constructor, saves the source observable.
+     * @param observable the source observable
+     */
+    public ObservableToIterableAdapter(@Nonnull Observable<? extends T> observable) {
+        this.observable = observable;
+    }
+    @Override
+    public CloseableIterator<U> iterator() {
+        CompositeCloseable handle = new CompositeCloseable();
+        ObserverToIteratorSink<T, U> it = run(handle);
+        Closeable c = observable.register(it);
+        // this won't add C if the handle is already closed
+        handle.add(c);
+        return it;
+    }
+    /**
+     * The factory method to return an iterator and hand over the close handle
+     * to the original registration to the source.
+     * @param handle the closea handle
+     * @return the closeable iterator
+     */
+    @Nonnull 
+    protected abstract ObserverToIteratorSink<T, U> run(@Nonnull Closeable handle); 
 }

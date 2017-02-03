@@ -46,120 +46,120 @@ import javax.annotation.concurrent.GuardedBy;
  * @param <T> the element type.
  */
 public class Next<T> extends ObservableToIterableAdapter<T, T> {
-	/**
-	 * Constructor.
-	 * @param observable the source obserable.
-	 */
-	public Next(@Nonnull Observable<? extends T> observable) {
-		super(observable);
-	}
+    /**
+     * Constructor.
+     * @param observable the source obserable.
+     */
+    public Next(@Nonnull Observable<? extends T> observable) {
+        super(observable);
+    }
 
-	@Override
-	@Nonnull 
-	protected ObserverToIteratorSink<T, T> run(@Nonnull Closeable handle) {
-		return new ObserverToIteratorSink<T, T>(handle) {
-			/** The lock guarding the data exchange. */
-			@Nonnull 
-			protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
-			/** The notification semaphore. */
-			@Nonnull 
-			protected final Semaphore semaphore = new Semaphore(0, R4JConfigManager.get().useFairLocks());
-			@GuardedBy("lock")
-			protected boolean iteratorIsWaiting;
-			@GuardedBy("lock")
-			protected T value;
-			@GuardedBy("lock")
-			protected Throwable error;
-			@GuardedBy("lock")
-			@Nonnull 
-			protected ObservationKind kind;
-			@Override
-			public void next(T value) {
-				set(ObservationKind.NEXT, value, null);
-			}
+    @Override
+    @Nonnull 
+    protected ObserverToIteratorSink<T, T> run(@Nonnull Closeable handle) {
+        return new ObserverToIteratorSink<T, T>(handle) {
+            /** The lock guarding the data exchange. */
+            @Nonnull 
+            protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
+            /** The notification semaphore. */
+            @Nonnull 
+            protected final Semaphore semaphore = new Semaphore(0, R4JConfigManager.get().useFairLocks());
+            @GuardedBy("lock")
+            protected boolean iteratorIsWaiting;
+            @GuardedBy("lock")
+            protected T value;
+            @GuardedBy("lock")
+            protected Throwable error;
+            @GuardedBy("lock")
+            @Nonnull 
+            protected ObservationKind kind;
+            @Override
+            public void next(T value) {
+                set(ObservationKind.NEXT, value, null);
+            }
 
-			@Override
-			public void error(@Nonnull Throwable ex) {
-				done();
-				set(ObservationKind.ERROR, null, ex);
-			}
+            @Override
+            public void error(@Nonnull Throwable ex) {
+                done();
+                set(ObservationKind.ERROR, null, ex);
+            }
 
-			@Override
-			public void finish() {
-				done();
-				set(ObservationKind.FINISH, null, null);
-			}
-			/**
-			 * Atomically sets the current event values
-			 * if there is an iterator waiting for a value.
-			 * @param kind the event kind
-			 * @param value the potential value
-			 * @param error the potential error
-			 */
-			protected void set(ObservationKind kind, T value, Throwable error) {
-				lock.lock();
-				try {
-					if (iteratorIsWaiting) {
-						this.kind = kind;
-						this.value = value;
-						this.error = error;
-						
-						semaphore.release();
-					}
-					iteratorIsWaiting = false;
-				} finally {
-					lock.unlock();
-				}
-			}
-			@Override
-			public boolean tryNext(@Nonnull SingleOption<? super T> out) {
-				boolean finished = false;
-				
-				lock.lock();
-				try {
-					iteratorIsWaiting = true;
-					
-					finished = kind != ObservationKind.NEXT;
-				} finally {
-					lock.unlock();
-				}
-				
-				if (!finished) {
-					try {
-						semaphore.acquire();
-					} catch (InterruptedException ex) {
-						out.addError(ex);
-						return true;
-					}
-				}
-				
-				T v = null;
-				Throwable e = null;
-				ObservationKind k = null;
-				
-				lock.lock();
-				try {
-					v = value;
-					e = error;
-					k = kind;
-				} finally {
-					lock.unlock();
-				}
-				
-				switch (k) {
-				case NEXT:
-					out.add(v);
-					return true;
-				case ERROR:
-					out.addError(e);
-					return true;
-				default:
-				}
-				
-				return false;
-			}
-			
-		};
-	}
+            @Override
+            public void finish() {
+                done();
+                set(ObservationKind.FINISH, null, null);
+            }
+            /**
+             * Atomically sets the current event values
+             * if there is an iterator waiting for a value.
+             * @param kind the event kind
+             * @param value the potential value
+             * @param error the potential error
+             */
+            protected void set(ObservationKind kind, T value, Throwable error) {
+                lock.lock();
+                try {
+                    if (iteratorIsWaiting) {
+                        this.kind = kind;
+                        this.value = value;
+                        this.error = error;
+                        
+                        semaphore.release();
+                    }
+                    iteratorIsWaiting = false;
+                } finally {
+                    lock.unlock();
+                }
+            }
+            @Override
+            public boolean tryNext(@Nonnull SingleOption<? super T> out) {
+                boolean finished = false;
+                
+                lock.lock();
+                try {
+                    iteratorIsWaiting = true;
+                    
+                    finished = kind != ObservationKind.NEXT;
+                } finally {
+                    lock.unlock();
+                }
+                
+                if (!finished) {
+                    try {
+                        semaphore.acquire();
+                    } catch (InterruptedException ex) {
+                        out.addError(ex);
+                        return true;
+                    }
+                }
+                
+                T v = null;
+                Throwable e = null;
+                ObservationKind k = null;
+                
+                lock.lock();
+                try {
+                    v = value;
+                    e = error;
+                    k = kind;
+                } finally {
+                    lock.unlock();
+                }
+                
+                switch (k) {
+                case NEXT:
+                    out.add(v);
+                    return true;
+                case ERROR:
+                    out.addError(e);
+                    return true;
+                default:
+                }
+                
+                return false;
+            }
+            
+        };
+    }
 
 }

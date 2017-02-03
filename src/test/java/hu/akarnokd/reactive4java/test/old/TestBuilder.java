@@ -28,83 +28,83 @@ import hu.akarnokd.reactive4java.util.Lambdas;
  */
 public final class TestBuilder {
 
-	/** Utility class. */
-	private TestBuilder() {
-	}
+    /** Utility class. */
+    private TestBuilder() {
+    }
 
-	/**
-	 * @param args no arguments
-	 */
-	public static void main(String[] args) {
-		// return a single element
-		IterableBuilder.from(1).print();
-		// return a range
-		IterableBuilder.range(0, 10).print();
-		// combine two iterables
-		IterableBuilder.from(0).concat(IterableBuilder.range(1, 9)).print();
-		// return multiple things for a single thing
-		
-		IterableBuilder.range(0, 10).selectMany(
-		new Func1<Integer, Iterable<Integer>>() {
-			@Override
-	        public Iterable<Integer> invoke(Integer param) {
-	            return Interactive.range(0, param + 1);
-	        }
-	    }).print();
-		
-		// classic query
-		IterableBuilder.range(0, 10)
-		.where(new Pred1<Integer>() {
-			@Override
-			public Boolean invoke(Integer param1) {
-				return param1 % 2 == 0;
-			} })
-		.select(new Func1<Integer, Integer>() {
-			@Override
-			public Integer invoke(Integer param1) {
-				return param1 * param1;
-			} })
-		.print();
-		
-		// lambda functions via scripting
-		IterableBuilder.range(0, 10).where(
-				Lambdas.<Integer, Boolean>js1("o => o % 2 == 0"))
-				.print();
-		
-		// return a single element
-		ObservableBuilder.from(1).print();
-		// return a range
-		ObservableBuilder.range(0, 10).print();
-		// combine two iterables
-		ObservableBuilder.from(0).concat(ObservableBuilder.range(1, 9)).print();
-		// return multiple things for a single thing
-		
-		ObservableBuilder.range(0, 10).selectMany(
-		new Func1<Integer, ObservableBuilder<Integer>>() {
-			@Override
-	        public ObservableBuilder<Integer> invoke(Integer param) {
-	            return ObservableBuilder.range(0, param + 1);
-	        }
-	    }).print();
-		
-		// classic query
-		ObservableBuilder.range(0, 10)
-		.where(new Pred1<Integer>() {
-			@Override
-			public Boolean invoke(Integer param1) {
-				return param1 % 2 == 0;
-			} })
-		.select(new Func1<Integer, Integer>() {
-			@Override
-			public Integer invoke(Integer param1) {
-				return param1 * param1;
-			} })
-		.print();
-		
-		// lambda functions via scripting
-		ObservableBuilder.range(0, 10).where(
-				Lambdas.<Integer, Boolean>js1("o => o % 2 == 0"))
-				.print();
-	}
+    /**
+     * @param args no arguments
+     */
+    public static void main(String[] args) {
+        // return a single element
+        IterableBuilder.from(1).print();
+        // return a range
+        IterableBuilder.range(0, 10).print();
+        // combine two iterables
+        IterableBuilder.from(0).concat(IterableBuilder.range(1, 9)).print();
+        // return multiple things for a single thing
+        
+        IterableBuilder.range(0, 10).selectMany(
+        new Func1<Integer, Iterable<Integer>>() {
+            @Override
+            public Iterable<Integer> invoke(Integer param) {
+                return Interactive.range(0, param + 1);
+            }
+        }).print();
+        
+        // classic query
+        IterableBuilder.range(0, 10)
+        .where(new Pred1<Integer>() {
+            @Override
+            public Boolean invoke(Integer param1) {
+                return param1 % 2 == 0;
+            } })
+        .select(new Func1<Integer, Integer>() {
+            @Override
+            public Integer invoke(Integer param1) {
+                return param1 * param1;
+            } })
+        .print();
+        
+        // lambda functions via scripting
+        IterableBuilder.range(0, 10).where(
+                Lambdas.<Integer, Boolean>js1("o => o % 2 == 0"))
+                .print();
+        
+        // return a single element
+        ObservableBuilder.from(1).print();
+        // return a range
+        ObservableBuilder.range(0, 10).print();
+        // combine two iterables
+        ObservableBuilder.from(0).concat(ObservableBuilder.range(1, 9)).print();
+        // return multiple things for a single thing
+        
+        ObservableBuilder.range(0, 10).selectMany(
+        new Func1<Integer, ObservableBuilder<Integer>>() {
+            @Override
+            public ObservableBuilder<Integer> invoke(Integer param) {
+                return ObservableBuilder.range(0, param + 1);
+            }
+        }).print();
+        
+        // classic query
+        ObservableBuilder.range(0, 10)
+        .where(new Pred1<Integer>() {
+            @Override
+            public Boolean invoke(Integer param1) {
+                return param1 % 2 == 0;
+            } })
+        .select(new Func1<Integer, Integer>() {
+            @Override
+            public Integer invoke(Integer param1) {
+                return param1 * param1;
+            } })
+        .print();
+        
+        // lambda functions via scripting
+        ObservableBuilder.range(0, 10).where(
+                Lambdas.<Integer, Boolean>js1("o => o % 2 == 0"))
+                .print();
+    }
 
 }

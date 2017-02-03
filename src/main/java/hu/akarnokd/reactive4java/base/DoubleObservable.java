@@ -28,11 +28,11 @@ import javax.annotation.Nonnull;
  * @since 0.97
  */
 public interface DoubleObservable {
-	/**
-	 * Registers an observer for the notification of Ts.
-	 * @param observer the observer of Ts or any supertype of it
-	 * @return the way of deregister the observer from this provider
-	 */
-	@Nonnull 
-	Closeable register(@Nonnull DoubleObserver observer);
+    /**
+     * Registers an observer for the notification of Ts.
+     * @param observer the observer of Ts or any supertype of it
+     * @return the way of deregister the observer from this provider
+     */
+    @Nonnull 
+    Closeable register(@Nonnull DoubleObserver observer);
 }

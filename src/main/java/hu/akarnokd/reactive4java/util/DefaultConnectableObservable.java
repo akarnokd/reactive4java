@@ -38,96 +38,96 @@ import javax.annotation.concurrent.GuardedBy;
  * @since 0.97
  */
 public class DefaultConnectableObservable<T, U> implements
-		ConnectableObservable<U> {
-	/** The subject that is connected to the source. */
-	@Nonnull 
-	protected final Subject<? super T, ? extends U> subject;
-	/** The source observable. */
-	@Nonnull 
-	protected final Observable<? extends T> source;
-	/** The lock. */
-	@Nonnull 
-	protected final Lock lock;
-	/** The active connection's close reference. */
-	@GuardedBy("lock")
-	@Nullable
-	protected Closeable connection;
-	/**
-	 * Creates an observable which can be connected and disconnected from the source.
-	 * <p>Uses fair ReentrantLock.</p>
-	 * @param source the underlying observable source of Ts
-	 * @param subject the observer that receives values from the source in case it is connected
-	 */
-	public DefaultConnectableObservable(
-			@Nonnull Observable<? extends T> source, 
-			@Nonnull Subject<? super T, ? extends U> subject) {
-		this(source, subject, new ReentrantLock(R4JConfigManager.get().useFairLocks()));
-	}
-	/**
-	 * Creates an observable which can be connected and disconnected from the source.
-	 * @param source the underlying observable source of Ts
-	 * @param subject the observer that receives values from the source in case it is connected
-	 * @param lock the lock to use
-	 */
-	public DefaultConnectableObservable(
-			@Nonnull Observable<? extends T> source, 
-			@Nonnull Subject<? super T, ? extends U> subject, 
-			@Nonnull Lock lock) {
-		this.subject = subject;
-		this.source = source;
-		this.lock = lock;
-		
-	}
-	@Override
-	public Closeable connect() {
-		lock.lock();
-		try {
-			if (connection == null) {
-				final Closeable c = source.register(subject);
-				connection = new InnerConnection(c);
-			}
-			return connection;
-		} finally {
-			lock.unlock();
-		}
-	}
-	@Override
-	@Nonnull
-	public Closeable register(@Nonnull Observer<? super U> observer) {
-		return subject.register(observer);
-	}
-	/**
-	 * The inner connection that nulls out the 
-	 * parent class' connection and deregisters the subject, but only once.
-	 * @author akarnokd, 2013.01.09.
-	 */
-	protected class InnerConnection implements Closeable {
-		/** The subject's close handler. */
-		@Nonnull 
-		protected Closeable c;
-		/**
-		 * Constructor. Stores the subject's close handler.
-		 * @param c the closeable
-		 */
-		public InnerConnection(@Nonnull Closeable c) {
-			this.c = c;
-		}
-		@Override
-		public void close() throws IOException {
-			Closeable toClose = null;
-			lock.lock();
-			try {
-				if (c != null) {
-					toClose = c;
-					c = null;
-					connection = null;
-				}
-			} finally {
-				lock.unlock();
-			}
-			if (toClose != null) {
-				toClose.close();
-			}
-		}
-	}
+        ConnectableObservable<U> {
+    /** The subject that is connected to the source. */
+    @Nonnull 
+    protected final Subject<? super T, ? extends U> subject;
+    /** The source observable. */
+    @Nonnull 
+    protected final Observable<? extends T> source;
+    /** The lock. */
+    @Nonnull 
+    protected final Lock lock;
+    /** The active connection's close reference. */
+    @GuardedBy("lock")
+    @Nullable
+    protected Closeable connection;
+    /**
+     * Creates an observable which can be connected and disconnected from the source.
+     * <p>Uses fair ReentrantLock.</p>
+     * @param source the underlying observable source of Ts
+     * @param subject the observer that receives values from the source in case it is connected
+     */
+    public DefaultConnectableObservable(
+            @Nonnull Observable<? extends T> source, 
+            @Nonnull Subject<? super T, ? extends U> subject) {
+        this(source, subject, new ReentrantLock(R4JConfigManager.get().useFairLocks()));
+    }
+    /**
+     * Creates an observable which can be connected and disconnected from the source.
+     * @param source the underlying observable source of Ts
+     * @param subject the observer that receives values from the source in case it is connected
+     * @param lock the lock to use
+     */
+    public DefaultConnectableObservable(
+            @Nonnull Observable<? extends T> source, 
+            @Nonnull Subject<? super T, ? extends U> subject, 
+            @Nonnull Lock lock) {
+        this.subject = subject;
+        this.source = source;
+        this.lock = lock;
+        
+    }
+    @Override
+    public Closeable connect() {
+        lock.lock();
+        try {
+            if (connection == null) {
+                final Closeable c = source.register(subject);
+                connection = new InnerConnection(c);
+            }
+            return connection;
+        } finally {
+            lock.unlock();
+        }
+    }
+    @Override
+    @Nonnull
+    public Closeable register(@Nonnull Observer<? super U> observer) {
+        return subject.register(observer);
+    }
+    /**
+     * The inner connection that nulls out the 
+     * parent class' connection and deregisters the subject, but only once.
+     * @author akarnokd, 2013.01.09.
+     */
+    protected class InnerConnection implements Closeable {
+        /** The subject's close handler. */
+        @Nonnull 
+        protected Closeable c;
+        /**
+         * Constructor. Stores the subject's close handler.
+         * @param c the closeable
+         */
+        public InnerConnection(@Nonnull Closeable c) {
+            this.c = c;
+        }
+        @Override
+        public void close() throws IOException {
+            Closeable toClose = null;
+            lock.lock();
+            try {
+                if (c != null) {
+                    toClose = c;
+                    c = null;
+                    connection = null;
+                }
+            } finally {
+                lock.unlock();
+            }
+            if (toClose != null) {
+                toClose.close();
+            }
+        }
+    }
 }

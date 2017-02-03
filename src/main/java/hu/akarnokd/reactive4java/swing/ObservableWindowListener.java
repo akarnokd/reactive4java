@@ -57,118 +57,118 @@ import javax.annotation.Nonnull;
  */
 public class ObservableWindowListener extends DefaultObservable<WindowEvent> implements WindowListener, WindowFocusListener, WindowStateListener {
 
-	@Override
-	public void windowStateChanged(WindowEvent e) {
-		next(e);
-	}
+    @Override
+    public void windowStateChanged(WindowEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void windowGainedFocus(WindowEvent e) {
-		next(e);
-	}
+    @Override
+    public void windowGainedFocus(WindowEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void windowLostFocus(WindowEvent e) {
-		next(e);
-	}
+    @Override
+    public void windowLostFocus(WindowEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void windowOpened(WindowEvent e) {
-		next(e);
-	}
+    @Override
+    public void windowOpened(WindowEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void windowClosing(WindowEvent e) {
-		next(e);
-	}
+    @Override
+    public void windowClosing(WindowEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void windowClosed(WindowEvent e) {
-		next(e);
-	}
+    @Override
+    public void windowClosed(WindowEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void windowIconified(WindowEvent e) {
-		next(e);
-	}
+    @Override
+    public void windowIconified(WindowEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void windowDeiconified(WindowEvent e) {
-		next(e);
-	}
+    @Override
+    public void windowDeiconified(WindowEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void windowActivated(WindowEvent e) {
-		next(e);
-	}
+    @Override
+    public void windowActivated(WindowEvent e) {
+        next(e);
+    }
 
-	@Override
-	public void windowDeactivated(WindowEvent e) {
-		next(e);
-	}
-	/**
-	 * Convenience method to register an observer on the component for all window event types.
-	 * To unregister, use the <code>Component.removeMouseListener()</code>, <code>Component.removeMouseMotionListener()</code> and
-	 * <code>Component.removeMouseWheelListener()</code> methods. 
-	 * @param component the target component.
-	 * @return the new observable
-	 */
-	@Nonnull 
-	public static ObservableWindowListener register(@Nonnull Window component) {
-		return new ObservableWindowListener().registerWith(component);
-	}
-	/**
-	 * Convenience method to register this observer with the target component for all window event types.
-	 * To deregister this observable, use the <code>unregisterFrom()</code>.
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableWindowListener registerWith(@Nonnull Window component) {
-		return registerWith(component, true, true, true);
-	}
-	/**
-	 * Convenience method to register this observer with the target component for any window event types.
-	 * To deregister this observable, use the <code>unregisterFrom()</code>.
-	 * @param component the target component
-	 * @param normal register for normal events?
-	 * @param focus register for focus events?
-	 * @param state register for state events?
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableWindowListener registerWith(
-			@Nonnull Window component, 
-			boolean normal, 
-			boolean focus, 
-			boolean state) {
-		if (component == null) {
-			throw new IllegalArgumentException("component is null");
-		}
-		if (normal) {
-			component.addWindowListener(this);
-		}
-		if (focus) {
-			component.addWindowFocusListener(this);
-		}
-		if (state) {
-			component.addWindowStateListener(this);
-		}
-		return this;
-	}
-	/**
-	 * Unregister all window events from the given component.
-	 * @param component the target component
-	 * @return this
-	 */
-	@Nonnull 
-	public ObservableWindowListener unregisterFrom(@Nonnull Window component) {
-		if (component == null) {
-			throw new IllegalArgumentException("component is null");
-		}
-		component.removeWindowListener(this);
-		component.removeWindowFocusListener(this);
-		component.removeWindowStateListener(this);
-		return this;
-	}
+    @Override
+    public void windowDeactivated(WindowEvent e) {
+        next(e);
+    }
+    /**
+     * Convenience method to register an observer on the component for all window event types.
+     * To unregister, use the <code>Component.removeMouseListener()</code>, <code>Component.removeMouseMotionListener()</code> and
+     * <code>Component.removeMouseWheelListener()</code> methods. 
+     * @param component the target component.
+     * @return the new observable
+     */
+    @Nonnull 
+    public static ObservableWindowListener register(@Nonnull Window component) {
+        return new ObservableWindowListener().registerWith(component);
+    }
+    /**
+     * Convenience method to register this observer with the target component for all window event types.
+     * To deregister this observable, use the <code>unregisterFrom()</code>.
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableWindowListener registerWith(@Nonnull Window component) {
+        return registerWith(component, true, true, true);
+    }
+    /**
+     * Convenience method to register this observer with the target component for any window event types.
+     * To deregister this observable, use the <code>unregisterFrom()</code>.
+     * @param component the target component
+     * @param normal register for normal events?
+     * @param focus register for focus events?
+     * @param state register for state events?
+     * @return this
+     */
+    @Nonnull 
+    public ObservableWindowListener registerWith(
+            @Nonnull Window component, 
+            boolean normal, 
+            boolean focus, 
+            boolean state) {
+        if (component == null) {
+            throw new IllegalArgumentException("component is null");
+        }
+        if (normal) {
+            component.addWindowListener(this);
+        }
+        if (focus) {
+            component.addWindowFocusListener(this);
+        }
+        if (state) {
+            component.addWindowStateListener(this);
+        }
+        return this;
+    }
+    /**
+     * Unregister all window events from the given component.
+     * @param component the target component
+     * @return this
+     */
+    @Nonnull 
+    public ObservableWindowListener unregisterFrom(@Nonnull Window component) {
+        if (component == null) {
+            throw new IllegalArgumentException("component is null");
+        }
+        component.removeWindowListener(this);
+        component.removeWindowFocusListener(this);
+        component.removeWindowStateListener(this);
+        return this;
+    }
 }

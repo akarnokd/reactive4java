@@ -26,14 +26,14 @@ import org.junit.Test;
  * @author akarnokd, 2013.11.24.
  */
 public class TestReactiveRepeat {
-	/** Test the early termination of repeat through take. */
-	@Test/*(timeout = 1000)*/
-	public void testTakeSome() {
-		Observable<Integer> source = Reactive.take(Reactive.repeat(
-				Reactive.just(1), Integer.MAX_VALUE), 100);
-		
-		Iterable<Integer> expected = Interactive.repeat(1, 100);
-		TestUtil.assertEqual(expected, source);
-	}
+    /** Test the early termination of repeat through take. */
+    @Test/*(timeout = 1000)*/
+    public void testTakeSome() {
+        Observable<Integer> source = Reactive.take(Reactive.repeat(
+                Reactive.just(1), Integer.MAX_VALUE), 100);
+        
+        Iterable<Integer> expected = Interactive.repeat(1, 100);
+        TestUtil.assertEqual(expected, source);
+    }
 
 }

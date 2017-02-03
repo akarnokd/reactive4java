@@ -35,79 +35,79 @@ import javax.annotation.concurrent.GuardedBy;
  * @since 0.97
  */
 public class SequentialCloseable implements Closeable, Cancelable {
-	/** The lock guarding the contents. */
-	protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
-	/** The current closeable. */
-	@GuardedBy("lock")
-	protected Closeable current;
-	/** Indicate that this container was closed. */
-	@GuardedBy("lock")
-	protected boolean done;
-	@Override
-	public void close() throws IOException {
-		Closeable c = null;
-		lock.lock();
-		try {
-			if (!done) {
-				done = true;
-				c = current;
-				current = null;
-			}
-		} finally {
-			lock.unlock();
-		}
-		if (c != null) {
-			c.close();
-		}
-	}
-	/**
-	 * @return the currently managed closeable
-	 */
-	@Nullable
-	public Closeable get() {
-		lock.lock();
-		try {
-			return current;
-		} finally {
-			lock.unlock();
-		}
-	}
-	/**
-	 * Replaces the current closeable with the new closeable.
-	 * The old closeable is closed.
-	 * If the container is already closed, the c will
-	 * be closed immediately.
-	 * @param c the closeable
-	 */
-	public void set(@Nullable Closeable c) {
-		Closeable old = null;
-		boolean isDone = false;
-		lock.lock();
-		try {
-			isDone = done;
-			if (!done) {
-				old = current;
-				current = c;
-			}
-		} finally {
-			lock.unlock();
-		}
-		Closeables.closeSilently(old);
-		if (isDone && c != null) {
-			Closeables.closeSilently(c);
-		}
-	}
-	@Override
-	public boolean isClosed() {
-		lock.lock();
-		try {
-			return done;
-		} finally {
-			lock.unlock();
-		}
-	}
-	/** Closes this container silently. */
-	public void closeSilently() {
-		Closeables.closeSilently(this);
-	}
+    /** The lock guarding the contents. */
+    protected final Lock lock = new ReentrantLock(R4JConfigManager.get().useFairLocks());
+    /** The current closeable. */
+    @GuardedBy("lock")
+    protected Closeable current;
+    /** Indicate that this container was closed. */
+    @GuardedBy("lock")
+    protected boolean done;
+    @Override
+    public void close() throws IOException {
+        Closeable c = null;
+        lock.lock();
+        try {
+            if (!done) {
+                done = true;
+                c = current;
+                current = null;
+            }
+        } finally {
+            lock.unlock();
+        }
+        if (c != null) {
+            c.close();
+        }
+    }
+    /**
+     * @return the currently managed closeable
+     */
+    @Nullable
+    public Closeable get() {
+        lock.lock();
+        try {
+            return current;
+        } finally {
+            lock.unlock();
+        }
+    }
+    /**
+     * Replaces the current closeable with the new closeable.
+     * The old closeable is closed.
+     * If the container is already closed, the c will
+     * be closed immediately.
+     * @param c the closeable
+     */
+    public void set(@Nullable Closeable c) {
+        Closeable old = null;
+        boolean isDone = false;
+        lock.lock();
+        try {
+            isDone = done;
+            if (!done) {
+                old = current;
+                current = c;
+            }
+        } finally {
+            lock.unlock();
+        }
+        Closeables.closeSilently(old);
+        if (isDone && c != null) {
+            Closeables.closeSilently(c);
+        }
+    }
+    @Override
+    public boolean isClosed() {
+        lock.lock();
+        try {
+            return done;
+        } finally {
+            lock.unlock();
+        }
+    }
+    /** Closes this container silently. */
+    public void closeSilently() {
+        Closeables.closeSilently(this);
+    }
 }

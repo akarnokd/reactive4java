@@ -24,6 +24,6 @@ package hu.akarnokd.reactive4java.base;
  * @param <Value> the value type
  */
 public interface GroupedObservable<Key, Value> extends Observable<Value> {
-	/** @return the key of this group. */
-	Key key();
+    /** @return the key of this group. */
+    Key key();
 }

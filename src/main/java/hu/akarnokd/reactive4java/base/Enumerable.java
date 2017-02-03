@@ -29,7 +29,7 @@ import javax.annotation.Nonnull;
  * @author akarnokd, 2011.02.04.
  */
 public interface Enumerable<T> {
-	/** @return the enumerator. */
-	@Nonnull
-	Enumerator<T> enumerator();
+    /** @return the enumerator. */
+    @Nonnull
+    Enumerator<T> enumerator();
 }
