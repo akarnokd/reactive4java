@@ -1,0 +1,22 @@
+*.class
+
+# Package Files #
+*.jar
+*.war
+*.ear
+/build/
+
+.gradle
+.m2
+/.nb-gradle/
+/bin/
+.settings/
+.nb-gradle-properties
+.classpath
+.project
+.settings
+.metadata
+.checkstyle
+bin/
+!/gradle/wrapper/gradle-wrapper.jar
+.idea
