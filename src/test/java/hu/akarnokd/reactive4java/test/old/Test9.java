@@ -20,6 +20,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import hu.akarnokd.reactive4java.util.SuppressAnimalSniffer;
+
 
 /**
  * Test Reactive operators, 9.
@@ -37,6 +39,7 @@ public final class Test9 {
      * @param args no arguments
      * @throws Exception on error
      */
+    @SuppressAnimalSniffer
     public static void main(String[] args) throws Exception {
         ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
         scheduler.setKeepAliveTime(1, TimeUnit.SECONDS);
