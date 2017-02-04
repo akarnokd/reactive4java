@@ -47,7 +47,6 @@ public class TestReactiveTake {
      * Tests takeLast().
      */
     @Test
-    @Ignore // FIXME bug in concat
     public void takeLastOk() {
         Observable<Integer> prefix = from(1, 2);
         Observable<Integer> postfix = from(3, 4);

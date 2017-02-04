@@ -115,7 +115,6 @@ public class TestReactiveSequenceEqual {
      * Tests the commutativity of sequenceEqual().
      */
     @Test
-    @Ignore // FIXME skip due to ancient bugs
     public void sequenceEqualCommutative() {
         Observable<Integer> prefix = from(1, 2);
         Observable<Integer> o = concat(prefix, from(3, 4));
@@ -132,7 +131,6 @@ public class TestReactiveSequenceEqual {
      * Tests sequenceEqual() in case of different sequences.
      */
     @Test
-    @Ignore // FIXME appears to be a bug
     public void sequenceEqualNotBecauseJustPrefix() {
         Observable<Integer> prefix = from(1, 2);
         Observable<Integer> o = concat(prefix, from(3, 4));

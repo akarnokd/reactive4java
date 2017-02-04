@@ -15,20 +15,13 @@
  */
 package hu.akarnokd.reactive4java.reactive;
 
-import hu.akarnokd.reactive4java.base.Func1;
-import hu.akarnokd.reactive4java.base.Func2;
-import hu.akarnokd.reactive4java.base.Observable;
-import hu.akarnokd.reactive4java.base.Observer;
-import hu.akarnokd.reactive4java.util.Closeables;
-import hu.akarnokd.reactive4java.util.DefaultObserver;
-import hu.akarnokd.reactive4java.util.DefaultObserverEx;
-
-import java.io.Closeable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.io.*;
+import java.util.concurrent.atomic.*;
 
 import javax.annotation.Nonnull;
+
+import hu.akarnokd.reactive4java.base.*;
+import hu.akarnokd.reactive4java.util.*;
 
 /**
  * Helper class for Reactive.selectMany operators.
@@ -88,7 +81,8 @@ public final class SelectMany {
                 @Override
                 public void next(T value) {
                     for (U u : selector.invoke(value)) {
-                        observer.next(resultSelector.invoke(value, u));                    }
+                        observer.next(resultSelector.invoke(value, u));
+                    }
                 }
 
             });
@@ -130,72 +124,104 @@ public final class SelectMany {
         @Override
         @Nonnull 
         public Closeable register(@Nonnull final Observer<? super V> observer) {
-            DefaultObserverEx<T> obs = new DefaultObserverEx<T>(false) {
-                /** The work in progress counter. */
-                final AtomicInteger wip = new AtomicInteger(1);
-                /** The active observers. */
-                final Map<DefaultObserver<? extends U>, Closeable> active = new HashMap<DefaultObserver<? extends U>, Closeable>();
+            Main m = new Main(observer);
+            
+            m.cc.add(source.register(m));
+            
+            return m;
+        }
+
+        final class Main implements Observer<T>, Closeable {
+            final Observer<? super V> observer;
+            
+            final CompositeCloseable cc = new CompositeCloseable();
+            
+            AtomicInteger wip = new AtomicInteger(1);
+
+            Main(Observer<? super V> observer) {
+                this.observer = observer;
+            }
+            
+            @Override
+            public void error(Throwable ex) {
+                synchronized (this) {
+                    observer.error(ex);
+                }
+                cc.closeSilently();
+            }
+
+            @Override
+            public void finish() {
+                if (wip.decrementAndGet() == 0) {
+                    observer.finish();
+                }
+            }
+            
+            void innerNext(T t, U u) {
+                V v = resultSelector.invoke(t, u);
+                synchronized (this) {
+                    observer.next(v);
+                }
+            }
+
+            @Override
+            public void next(T value) {
+                Observable<? extends U> obs = collectionSelector.invoke(value);
+
+                Inner inner = new Inner(value);
+                cc.add(inner);
+                wip.getAndIncrement();
+                
+                Closeable c = obs.register(inner);
+                inner.setCloseable(c);
+            }
+            
+            @Override
+            public void close() throws IOException {
+                cc.close();
+            }
+            
+            final class Inner extends AtomicReference<Closeable> implements Observer<U>, Closeable {
+
+                private static final long serialVersionUID = 5850767581654640520L;
+
+                final T inputValue;
+                
+                Inner(T inputValue) {
+                    this.inputValue = inputValue;
+                }
+                
                 @Override
-                protected void onClose() {
-                    for (Closeable c : active.values()) {
+                public void error(Throwable ex) {
+                    Main.this.error(ex);
+                }
+
+                @Override
+                public void finish() {
+                    Main.this.finish();
+                    cc.delete(this);
+                }
+
+                @Override
+                public void next(U value) {
+                    Main.this.innerNext(inputValue, value);
+                }
+                
+                @Override
+                public void close() throws IOException {
+                    Closeable c = getAndSet(this);
+                    if (c != null && c != this) {
+                        c.close();
+                    }
+                }
+                
+                void setCloseable(Closeable c) {
+                    if (!compareAndSet(null, c)) {
                         Closeables.closeSilently(c);
                     }
                 }
-
-                @Override
-                public void onError(@Nonnull Throwable ex) {
-                    observer.error(ex);
-                    close();
-                }
-                @Override
-                public void onFinish() {
-                    onLast();
-                }
-                /**
-                 * The error signal from the inner.
-                 * @param ex the exception
-                 */
-                void onInnerError(Throwable ex) {
-                    onError(ex);
-                }
-                /** The last one will signal a finish. */
-                public void onLast() {
-                    if (wip.decrementAndGet() == 0) {
-                        observer.finish();
-                        close();
-                    }
-                }
-                @Override
-                public void onNext(final T t) {
-                    Observable<? extends U> sub = collectionSelector.invoke(t);
-                    DefaultObserver<U> o = new DefaultObserver<U>(lock, true) {
-                        @Override
-                        protected void onClose() {
-                            active.remove(this);
-                        }
-
-                        @Override
-                        protected void onError(@Nonnull Throwable ex) {
-                            onInnerError(ex);
-                            close();
-                        }
-
-                        @Override
-                        protected void onFinish() {
-                            onLast();
-                            close();
-                        }
-                        @Override
-                        protected void onNext(U u) {
-                            observer.next(resultSelector.invoke(t, u));
-                        }
-                    };
-                    wip.incrementAndGet();
-                    active.put(o, sub.register(o));
-                }
-            };
-            return obs.registerWith(source);
-        }
+            }
+        };
     }
 
 }

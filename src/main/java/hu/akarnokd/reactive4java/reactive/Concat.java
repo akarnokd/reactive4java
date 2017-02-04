@@ -15,20 +15,15 @@
  */
 package hu.akarnokd.reactive4java.reactive;
 
-import hu.akarnokd.reactive4java.base.Func1;
-import hu.akarnokd.reactive4java.base.Func2;
-import hu.akarnokd.reactive4java.base.Observable;
-import hu.akarnokd.reactive4java.base.Observer;
-import hu.akarnokd.reactive4java.util.DefaultObserver;
-import hu.akarnokd.reactive4java.util.DefaultObserverEx;
-
-import java.io.Closeable;
+import java.io.*;
 import java.util.Iterator;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.*;
 
 import javax.annotation.Nonnull;
-import javax.annotation.concurrent.GuardedBy;
+
+import hu.akarnokd.reactive4java.base.*;
+import hu.akarnokd.reactive4java.util.*;
 
 /**
  * Contains implementation classes for concatenating
@@ -74,35 +69,92 @@ public final class Concat {
             @Override
             @Nonnull
             public Closeable register(@Nonnull final Observer<? super U> observer) {
-                final Iterator<? extends T> it = source.iterator();
-                DefaultObserverEx<U> obs = new DefaultObserverEx<U>(false) {
+                ConcatCoordinator cc = new ConcatCoordinator(observer, source.iterator());
+                cc.nextSource();
+                return cc;
+            }
+            
+            final class ConcatCoordinator extends AtomicInteger implements Closeable {
+                private static final long serialVersionUID = 8191337311454897333L;
+
+                final Observer<? super U> actual;
+
+                final Iterator<? extends T> it;
+                
+                final CompositeCloseable cc;
+                
+                volatile boolean active;
+                
+                ConcatCoordinator(Observer<? super U> actual, Iterator<? extends T> it) {
+                    this.actual = actual;
+                    this.it = it;
+                    this.cc = new CompositeCloseable();
+                    if (it instanceof Closeable) {
+                        cc.add((Closeable)it);
+                    }
+                }
+                
+                void nextSource() {
+                    active = false;
+                    if (getAndIncrement() == 0) {
+                        do {
+                            if (!active) {
+                                if (it.hasNext()) {
+                                    T v = it.next();
+                                    
+                                    Observable<? extends U> o = resultSelector.invoke(v);
+                                    Inner inner = new Inner();
+                                    cc.add(inner);
+                                    active = true;
+                                    o.register(inner);
+                                } else {
+                                    actual.finish();
+                                    return;
+                                }
+                            }
+                        } while (decrementAndGet() != 0);
+                    }
+                }
+                
+                @Override
+                public void close() throws IOException {
+                    cc.close();
+                }
+                
+                final class Inner extends AtomicReference<Closeable> implements Observer<U>, Closeable {
+
+                    private static final long serialVersionUID = -8839940547797423702L;
 
                     @Override
-                    protected void onNext(U value) {
-                        observer.next(value);
+                    public void error(Throwable ex) {
+                        actual.error(ex);
                     }
 
                     @Override
-                    protected void onError(@Nonnull Throwable ex) {
-                        observer.error(ex);
-                        close();
+                    public void finish() {
+                        cc.delete(this);
+                        nextSource();
                     }
 
                     @Override
-                    protected void onFinish() {
-                        if (it.hasNext()) {
-                            registerWith(resultSelector.invoke(it.next()));
-                        } else {
-                            observer.finish();
-                            close();
+                    public void next(U value) {
+                        actual.next(value);
+                    }
+                    
+                    @Override
+                    public void close() throws IOException {
+                        Closeable c = getAndSet(this);
+                        if (c != null && c != this) {
+                            c.close();
                         }
                     }
                     
-                };
-                if (it.hasNext()) {
-                    obs.registerWith(resultSelector.invoke(it.next()));
+                    void setCloseable(Closeable c) {
+                        if (!compareAndSet(null, c)) {
+                            Closeables.closeSilently(c);
+                        }
+                    }
                 }
-                return obs;
             }
         }
         /**
@@ -133,36 +185,95 @@ public final class Concat {
             @Override
             @Nonnull
             public Closeable register(@Nonnull final Observer<? super U> observer) {
-                final Iterator<? extends T> it = source.iterator();
-                DefaultObserverEx<U> obs = new DefaultObserverEx<U>(false) {
-                    /** The running index for the selector. */
-                    int index = 1;
+                ConcatCoordinator cc = new ConcatCoordinator(observer, source.iterator());
+                cc.nextSource();
+                return cc;
+            }
+            
+            final class ConcatCoordinator extends AtomicInteger implements Closeable {
+                private static final long serialVersionUID = 8191337311454897333L;
+
+                final Observer<? super U> actual;
+
+                final Iterator<? extends T> it;
+                
+                final CompositeCloseable cc;
+                
+                volatile boolean active;
+                
+                int index;
+                
+                ConcatCoordinator(Observer<? super U> actual, Iterator<? extends T> it) {
+                    this.actual = actual;
+                    this.it = it;
+                    this.index = 1;
+                    this.cc = new CompositeCloseable();
+                    if (it instanceof Closeable) {
+                        cc.add((Closeable)it);
+                    }
+                }
+                
+                void nextSource() {
+                    active = false;
+                    if (getAndIncrement() == 0) {
+                        do {
+                            if (!active) {
+                                if (it.hasNext()) {
+                                    T v = it.next();
+                                    
+                                    Observable<? extends U> o = resultSelector.invoke(v, index++);
+                                    Inner inner = new Inner();
+                                    cc.add(inner);
+                                    active = true;
+                                    inner.setCloseable(o.register(inner));
+                                } else {
+                                    actual.finish();
+                                    return;
+                                }
+                            }
+                        } while (decrementAndGet() != 0);
+                    }
+                }
+                
+                @Override
+                public void close() throws IOException {
+                    cc.close();
+                }
+                
+                final class Inner extends AtomicReference<Closeable> implements Observer<U>, Closeable {
+
+                    private static final long serialVersionUID = -8839940547797423702L;
+
                     @Override
-                    protected void onNext(U value) {
-                        observer.next(value);
+                    public void error(Throwable ex) {
+                        actual.error(ex);
                     }
 
                     @Override
-                    protected void onError(@Nonnull Throwable ex) {
-                        observer.error(ex);
-                        close();
+                    public void finish() {
+                        cc.delete(this);
+                        nextSource();
                     }
 
                     @Override
-                    protected void onFinish() {
-                        if (it.hasNext()) {
-                            registerWith(resultSelector.invoke(it.next(), index++));
-                        } else {
-                            observer.finish();
-                            close();
+                    public void next(U value) {
+                        actual.next(value);
+                    }
+                    
+                    @Override
+                    public void close() throws IOException {
+                        Closeable c = getAndSet(this);
+                        if (c != null && c != this) {
+                            c.close();
                         }
                     }
                     
-                };
-                if (it.hasNext()) {
-                    obs.registerWith(resultSelector.invoke(it.next(), 0));
+                    void setCloseable(Closeable c) {
+                        if (!compareAndSet(null, c)) {
+                            Closeables.closeSilently(c);
+                        }
+                    }
                 }
-                return obs;
             }
         }
     }
@@ -203,76 +314,150 @@ public final class Concat {
             @Override
             @Nonnull 
             public Closeable register(@Nonnull final Observer<? super U> observer) {
-                final LinkedBlockingQueue<Observable<? extends T>> sourceQueue = new LinkedBlockingQueue<Observable<? extends T>>();
-                final AtomicInteger wip = new AtomicInteger(1);
-                DefaultObserverEx<Observable<? extends T>> o = new DefaultObserverEx<Observable<? extends T>>(true) {
-                    /** The first value arrived? */
-                    @GuardedBy("lock")
-                    boolean first;
-                    /**
-                     * The inner exception to forward.
-                     * @param ex the exception
-                     */
-                    void innerError(@Nonnull Throwable ex) {
-                        error(ex);
-                    }
-                    @Override
-                    protected void onError(@Nonnull Throwable ex) {
-                        observer.error(ex);
-                    }
-                    @Override
-                    protected void onFinish() {
-                        if (wip.decrementAndGet() == 0) {
-                            observer.finish();
-                        }
-                    }
-                    @Override
-                    protected void onNext(Observable<? extends T> value) {
-                        if (!first) {
-                            first = true;
-                            registerOn(value);
-                        } else {
-                            sourceQueue.add(value);
-                        }
-                    }
+                ConcatCoordinator cc = new ConcatCoordinator(observer);
+                cc.cc.add(sources.register(cc));
+                return cc;
+            }
+            
+            final class ConcatCoordinator extends AtomicInteger implements Observer<Observable<? extends T>>, Closeable {
+                private static final long serialVersionUID = 3501088403564290965L;
 
-                    void registerOn(@Nonnull Observable<? extends T> value) {
-                        wip.incrementAndGet();
-                        
-                        Observable<? extends U> source = resultSelector.invoke(value);
-                        
-                        add("source", source.register(new DefaultObserver<U>(lock, true) {
-                            @Override
-                            public void onError(@Nonnull Throwable ex) {
-                                innerError(ex);
-                            }
+                final Observer<? super U> actual;
+                
+                final CompositeCloseable cc;
+                
+                final ConcurrentLinkedQueue<Observable<? extends T>> queue;
+                
+                volatile boolean active;
+                boolean mainFailure;
+                volatile boolean done;
+                
+                ConcatCoordinator(Observer<? super U> actual) {
+                    this.actual = actual;
+                    this.cc = new CompositeCloseable();
+                    this.queue = new ConcurrentLinkedQueue<Observable<? extends T>>();
+                }
 
-                            @Override
-                            public void onFinish() {
-                                Observable<? extends T> nextO = sourceQueue.poll();
-                                if (nextO != null) {
-                                    registerOn(nextO);
-                                } else {
-                                    if (wip.decrementAndGet() == 0) {
-                                        observer.finish();
-                                        remove("source");
-                                    } else {
-                                        first = true;
-                                    }
+                @Override
+                public void error(Throwable ex) {
+                    cc.closeSilently();
+                    mainFailure = true;
+                    done = true;
+                    synchronized (this) {
+                        actual.error(ex);
+                    }
+                }
+                
+                void innerNext(U u) {
+                    if (done && mainFailure) {
+                        return;
+                    }
+                    synchronized (this) {
+                        if (done && mainFailure) {
+                            return;
+                        }
+                        actual.next(u);
+                    }
+                }
+
+                @Override
+                public void finish() {
+                    done = true;
+                    drain();
+                }
+
+                @Override
+                public void close() throws IOException {
+                    cc.close();
+                }
+
+                @Override
+                public void next(Observable<? extends T> value) {
+                    queue.offer(value);
+                    drain();
+                }
+                
+                void innerComplete() {
+                    active = false;
+                    drain();
+                }
+                
+                void innerError(Throwable ex) {
+                    cc.closeSilently();
+                    if (done && mainFailure) {
+                        return;
+                    }
+                    synchronized (this) {
+                        if (done && mainFailure) {
+                            return;
+                        }
+                        actual.error(ex);
+                    }
+                }
+                
+                void drain() {
+                    if (getAndIncrement() == 0) {
+                        do {
+                            if (!active) {
+                                boolean d = done;
+                                boolean err = mainFailure;
+                                Observable<? extends T> o = queue.poll();
+                                boolean empty = o == null;
+
+                                if (d && err) {
+                                    return;
+                                }
+                                
+                                if (d && empty) {
+                                    actual.finish();
+                                    return;
+                                }
+                                
+                                if (!empty) {
+                                    Observable<? extends U> p = resultSelector.invoke(o);
+                                    Inner inner = new Inner();
+                                    cc.add(inner);
+                                    active = true;
+                                    inner.setCloseable(p.register(inner));
                                 }
                             }
+                        } while (decrementAndGet() != 0);
+                    }
+                }
+                final class Inner extends AtomicReference<Closeable> implements Observer<U>, Closeable {
 
-                            @Override
-                            public void onNext(U value) {
-                                observer.next(value);
-                            }
+                    private static final long serialVersionUID = -8839940547797423702L;
 
-                        }));
+                    @Override
+                    public void error(Throwable ex) {
+                        innerError(ex);
+                    }
+
+                    @Override
+                    public void finish() {
+                        cc.delete(this);
+                        innerComplete();
+                    }
+
+                    @Override
+                    public void next(U value) {
+                        innerNext(value);
                     }
                     
-                };
-                o.registerWith(sources);
-                return o;
+                    @Override
+                    public void close() throws IOException {
+                        Closeable c = getAndSet(this);
+                        if (c != null && c != this) {
+                            c.close();
+                        }
+                    }
+                    
+                    void setCloseable(Closeable c) {
+                        if (!compareAndSet(null, c)) {
+                            Closeables.closeSilently(c);
+                        }
+                    }
+                }
             }
         }
         /**
@@ -306,81 +491,154 @@ public final class Concat {
             @Override
             @Nonnull 
             public Closeable register(@Nonnull final Observer<? super U> observer) {
-                final LinkedBlockingQueue<Observable<? extends T>> sourceQueue = new LinkedBlockingQueue<Observable<? extends T>>();
-                final AtomicInteger wip = new AtomicInteger(1);
-                DefaultObserverEx<Observable<? extends T>> o = new DefaultObserverEx<Observable<? extends T>>(true) {
-                    /** The first value arrived? */
-                    @GuardedBy("lock")
-                    boolean first;
-                    /** The index counter for the outer observable. */
-                    @GuardedBy("lock")
-                    int index;
-                    /**
-                     * The inner exception to forward.
-                     * @param ex the exception
-                     */
-                    void innerError(@Nonnull Throwable ex) {
-                        error(ex);
-                    }
-                    @Override
-                    protected void onError(@Nonnull Throwable ex) {
-                        observer.error(ex);
-                    }
-                    @Override
-                    protected void onFinish() {
-                        if (wip.decrementAndGet() == 0) {
-                            observer.finish();
-                        }
-                    }
-                    @Override
-                    protected void onNext(Observable<? extends T> value) {
-                        if (!first) {
-                            first = true;
-                            registerOn(value);
-                        } else {
-                            sourceQueue.add(value);
-                        }
-                    }
+                ConcatCoordinator cc = new ConcatCoordinator(observer);
+                cc.cc.add(sources.register(cc));
+                return cc;
+            }
+            
+            final class ConcatCoordinator extends AtomicInteger implements Observer<Observable<? extends T>>, Closeable {
+                private static final long serialVersionUID = 3501088403564290965L;
 
-                    void registerOn(@Nonnull Observable<? extends T> value) {
-                        wip.incrementAndGet();
-                        
-                        Observable<? extends U> source = resultSelector.invoke(value, index++);
-                        
-                        add("source", source.register(new DefaultObserver<U>(lock, true) {
-                            @Override
-                            public void onError(@Nonnull Throwable ex) {
-                                innerError(ex);
-                            }
+                final Observer<? super U> actual;
+                
+                final CompositeCloseable cc;
+                
+                final ConcurrentLinkedQueue<Observable<? extends T>> queue;
+                
+                volatile boolean active;
+                boolean mainFailure;
+                volatile boolean done;
 
-                            @Override
-                            public void onFinish() {
-                                Observable<? extends T> nextO = sourceQueue.poll();
-                                if (nextO != null) {
-                                    registerOn(nextO);
-                                } else {
-                                    if (wip.decrementAndGet() == 0) {
-                                        observer.finish();
-                                        remove("source");
-                                    } else {
-                                        first = true;
-                                    }
+                int index;
+                
+                ConcatCoordinator(Observer<? super U> actual) {
+                    this.actual = actual;
+                    this.cc = new CompositeCloseable();
+                    this.index = 1;
+                    this.queue = new ConcurrentLinkedQueue<Observable<? extends T>>();
+                }
+
+                @Override
+                public void error(Throwable ex) {
+                    cc.closeSilently();
+                    mainFailure = true;
+                    done = true;
+                    synchronized (this) {
+                        actual.error(ex);
+                    }
+                }
+                
+                void innerNext(U u) {
+                    if (done && mainFailure) {
+                        return;
+                    }
+                    synchronized (this) {
+                        if (done && mainFailure) {
+                            return;
+                        }
+                        actual.next(u);
+                    }
+                }
+
+                @Override
+                public void finish() {
+                    done = true;
+                    drain();
+                }
+
+                @Override
+                public void close() throws IOException {
+                    cc.close();
+                }
+
+                @Override
+                public void next(Observable<? extends T> value) {
+                    queue.offer(value);
+                    drain();
+                }
+                
+                void innerComplete() {
+                    active = false;
+                    drain();
+                }
+                
+                void innerError(Throwable ex) {
+                    cc.closeSilently();
+                    if (done && mainFailure) {
+                        return;
+                    }
+                    synchronized (this) {
+                        if (done && mainFailure) {
+                            return;
+                        }
+                        actual.error(ex);
+                    }
+                }
+                
+                void drain() {
+                    if (getAndIncrement() == 0) {
+                        do {
+                            if (!active) {
+                                boolean d = done;
+                                boolean err = mainFailure;
+                                Observable<? extends T> o = queue.poll();
+                                boolean empty = o == null;
+
+                                if (d && err) {
+                                    return;
+                                }
+                                
+                                if (d && empty) {
+                                    actual.finish();
+                                    return;
+                                }
+                                
+                                if (!empty) {
+                                    Observable<? extends U> p = resultSelector.invoke(o, index++);
+                                    Inner inner = new Inner();
+                                    cc.add(inner);
+                                    active = true;
+                                    inner.setCloseable(p.register(inner));
                                 }
                             }
+                        } while (decrementAndGet() != 0);
+                    }
+                }
+                final class Inner extends AtomicReference<Closeable> implements Observer<U>, Closeable {
 
-                            @Override
-                            public void onNext(U value) {
-                                observer.next(value);
-                            }
+                    private static final long serialVersionUID = -8839940547797423702L;
 
-                        }));
+                    @Override
+                    public void error(Throwable ex) {
+                        innerError(ex);
+                    }
+
+                    @Override
+                    public void finish() {
+                        cc.delete(this);
+                        innerComplete();
+                    }
+
+                    @Override
+                    public void next(U value) {
+                        innerNext(value);
                     }
                     
-                };
-                o.registerWith(sources);
-                return o;
+                    @Override
+                    public void close() throws IOException {
+                        Closeable c = getAndSet(this);
+                        if (c != null && c != this) {
+                            c.close();
+                        }
+                    }
+                    
+                    void setCloseable(Closeable c) {
+                        if (!compareAndSet(null, c)) {
+                            Closeables.closeSilently(c);
+                        }
+                    }
+                }
             }
         }
-
     }
 }
