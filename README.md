@@ -17,7 +17,7 @@ Users are encouraged to use [RxJava](https://github.com/ReactiveX/RxJava) as a n
 
 ```groovy
 dependencies {
-    compile 'com.github.akarnokd:reactive4java:0.98.0'
+    compile 'com.github.akarnokd:reactive4java:0.98.1'
 }
 ```
 
@@ -25,7 +25,7 @@ dependencies {
 
 ```xml
 <dependencies>
-    <dependency org="com.github.akarnokd" name="reactive4java" rev="0.98.0" />
+    <dependency org="com.github.akarnokd" name="reactive4java" rev="0.98.1" />
 </dependencies>
 ```
 
