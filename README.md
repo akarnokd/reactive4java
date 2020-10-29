@@ -1,7 +1,7 @@
 reactive4java
 =================
 
-<a href='https://travis-ci.org/akarnokd/reactive4java/builds'><img src='https://travis-ci.org/akarnokd/reactive4java.svg?branch=0.x'></a>
+<a href='https://travis-ci.com/akarnokd/reactive4java/builds'><img src='https://travis-ci.com/akarnokd/reactive4java.svg?branch=0.x'></a>
 [![codecov.io](http://codecov.io/github/akarnokd/reactive4java/coverage.svg?branch=0.x)](http://codecov.io/github/akarnokd/reactive4java?branch=0.x)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.akarnokd/reactive4java/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.akarnokd/reactive4java)
 
